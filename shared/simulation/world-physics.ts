@@ -20,7 +20,7 @@ export function physicalDropPlacementClear(s: Game, r: PhysicsRuntime, x: number
 }
 
 /** Reject authoring before allocating a solver. All numbers are match-pinned tuning. */
-export function validateWorldPhysics(content: MatchContent, map: Omit<GameMap, 'items'>): void {
+export function validateWorldPhysics(content: MatchContent, map: Omit<GameMap, 'items' | 'traps'>): void {
   const profile = content.worldPhysics;
   if (!profile) throw new RangeError('world physics profile required');
   if (!content.itemInstances || !content.actorPhysics) throw new RangeError('world physics requires item instances and actor physics');

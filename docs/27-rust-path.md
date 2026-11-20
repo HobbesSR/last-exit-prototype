@@ -273,6 +273,23 @@ in `shared/discovery.ts` is now its adapter, through the game's binding (`shared
   Giving each one owner again, once its callers move, is #1222.
 - **Cost:** [42.62](42.62-discovery-core-adapter.md). The crossing is about 2% of the TypeScript's cost.
 
+**Step 3, the live stores (#1211).** The ground and the traps are the game's (`s.items`, `s.traps`), and the doors are
+`s.gates`. `s.map` is the arena (`MatchMap` in `shared/types.ts`), which nothing in a match writes; its geometry is pinned once the game is prepared, as before.
+- **One object, emptied.** `createGameRecord` takes the lists off the map it is given and keeps that map object, so
+  caches keyed on it, and on its lists, still hit. The lists keep their identity and order; the ground's indexes
+  (`ground-items.ts`) were already keyed on the list, not the map.
+- **Doors are one list read two ways.** `s.gates` is `s.map.gates`, and preparation refuses a game where they differ.
+  The game reads and writes door state through `s.gates` (frames, physics, interactions); collision and sight read the
+  same records as geometry through the map, as the core's gate set does. Only `open` and `locked` change in a match.
+  Splitting door state from door shape, so the arena holds shapes only, is #1214's, with the open-mask write.
+- **Stations and chargers stay on the map.** Nothing writes them in a match, so they are static data, and discovery's
+  upload still reads them from there.
+- **What is sent is unchanged.** The server rebuilds the whole map for a client or a recording with `wholeMap`
+  (`shared/simulation/state.ts`), which puts the lists back in the map's own field order, so the payload's JSON is
+  byte for byte what it was.
+- **Discovery** takes the ground as an argument (`discover(..., lineOfSight, ground)`), which the tick and
+  `createGameRecord` pass as `s.items`. A bare map's own `items` is the default, for tools and tests.
+
 ## One math library on both sides
 
 "Native on the server, WebAssembly in the browser" is not bit-identical by itself. Native Rust's `sin`, `cos` and

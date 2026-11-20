@@ -17,7 +17,7 @@ export function registeredItemId(game, label) {
  */
 export function identifyItems(game) {
   const identify = value => typeof value === 'string' ? registerItemLabel(game, value) : value;
-  for (const item of game.map.items) {
+  for (const item of game.items) {
     if (typeof item.id === 'string') item.id = identify(item.id);
     if (typeof item.instanceId === 'string') item.instanceId = identify(item.instanceId);
     if (typeof item.lineageId === 'string') item.lineageId = identify(item.lineageId);

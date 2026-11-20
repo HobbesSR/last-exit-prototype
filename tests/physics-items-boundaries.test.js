@@ -82,11 +82,11 @@ test('staged swaps reserve full batches ahead of older mandatory overflow', asyn
       while (r.world.canAddBodies(copies)) r.world.queueAddBody({ id: `filler-${n++}`, kind: 'prop',
         x: 700, y: 50, shape: { kind: 'circle', radius: 2 } });
       r.world.commitMutations();
-      s.map.items.push({ id: 'aaa-overflow', kind: 'cell', charge: 100, x: 500, y: 200 });
+      s.items.push({ id: 'aaa-overflow', kind: 'cell', charge: 100, x: 500, y: 200 });
       identifyItems(s);
       interact(s, p);
       assert.equal(itemLabel(s, p.inventory[0].instanceId), 'sleeping');
-      const outgoing = s.map.items.filter(i => itemLabel(s, i.lineageId) === 'out-0');
+      const outgoing = s.items.filter(i => itemLabel(s, i.lineageId) === 'out-0');
       assert.equal(outgoing.length, copies);
       assert.ok(outgoing.every(i => r.world.hasBody(`item:${itemLabel(s, i.id)}`)));
       assert.equal(r.world.hasBody('item:aaa-overflow'), false);
@@ -111,7 +111,7 @@ test('forty physical pickup/drop cycles conserve the objective without body or j
     for (let cycle = 0; cycle < 40; cycle++) {
       p.x = 120; p.y = 200; synchronizePhysics(s);
       assert.equal(dropInventorySlot(s, p, 0), true);
-      const dropped = s.map.items[0];
+      const dropped = s.items[0];
       assert.equal(itemLabel(s, dropped.id), 'sleeping'); assert.equal(dropped.charge, 100);
       assert.equal(r.world.counts().dynamic, baseline + 1);
       const nextGeneration = r.world.getGeneration('item:sleeping');
@@ -119,7 +119,7 @@ test('forty physical pickup/drop cycles conserve the objective without body or j
       p.x = dropped.x; p.y = dropped.y; dropped.pickupAfter = 0;
       automaticPickups(s, p, {});
       assert.equal(itemLabel(s, p.inventory[0].instanceId), 'sleeping'); assert.equal(p.inventory[0].charge, 100);
-      assert.equal(s.map.items.length, 0);
+      assert.equal(s.items.length, 0);
       assert.equal(r.world.counts().dynamic, baseline);
       assert.equal(r.world.counts().constraints, 0);
       assert.equal(r.pendingImpulses.length, 0); assert.equal(r.pendingAttachments.length, 0);

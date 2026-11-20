@@ -16,7 +16,7 @@ const arena = items => ({ width: 600, height: 400,
   buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
 const content = id => ({ ...structuredClone(contentById(id)), roster: { contestants: ['A', 'B'], gladiators: [] }, discovery: false });
 const pile = (id, x, count = 20) => ({ id, kind: 'ammo', family: 'pistol', count, x, y: 300 });
-const scenario = items => identifyItems({ map: { items }, players: [] });
+const scenario = items => identifyItems({ items, players: [] });
 const identifiedPile = (s, label, x, count) => pile(itemId(s, label), x, count);
 const labels = (s, items) => items.map(item => itemLabel(s, item.id));
 
@@ -40,19 +40,19 @@ test('body ownership lookup stays independent of ground size after helper remova
   assert.equal(groundItem(s, retained.id), moved);
   const frame = publishItems(s);
   addItems(s, identifiedPile(s, 'appended', 200));
-  assert.equal(groundItem(s, itemId(s, 'appended')), s.map.items.at(-1));
+  assert.equal(groundItem(s, itemId(s, 'appended')), s.items.at(-1));
   assert.equal(frame.length, 999);
-  assert.equal(groundItem({ map: { items: frame } }, retained.id), moved);
-  s.map.items.push(identifiedPile(s, 'raw-push', 250));
-  assert.equal(groundItem(s, itemId(s, 'raw-push')), s.map.items.at(-1), 'raw appends rebuild the record lookup');
+  assert.equal(groundItem({ items: frame }, retained.id), moved);
+  s.items.push(identifiedPile(s, 'raw-push', 250));
+  assert.equal(groundItem(s, itemId(s, 'raw-push')), s.items.at(-1), 'raw appends rebuild the record lookup');
   groundPosition(s, itemId(s, 'i1'));
-  s.map.items[0] = identifiedPile(s, 'raw-replacement', 100);
+  s.items[0] = identifiedPile(s, 'raw-replacement', 100);
   assert.equal(groundItem(s, itemId(s, 'i1')), undefined, 'an existing positional index still detects a replaced id');
-  assert.equal(groundItem(s, itemId(s, 'raw-replacement')), s.map.items[0]);
-  s.map.items[0] = { ...s.map.items[0], x: 175 };
-  assert.equal(groundItem(s, itemId(s, 'raw-replacement')), s.map.items[0], 'same-id raw replacement reads the indexed record');
+  assert.equal(groundItem(s, itemId(s, 'raw-replacement')), s.items[0]);
+  s.items[0] = { ...s.items[0], x: 175 };
+  assert.equal(groundItem(s, itemId(s, 'raw-replacement')), s.items[0], 'same-id raw replacement reads the indexed record');
   groundList(s).splice(0, 1, identifiedPile(s, 'scenario', 150));
-  assert.equal(groundItem(s, itemId(s, 'scenario')), s.map.items[0], 'arbitrary edits through groundList invalidate lookup');
+  assert.equal(groundItem(s, itemId(s, 'scenario')), s.items[0], 'arbitrary edits through groundList invalidate lookup');
 });
 
 test('pending physical items keep id order across publication, admission, edits and scenario setup (#863)', () => {
@@ -62,10 +62,10 @@ test('pending physical items keep id order across publication, admission, edits 
   assert.deepEqual(labels(s, pending()), ['a', 'm', 'z']);
   const frame = publishItems(s);
   addItems(s, identifiedPile(s, 'c', 200));
-  const moved = { ...s.map.items[0], x: 100 };
-  replaceItem(s, s.map.items[0], moved);
-  removeItem(s, s.map.items.find(i => i.id === itemId(s, 'm')));
-  assert.equal(groundItem(s, itemId(s, 'c')), s.map.items.at(-1));
+  const moved = { ...s.items[0], x: 100 };
+  replaceItem(s, s.items[0], moved);
+  removeItem(s, s.items.find(i => i.id === itemId(s, 'm')));
+  assert.equal(groundItem(s, itemId(s, 'c')), s.items.at(-1));
   assert.deepEqual(labels(s, pending()), ['a', 'c', 'z']);
   assert.equal(pending().at(-1), moved);
   const visited = [];
@@ -75,7 +75,7 @@ test('pending physical items keep id order across publication, admission, edits 
   assert.deepEqual(visited, ['a', 'c', 'z'], 'admitting the current item never skips its successor');
   assert.deepEqual(pending(), []);
   assert.deepEqual(labels(s, frame), ['z', 'b', 'a', 'm']);
-  s.map.items.push(identifiedPile(s, 'raw', 250));
+  s.items.push(identifiedPile(s, 'raw', 250));
   assert.deepEqual(labels(s, pending()), ['raw'], 'a direct scenario push rebuilds the pending list');
   groundList(s).splice(0, 1, identifiedPile(s, 'scenario', 250));
   assert.deepEqual(labels(s, pending()), ['raw', 'scenario'], 'groundList allows arbitrary same-length scenario edits');
@@ -85,30 +85,30 @@ test('scatter over the live grid equals the whole-list stand-in scan, including 
   const items = Array.from({ length: 700 }, (_, i) => ({ ...pile(`s${i}`, (i * 131) % 600), y: (i * 79) % 400 }));
   const s = createGameRecord(17, arena(items), content('content-ammo-1'));
   publishItems(s);
-  const compare = (origin, phase, points = []) => assert.deepEqual(scatterPoint(s, origin, phase, s.map.items, points),
-    scatterPoint(s, origin, phase, s.map.items.slice(), points));
+  const compare = (origin, phase, points = []) => assert.deepEqual(scatterPoint(s, origin, phase, s.items, points),
+    scatterPoint(s, origin, phase, s.items.slice(), points));
   for (let phase = 0; phase < 24; phase++) compare({ x: 120 + phase * 15, y: 200 }, phase, [{ x: 156, y: 200 }]);
   // The stand-in deliberately excludes pickups during a swap; it must not query their live grid entries.
   const clear = createGameRecord(17, arena([pile('blocker', 336)]), content('content-ammo-1'));
-  replaceItem(clear, clear.map.items[0], { ...clear.map.items[0], y: 200 });
+  replaceItem(clear, clear.items[0], { ...clear.items[0], y: 200 });
   publishItems(clear);
   const origin = { x: 300, y: 200 }, first = { x: 336, y: 200 };
   assert.deepEqual(scatterPoint(clear, origin, 0, []), first);
-  assert.notDeepEqual(scatterPoint(clear, origin, 0, clear.map.items), first);
+  assert.notDeepEqual(scatterPoint(clear, origin, 0, clear.items), first);
   addItems(clear, { ...pile('nan', NaN), y: NaN });
-  assert.equal(scatterPoint(clear, origin, 0, clear.map.items), undefined, 'non-finite records still block every candidate');
+  assert.equal(scatterPoint(clear, origin, 0, clear.items), undefined, 'non-finite records still block every candidate');
 });
 
 test('an unchanged ground is shared between frames, frozen, and never cloned', () => {
   const s = createGameRecord(17, arena([pile('a', 300), pile('b', 500)]), content('content-ammo-1'));
   for (const p of s.players) p.bot = false;
-  const runtimeItems = s.map.items;
+  const runtimeItems = s.items;
   const first = snapshot(s), second = snapshot(s);
   const firstItemsJson = itemsJson(first.items);
   assert.equal(second.items, first.items);
   assert.equal(second.items[0], first.items[0], 'unchanged snapshots retain each converted legacy record');
-  assert.equal(first.items, s.map.items, 'numeric bodyless ground records share the runtime publication');
-  assert.equal(s.map.items, runtimeItems, 'unchanged snapshots retain the runtime ground list');
+  assert.equal(first.items, s.items, 'numeric bodyless ground records share the runtime publication');
+  assert.equal(s.items, runtimeItems, 'unchanged snapshots retain the runtime ground list');
   assert.equal(itemsJson(second.items), firstItemsJson, 'the outward list keeps its published serialization cache');
   assert.ok(first.items.every(Object.isFrozen));
   assert.throws(() => { first.items[0].count = 1; }, TypeError);
@@ -123,9 +123,9 @@ test('a partial pickup replaces only its own record; published frames keep what 
   for (const q of s.players) q.bot = false;
   p.x = 120; p.y = 300; p.reserves.pistol = 72;
   const before = snapshot(s), [near, far] = before.items;
-  const unchangedRuntimeItems = s.map.items;
+  const unchangedRuntimeItems = s.items;
   automaticPickups(s, p, {});
-  assert.equal(s.map.items, unchangedRuntimeItems, 'a full reserve changes nothing, so nothing is copied');
+  assert.equal(s.items, unchangedRuntimeItems, 'a full reserve changes nothing, so nothing is copied');
   assert.equal(snapshot(s).items, before.items, 'unchanged legacy projections reuse their list');
   p.reserves.pistol = 60;
   automaticPickups(s, p, {});
@@ -140,14 +140,14 @@ test('a partial pickup replaces only its own record; published frames keep what 
 test('adding to a published ground copies the list once and leaves the frame alone', () => {
   const s = createGameRecord(17, arena([pile('a', 300)]), content('content-ammo-1'));
   const frame = snapshot(s);
-  const runtimeRecord = s.map.items[0];
+  const runtimeRecord = s.items[0];
   groundList(s).push(identifiedPile(s, 'b', 400));
   groundList(s).push(identifiedPile(s, 'c', 450));
   assert.deepEqual(labels(s, frame.items), ['a']);
-  assert.deepEqual(labels(s, s.map.items), ['a', 'b', 'c']);
-  assert.equal(s.map.items[0], runtimeRecord, 'appending reuses the untouched numeric runtime record');
+  assert.deepEqual(labels(s, s.items), ['a', 'b', 'c']);
+  assert.equal(s.items[0], runtimeRecord, 'appending reuses the untouched numeric runtime record');
   assert.equal(itemLabel(s, groundItem(s, itemId(s, 'c')).id), 'c');
-  assert.throws(() => replaceItem(s, s.map.items[0], { ...s.map.items[0], id: itemId(s, 'other') }), /replacing ground item/);
+  assert.throws(() => replaceItem(s, s.items[0], { ...s.items[0], id: itemId(s, 'other') }), /replacing ground item/);
 });
 
 test('the item grid offers every record in reach, in list order, through adds, removals, moves and frames (#641)', () => {
@@ -158,21 +158,21 @@ test('the item grid offers every record in reach, in list order, through adds, r
   const frames = [];
   let serial = 300;
   for (let step = 0; step < 2000; step++) {
-    const items = s.map.items, roll = random(), item = items[Math.floor(random() * items.length)];
+    const items = s.items, roll = random(), item = items[Math.floor(random() * items.length)];
     if (roll < 0.2) addItems(s, { id: itemId(s, `i${serial++}`), kind: 'med', x: at(), y: at() });
     else if (roll < 0.35 && item) removeItem(s, item);
     else if (roll < 0.6 && item) replaceItem(s, item, { ...item, x: item.x + random() * 80 - 40, y: item.y + random() * 80 - 40 });
     else if (roll < 0.65 && item && !Object.isFrozen(item)) item.x = at(); // Before its first frame, a record may still be moved in place.
-    else if (roll < 0.75) frames.push({ list: publishItems(s), ids: s.map.items.map(i => i.id) });
+    else if (roll < 0.75) frames.push({ list: publishItems(s), ids: s.items.map(i => i.id) });
     const p = { x: random() * 1600, y: random() * 1600 }, reach = [38, 45, 130][step % 3];
-    const expected = s.map.items.filter(i => !(Math.hypot(i.x - p.x, i.y - p.y) > reach));
+    const expected = s.items.filter(i => !(Math.hypot(i.x - p.x, i.y - p.y) > reach));
     assert.deepEqual(itemsNear(s, p, reach).filter(i => expected.includes(i)), expected, `step ${step}`);
   }
   assert.ok(frames.length > 100);
   for (const frame of frames) assert.deepEqual(frame.list.map(i => i.id), frame.ids, 'a published list never changes');
   const p = { x: 500, y: 500 };
-  assert.ok(itemsNear(s, p, 45).length < s.map.items.length / 4, 'a query reads a neighbourhood, not the map');
-  assert.deepEqual(itemsNear(s, { x: NaN, y: 0 }, 45), s.map.items, 'a position that compares as nothing is offered everything');
+  assert.ok(itemsNear(s, p, 45).length < s.items.length / 4, 'a query reads a neighbourhood, not the map');
+  assert.deepEqual(itemsNear(s, { x: NaN, y: 0 }, 45), s.items, 'a position that compares as nothing is offered everything');
 });
 
 test('a viewer\'s items through the grid are exactly the whole-list filter, for live, posed and older frames (#641)', () => {
@@ -183,11 +183,11 @@ test('a viewer\'s items through the grid are exactly the whole-list filter, for 
   const frames = [];
   let serial = 1500, wide = 0;
   for (let step = 0; step < 600; step++) {
-    const items = s.map.items, item = items[Math.floor(random() * items.length)], roll = random();
+    const items = s.items, item = items[Math.floor(random() * items.length)], roll = random();
     if (roll < 0.2) addItems(s, { id: itemId(s, `i${serial++}`), kind: 'med', x: at(), y: at() });
     else if (roll < 0.3 && item) removeItem(s, item);
     else if (roll < 0.5 && item) replaceItem(s, item, { ...item, x: item.x + random() * 400 - 200, y: item.y + random() * 400 - 200 });
-    else if (roll < 0.55) s.map.items.push({ id: itemId(s, `pushed${serial++}`), kind: 'med', x: at(), y: at() }); // A test arranging a scenario.
+    else if (roll < 0.55) s.items.push({ id: itemId(s, `pushed${serial++}`), kind: 'med', x: at(), y: at() }); // A test arranging a scenario.
     const ground = publishItems(s);
     // A frame's posed copy: some records moved by their bodies, by any distance, across any cell or the view edge.
     const swaps = new Map();
@@ -206,7 +206,7 @@ test('a viewer\'s items through the grid are exactly the whole-list filter, for 
     }
   }
   assert.ok(wide > 50, 'the view reach is exercised with something in range');
-  assert.deepEqual(framedItems(s, s.map.items, { x: NaN, y: 0 }, 1692, () => true), s.map.items, 'a viewer that compares as nothing is tested against everything');
+  assert.deepEqual(framedItems(s, s.items, { x: NaN, y: 0 }, 1692, () => true), s.items, 'a viewer that compares as nothing is tested against everything');
 });
 
 test('an unchanged record projects to one shared object in every view and frame; a replaced one projects anew', () => {
@@ -218,7 +218,7 @@ test('an unchanged record projects to one shared object in every view and frame;
   assert.ok(directed.every(Object.isFrozen));
   // Player views carry the directed view's objects, so frame-layers same() matches them by identity.
   for (const viewer of viewers) for (const item of playerView(s, first, viewer).items) assert.equal(item, directed.find(d => d.id === item.id));
-  replaceItem(s, s.map.items[0], { ...s.map.items[0], count: 5 });
+  replaceItem(s, s.items[0], { ...s.items[0], count: 5 });
   const [a, b] = playerView(s, snapshot(s), null).items;
   assert.notEqual(a, directed[0]); assert.equal(a.count, 5);
   assert.equal(b, directed[1]);

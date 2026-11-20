@@ -121,7 +121,7 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     assert.equal(we.id, null); assert.equal(we.spectator, true); assert.equal(Object.hasOwn(we.state, 'self'), false, 'directed');
     assert.equal(we.state.players.length, server.rooms.get(room.id).game.players.length);
     // The composition root keys outward IDs by default (#1164): the map's item IDs are not the match's own.
-    const internal = server.rooms.get(room.id).game.map.items.map(item => item.id), sent = we.map.items.map(item => item.id);
+    const internal = server.rooms.get(room.id).game.items.map(item => item.id), sent = we.map.items.map(item => item.id);
     assert.equal(sent.length, internal.length);
     assert.notDeepEqual(sent, internal, 'createArenaServer draws a non-identity key');
     assert.equal(new Set(sent).size, sent.length);

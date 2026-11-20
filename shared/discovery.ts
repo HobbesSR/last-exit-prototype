@@ -121,6 +121,8 @@ const HEADER = 11;
  *   item whose spot is seen empty is forgotten. Doors in sight are remembered as they stand
  *   (`memory.gates`), and every cell the view window covers is `memory.surveyed`, the layout navigation
  *   may treat as known (22.6).
+ * `ground` is the item list a line-of-sight sample reads: a game's is `s.items`, off its map (#1211); a bare map's
+ * is its own `items`.
  * Returns the newly discovered cell indices; `memory.revision` counts each sample that changed anything.
  *
  * The rule runs in the core (#1210, docs/27 "The state flip"), through `sight`, the game's core binding
@@ -133,7 +135,8 @@ export function discover(
   map: DiscoveryMap,
   eye: Vec2,
   radius: World = DISCOVERY_RADIUS,
-  lineOfSight = false
+  lineOfSight = false,
+  ground: readonly GroundItem<ItemId>[] | undefined = map.items
 ): number[] {
   const { cols, rows } = discoveryGrid(map);
   let near: readonly GroundItem<ItemId>[] = [], held: readonly GroundItem<ItemId>[] = [], doors: Gate[] = [];
@@ -142,9 +145,9 @@ export function discover(
   let c0 = 0, c1 = -1, r0 = 0, r1 = -1;
   if (lineOfSight) {
     seen = memory.seen ??= new SeenCells(cols, rows);
-    if (map.items) {
+    if (ground) {
       items = rememberedItems(memory) ?? (memory.items = new ItemMemory());
-      near = itemsNear(map.items, eye, radius);
+      near = itemsNear(ground, eye, radius);
       held = [...items.cellItems(), ...items.near(eye, radius)];
     }
     doors = gatesNear(map, eye.x - radius, eye.y - radius, eye.x + radius, eye.y + radius);

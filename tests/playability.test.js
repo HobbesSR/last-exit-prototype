@@ -112,7 +112,7 @@ test('dropping a selected charged cell frees a slot, preserves charge, and does 
     const droppedOn = s.tick + 1, free = droppedOn + HZ;
     press(s, p, { drop: true });
     assert.equal(carriedCell(p), null);
-    const cell = s.map.items.find(i => i.kind === 'cell');
+    const cell = s.items.find(i => i.kind === 'cell');
     assert.equal(cell.charge, CELL_CHARGE_TICKS);
     assert.equal(cell.pickupAfter, free, 'the record carries the one-second delay');
     assert.ok(canOccupy(s.map, cell.x, cell.y, actorRadius(s, p)));
@@ -155,10 +155,10 @@ test('loot across a window cannot be collected even at pickup distance', async (
   const at = { x: INSIDE.x, y: HALL.y - 12 };
   for (const [map, collects] of [[hall({ items: [cell()] }), false], [openField(LENGTH, { items: [cell()] }).map, true]]) {
     await dispose(await stage(map, [{ role: 'contestant', bot: false, ...at }]), ({ s, players: [p] }) => {
-      assert.ok(Math.hypot(at.x - s.map.items[0].x, at.y - s.map.items[0].y) <= 38, 'within pickup distance');
+      assert.ok(Math.hypot(at.x - s.items[0].x, at.y - s.items[0].y) <= 38, 'within pickup distance');
       step(s);
       assert.equal(!!carriedCell(p), collects);
-      assert.equal(s.map.items.length, collects ? 0 : 1);
+      assert.equal(s.items.length, collects ? 0 : 1);
     });
   }
 });

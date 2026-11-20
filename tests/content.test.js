@@ -135,7 +135,7 @@ test('the simulation reads the pinned content, not the shipped constants', async
       Object.assign(shooter, { heading: 0, attackCd: 0 });
       Object.assign(target, { hp: 100, shield: 0 });
       const ground = { id: itemId(s, 'test-pistol'), kind: 'weapon', weaponType: 'pistol', ammo: s.content.weapons.pistol.ammo, x: shooter.x, y: shooter.y };
-      s.map.items.push(ground);
+      s.items.push(ground);
       collectInstanceEquipment(s, shooter, { ...ground }, ground);
       shooter.selectedSlot = shooter.inventory.findIndex(i => i?.kind === 'weapon');
       attack(s, shooter);
@@ -261,7 +261,7 @@ test('trap balance is read from the match, not from the module it defaults in', 
   const detonate = async content => {
     const { s, players: [victim] } = await stepped(content);
     try {
-      s.map.traps = [{ id: 'trap', kind: 'mine', x: victim.x + 40, y: victim.y, homeX: victim.x + 40, homeY: victim.y, heading: Math.PI, cooldown: 0, offset: 0 }];
+      s.traps = [{ id: 'trap', kind: 'mine', x: victim.x + 40, y: victim.y, homeX: victim.x + 40, homeY: victim.y, heading: Math.PI, cooldown: 0, offset: 0 }];
       setInput(s, victim.id, { seq: 1, x: 1 });
       step(s);
       return victim.hp;

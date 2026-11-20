@@ -246,7 +246,7 @@ export function collectBotIntent(s: Game, p: Player): BotIntent {
     const setAside = (i: GroundItem) => !!memory && pursuit!.ignored.get(i.id)! > s.tick;
     let scanned = 0;
     const cellItems = (): GroundItem[] => {
-      const listed = memory ? remembered?.cellItems() ?? [] : s.map.items;
+      const listed = memory ? remembered?.cellItems() ?? [] : s.items;
       scanned += listed.length;
       return listed.filter(i => i.kind === 'cell' && !setAside(i));
     };
@@ -280,7 +280,7 @@ export function collectBotIntent(s: Game, p: Player): BotIntent {
     const room = (slot: WeaponItem) => reserveRoom(s, p, s.content.reloading!.weapons[slot.weaponType].family);
     const refills = (slot: WeaponItem) => s.content.reloading ? room(slot) > 0 : slot.ammo < s.content.weapons[slot.weaponType]?.maxAmmo;
     const full = (slot: WeaponItem) => s.content.reloading ? room(slot) <= 0 : slot.ammo >= s.content.weapons[slot.weaponType].maxAmmo;
-    const lootable = memory ? remembered?.near(p, 210) ?? [] : s.map.items;
+    const lootable = memory ? remembered?.near(p, 210) ?? [] : s.items;
     scanned += lootable.length;
     count('work.bots.items', scanned);
     const loot = lootable.filter(i => i.kind !== 'cell' && !setAside(i) && i.x > s.hazardX + 100 && i.x >= p.x - 60 && distance(p, i) < 210 && accessible(i)

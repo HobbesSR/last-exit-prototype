@@ -9,7 +9,7 @@ import { arena } from './helpers/arena.js';
 test('initial instance IDs stay reserved after their items are consumed', () => {
   const s = createGameRecord(4217, generatedMap(), defaultContent());
   s.content = { ...s.content, itemInstances: { groundCapacity: 2 } };
-  s.map.items = [{ id: 'instance-17', lineageId: 'instance-999', kind: 'weapon', weaponType: 'pistol', ammo: 1, x: 0, y: 0 }];
+  s.items = [{ id: 'instance-17', lineageId: 'instance-999', kind: 'weapon', weaponType: 'pistol', ammo: 1, x: 0, y: 0 }];
   for (const player of s.players) player.inventory = [null, null, null, null, null, null];
   s.players[0].inventory[0] = { kind: 'cell', charge: 0 };
 
@@ -17,10 +17,10 @@ test('initial instance IDs stay reserved after their items are consumed', () => 
   delete s.scatterSerial; // Arrange first initialization of this legacy input.
   initializeItemInstances(s);
   assert.equal(s.scatterSerial, 19, 'only active legacy IDs reserve initial scatter phases');
-  const root = s.map.items[0].lineageId, carried = s.players[0].inventory[0].instanceId;
+  const root = s.items[0].lineageId, carried = s.players[0].inventory[0].instanceId;
   assert.ok(root >= before && carried > root, 'map items, disappeared roots and carried items share a monotonic domain');
   assert.equal(itemLabel(s, carried), 'instance-18');
-  s.map.items.length = 0;
+  s.items.length = 0;
   const next = allocateItemId(s);
   assert.ok(next > carried);
   assert.equal(itemLabel(s, next), 'instance-19');
@@ -32,13 +32,13 @@ test('reload identities validate before normalization mutates records and join t
     const { map } = arena({ cols: 4, rows: 3, spawns: [{ x: 100, y: 100 }] });
     const s = createGameRecord(17, map, { ...defaultContent(),
       roster: { contestants: ['A'], gladiators: [] }, discovery: false });
-    s.map.items.push({ id: 'ground', kind: 'cell', charge: 1, x: 300, y: 200 });
+    s.items.push({ id: 'ground', kind: 'cell', charge: 1, x: 300, y: 200 });
     const p = s.players[0];
     p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 1, instanceId: 'held', lineageId: 'root' };
     p.reload = { slot: 0, instanceId: id, until: 20 };
     return { s, p };
   };
-  const state = s => structuredClone({ items: s.map.items, players: s.players,
+  const state = s => structuredClone({ items: s.items, players: s.players,
     itemSerial: s.itemSerial, scatterSerial: s.scatterSerial, registry: s.itemIdentities });
   for (const invalid of [undefined, null, '', 0, -1, 1.5, NaN, 999, Number.MAX_SAFE_INTEGER]) {
     const { s } = fixture(invalid), before = state(s);

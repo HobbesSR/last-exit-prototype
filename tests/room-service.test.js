@@ -165,7 +165,7 @@ test('inventory gesture commands preserve source items in authoritative frames a
   try {
     const game = room.game, player = game.players.find(p => p.id === owner.session.playerId);
     for (const actor of game.players) { actor.bot = false; actor.input = {}; }
-    game.map.items = []; game.map.traps = [];
+    game.items = []; game.traps = [];
     const weapon = { kind: 'weapon', weaponType: 'rifle', ammo: 7 };
     const cell = { kind: 'cell', charge: 71 };
     player.inventory = [cell, null, null, null, null, weapon]; player.selectedSlot = 0;
@@ -176,7 +176,7 @@ test('inventory gesture commands preserve source items in authoritative frames a
 
     owner.send({ type: 'input', seq: 3, slot: 0, drop: true }); h.wake(50);
     assert.equal(player.inventory[0], null); assert.deepEqual(player.inventory[5], cell);
-    const dropped = game.map.items.find(item => item.droppedBy === player.id);
+    const dropped = game.items.find(item => item.droppedBy === player.id);
     assert.equal(dropped.weaponType, 'rifle'); assert.equal(dropped.ammo, 7);
     const recorded = writer.frames.at(-1);
         assert.deepEqual(recorded.state.items.find(item => item.id === dropped.id), (({ x, y, ...rest }) => rest)(dropped));
@@ -189,7 +189,7 @@ test('inventory gesture commands preserve source items in authoritative frames a
     assert.deepEqual(delivered.players.find(p => p.id === player.id).inventory, player.inventory.map(unidentified));
 
     h.wake(50);
-    assert.equal(game.map.items.filter(item => item.droppedBy === player.id).length, 1, 'drop is consumed once');
+    assert.equal(game.items.filter(item => item.droppedBy === player.id).length, 1, 'drop is consumed once');
     assert.deepEqual(player.inventory[5], cell);
   } finally { await h.service.close(); }
 });

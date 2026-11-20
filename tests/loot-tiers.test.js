@@ -60,16 +60,16 @@ test('weighted draws match each mix over many samples and never pick a zero weig
 });
 
 test('item rolls are keyed by seed and id, not by order', () => {
-  const item = { seed: 9, itemSerial: 1, map: { items: [] }, players: [] };
+  const item = { seed: 9, itemSerial: 1, items: [], players: [] };
   const rollId = registerId(item, 'item-4');
   assert.equal(itemRoll(9, rollId), itemRoll(9, rollId));
   assert.notEqual(itemRoll(9, rollId), itemRoll(10, rollId));
   const map = arena(), weapons = [0, 1, 2, 3].map(i => ({ id: `item-${i}`, kind: 'weapon', weaponType: 'rifle', x: 590, y: 5 + i }));
-  const a = { seed: 5, content: LOOT, map: { ...map, items: structuredClone(weapons) } };
-  const b = { seed: 5, content: LOOT, map: { ...map, items: structuredClone(weapons).reverse() } };
+  const a = { seed: 5, content: LOOT, map, items: structuredClone(weapons) };
+  const b = { seed: 5, content: LOOT, map, items: structuredClone(weapons).reverse() };
   identifyItems(a); identifyItems(b);
   assignWeaponQualities(a); assignWeaponQualities(b);
-  const byId = s => Object.fromEntries(s.map.items.map(i => [itemLabel(s, i.id), i.quality]));
+  const byId = s => Object.fromEntries(s.items.map(i => [itemLabel(s, i.id), i.quality]));
   assert.deepEqual(byId(a), byId(b));
 });
 
@@ -81,8 +81,8 @@ test('a live chain map: virtual columns are the generator zone tiers, only quali
   const plain = createGameRecord(9, structuredClone(map), defaultContent());
   const s = createGameRecord(9, map, contentById('content-loot-1')), byMix = [[], [], [], [], []];
   let kit = 0;
-  for (const [i, item] of s.map.items.entries()) {
-    assert.deepEqual({ ...item, quality: undefined }, { ...plain.map.items[i], quality: undefined }, 'only quality is added');
+  for (const [i, item] of s.items.entries()) {
+    assert.deepEqual({ ...item, quality: undefined }, { ...plain.items[i], quality: undefined }, 'only quality is added');
     if (item.kind !== 'weapon') { assert.equal(item.quality, undefined); continue; }
     if (s.map.spawns.some(sp => Math.hypot(item.x - sp.x, item.y - sp.y) <= STARTER_RESERVE)) { kit++; assert.equal(item.quality, 1, 'spawn kit'); }
     else if (item.nodeId) byMix[spatialMix(virtualZone(s.map, item)) - 1].push(item.quality);
@@ -105,8 +105,8 @@ test('weapon quality is explicit: the default content assigns none and consumes 
   for (let i = 0; i < 6; i++) map.items.push({ id: `w-${i}`, kind: 'weapon', weaponType: 'rifle', x: 130 + i * 70, y: 40 + i * 60 });
   const plain = createGameRecord(4217, structuredClone(map), defaultContent());
   const tiered = createGameRecord(4217, structuredClone(map), contentById('content-loot-1'));
-  assert.ok(plain.map.items.every(i => i.quality === undefined));
-  assert.ok(tiered.map.items.every(i => Number.isInteger(i.quality)));
+  assert.ok(plain.items.every(i => i.quality === undefined));
+  assert.ok(tiered.items.every(i => Number.isInteger(i.quality)));
   assert.equal(tiered.rng, plain.rng);
   assert.equal(tiered.itemSerial, plain.itemSerial);
   assert.equal(qualityDamage(plain.content, { quality: 5 }), 1);
@@ -117,7 +117,7 @@ test('an authored quality is kept; quality scales damage only', async t => {
   const map = arena();
   map.items.push({ id: 'rifle-q4', kind: 'weapon', weaponType: 'rifle', x: 120, y: 200, quality: 4 });
   const { s, p } = await fixture(t, map);
-  assert.equal(s.map.items[0].quality, 4);
+  assert.equal(s.items[0].quality, 4);
   // A pickup needs a tick that spends an input.
   setInput(s, p.id, { seq: 0 }); step(s);
   const carried = p.inventory.find(Boolean);
@@ -131,14 +131,14 @@ test('an authored quality is kept; quality scales damage only', async t => {
 
 test('different qualities never merge or refill; quality survives drop and pickup', async t => {
   const { s, p } = await fixture(t);
-  const take = item => { s.map.items.push(item); const done = collectInstanceEquipment(s, p, item); if (done) s.map.items = s.map.items.filter(i => i !== item); return done; };
+  const take = item => { s.items.push(item); const done = collectInstanceEquipment(s, p, item); if (done) s.items = s.items.filter(i => i !== item); return done; };
   assert.equal(take({ id: 'p1', kind: 'weapon', weaponType: 'pistol', x: 120, y: 200, ammo: 10, quality: 1 }), true);
   assert.equal(take({ id: 'p3', kind: 'weapon', weaponType: 'pistol', x: 120, y: 200, ammo: 10, quality: 3 }), true);
   assert.deepEqual(p.inventory.filter(Boolean).map(i => [i.instanceId, i.quality, i.ammo]), [[itemId(s, 'p1'), 1, 10], [itemId(s, 'p3'), 3, 10]]);
   assert.equal(take({ id: 'p3b', kind: 'weapon', weaponType: 'pistol', x: 120, y: 200, ammo: 5, quality: 3 }), true);
   assert.deepEqual(p.inventory.filter(Boolean).map(i => [i.instanceId, i.quality, i.ammo]), [[itemId(s, 'p1'), 1, 10], [itemId(s, 'p3'), 3, 15]], 'only the equal quality refills');
   assert.equal(dropInventorySlot(s, p, 1), true);
-  const dropped = s.map.items.find(i => i.id === itemId(s, 'p3'));
+  const dropped = s.items.find(i => i.id === itemId(s, 'p3'));
   assert.deepEqual([dropped.quality, dropped.ammo, dropped.lineageId], [3, 15, itemId(s, 'p3')]);
 });
 

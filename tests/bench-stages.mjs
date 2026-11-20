@@ -73,7 +73,7 @@ async function buildRoom(i) {
   for (const packed of prebuiltTiles(map, content)) adoptPackedTiles(map, packed);
   const tilesMs = performance.now() - built;
   const match = await createMatch(seed + i, size, map, content, { wireKey: args.get('wire-key') === 'none' ? null : randomWireIdKey() });
-  const room = { match, history: [], clients: new Set(), ...viewEncoders(), items: map.items.length, obstacles: map.obstacles.length, tilesMs };
+  const room = { match, history: [], clients: new Set(), ...viewEncoders(), items: match.diagnosticState.items.length, obstacles: map.obstacles.length, tilesMs };
   const players = match.diagnosticState.players;
   for (let c = 0; c < clients; c++) room.clients.add({ playerId: players[c % players.length].id, deliver: () => true });
   for (let c = 0; c < spectators; c++) room.clients.add({ playerId: undefined, deliver: () => true });

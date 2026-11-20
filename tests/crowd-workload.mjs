@@ -21,6 +21,6 @@ export function arrangeCrowd(game, playerId, { location, ai = true }) {
     }
     if (!placed) throw new Error('Unable to place crowd benchmark actors');
   }
-  game.map.traps = []; // Isolate actor AI/render work from autonomous trap activation.
+  game.traps = []; // Isolate actor AI/render work from autonomous trap activation.
   return { location, ai, stationary: true, actors: game.players.length, seed: game.seed, observer: { x: me.x, y: me.y } };
 }

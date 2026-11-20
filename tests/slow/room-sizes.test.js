@@ -12,6 +12,6 @@ for (const size of selectedSizes()) {
     const { room, header } = await playsToItsEnd(size);
     assert.equal(header.contentId, defaultContent().id);
     assert.equal(header.version, PHYSICS_VERSION, 'and the recording names the physics rules it ran');
-    assert.ok(room.game.map.items.length <= defaultContent().itemInstances.groundCapacity, 'the map fits the content\'s ground capacity');
+    assert.ok(room.game.items.length <= defaultContent().itemInstances.groundCapacity, 'the map fits the content\'s ground capacity');
   });
 }

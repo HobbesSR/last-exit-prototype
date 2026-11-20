@@ -15,15 +15,15 @@ function fixture() {
   const p = s.players[0];
   p.bot = true;
   know(s, p);
-  s.map.items = [];
-  s.map.traps = [];
+  s.items = [];
+  s.traps = [];
   return { s, p };
 }
 
 function publicState(s, p) {
   return structuredClone({ inventory: p.inventory, hp: p.hp, shield: p.shield, selectedSlot: p.selectedSlot,
     weapon: p.weapon, attackCd: p.attackCd, cooldown: p.cooldown, serial: s.serial,
-    items: s.map.items, effects: s.effects, projectiles: s.projectiles });
+    items: s.items, effects: s.effects, projectiles: s.projectiles });
 }
 
 function healing() {
@@ -47,7 +47,7 @@ function pursuing() {
   p.shield = 75;
   p.hp = 100;
   const cell = { id: itemId(s, 'wanted-cell'), kind: 'cell', x: p.x + 200, y: p.y, charge: 0 };
-  s.map.items.push(cell);
+  s.items.push(cell);
   // A shipped bot plans from what it remembers seeing (15, #230), so it is given the cell's sighting.
   p.discovery.items = new Map([[cell.id, { ...cell }]]);
   return { s, p };

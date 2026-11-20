@@ -67,7 +67,7 @@ export const STARTER_RESERVE = 100;
 export function assignWeaponQualities(s: Game): void {
   const mixes = s.content.lootTiers?.mixes;
   if (!mixes) return;
-  for (const item of s.map.items) {
+  for (const item of s.items) {
     if (item.kind !== 'weapon' || item.quality !== undefined) continue;
     const starter = s.map.spawns.some(spawn => hypot(item.x - spawn.x, item.y - spawn.y) <= STARTER_RESERVE);
     item.quality = starter ? 1 : qualityFromWeights(mixes[spatialMix(virtualZone(s.map, item)) - 1]!, itemRoll(s.seed, itemLabel(s, item.id)));

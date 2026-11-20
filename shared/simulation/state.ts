@@ -10,13 +10,14 @@ import { createDiscovery, attachDiscovery, discover } from '../discovery.ts';
 import { initializeItemInstances } from '../item-instances.ts';
 import { assignWeaponQualities } from '../loot-tiers.ts';
 import { loadMapWeapons, seedAmmo } from './ammo.ts';
-import type { Game, GameMap, ItemId, Kit, Player, PlayerId, PlayerInput, Role } from '../types.ts';
+import type { Game, GameMap, ItemId, Kit, MatchMap, Player, PlayerId, PlayerInput, Role } from '../types.ts';
 import type { CoreSight } from '../sight-core.ts';
 
 /**
  * `map` is the arena the game runs in, which is what lets behaviour be characterized against a stored
  * map rather than against whatever the current generator emits — see [31](../../docs/31-verification.md).
- * The game mutates what it is given (items are taken, gates open), so a caller reusing a map passes a copy.
+ * The game takes what it is given: its ground items and traps move off the map onto the game (#1211), and
+ * the game mutates them and its gates (items are taken, gates open), so a caller reusing a map passes a copy.
  * `content` defaults to the shipped set. This builds the record only: `createGame` builds on it
  * and is what steps, so a game from here alone suits code that reads a match without running it.
  * `sight` is the core binding discovery's first sample runs through; without it, contestants start with
@@ -25,7 +26,12 @@ import type { CoreSight } from '../sight-core.ts';
 export function createGameRecord(seed: number, map: GameMap, content = defaultContent(), sight?: CoreSight): Game {
   assertEnumKeys(content.weapons, WEAPONS, 'weapon');
   assertEnumKeys(content.kits, KITS, 'kit');
-  const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map: map as unknown as GameMap<ItemId>, players: [], projectiles: [], effects: [], events: [], slots: INITIAL_ESCAPE_SLOTS, hazardX: -80, serial: 0 };
+  const { items, traps } = map as unknown as GameMap<ItemId>, fieldOrder = Object.keys(map);
+  // The same map object, so caches built on it before the game keep hitting; it no longer holds the live stores.
+  delete (map as Partial<GameMap>).items; delete (map as Partial<GameMap>).traps;
+  const arena = map as unknown as MatchMap;
+  mapFieldOrders.set(arena, fieldOrder);
+  const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map: arena, items, traps, gates: arena.gates, players: [], projectiles: [], effects: [], events: [], slots: INITIAL_ESCAPE_SLOTS, hazardX: -80, serial: 0 };
   // Identifier and iteration order are part of the recorded contract, so both are derived from the
   // roster's own order rather than from anything that could reorder independently of it.
   for (const role of ROLES) {
@@ -58,11 +64,25 @@ export function createGameRecord(seed: number, map: GameMap, content = defaultCo
         const memory = createDiscovery();
         attachDiscovery(p, memory);
         // The lobby's NOWHERE map has no dimensions or spawns; discovery sampling runs only once on a real map.
-        if (sight && map.width && map.height && map.spawns?.length) discover(sight, memory, s.map, p, undefined, p.bot);
+        if (sight && map.width && map.height && map.spawns?.length) discover(sight, memory, s.map, p, undefined, p.bot, s.items);
       }
     }
   }
   return s;
+}
+
+/** Each arena's field order as its map had it, so a whole map built again serializes as it did. */
+const mapFieldOrders = new WeakMap<MatchMap, readonly string[]>();
+/**
+ * The game's map whole again, with its live stores in the places the map had them: what a client or a recording
+ * is sent. Fields given in `live` replace the game's own (a published ground, say). A new object each call.
+ */
+export function wholeMap(s: Game, live: Partial<Pick<GameMap<ItemId>, 'items' | 'traps' | 'gates'>> = {}): GameMap<ItemId> {
+  const stores = { items: s.items, traps: s.traps, gates: s.gates, ...live } as Record<string, unknown>;
+  const order = mapFieldOrders.get(s.map) ?? [...Object.keys(s.map), 'items', 'traps'], whole: Record<string, unknown> = {};
+  for (const key of order) whole[key] = key in stores ? stores[key] : (s.map as unknown as Record<string, unknown>)[key];
+  for (const key of Object.keys(s.map)) if (!(key in whole)) whole[key] = (s.map as unknown as Record<string, unknown>)[key];
+  return whole as unknown as GameMap<ItemId>;
 }
 const placeCount = (s: Game, role: Role) => role === 'gladiator' ? s.content.roster.gladiators.length : s.content.roster.contestants.length;
 // Who holds a roster place while no one has joined it: its id, name and kit, from the roster's own order.

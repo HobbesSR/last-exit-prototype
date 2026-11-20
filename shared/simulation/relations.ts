@@ -36,7 +36,7 @@ export function playerSlot(s: Pick<Game, 'players'>, id: PlayerId | string): Pla
   return idx;
 }
 /** Canonical gate identity is its map slot, even while CP1 preserves legacy world admission order. */
-export const gateAt = (s: Pick<Game, 'map'>, idx: GateIdx) => s.map.gates[idx];
+export const gateAt = (s: Pick<Game, 'gates'>, idx: GateIdx) => s.gates[idx];
 
 /** Object-to-slot association: metadata/session labels never participate in internal relations. */
 export function playerIndex(s: Pick<Game, 'players'>, player: Player): PlayerIdx {

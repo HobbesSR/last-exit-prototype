@@ -8,7 +8,7 @@ import { defaultContent } from '../shared/simulation/content.ts';
 import { openArea } from './helpers/arena.js';
 
 // A full 8 × 8 mask is small enough to expose every contact and phase outcome in a trace. `defaultContent()` runs
-// physical items synchronized with `map.items`, so a phase's pickup or drop still shows in the map's list.
+// physical items synchronized with `s.items`, so a phase's pickup or drop still shows in the ground list.
 function fixtureParts(contestants = 2) {
   const map = { seed: 438, width: 800, height: 800,
     playableArea: openArea(800, 800, 100),
@@ -35,7 +35,7 @@ function input(s, id, fields = {}) {
 function trace(s) {
   return { tick: s.tick, players: s.players.map(p => ({ id: p.id, x: p.x, y: p.y, hp: p.hp,
     shield: p.shield, stun: p.stun, charge: p.inventory?.find(i => i?.kind === 'cell')?.charge,
-    status: p.status, moved: p.movedThisTick })), items: s.map.items.map(i => i.id),
+    status: p.status, moved: p.movedThisTick })), items: s.items.map(i => i.id),
     bullets: s.projectiles.map(p => p.id) };
 }
 
@@ -85,12 +85,12 @@ test('phase 6 contested pickup uses stable actor ID and ignores roster order', a
   try {
     const [c0, c1] = physics.players;
     c0.x = 340; c0.y = 400; c1.x = 350; c1.y = 400;
-    physics.map.items = [{ id: itemId(physics, 'prize'), kind: 'med', x: 345, y: 400 }];
+    physics.items = [{ id: itemId(physics, 'prize'), kind: 'med', x: 345, y: 400 }];
     physics.players.reverse();
     step(physics);
     assert.equal(c0.inventory.some(i => i?.kind === 'med'), true, JSON.stringify(trace(physics)));
     assert.equal(c1.inventory.some(i => i?.kind === 'med'), false);
-    assert.equal(physics.map.items.length, 0);
+    assert.equal(physics.items.length, 0);
   } finally { disposePhysics(physics); }
 });
 
@@ -98,14 +98,14 @@ test('phase 6 impulse movement can trigger a mine after charging and pickup', as
   const { physics } = await pair(1);
   try {
     const c = physics.players[0]; c.x = 300; c.y = 400;
-    physics.map.items = [{ id: itemId(physics, 'med'), kind: 'med', x: 300, y: 400 }];
-    physics.map.traps = [{ id: 'mine', kind: 'mine', x: 300, y: 400, homeX: 300, homeY: 400,
+    physics.items = [{ id: itemId(physics, 'med'), kind: 'med', x: 300, y: 400 }];
+    physics.traps = [{ id: 'mine', kind: 'mine', x: 300, y: 400, homeX: 300, homeY: 400,
       heading: 0, offset: 0, cooldown: 0, spent: false }];
     enqueuePhysicsImpulse(physics, `actor:${c.id}`, { x: 100, y: 0 });
     step(physics);
     assert.ok(c.movedThisTick > 0.5, JSON.stringify(trace(physics)));
     assert.equal(c.inventory.some(i => i?.kind === 'med'), true);
-    assert.equal(physics.map.traps[0].spent, true);
+    assert.equal(physics.traps[0].spent, true);
     assert.equal(c.hp, 55);
   } finally { disposePhysics(physics); }
 });
@@ -116,12 +116,12 @@ test('phase 5 lethal projectile prevents the victim from collecting in phase 6',
     const c = physics.players[0], g = physics.players[1];
     c.x = 300; c.y = 400; c.hp = 5;
     g.x = 600; g.y = 400;
-    physics.map.items = [{ id: itemId(physics, 'left-behind'), kind: 'med', x: 300, y: 400 }];
+    physics.items = [{ id: itemId(physics, 'left-behind'), kind: 'med', x: 300, y: 400 }];
     physics.projectiles.push({ id: 10, owner: g.id, x: 280, y: 400,
       dx: 40, dy: 0, damage: 10, life: 5 });
     step(physics);
     assert.equal(c.status, 'eliminated', JSON.stringify(trace(physics)));
-    assert.equal(physics.map.items.some(i => i.id === itemId(physics, 'left-behind')), true);
+    assert.equal(physics.items.some(i => i.id === itemId(physics, 'left-behind')), true);
     assert.equal(c.inventory.some(Boolean), false);
   } finally { disposePhysics(physics); }
 });
@@ -146,11 +146,11 @@ test('a melee death is final before pickups, whatever the roster order', async (
     const c = physics.players[0], g = physics.players[1];
     c.x = 300; c.y = 400; c.hp = 10;
     g.x = 350; g.y = 400;
-    physics.map.items = [{ id: itemId(physics, 'before-death'), kind: 'med', x: 300, y: 400 }];
+    physics.items = [{ id: itemId(physics, 'before-death'), kind: 'med', x: 300, y: 400 }];
     input(physics, g.id, { attack: true, aim: Math.PI });
     step(physics);
     assert.equal(physics.players[0].status, 'eliminated', JSON.stringify(trace(physics)));
-    assert.equal(physics.map.items.some(i => i.id === itemId(physics, 'before-death')), true);
+    assert.equal(physics.items.some(i => i.id === itemId(physics, 'before-death')), true);
   } finally { disposePhysics(physics); }
 });
 
@@ -168,7 +168,7 @@ test('equal-time opposing projectile impacts resolve once each after reversed ro
     assert.equal(c0.status, 'eliminated', JSON.stringify(trace(physics)));
     assert.equal(c1.status, 'eliminated', JSON.stringify(trace(physics)));
     assert.equal(physics.projectiles.length, 0);
-    assert.equal(physics.map.items.filter(i => i.kind === 'weapon' && i.droppedBy).length, 2);
+    assert.equal(physics.items.filter(i => i.kind === 'weapon' && i.droppedBy).length, 2);
   } finally { disposePhysics(physics); }
 });
 
@@ -200,7 +200,7 @@ test('actor bullet advances once on its admission tick and sweeps a moving targe
 test('phase 6 turret spawn waits in the next boundary queue', async () => {
   const { physics } = await pair(1);
   try {
-    physics.map.traps = [{ id: 'turret', kind: 'turret', x: 260, y: 400, homeX: 260, homeY: 400,
+    physics.traps = [{ id: 'turret', kind: 'turret', x: 260, y: 400, homeX: 260, homeY: 400,
       heading: 0, offset: 0, cooldown: 0, spent: false }];
     step(physics);
     assert.equal(physics.projectiles.length, 0);

@@ -36,6 +36,8 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
   if (yieldControl) await yieldControl();
   validateActorPhysics(s.content.actorPhysics, s.map);
   validateWorldPhysics(s.content, s.map);
+  // One door list: the game writes its gates' state, and collision and sight read the same records as geometry.
+  if (s.gates !== s.map.gates) throw new RangeError('gates must be the map gate list');
   if (s.content.dynamicNavigation !== true) throw new RangeError('dynamic navigation required');
   if (!s.content.itemInstances || typeof s.content.itemInstances !== 'object'
     || !Number.isSafeInteger(s.content.itemInstances.groundCapacity) || s.content.itemInstances.groundCapacity < 0)
@@ -65,7 +67,7 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
   const { createPhysicsWorld } = await import('../physics/world.ts');
   const world = await createPhysicsWorld();
   const runtime: PhysicsRuntime = { identities: new PhysicsIdentities(), stepping: false, discontinuityCapacity: 256, world, actors: new Set(), items: new Set(), itemLaunches: new Map(),
-    gateOrder: s.map.gates.map((_, i) => i as GateIdx).sort((a, b) => compare(s.map.gates[a].id, s.map.gates[b].id)), gates: new Uint8Array(s.map.gates.length), discontinuities: [],
+    gateOrder: s.gates.map((_, i) => i as GateIdx).sort((a, b) => compare(s.gates[a].id, s.gates[b].id)), gates: new Uint8Array(s.gates.length), discontinuities: [],
     synchronize: options => synchronize(s, runtime, runtime.stepping ? s.tick : s.tick + 1, options?.deferItemAdmission),
     placement: (p, destination) => placement(s, runtime, p, ordered(s).filter(q => q !== p && q.status === 'active'), destination),
     pendingSpawns: [], pendingImpulses: [], pendingAttachments: [], hooks: [] };
@@ -100,14 +102,14 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
       for (const row of s.map.playableArea.rows) { row.runs.forEach(Object.freeze); Object.freeze(row.runs); Object.freeze(row); }
       Object.freeze(s.map.playableArea.rows); Object.freeze(s.map.playableArea);
     }
-    for (const gate of s.map.gates) for (const key of ['id', 'x', 'y', 'w', 'h', 'kind'] as const) Object.defineProperty(gate, key, { writable: false, configurable: false });
-    Object.freeze(s.map.gates);
+    for (const gate of s.gates) for (const key of ['id', 'x', 'y', 'w', 'h', 'kind'] as const) Object.defineProperty(gate, key, { writable: false, configurable: false });
+    Object.freeze(s.gates);
     for (const key of ['width', 'height', 'obstacles', 'playableArea', 'gates'] as const) Object.defineProperty(s.map, key, { writable: false, configurable: false });
     // Return control after pinning geometry; small gate caches may finish without yielding.
     if (yieldControl) await yieldControl();
     if (yieldControl) {
       const before = profiling() ? performance.now() : undefined;
-      await prepareSweptGates(s.map.gates, yieldControl);
+      await prepareSweptGates(s.gates, yieldControl);
       if (before !== undefined) observe('prepare.sweptGates', performance.now() - before);
     }
     if (yieldControl) {

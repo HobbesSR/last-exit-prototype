@@ -26,7 +26,7 @@ test('content without a reserve fills the world with map items, so no drop can b
   delete noReserve.worldPhysics.dropReserve;
   const { s, r, p } = await room(noReserve);
   try {
-    assert.ok(s.map.items.length > 128, 'a real map has more items than the world has slots');
+    assert.ok(s.items.length > 128, 'a real map has more items than the world has slots');
     assert.equal(r.world.canAddBodies(1), false, 'the world is full at tick 0');
     const held = p.inventory[0];
     dropInventorySlot(s, p, 0);
@@ -42,7 +42,7 @@ test('the shipped content leaves a reserve, so a player can drop and the item ge
     const held = p.inventory[0];
     dropInventorySlot(s, p, 0);
     assert.equal(p.inventory[0], null, 'the drop empties the slot');
-    assert.ok(s.map.items.some(item => item.id === held.instanceId), 'and the item is on the ground');
+    assert.ok(s.items.some(item => item.id === held.instanceId), 'and the item is on the ground');
     step(s);
     assert.equal(r.items.has(`item:${itemLabel(s, held.instanceId)}`), true, 'with a body, admitted from the reserve');
     assert.ok(free() >= reserve - 1, 'one slot used, the rest still free');

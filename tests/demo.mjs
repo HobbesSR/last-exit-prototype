@@ -60,7 +60,7 @@ try {
   // Prefer loot the contestant can actually walk to in a straight line: the demo steers directly and
   // has no pathfinder, so a crate behind a building is a crate it will grind against a wall chasing.
   const loot = kind => {
-    const self = me(), all = game.map.items.filter(i => i.kind === kind).sort((a, b) => distance(self, a) - distance(self, b));
+    const self = me(), all = game.items.filter(i => i.kind === kind).sort((a, b) => distance(self, a) - distance(self, b));
     return all.find(i => distance(self, i) < 3000 && lineClear(game.map, self, i)) ?? all[0];
   };
   const hunter = () => game.players.filter(p => p.role === 'gladiator' && p.status === 'active').sort((a, b) => distance(me(), a) - distance(me(), b))[0];
@@ -109,7 +109,7 @@ try {
     const goal = loot(kind);
     if (!goal || distance(me(), goal) > reach) return false;
     const travel = distance(me(), goal) / 0.16 + 2000; // Contestants cover about 160 px a second.
-    await steer(() => game.map.items.find(item => item.id === goal.id) ?? goal, { timeout: travel });
+    await steer(() => game.items.find(item => item.id === goal.id) ?? goal, { timeout: travel });
     await page.waitForTimeout(150);
     return counter() > 0;
   }

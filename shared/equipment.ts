@@ -28,7 +28,7 @@ const validIdentityState = (s: Game, p: Player, ground?: GroundItem, listed = gr
   if (!Number.isSafeInteger(capacity) || capacity! < 0 || !Number.isSafeInteger(s.itemSerial) || s.itemSerial! < 0 || !p.inventory || p.inventory.length !== SLOT_COUNT) return false;
   const ids = new Set<ItemId>();
   if (ground) {
-    if (!s.map.items.includes(listed!) || !Number.isSafeInteger(ground.id) || ground.id <= 0 || ground.instanceId !== undefined && ground.instanceId !== ground.id || !validateItemPayload(ground, s)) return false;
+    if (!s.items.includes(listed!) || !Number.isSafeInteger(ground.id) || ground.id <= 0 || ground.instanceId !== undefined && ground.instanceId !== ground.id || !validateItemPayload(ground, s)) return false;
     ids.add(ground.id);
   }
   for (const item of p.inventory) {

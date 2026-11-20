@@ -28,7 +28,7 @@ export function advanceDiscovery(s: Game): void {
   for (let i = 0; i < s.players.length; i++) {
     const p = s.players[i]!;
     if (p.role === 'contestant' && p.discovery && p.status === 'active' && (s.tick + i) % DISCOVERY_INTERVAL === 0) {
-      discover(sightOf(s), p.discovery, s.map, p, undefined, p.bot);
+      discover(sightOf(s), p.discovery, s.map, p, undefined, p.bot, s.items);
     }
   }
   stop('sim.discovery');

@@ -46,7 +46,7 @@ test('a remembered item is forgotten once its spot is seen empty, and kept while
 async function lone(seed = 4217) {
   const s = await createGame(seed, generatedMap(), defaultContent());
   for (const p of s.players) { p.bot = false; p.input = {}; }
-  s.map.traps = []; s.map.items = [];
+  s.traps = []; s.items = [];
   for (const p of s.players) p.discovery?.items?.clear();
   const p = s.players[0]; p.bot = true;
   return { s, p };
@@ -69,7 +69,7 @@ test('a bot routes to a cell it has seen and not to one it has not', async t => 
     }
   assert.ok(spot, 'an open spot far from the bot');
   const cell = { id: itemId(s, 'far-cell'), kind: 'cell', ...spot };
-  s.map.items = [cell];
+  s.items = [cell];
 
   p.route = [];
   const unknown = plan(s, p);
@@ -136,7 +136,7 @@ test("information test: over tiles, a bot's targets, routes and inputs depend on
   const walk = async map => {
     const s = await createGame(seed, structuredClone(map), defaultContent());
     for (const p of s.players) if (p.id !== 'c0') { p.bot = false; p.input = {}; }
-    s.map.traps = []; s.map.items = [];
+    s.traps = []; s.items = [];
     const p = s.players[0], trace = [], eyes = [];
     p.discovery.items.clear(); p.discovery.items.set(itemId(s, far.id), { ...far, id: itemId(s, far.id) });
     for (let i = 0; i < 500; i++) {

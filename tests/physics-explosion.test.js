@@ -38,7 +38,7 @@ test('mine damage and physical impulse are independent, and impulse is queued fo
     const runtime = physicsRuntime(s);
     p.x = 250; p.y = 400; p.movedThisTick = 1; p.shield = 60;
     runtime.world.setTransform(`actor:${p.id}`, { x: p.x, y: p.y, angle: 0 });
-    s.map.traps = [mineAt(230, 400)];
+    s.traps = [mineAt(230, 400)];
     stepTraps(s, damage, () => {});
     assert.equal(p.shield, 15, 'the mine keeps its existing damage outcome');
     assert.equal(p.hp, 100);
@@ -56,7 +56,7 @@ test('static map cover blocks mine damage and its queued impulse', async () => {
     const runtime = physicsRuntime(s);
     p.x = 250; p.y = 400; p.movedThisTick = 1; p.shield = 60;
     runtime.world.setTransform(`actor:${p.id}`, { x: p.x, y: p.y, angle: 0 });
-    s.map.traps = [mineAt(220, 400)];
+    s.traps = [mineAt(220, 400)];
     stepTraps(s, damage, () => {});
     assert.equal(p.shield, 60);
     assert.equal(runtime.pendingImpulses.some(effect => effect.id === `actor:${p.id}`), false);
@@ -86,9 +86,9 @@ test('explosion impulse uses linear falloff, deterministic zero-distance directi
 test('a mine without a stepped physics world only deals damage', () => {
   const s = createGameRecord(4217, openField(1200).map, defaultContent());
   const p = s.players.find(player => player.role === 'contestant');
-  s.map.items = [];
+  s.items = [];
   p.x = 600; p.y = 576; p.movedThisTick = 1; p.shield = 60;
-  s.map.traps = [mineAt(580, 576)];
+  s.traps = [mineAt(580, 576)];
   stepTraps(s, damage, () => {});
   assert.equal(p.shield, 15);
   assert.equal(p.hp, 100);

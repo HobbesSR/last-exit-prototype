@@ -76,14 +76,14 @@ test('prepared map payloads match detached map queries at live and historical bo
       return copy;
     };
     const initial = check('recording', match.map());
-    assert.equal(typeof match.diagnosticState.map.items[0].id, 'number');
-    assert.equal(initial.items[0].id, match.diagnosticState.map.items[0].id, 'delivered and recorded maps carry numeric item relations');
+    assert.equal(typeof match.diagnosticState.items[0].id, 'number');
+    assert.equal(initial.items[0].id, match.diagnosticState.items[0].id, 'delivered and recorded maps carry numeric item relations');
     assert.equal(old.items[0].id, initial.items[0].id, 'frames and map delivery share numeric item identity');
     check('live', stripped(match.map()));
     check('spectator', stripped(match.map(), { gates: match.map().gates.map((g, i) => ({ ...g, ...old.gates[i] })), items: old.items }), old);
     map.gates[0].open = true;
-    replaceItem(match.diagnosticState, map.items[0], { ...map.items[0], x: 420 });
-    map.traps.push({ id: 'private-trap', x: 20, y: 20 });
+    replaceItem(match.diagnosticState, match.diagnosticState.items[0], { ...match.diagnosticState.items[0], x: 420 });
+    match.diagnosticState.traps.push({ id: 'private-trap', x: 20, y: 20 });
     const current = check('recording', match.map());
     check('live', stripped(match.map()));
     const delayed = check('spectator', stripped(match.map(), { gates: match.map().gates.map((g, i) => ({ ...g, ...old.gates[i] })), items: old.items }), old);

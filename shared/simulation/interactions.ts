@@ -25,9 +25,9 @@ function swapInstanceEquipment(s: Game, p: Player, pickup: GroundItem): void {
   const draft = { ...p, inventory: structuredClone(p.inventory), reserves: p.reserves && { ...p.reserves } }, incoming = structuredClone(pickup);
   draft.inventory![index] = null;
   // Collection reads only the ground list and carried identities, never map geometry.
-  const pickupStage: Game = { ...forkItemAllocation(s), players: s.players.map(other => other === p ? draft : other), map: { ...s.map, items: s.map.items.map(item => item === pickup ? incoming : item) } };
+  const pickupStage: Game = { ...forkItemAllocation(s), players: s.players.map(other => other === p ? draft : other), items: s.items.map(item => item === pickup ? incoming : item) };
   if (!collectInstanceEquipment(pickupStage, draft, incoming)) return;
-  const remaining = s.map.items.filter(item => item !== pickup);
+  const remaining = s.items.filter(item => item !== pickup);
   const drop = planDrop(s, p, outgoing, false, remaining, pickupStage);
   if (!drop || !canRepresentPhysicalDrop(s, drop.records.length, [pickup])) return;
   commitItemAllocation(s, drop.allocation);

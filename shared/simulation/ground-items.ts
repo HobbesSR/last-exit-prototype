@@ -1,7 +1,7 @@
 import { itemLabel } from '../item-instances.ts';
 import type { Game, GroundItem, ItemId, ItemKey, Vec2 } from '../types.ts';
 
-// The ground list follows the shared-frame model (#655, 22.1 "Frames"): a published frame holds `s.map.items`
+// The ground list follows the shared-frame model (#655, 22.1 "Frames"): a published frame holds `s.items`
 // and its records by reference, so both are frozen when published. A step that changes the ground replaces
 // what it touches instead of editing it, and a tick that changes nothing copies nothing. Map setup, before
 // the first frame, may still edit records in place.
@@ -22,7 +22,7 @@ function admissionPosition(s: Game, items: readonly GroundItem[], id: ItemId): n
   return lo;
 }
 function admissionOf(s: Game, admitted: ReadonlySet<string>): Admission {
-  const list = s.map.items;
+  const list = s.items;
   let pending = admissions.get(list);
   // Scenario setup may replace the list or edit its length without the ground-list helpers.
   if (!pending || pending.admitted !== admitted || pending.size !== list.length) {
@@ -45,7 +45,7 @@ export function* unadmittedItems(s: Game, admitted: ReadonlySet<string>): Genera
 
 /** A successful body admission takes this item out of the pending order. */
 export function admitItem(s: Game, item: GroundItem): void {
-  const pending = admissions.get(s.map.items);
+  const pending = admissions.get(s.items);
   if (!pending) return;
   const at = admissionPosition(s, pending.items, item.id);
   if (pending.items[at]?.id === item.id) pending.items.splice(at, 1);
@@ -155,7 +155,7 @@ function inOrder(grid: Grid, items: GroundItem[]): GroundItem[] {
 }
 
 function writable(s: Game): GroundItem[] {
-  const list = s.map.items;
+  const list = s.items;
   if (admissions.get(list)?.size !== list.length) admissions.delete(list);
   if (records.get(list)?.size !== list.length) records.delete(list);
   if (!published.has(list)) return list;
@@ -164,7 +164,7 @@ function writable(s: Game): GroundItem[] {
   if (grid) { grids.delete(list); grids.set(copy, grid); }
   if (admission) { admissions.delete(list); admissions.set(copy, admission); }
   if (byId) { records.delete(list); records.set(copy, byId); }
-  return s.map.items = copy;
+  return s.items = copy;
 }
 
 /**
@@ -213,8 +213,8 @@ export function removeItem(s: Game, item: GroundItem): number {
  * Every ground record that could be within `reach` of `at`, in list order: a superset, never a ruling.
  * The caller's own test decides; a record whose position compares as nothing (NaN) is always offered.
  */
-export function itemsNear(target: Game | Pick<Game, 'map'> | readonly GroundItem[], at: Vec2, reach: number): GroundItem[] {
-  const list = Array.isArray(target) ? target : (target as Game).map.items;
+export function itemsNear(target: Pick<Game, 'items'> | readonly GroundItem[], at: Vec2, reach: number): GroundItem[] {
+  const list = Array.isArray(target) ? target : (target as Pick<Game, 'items'>).items;
   if (!Number.isFinite(at.x) || !Number.isFinite(at.y)) return list.slice();
   const grid = gridOf(list);
   return inOrder(grid, candidates(grid, at, reach));
@@ -237,7 +237,7 @@ export function poseItems(ground: readonly GroundItem[], swaps: ReadonlyMap<numb
  * neither the live ground list nor a posed copy of it (an older frame) is filtered whole.
  */
 export function framedItems(s: Game, frame: readonly GroundItem[], at: Vec2, reach: number, keep: (item: GroundItem) => boolean): GroundItem[] {
-  const live = s.map.items, pose = posed.get(frame);
+  const live = s.items, pose = posed.get(frame);
   if (!Number.isFinite(at.x) || !Number.isFinite(at.y) || frame !== live && pose?.ground !== live) return frame.filter(keep);
   const grid = gridOf(live), near = candidates(grid, at, reach);
   if (frame === live) return inOrder(grid, near.filter(keep));
@@ -254,9 +254,9 @@ function positions(list: readonly GroundItem[]): Map<ItemId, number> {
   return index;
 }
 
-/** Where the ground record with this id sits in `s.map.items`, without scanning the list on every call. */
+/** Where the ground record with this id sits in `s.items`, without scanning the list on every call. */
 export function groundPosition(s: Game, id: ItemId): number | undefined {
-  const list = s.map.items;
+  const list = s.items;
   let index = positions(list), at = index.get(id);
   // A list edited in place without groundList (a test arranging a scenario) is indexed again.
   if (index.size !== list.length || at !== undefined && list[at]?.id !== id) {
@@ -271,7 +271,7 @@ export function groundPosition(s: Game, id: ItemId): number | undefined {
  * Arbitrary same-length scenario edits must use groundList to invalidate every cache.
  */
 export function groundItem(s: Game, id: ItemId): GroundItem | undefined {
-  const list = s.map.items, index = indexes.get(list), at = index?.get(id);
+  const list = s.items, index = indexes.get(list), at = index?.get(id);
   if (index && (index.size !== list.length || at !== undefined && list[at]?.id !== id)) groundPosition(s, id);
   let byId = records.get(list);
   if (!byId || byId.size !== list.length) {
@@ -316,7 +316,7 @@ export function settledItem(item: GroundItem, draft: GroundItem): GroundItem {
 
 /** Freeze the ground list and its new records for frames to share. Free when nothing changed since the last frame. */
 export function publishItems(s: Game): readonly GroundItem[] {
-  const list = s.map.items;
+  const list = s.items;
   if (!published.has(list)) {
     for (const item of list) if (!Object.isFrozen(item)) Object.freeze(item);
     published.add(list);
