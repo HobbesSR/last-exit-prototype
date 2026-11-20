@@ -12,6 +12,7 @@ pub mod math;
 pub mod phase_one;
 pub mod physics;
 pub mod placement;
+pub mod scatter;
 pub mod sight;
 pub mod world;
 
@@ -20,7 +21,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 10;
+pub const ADAPTER_VERSION: u32 = 11;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -679,6 +680,22 @@ pub unsafe extern "C" fn physics_place(
 ) {
     // SAFETY: the caller's contract.
     unsafe { boundary::place(&mut *world, &mut *map, &mut *gates) }
+}
+
+/// The drop planner's spiral search (`boundary::scatter`).
+///
+/// # Safety
+/// `world`, `map`, `index` and `gates` are live, and `gates` is the map's gate set with its open mask
+/// written.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_scatter(
+    world: *mut world::World,
+    map: *mut collision::CollisionMap,
+    index: *const sight::SightIndex,
+    gates: *mut sight::GateSet,
+) {
+    // SAFETY: the caller's contract.
+    unsafe { boundary::scatter(&mut *world, &mut *map, &*index, &mut *gates) }
 }
 
 #[cfg(test)]

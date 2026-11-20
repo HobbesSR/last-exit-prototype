@@ -16,6 +16,17 @@ use std::f64::consts::PI;
 /// An admitted actor's disk: `x, y, radius`.
 pub type Disk = [f64; 3];
 
+/// Whether a loot body of `radius` fits at `(x, y)`: no solid prop meets it, then no active actor's
+/// disk does (`physicalDropPlacementClear` in TypeScript before #1228). The one owner of the rule:
+/// the body sync's item admission (`boundary.rs`) and the drop planner's search (`scatter.rs`) both
+/// ask it, after their own tests. The prop query runs first, and the actors only where it passed.
+pub fn loot_fits(world: &mut World, x: f64, y: f64, radius: f64, actors: &[Disk]) -> bool {
+    !world.overlaps_prop(radius, x, y)
+        && actors
+            .iter()
+            .all(|d| hypot(x - d[0], y - d[1]) >= radius + d[2])
+}
+
 /// Where a disk of `radius` may be placed nearest `origin`, or `None` when no spot is free.
 /// `admitted` is read as it stands, so a caller placing several actors passes those it has placed.
 pub fn placement(

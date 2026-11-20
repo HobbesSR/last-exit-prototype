@@ -5,7 +5,7 @@ import type { PhysicsExports, PhysicsWorld } from '../physics/world.ts';
 import type { BodySpec } from '../physics/types.ts';
 import type { CoreExports } from '../core.ts';
 import { actorRadius } from './actor-physics.ts';
-import { admitItem, groundItem, unadmittedItems } from './ground-items.ts';
+import { admitItem, groundItem, itemsNear, unadmittedItems } from './ground-items.ts';
 import { markPhysicsDiscontinuity } from './physics-runtime.ts';
 import type { PhysicsRuntime, PendingAttachment } from './physics-runtime.ts';
 import { physicsGate } from './physics-geometry.ts';
@@ -13,7 +13,8 @@ import { sightOf } from './sight-runtime.ts';
 import type { Game, GroundItem, ItemId, Player, Vec2 } from '../types.ts';
 
 // The adapter for the tick boundary's body work in the core (`rust/core/src/boundary.rs`, #1234, docs/27 "The
-// state flip", step 5b.3): the body sync, phase 1's pending admission and the placement search. The state stays
+// state flip", step 5b.3): the body sync, phase 1's pending admission and the placement search, and the drop
+// planner's spiral search (`scatter.rs`, step 5c.1). The state stays
 // here (D1). Each call packs what its rule reads into the world's boundary input, and the core runs the rule,
 // queueing, committing and teleporting in the world in the order the TypeScript did. What it wrote to the records
 // here comes back as a log, applied in order when the call returns:
@@ -300,4 +301,35 @@ export function placeInCore(s: Game, r: PhysicsRuntime, p: Player, admitted: rea
   core.physics_place(world, collision, gates);
   const out = output(core, world);
   return out[OUT_HEADER] === 1 ? { x: out[OUT_HEADER + 1]!, y: out[OUT_HEADER + 2]! } : null;
+}
+
+/** How far a record can be from a drop's origin and still matter: the spiral's farthest spot and its spacing (`scatter.rs`), with a unit spare. */
+const SCATTER_REACH = 372 + 32 + 1;
+
+/**
+ * The drop planner's spiral search in the core (`rust/core/src/scatter.rs`, #1228): the first spot near `origin`
+ * from `phase` that is reachable, clear of the map, of `items` and `points` by more than 32, and where a loot body
+ * fits beside the solid props and the active actors. Only the records of `items` within reach of the spiral are
+ * packed: the ground's grid finds them when `items` is the ground, and a staged list (a swap's) is filtered whole,
+ * as the TypeScript read it whole.
+ */
+export function scatterInCore(s: Game, r: PhysicsRuntime, origin: Vec2, phase: number, items: readonly Vec2[],
+  points: readonly Vec2[]): Vec2 | undefined {
+  const near = !Number.isFinite(origin.x) || !Number.isFinite(origin.y) ? items
+    : items === s.items ? itemsNear(s, origin, SCATTER_REACH)
+      // A record with a NaN coordinate fails every spot's spacing test, whatever its other coordinate, so it is kept,
+      // as the grid keeps it loose (review 977).
+      : items.filter(item => Number.isNaN(item.x) || Number.isNaN(item.y)
+        || Math.abs(item.x - origin.x) <= SCATTER_REACH && Math.abs(item.y - origin.y) <= SCATTER_REACH);
+  const actors = s.players.filter(p => p.status === 'active'), taken = near.length + points.length;
+  const { core, world, collision, index, gates } = handles(s, r, true);
+  const view = input(core, world, 6 + actors.length * 3 + taken * 2);
+  view[0] = origin.x; view[1] = origin.y; view[2] = phase; view[3] = s.content.worldPhysics.loot.radius;
+  view[4] = actors.length; view[5] = taken;
+  let at = 6;
+  for (const p of actors) { view[at++] = p.x; view[at++] = p.y; view[at++] = actorRadius(s, p); }
+  for (const list of [near, points]) for (const spot of list) { view[at++] = spot.x; view[at++] = spot.y; }
+  core.physics_scatter(world, collision, index, gates);
+  const out = output(core, world);
+  return out[OUT_HEADER] === 1 ? { x: out[OUT_HEADER + 1]!, y: out[OUT_HEADER + 2]! } : undefined;
 }

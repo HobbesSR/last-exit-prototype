@@ -1,6 +1,5 @@
 import { itemLabel, itemIdForLabel } from '../item-instances.ts';
 import { canOccupy } from '../movement.ts';
-import { actorRadius } from './actor-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GroundItem, MatchContent, GameMap, Vec2 } from '../types.ts';
@@ -13,17 +12,6 @@ const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const reserveActors = (s: Game, r: PhysicsRuntime) => Math.max(0, s.players.length - r.actors.size);
 const ITEM_PREFIX = 'item:';
 const bodyId = (s: Game, item: GroundItem) => `${ITEM_PREFIX}${itemLabel(s, item.id)}`;
-
-/**
- * Drop admission uses the same footprint as scatter planning. Loot stays a sensor after admission. The body sync
- * admits items by the same test in the core (`rust/core/src/boundary.rs`, #1234); this copy serves the drop
- * planner (`loot.ts`) until phase 3 moves it (#1228).
- */
-export function physicalDropPlacementClear(s: Game, r: PhysicsRuntime, x: number, y: number): boolean {
-  const radius = s.content.worldPhysics.loot.radius;
-  return !r.world.overlapsProp(x, y, radius)
-    && s.players.every(p => p.status !== 'active' || hypot(x - p.x, y - p.y) >= radius + actorRadius(s, p));
-}
 
 /** Reject authoring before allocating a solver. All numbers are match-pinned tuning. */
 export function validateWorldPhysics(content: MatchContent, map: Omit<GameMap, 'items' | 'traps'>): void {

@@ -2,7 +2,8 @@ import { canOccupy } from '../movement.ts';
 import { reachClear } from '../sight.ts';
 import { carriedCell, collectAmmo, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload, forkItemAllocation, commitItemAllocation } from '../item-instances.ts';
-import { canRepresentPhysicalDrop, launchPhysicalDrops, physicalDropPlacementClear } from './world-physics.ts';
+import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
+import { scatterInCore } from './boundary.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { addItems, draftItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
 import { HZ, KEPT_EVENTS } from './rules.ts';
@@ -16,16 +17,21 @@ export function participant(s: Game, p: Player): EventParticipant { return { pla
 export function event(s: Game, payload: GameEventPayload): void { s.events.push({ id: s.serial++, tick: s.tick, ...payload }); s.events = s.events.slice(-KEPT_EVENTS); }
 export function effect(s: Game, p: Vec2, kind: EffectKind, radius: World = 60): void { s.effects.push({ id: s.serial++, x: p.x, y: p.y, kind, radius, life: 12 }); }
 
-/** The bounded L0 spiral search: a free, reachable point near `origin`, clear of both lists. */
+/**
+ * The bounded L0 spiral search: a free, reachable point near `origin`, clear of both lists. A game with a physics world
+ * asks the core (`scatterInCore`, #1228), which also keeps the spot clear for a loot body, as the body sync admits
+ * one. A record without one (match setup's `seedAmmo`, before `createGame` attaches the world) searches here, where
+ * no body needs room. `tests/drop-scatter-core.test.js` holds the core equal to this spiral with that test added.
+ */
 export function scatterPoint(s: Game, origin: Vec2, phase: number, items: readonly Vec2[], points: readonly Vec2[] = []): Vec2 | undefined {
   const runtime = physicsRuntime(s);
+  if (runtime) return scatterInCore(s, runtime, origin, phase, items, points);
   for (let j = 0; j < 180; j++) {
     const angle = (phase + j) * 2.39996, radius = 36 + Math.floor(j / 12) * 24;
     const candidate = { x: origin.x + cos(angle) * radius, y: origin.y + sin(angle) * radius };
     if (canOccupy(s.map, candidate.x, candidate.y, 16) && reachClear(s.map, origin, candidate)
       && (items === s.items ? itemsNear(s, candidate, 32) : items).every(other => distance(other, candidate) > 32)
-      && points.every(other => distance(other, candidate) > 32)
-      && (!runtime || physicalDropPlacementClear(s, runtime, candidate.x, candidate.y))) return candidate;
+      && points.every(other => distance(other, candidate) > 32)) return candidate;
   }
   return undefined;
 }

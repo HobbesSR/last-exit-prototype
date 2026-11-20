@@ -2,6 +2,8 @@
 //! sync (`synchronize` in `shared/simulation/game.ts`, with `synchronizePhysicalItems` from
 //! `world-physics.ts`), phase 1's admission of the pending impulses and attachments (`tick.ts`), and
 //! the placement search for a caller outside them (`placement.rs`).
+//! It also runs the drop planner's spiral search for a drop planned in JavaScript (`scatter.rs`,
+//! #1228), through the same input and output.
 //!
 //! The state stays in JavaScript (D1). `shared/simulation/boundary.ts` packs what each call reads into
 //! the world's boundary input, and this runs the rules over it, calling the world (`world.rs`) in the
@@ -20,7 +22,8 @@
 
 use crate::collision::{CollisionMap, can_occupy, reach_clear};
 use crate::math::hypot;
-use crate::placement::{Disk, placement};
+use crate::placement::{Disk, loot_fits, placement};
+use crate::scatter::scatter_point;
 use crate::sight::{GateSet, SightIndex};
 use crate::world::{BODY_ROW, Key, World};
 
@@ -579,9 +582,7 @@ pub fn synchronize_items(world: &mut World, map: &mut CollisionMap, gates: &mut 
             if items.contains(&key)
                 || !world.can_add_bodies(1 + reserve_actors + reserve)
                 || !can_occupy(map, gates, x, y, radius, false, false)
-                // `physicalDropPlacementClear`: no solid prop, then no active actor, in reach.
-                || world.overlaps_prop(radius, x, y)
-                || !disks.iter().all(|d| hypot(x - d[0], y - d[1]) >= radius + d[2])
+                || !loot_fits(world, x, y, radius, &disks)
             {
                 return Ok(());
             }
@@ -672,6 +673,26 @@ pub fn place(world: &mut World, map: &mut CollisionMap, gates: &mut GateSet) {
         let (radius, origin, count) = (input[0], (input[1], input[2]), input[3] as usize);
         let disks: Vec<Disk> = input[4..4 + count * 3].as_chunks::<3>().0.to_vec();
         match placement(world, map, gates, radius, origin, &disks) {
+            Some((x, y)) => log.answer(&[1.0, x, y]),
+            None => log.answer(&[0.0, 0.0, 0.0]),
+        }
+        Ok(())
+    });
+}
+
+/// The drop planner's spiral search (`scatter.rs`), for a drop planned in JavaScript. The input:
+/// `x, y, phase, loot radius, actors, taken`, then the active actors' `x, y, radius`, then the
+/// taken spots' `x, y`. The output, after the header: whether a spot was found, and where.
+pub fn scatter(world: &mut World, map: &mut CollisionMap, index: &SightIndex, gates: &mut GateSet) {
+    run(world, |world, input, log, _| {
+        let (origin, phase, radius) = ((input[0], input[1]), input[2], input[3]);
+        let (actors, taken) = (input[4] as usize, input[5] as usize);
+        let disks: Vec<Disk> = input[6..6 + actors * 3].as_chunks::<3>().0.to_vec();
+        let base = 6 + actors * 3;
+        let spots: Vec<[f64; 2]> = input[base..base + taken * 2].as_chunks::<2>().0.to_vec();
+        match scatter_point(
+            world, map, index, gates, origin, phase, radius, &disks, &spots,
+        ) {
             Some((x, y)) => log.answer(&[1.0, x, y]),
             None => log.answer(&[0.0, 0.0, 0.0]),
         }

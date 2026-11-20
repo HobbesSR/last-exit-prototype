@@ -32,6 +32,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.65](42.65-world-bookkeeping-core.md) | The physics world's bookkeeping in the Rust core: the tick slightly cheaper and match construction about 20% cheaper, with no added crossing cost (#1232) |
 | [42.66](42.66-collision-queries-core.md) | The map's collision queries in the Rust core: about four times faster than the TypeScript per query, with the open-gate mask (about 0.55 µs on 421 gates) the cost to batch; no caller yet (#1233) |
 | [42.67](42.67-boundary-core.md) | The tick boundary's body work in the Rust core (the body sync, phase 1's queries, the pending admission, the placement search): the tick unchanged within noise once the sync packed only what it removes; the first version cost about 25 µs a tick more (#1234) |
+| [42.68](42.68-drop-scatter-core.md) | The drop planner's spiral search in the Rust core: about 2.2 µs more per search than the TypeScript, under the state-flip exception, with 7 searches in a whole bot match, so the tick is unchanged (#1228) |
 
 ### Navigation
 
