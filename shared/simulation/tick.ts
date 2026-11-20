@@ -89,16 +89,16 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   // 4: all bodies together. Query projectiles use these actual substep paths.
   start('sim.solve');
   applyFloorDrag(s, r);
-  const result = r.world.step();
+  // Events are facts only; gameplay has no contact damage, so the step keeps none (its capacity still holds).
+  const result = r.world.step({ discardContacts: true });
   stop('sim.solve');
   start('sim.poses');
-  writePhysicalItemPoses(s, r);
+  // Poses are the ends of the step's paths: the bodies' poses after the solve, without reading each one back.
+  writePhysicalItemPoses(s, r, result.paths);
   for (const p of s.players) if (p.status === 'active') {
-    const at = r.world.getTransform(actorId(p));
+    const at = result.paths[actorId(p)]?.at(-1);
     if (at) { p.x = at.x; p.y = at.y; p.movedThisTick = result.distance[actorId(p)] ?? 0; }
   }
-  // Events are facts only; gameplay has no contact damage.
-  r.world.drainContacts();
   stop('sim.poses');
   // 5: physical TOI first, then finalized-pose abilities/melee by stable caster ID.
   start('sim.projectiles');

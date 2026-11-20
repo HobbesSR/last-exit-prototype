@@ -4,6 +4,8 @@ import { actorRadius } from './actor-physics.ts';
 import { physicsRuntime, markPhysicsDiscontinuity } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GroundItem, MatchContent, GameMap, Vec2 } from '../types.ts';
+import type { PhysicsWorld } from '../physics/world.ts';
+import type { Point } from '../physics/types.ts';
 import { hypot } from '../math.ts';
 import { admitItem, groundItem, replaceItem, unadmittedItems } from './ground-items.ts';
 
@@ -117,23 +119,30 @@ export function launchPhysicalDrops(s: Game, items: GroundItem[], from: Vec2): v
   r.synchronize();
 }
 
-/** Walks the item bodies, not the ground; a record is replaced only when its body moved. */
-export function writePhysicalItemPoses(s: Game, r: PhysicsRuntime): void {
+/**
+ * Walks the item bodies, not the ground; a record is replaced only when its body moved. The pose is the end of the
+ * step's path (`paths`), which is the body's pose after the solve, so no body is read back from the core one by one.
+ */
+export function writePhysicalItemPoses(s: Game, r: PhysicsRuntime, paths: Record<string, Point[]>): void {
   for (const id of r.items) {
-    const item = groundItem(s, itemIdForLabel(s, id.slice(ITEM_PREFIX.length))!), pose = item && r.world.getTransform(id);
+    const item = groundItem(s, itemIdForLabel(s, id.slice(ITEM_PREFIX.length))!);
+    const pose = item && (paths[id]?.at(-1) ?? r.world.getTransform(id));
     if (pose && !(Object.is(pose.x, item.x) && Object.is(pose.y, item.y))) replaceItem(s, item, { ...item, x: pose.x, y: pose.y });
   }
 }
 
-/** Same floor priority/ID convention as the motor. Damping changes never wake a sleeper. */
+/** The floors and profiles each world was last given, so they cross once per match rather than once per tick. */
+const floors = new WeakMap<PhysicsWorld, { surfaces: GameMap['motorSurfaces']; profile: MatchContent['worldPhysics'] }>();
+/**
+ * Floor drag runs in the core (`rust/core/src/floor_drag.rs`, #1226): a prop's damping is its profile's scaled by the
+ * drag of the first floor containing it, in the motor's priority/ID order. Damping changes never wake a sleeper.
+ */
 export function applyFloorDrag(s: Game, r: PhysicsRuntime): void {
-  const profile = s.content.worldPhysics;
-  const surfaces = [...s.map.motorSurfaces ?? []].sort((a, b) => b.priority - a.priority || order(a.id, b.id));
-  for (const body of r.world.snapshot({ includeStatic: false }).bodies) {
-    if (body.spec.kind !== 'prop') continue;
-    const p = body.transform;
-    const drag = surfaces.find(f => p.x >= f.x && p.x < f.x + f.w && p.y >= f.y && p.y < f.y + f.h)?.drag ?? 1;
-    const base = body.spec.collisionProfile === 'loot' ? profile.loot : profile.prop;
-    r.world.setDamping(body.spec.id, base.linearDamping * drag, base.angularDamping * drag);
+  const profile = s.content.worldPhysics, surfaces = s.map.motorSurfaces, sent = floors.get(r.world);
+  if (!sent || sent.surfaces !== surfaces || sent.profile !== profile) {
+    r.world.setFloor([...surfaces ?? []].sort((a, b) => b.priority - a.priority || order(a.id, b.id))
+      .map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h, drag: f.drag ?? 1 })), profile.loot, profile.prop);
+    floors.set(r.world, { surfaces, profile });
   }
+  r.world.applyFloorDrag();
 }

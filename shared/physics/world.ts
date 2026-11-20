@@ -36,7 +36,7 @@ const LOOT_GROUP = 0x0008;
 // The core's encodings and row widths (`rust/core/src/physics.rs`).
 const KIND = { static: 0, actor: 1, prop: 2 } as const;
 const SHAPE = { circle: 0, box: 1, convex: 2 } as const;
-const DYNAMIC_STRIDE = 7, PUSH_STRIDE = 3, CONSTRAINT_STRIDE = 13, EVENT_STRIDE = 4, HEADER = 4, CONTACT_STRIDE = 7;
+const DYNAMIC_STRIDE = 7, PUSH_STRIDE = 3, CONSTRAINT_STRIDE = 13, EVENT_STRIDE = 4, HEADER = 4, CONTACT_STRIDE = 7, DRAG_STRIDE = 4;
 
 /** The core's physics exports (`rust/core/src/lib.rs`). A world and every pointer are numbers. */
 export interface PhysicsExports {
@@ -58,6 +58,8 @@ export interface PhysicsExports {
   physics_prepare(world: number): number;
   physics_input(world: number, length: number): number;
   physics_step(world: number, dynamics: number, forces: number, impulses: number, constraints: number): number;
+  physics_set_floor(world: number): void;
+  physics_floor_drag(world: number): number;
   physics_debug_contacts(world: number): number;
   physics_output(world: number): number;
 }
@@ -481,7 +483,44 @@ export class PhysicsWorld {
     const pose = this.view(this.core.physics_pose(this.native, record.slot), 7);
     return { x: pose[0]!, y: pose[1]!, angle: pose[2]!, vx: pose[3]!, vy: pose[4]!, omega: pose[5]!, sleeping: pose[6] !== 0 };
   }
-  step(): { distance: Record<string, number>; paths: Record<string, Point[]> } {
+  /**
+   * The floors floor drag reads (`rust/core/src/floor_drag.rs`), in the order they are tried, and the two damping
+   * profiles: loot's for loot props, prop's for the others. A floor without a drag of its own passes 1.
+   */
+  setFloor(surfaces: ReadonlyArray<{ x: number; y: number; w: number; h: number; drag: number }>,
+    loot: { linearDamping: number; angularDamping: number }, prop: { linearDamping: number; angularDamping: number }): void {
+    this.ensure();
+    const length = 4 + surfaces.length * 5;
+    const input = this.view(this.core.physics_input(this.native, length), length);
+    input[0] = nonnegative(loot.linearDamping); input[1] = nonnegative(loot.angularDamping);
+    input[2] = nonnegative(prop.linearDamping); input[3] = nonnegative(prop.angularDamping);
+    let at = 4;
+    for (const f of surfaces) {
+      input[at++] = finite(f.x); input[at++] = finite(f.y); input[at++] = finite(f.w); input[at++] = finite(f.h);
+      input[at++] = nonnegative(f.drag);
+    }
+    this.core.physics_set_floor(this.native);
+  }
+  /**
+   * Floor drag over the committed props, run in the core; nothing until `setFloor`. Each damping the core changed is
+   * written to its spec as `setDamping` writes it, linear before angular, so snapshots read the same specs.
+   */
+  applyFloorDrag(): void {
+    this.ensure();
+    const count = this.core.physics_floor_drag(this.native);
+    if (!count) return;
+    const rows = this.view(this.core.physics_output(this.native), count * DRAG_STRIDE);
+    for (let offset = 0; offset < rows.length; offset += DRAG_STRIDE) {
+      const record = this.bodies.get(this.slotIds[rows[offset]!]!)!, changed = rows[offset + 1]!;
+      if (changed & 1) record.spec = Object.freeze({ ...record.spec, linearDamping: rows[offset + 2]! });
+      if (changed & 2) record.spec = Object.freeze({ ...record.spec, angularDamping: rows[offset + 3]! });
+    }
+  }
+  /**
+   * One tick. `discardContacts` is for a caller that would drain and drop them at once, as the game's tick does: no
+   * contact records are built, but the retained-fact capacity is enforced as if they were, and none are kept.
+   */
+  step(options: { discardContacts?: boolean } = {}): { distance: Record<string, number>; paths: Record<string, Point[]> } {
     this.ensure(); this.commitMutations();
     const dynamics = this.sortedDynamic;
     const forces = this.forces.sort((a, b) => order(a.id, b.id)).filter(entry => this.bodies.has(entry.id));
@@ -539,7 +578,13 @@ export class PhysicsWorld {
       distance[id] = travelled; paths[id] = path;
     });
     let dropped = 0;
-    for (let e = 0, offset = HEADER + positionLength; e < eventCount; e++, offset += EVENT_STRIDE) {
+    if (options.discardContacts) {
+      let named = 0;
+      for (let e = 0, offset = HEADER + positionLength; e < eventCount; e++, offset += EVENT_STRIDE)
+        if (this.slotIds[output[offset + 1]!] && this.slotIds[output[offset + 2]!]) named++;
+      dropped = Math.max(0, this.contacts.length + named - MAX_EVENTS);
+      this.contacts = [];
+    } else for (let e = 0, offset = HEADER + positionLength; e < eventCount; e++, offset += EVENT_STRIDE) {
       const first = this.slotIds[output[offset + 1]!], second = this.slotIds[output[offset + 2]!];
       if (!first || !second) continue;
       if (this.contacts.length >= MAX_EVENTS) { dropped++; continue; }
