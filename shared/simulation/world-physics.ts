@@ -1,20 +1,24 @@
 import { itemLabel, itemIdForLabel } from '../item-instances.ts';
 import { canOccupy } from '../movement.ts';
 import { actorRadius } from './actor-physics.ts';
-import { physicsRuntime, markPhysicsDiscontinuity } from './physics-runtime.ts';
+import { physicsRuntime } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GroundItem, MatchContent, GameMap, Vec2 } from '../types.ts';
 import type { PhysicsWorld } from '../physics/world.ts';
 import type { Point } from '../physics/types.ts';
 import { hypot } from '../math.ts';
-import { admitItem, groundItem, replaceItem, unadmittedItems } from './ground-items.ts';
+import { groundItem, replaceItem } from './ground-items.ts';
 
 const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const reserveActors = (s: Game, r: PhysicsRuntime) => Math.max(0, s.players.length - r.actors.size);
 const ITEM_PREFIX = 'item:';
 const bodyId = (s: Game, item: GroundItem) => `${ITEM_PREFIX}${itemLabel(s, item.id)}`;
 
-/** Drop admission uses the same footprint as scatter planning. Loot stays a sensor after admission. */
+/**
+ * Drop admission uses the same footprint as scatter planning. Loot stays a sensor after admission. The body sync
+ * admits items by the same test in the core (`rust/core/src/boundary.rs`, #1234); this copy serves the drop
+ * planner (`loot.ts`) until phase 3 moves it (#1228).
+ */
 export function physicalDropPlacementClear(s: Game, r: PhysicsRuntime, x: number, y: number): boolean {
   const radius = s.content.worldPhysics.loot.radius;
   return !r.world.overlapsProp(x, y, radius)
@@ -57,48 +61,6 @@ export function addAuthoredProps(s: Game, r: PhysicsRuntime): void {
       linearDamping: profile.prop.linearDamping, angularDamping: profile.prop.angularDamping });
   }
   r.world.commitMutations();
-}
-
-/** Reconcile ownership at transfer boundaries. Mandatory overflow remains logical and pickable. */
-export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: number, admit = true): void {
-  const profile = s.content.worldPhysics;
-  // A held body is `item:<id>`: look its item up by id rather than walking the ground list on every call.
-  for (const id of [...r.items].sort(order)) if (!groundItem(s, itemIdForLabel(s, id.slice(ITEM_PREFIX.length))!)) {
-    markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'removed', tick: markTick });
-    r.world.queueRemoveBody(id); r.items.delete(id);
-  }
-  r.world.commitMutations();
-  if (!admit) return;
-  // With no launched item to place and no slot beyond the reserve, nothing below can be admitted: skip ordering
-  // every ground item (thousands on a large map) on every call.
-  if (r.itemLaunches.size === 0 && !r.world.canAddBodies(1 + reserveActors(s, r) + (profile.dropReserve ?? 0))) return;
-  const place = (item: GroundItem, reserve: number): void => {
-    const id = bodyId(s, item);
-    if (r.items.has(id) || !r.world.canAddBodies(1 + reserveActors(s, r) + reserve) || !canOccupy(s.map, item.x, item.y, profile.loot.radius)
-      || !physicalDropPlacementClear(s, r, item.x, item.y)) return;
-    const motion = r.itemLaunches.get(item.id);
-    r.world.queueAddBody({ id, kind: 'prop', collisionProfile: 'loot', shape: { kind: 'circle', radius: profile.loot.radius },
-      x: item.x, y: item.y, mass: profile.loot.mass, friction: 0, restitution: 0,
-      linearDamping: profile.loot.linearDamping, angularDamping: profile.loot.angularDamping,
-      vx: motion?.x ?? 0, vy: motion?.y ?? 0 });
-    r.items.add(id);
-    admitItem(s, item);
-    r.world.commitMutations();
-    markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'placed', tick: markTick });
-  };
-  // A preflighted transfer owns its released slots first, in the same id order as the old combined sort.
-  for (const id of [...r.itemLaunches.keys()].sort((a, b) => order(itemLabel(s, a), itemLabel(s, b)))) {
-    const item = groundItem(s, id);
-    if (item) place(item, 0);
-  }
-  const reserve = profile.dropReserve ?? 0;
-  if (r.world.canAddBodies(1 + reserveActors(s, r) + reserve)) for (const item of unadmittedItems(s, r.items)) {
-    // No later item can free capacity. Failed launches were already tested with less reserve above.
-    if (!r.world.canAddBodies(1 + reserveActors(s, r) + reserve)) break;
-    if (!r.itemLaunches.has(item.id)) place(item, reserve);
-  }
-  r.world.commitMutations();
-  r.itemLaunches.clear();
 }
 
 /** Preflight staged swaps too: removed physical pickups release their body slots. */

@@ -91,6 +91,30 @@ struct Pending {
     tip: f64,
 }
 
+/// A queued body from its row (`World::queue_add_body`'s layout).
+fn pending_from(row: &[f64]) -> Pending {
+    let v = |i: usize| row[i];
+    let count = v(21) as usize;
+    Pending {
+        key: v(0) as Key,
+        params: BodyParams {
+            kind: v(1) as u32,
+            map_geometry: v(2) != 0.0,
+            pose: [v(6), v(7), v(8), v(9), v(10), v(11)],
+            material: [v(12), v(13), v(14)],
+            damping: [v(15), v(16)],
+            groups: v(17) as u32,
+        },
+        shape: v(3) as u32,
+        a: v(4),
+        b: v(5),
+        loot: v(18) != 0.0,
+        limit: v(19),
+        tip: v(20),
+        vertices: row[BODY_ROW..BODY_ROW + 2 * count].to_vec(),
+    }
+}
+
 #[derive(Clone, Copy)]
 struct Constraint {
     key: Key,
@@ -129,6 +153,10 @@ pub struct World {
     /// Retained contacts: substep, key a, key b (a before b by ID), started.
     contacts: Vec<[f64; 4]>,
     output: Vec<f64>,
+    /// The boundary's own buffers (`boundary.rs`), apart from the rows and facts above, which its
+    /// calls into this world reuse.
+    pub(crate) boundary_input: Vec<f64>,
+    pub(crate) boundary_output: Vec<f64>,
 }
 
 impl Default for World {
@@ -158,6 +186,8 @@ impl World {
             impulses: Vec::new(),
             contacts: Vec::new(),
             output: Vec::new(),
+            boundary_input: Vec::new(),
+            boundary_output: Vec::new(),
         }
     }
 
@@ -249,28 +279,18 @@ impl World {
     /// angle, vx, vy, omega, mass, friction, restitution, linear damping, angular damping (NaN
     /// unset), groups, loot, speed limit, tip radius, vertex count`, then the vertices' `x, y`.
     pub fn queue_add_body(&mut self) -> i32 {
-        let row = self.engine.input_values();
-        let v = |i: usize| row[i];
-        let key = v(0) as Key;
-        let count = v(21) as usize;
-        let pending = Pending {
-            key,
-            params: BodyParams {
-                kind: v(1) as u32,
-                map_geometry: v(2) != 0.0,
-                pose: [v(6), v(7), v(8), v(9), v(10), v(11)],
-                material: [v(12), v(13), v(14)],
-                damping: [v(15), v(16)],
-                groups: v(17) as u32,
-            },
-            shape: v(3) as u32,
-            a: v(4),
-            b: v(5),
-            loot: v(18) != 0.0,
-            limit: v(19),
-            tip: v(20),
-            vertices: row[BODY_ROW..BODY_ROW + 2 * count].to_vec(),
-        };
+        let pending = pending_from(self.engine.input_values());
+        self.queue_pending(pending)
+    }
+
+    /// Queues the body `row` describes, laid out as `queue_add_body`'s input, for the core's own
+    /// callers (`boundary.rs`).
+    pub(crate) fn queue_add_row(&mut self, row: &[f64]) -> i32 {
+        self.queue_pending(pending_from(row))
+    }
+
+    fn queue_pending(&mut self, pending: Pending) -> i32 {
+        let key = pending.key;
         if self.queued() >= MAX_PENDING {
             return E_QUEUE_FULL;
         }
@@ -289,6 +309,28 @@ impl World {
         }
         self.pending_add.push(pending);
         0
+    }
+
+    /// How many commands are queued: nonzero when a commit has something to do.
+    pub(crate) fn queued_count(&self) -> usize {
+        self.queued()
+    }
+
+    /// Whether the key names a live body.
+    pub(crate) fn has_body(&self, key: Key) -> bool {
+        self.body(key).is_some()
+    }
+
+    /// The body's position, without touching the output buffer.
+    pub(crate) fn position(&mut self, key: Key) -> Option<(f64, f64)> {
+        let slot = self.body(key)?.slot;
+        let pose = self.engine.pose(slot);
+        Some((pose[0], pose[1]))
+    }
+
+    /// JavaScript's `<` on two interned IDs, for the core's own callers.
+    pub(crate) fn id_order(&self, a: Key, b: Key) -> Ordering {
+        self.order(a, b)
     }
 
     pub fn queue_remove_body(&mut self, key: Key) -> i32 {
