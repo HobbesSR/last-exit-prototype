@@ -344,12 +344,15 @@ test("a fast message over the edge's four fragments goes on the stream, its delt
   // than four of the edge's fragments. They do not move, so a delta against an acknowledged frame stays small,
   // until `moving`: then each moves every tick, and a delta takes more than one fragment.
   const project = made.match.project;
-  let moving = false;
+  // The props copy one body as it first stood, not as each frame has it: the view's first body may be an actor
+  // that moves, and props copied from it every frame would move too, before `moving`. Once moving, each stands a
+  // whole number of metres along, rounded to float32 metres as the engine's poses are, which the codec requires.
+  let moving = false, model;
   made.match.project = (frame, id) => {
     const view = project(frame, id);
     if (id !== session.playerId || view.phase === 'waiting' || !view.bodies?.length) return view;
-    const [model] = view.bodies;
-    const props = Array.from({ length: 120 }, (_, i) => ({ ...model, id: 100_000 + i, owner: { kind: 'prop', propId: 100_000 + i }, ...(moving ? { x: model.x + view.tick * UNITS_PER_METRE } : {}) }));
+    model ??= view.bodies[0];
+    const props = Array.from({ length: 120 }, (_, i) => ({ ...model, id: 100_000 + i, owner: { kind: 'prop', propId: 100_000 + i }, ...(moving ? { x: Math.fround(model.x / UNITS_PER_METRE + view.tick) * UNITS_PER_METRE } : {}) }));
     return { ...view, bodies: [...view.bodies, ...props] };
   };
   try {
@@ -361,7 +364,7 @@ test("a fast message over the edge's four fragments goes on the stream, its delt
     for (let i = 0; i < 3; i++) h.wake(50);
     assert.ok(refused.datagram);
     assert.equal(datagrams.length, 2, 'deltas against the acknowledged frame fit, but for the one refused');
-    assert.ok(datagrams.every(m => m.bytes <= MAX_FAST_DATAGRAM_BYTES));
+    assert.ok(datagrams.every(m => m.bytes <= DATAGRAM_PAYLOAD_BYTES), `still props: ${datagrams.map(m => m.bytes)} B, one fragment each`);
     moving = true;
     for (let i = 0; i < 3; i++) { h.service.acknowledge(session, reader.newest()); h.wake(50); }
     const fragmented = datagrams.slice(2).filter(m => m.bytes > DATAGRAM_PAYLOAD_BYTES).length;
