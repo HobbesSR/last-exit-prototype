@@ -76,11 +76,12 @@ graph cost a thread 150–200 ms to decode until #1089 packed it into buffers. T
 2. **Leaves first, then the flip.**
    - **Early:** pure functions with small inputs and outputs, so each adapter stays thin.
    - **The flip:** once enough is ported, the world state moves into Rust memory and the tick crosses over.
-     JavaScript then reads projections rather than feeding functions. #1066's functional tick and ECS-style state
-     are the design for the flip, decided before it.
+     JavaScript then reads a mirror rather than feeding functions. Its design was decided under #1066:
+     [The state flip](#the-state-flip).
    - **When (Corey, 2026-11-18).** Not yet: the sight port's crossings were cheap ([42.58](42.58-sight-core-adapter.md)),
      so #1092's deltas are built in Node behind the projection seam. The flip comes after #1092 closes, or earlier if
-     a better point appears. #1092 closed on 2026-11-19, with the deltas built (24.5 stage 3), so the flip is next.
+     a better point appears. #1092 closed on 2026-11-19, with the deltas built (24.5 stage 3), so the flip is next,
+     starting with Rapier (#1192).
 3. **Measure early.** Port one per-tick module, measure its crossing cost against the TypeScript under the bench
    lock, and set a budget before porting more. Crossings too costly are evidence to flip sooner.
 
@@ -151,6 +152,110 @@ module is not left in place.
 
 The browser instantiates WASM asynchronously. Every host therefore loads the core once, before anything that uses
 it, rather than through synchronous imports: `createGame` awaits it for a game, and the client before its scene.
+
+## The state flip
+
+**Decided 2026-11-19** (#1066). These were agent recommendations in brief 16852; Corey approved all nine
+(D1–D9) in comment 16861. The sequence is tracked under #1173.
+
+- **The route (D1).** Port the tick phase by phase while the state stays in JavaScript. Each port is a pure
+  function in the core: the adapter packs what the phase reads, runs it, and unpacks what it wrote, each tick.
+  The frozen fixture checks every step unchanged. Packing follows the actors and the entities a phase touches,
+  not the map. Once every writing phase is in Rust, the core keeps the state between ticks and the packing goes.
+  - **Rejected:** moving the store first, which leaves a crossing per field for every phase still in
+    TypeScript; and a big-bang port of the whole tick, which has no checkpoint before its end.
+- **Rapier first (D2).** Rapier compiling into the crate (#1192) is the first step, before the flip
+  ([Physics](#physics)).
+- **Phase 2 stays in Node across the flip (D3).** Bots and human input consumption only read the pre-movement
+  state and produce one intent per actor. They move into the core later, with the map format (#1215).
+- **After the flip, two calls a tick (D4).**
+  1. `tick_begin()` runs phase 1 and returns a change list.
+  2. Node runs phase 2 against its mirror.
+  3. `tick_finish(intents)` runs phases 3–7 and returns a second change list.
+  - **The mirror.** Node keeps a read-only copy built from the change lists. Projection, recording, the
+    private snapshot and the bots read it. Unchanged records keep their identity (#655).
+  - **Phase 2's state is Node-owned** while phase 2 is in Node (reviews 957 and 958 on PR #1216). It lives in
+    Node, outside the core's state, and the mirror's player record overlays it on the core's fields, so the
+    private snapshot, recording and projection read one record. The intents carry everything phases 3–7 read, so
+    none of it crosses into the core. It is:
+    - **input bookkeeping:** `inputQueue`, `input`, `inputTick`, `lastSeq`, `receivedSeq`, `inputStalled`,
+      `inputMargin`/`inputMarginNext` and `inputLeadTicks`. `setInput` writes some between ticks; `consumeInput`
+      writes the rest in phase 2.
+    - **the bot route,** `route`, which intent collection shifts in place and replanning replaces
+      (`bots.ts`, `bot-routes.ts`). Bot side tables keyed by player objects are re-keyed by ID (#1214).
+  - **Core writes to those fields come back as ordered facts.** Each core-side write is reported in the change
+    list of the call it happens in, in write order. Node applies the list to the mirror when the call returns,
+    before anything else reads the mirror. No snapshot is taken inside a call, so every write appears at the same
+    boundary as today. The writes today:
+
+    | Write | Where | Phase | Fields | Reaches the mirror |
+    | --- | --- | --- | --- | --- |
+    | Gladiator death, entering respawning | `lifecycle.ts` (`damage`) | Wherever damage lands, 3–7 | `input` cleared | `tick_finish` |
+    | Respawn | `lifecycle.ts` (`respawn`) | 1 | `input` cleared, `inputTick` set, `route` cleared | `tick_begin` |
+    | Transit arrival | `transit.ts` (`arrive`) | 1 | `inputTick` set | `tick_begin` |
+    | Delayed transit departure | `transit.ts` (`transit`) | 6 | `input` and `route` cleared | `tick_finish` |
+    | Instant transit | `transit.ts` (`transit`, then `land`) | 6 | `route` cleared only | `tick_finish` |
+    | A gate opened or closed by its user | `interactions.ts` (`interact`) | 6 | that player's `route` cleared | `tick_finish` |
+    | A cell picked up | `loot.ts` (`automaticPickups`) | 6 | `route` cleared | `tick_finish` |
+
+    `clearRoute` sets an existing route to empty and leaves an absent one absent; the fact keeps that
+    distinction. A port that adds, moves or drops one of these writes updates this table in the same change.
+  - **Between-tick commands write Node-owned fields in Node** (review 959). Their existing code stays the owner of
+    what each does to those fields: `joinGame` and `changeSeat` (`shared/simulation/state.ts`), `resume` and
+    `leave` (`server/match.js`), and `teleport` (`shared/simulation/dev.ts`). Only their writes to core-owned
+    fields go through the core call, and Node applies the call's change list to the mirror before the command
+    returns. The differences that must survive, as the code has them today:
+
+    | Command | Input bookkeeping | `route` |
+    | --- | --- | --- |
+    | Join | `resetInput` | Emptied if present (`clearRoute`) |
+    | Resume | `resetInput` | Emptied if present |
+    | Leave | `resetInput` | Kept |
+    | Choose, same role | Unchanged; only the kit changes, when one is given | Kept |
+    | Choose, a seat move | `resetInput` on both seats | Deleted on the seat left (absent); emptied on the seat taken |
+    | Teleport | Unchanged | Emptied if present |
+
+    `resetInput` resets the queue, `input`, `lastSeq`, `receivedSeq`, `inputStalled`, `inputMargin`/`inputMarginNext`
+    and `inputLeadTicks`, and leaves `inputTick` as it was.
+  - **The same tick boundary.** Snapshot, recording and projection are built after `tick_finish`, from the
+    mirror with both change lists and that tick's phase-2 writes applied. They see what one in-place `step` shows
+    today. The fixture's private snapshots, which keep `input` and `route`, check this at every step.
+- **Between-tick commands (D5).** Roster changes, teleport and view lag stay separate calls, applied at once.
+  Each call returns its own change list, which Node applies to the mirror before the call returns (review 957).
+  A command's effect is then visible at once: a paused room's teleport takes and broadcasts a snapshot before
+  any further tick (`server/room.js`), and that snapshot shows the moved pose. View lag splits by reader:
+  `viewLagTicks` goes into the core, since rewind (`shared/simulation/rewind.ts`) reads it in combat, while
+  `inputLeadTicks` bounds input stamps and stays with the Node-owned input bookkeeping.
+  #1066's single command queue drained at the start of the step is not part of the flip: it would change what
+  a between-tick snapshot shows, and nothing needs it. It stays an option.
+- **IDs (D6).** `serial`, `itemSerial` and `scatterSerial` move into the core with the same allocation points and
+  order. There are no unified generational IDs; that would be a rules change of its own. Randomness in the tick
+  is stateless (`itemRoll` hashes seed and label) and is ported bit for bit.
+- **The state's layout (D7).** Plain Rust structs in ordered `Vec`s (players in roster order, lists in their
+  current order), with no ECS library. The export layout is the versioned contract, under `ADAPTER_VERSION`; the
+  internal layout is free.
+  - **Corey (comment 16861):** the tick's costs dwarf the details ECS addresses, but "using ECS like strategies
+    where appropriate is desired, and with the assistance of AI, bespoke solutions may serve us better than a
+    library anyway."
+- **Compatibility.** The seven phases, roster order and `ordered(s)` order are kept, and
+  `tests/tick-phases.test.js` stays their contract. The `Snapshot` type and the recording frame are built in Node,
+  unchanged: no schema or `WIRE_VERSION` change. Replays never resimulate ([26](26-recording-contract.md#playback)),
+  so they are unaffected. Every step but Rapier's passes the fixture unchanged.
+- **Rapier's continuity proof (D8).** If moving Rapier moves the fixture, a bit-level proof across engines is
+  impossible. Instead:
+  - every scripted label still does what it says;
+  - each bot match still completes, with its outcome counts reported beside the old ones;
+  - the digests are then recaptured in a separate commit.
+
+| Step | Issue | Behaviour |
+| --- | --- | --- |
+| 1 | Rapier into the crate, behind `shared/physics/world.ts`'s interface; client prediction switches too, and rapier.js retires (#1192) | The one decided recapture, if needed |
+| 2 | Discovery in the core (#1210) | Preserved |
+| 3 | Live items, gates and traps off `s.map`, in TypeScript (#1211) | Preserved |
+| 4 | Phase 1 and the ID counters in the core (#1212) | Preserved |
+| 5 | Phases 3–7 in the core (#1213): actions; phase 4's floor drag and the solver around it, with the write-back of item and actor poses and `movedThisTick` and the contact drain; then 5–7 | Preserved |
+| 6 | The flip: the core keeps the state, Node mirrors it (#1214) | Preserved |
+| Later | Bots and navigation in the core, with the language-neutral map format (#1215) | Preserved |
 
 ## One math library on both sides
 
@@ -273,15 +378,18 @@ conditions and insertion order, and inputs that are themselves deterministic. Th
 ([Rapier determinism](https://rapier.rs/docs/user_guides/javascript/determinism/)). The repository's own evidence
 is repeatability on supported Node ([42.21](42.21-jelly-squish.md)).
 
-When the core owns the tick, Rapier compiles into the crate as a Rust dependency rather than through rapier.js.
+As the flip's first step (D2), Rapier compiles into the crate as a Rust dependency rather than through rapier.js.
 That removes the wrapper's per-collider costs, but it is a different binary, possibly with different features
 (`enhanced-determinism`). If the fixture's digests move then, it is the decided recapture above: Corey accepted it
 in advance (17.4 #18). If physics ever runs natively instead of as the shared WASM, that determinism needs its own
 evidence.
 
-Why it waits for the flip (#1066): while the state lives in JavaScript, the tick calls the world many times a tick
-(`queueAddBody`, `commitMutations`, `step`, `snapshot`), and moving Rapier into the core would only trade the
-wrapper's crossings for the adapter's. The gain comes when the world lives in Rust and the tick crosses once.
+Why it comes first (D2, #1066). This text used to say Rapier waits for the flip, because the tick calls the world
+many times a tick and the move would only trade the wrapper's crossings for the adapter's. The wrapper's cost is
+not its crossings, though: rapier.js re-syncs its handle maps per collider on `step` (PR #731), while a crossing
+costs 0.03 µs ([42.58](42.58-sight-core-adapter.md)). `shared/physics/world.ts` is already a queue-and-commit
+interface, so the adapter batches behind it. Going first also isolates the one decided recapture, and the world
+has to leave JavaScript before the state can.
 
 Two checks the move needs, which the core's own guards do not give (tracked with the move in #1192):
 - **The math guard stops at the crate.** `rust/core/clippy.toml` forbids platform transcendentals and `mul_add` in
