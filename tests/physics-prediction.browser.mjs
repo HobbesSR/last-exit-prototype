@@ -4,7 +4,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { PHYSICS_VERSION } from '../shared/simulation.ts';
 
 // Delivery is scheduled here, not sent through a real WebSocket. Chrome loads
-// the production prediction module and its production Rapier WASM bootstrap.
+// the production prediction module and the Rust core's Rapier, through its production loader.
 const content = structuredClone(contentById('content-6'));
 content.roster = { contestants: ['Self', 'Other'], gladiators: [] };
 const map = { seed: 441, width: 1200, height: 800,
@@ -59,7 +59,7 @@ try {
   assert.equal(result.cap.reason, 'replay-cap');
   assert.ok(result.cap.replayed <= 8);
   assert.equal(result.cap.inputs, 0);
-  assert.ok(result.resources.some(name => /rapier/i.test(name)), 'Chrome loaded the Rapier bootstrap');
+  assert.ok(result.resources.some(name => /core-wasm\.generated/.test(name)), 'Chrome loaded the core, which holds Rapier (#1192)');
   assert.deepEqual(errors, []);
   await page.close();
 
@@ -103,7 +103,7 @@ try {
   assert.ok((await live.evaluate(() => window.arenaDebug().physicsPrediction.replayed)) <= 8);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, browser: browser.version(), scheduling: 'synthetic 75 ms delay plus live socket',
-    checks: ['production predictor and Rapier WASM', 'own pose', 'delayed correction', 'replay cap',
+    checks: ['production predictor and Rapier in the core', 'own pose', 'delayed correction', 'replay cap',
       'live input/projection/presentation wiring', 'reload reconnect'] }));
   await live.close();
 } finally { await browser.close(); await server.close(); }
