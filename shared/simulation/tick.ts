@@ -8,16 +8,17 @@ import { collectBotIntent } from './bots.ts';
 import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
 import type { BotIntent } from './bots.ts';
 import { consumeInput } from './input.ts';
-import { respawn, finishMatch } from './lifecycle.ts';
+import { finishMatch } from './lifecycle.ts';
+import { beginTick } from './phase-one.ts';
 import { damage, skill, attack } from './combat.ts';
 import { solvePhysicsProjectiles } from './physics-projectiles.ts';
 import { prepareHooks, finishHooks } from './hook.ts';
 import { interact, advanceCharging } from './interactions.ts';
-import { arrive, transit } from './transit.ts';
+import { transit } from './transit.ts';
 import { automaticPickups, dropInventorySlot, effect } from './loot.ts';
 import { advanceReload, dropReserve } from './ammo.ts';
 import { stepTraps } from '../traps.ts';
-import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './tick-rules.ts';
+import { applyEnvironment, advanceDiscovery } from './tick-rules.ts';
 import { playerIndex } from './relations.ts';
 import { recordRewind } from './rewind.ts';
 import { actorId, compare, ordered, synchronize } from './game.ts';
@@ -39,14 +40,11 @@ export function stepGame(s: Game): void {
 
 // Timed by phase (sim.*; 42.22). Every synchronize call is counted in sim.sync.
 function advanceGame(s: Game, r: PhysicsRuntime): void {
-  // 1: all timers and previous-boundary lifecycle, before anyone decides.
-  advanceTick(s);
+  // 1: all timers and previous-boundary lifecycle, before anyone decides: the tick, timers, respawn and arrival
+  // run in the core (phase-one.ts), then the body sync and the pending queues here.
+  beginTick(s);
   // Each marker reaches exactly one stepped capture: its own tick's, or the next after a between-tick change.
   r.discontinuities = r.discontinuities.filter(entry => entry.tick >= s.tick);
-  for (const p of s.players) {
-    p.movedThisTick = 0; respawn(s, p); arrive(s, p);
-    if (p.status === 'active') advanceTimers(p);
-  }
   start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
   prepareHooks(s);
   s.projectiles.push(...r.pendingSpawns.splice(0));

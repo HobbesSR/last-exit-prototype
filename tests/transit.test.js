@@ -116,3 +116,20 @@ test('the body leaves on departure and is placed on landing', async () => {
     assert.ok(Math.hypot(body().x - 3500, body().y - 576) < 100, `landed at ${body().x},${body().y}`);
   } finally { disposePhysics(s); }
 });
+
+test('a landing sees a respawn earlier in the roster on the same tick, and their IDs keep that order', async () => {
+  // Phase 1 runs in the core, which stops for each landing so the placement reads the players before it (#1212).
+  const { map } = openField(5600, { stations: structuredClone(STATIONS) });
+  const actors = [{ role: 'gladiator', bot: false, x: 2000, y: 576 }, { role: 'gladiator', bot: false, x: 3500, y: 576 }, ACTORS[1]];
+  const { s, players: [a, b] } = await stagePhysics(map, { content: SELECTABLE, actors });
+  try {
+    a.status = 'respawning'; a.respawnAt = s.tick + 1;
+    b.status = 'transit'; b.transit = { to: 'st0', arriveAt: s.tick + 1 };
+    const serial = s.serial;
+    step(s);
+    assert.deepEqual([a.status, a.x, Math.round(a.y), b.status, b.transit], ['active', 500, 576, 'active', undefined]);
+    assert.ok(Math.hypot(b.x - a.x, b.y - a.y) > 1, `landed clear of the respawn at ${b.x},${b.y}`);
+    const respawned = s.events.find(e => e.kind === 'respawned'), rail = s.effects.find(e => e.kind === 'rail');
+    assert.deepEqual([respawned.id, rail.id], [serial, serial + 1]);
+  } finally { disposePhysics(s); }
+});

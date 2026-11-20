@@ -3,6 +3,7 @@ import { createGameRecord } from './state.ts';
 import { canOccupy, prepareMovementGeometry } from '../movement.ts';
 import { prepareSightIndex } from '../sight.ts';
 import { initCoreSight } from '../sight-core.ts';
+import { initPhaseOne } from './phase-one.ts';
 import { attachSight } from './sight-runtime.ts';
 import { gateShape } from '../gate-index.ts';
 import { actorRadius, validateActorPhysics } from './actor-physics.ts';
@@ -31,6 +32,7 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
   // event-loop yields; shared/browser callers retain the ordinary construction path.
   if (yieldControl) { await prepareMovementGeometry(map, yieldControl); await prepareSightIndex(map, yieldControl); }
   const sight = await initCoreSight();
+  await initPhaseOne();
   const s = createGameRecord(seed, map, content, sight);
   attachSight(s, sight);
   if (yieldControl) await yieldControl();
