@@ -223,12 +223,13 @@ test('dynamic iteration stays sorted through mixed mutations without scanning ma
   const world = await createPhysicsWorld();
   const wall = id => ({ id, kind: 'static', mapGeometry: true,
     shape: { kind: 'box', hx: 2, hy: 2 }, x: 1000, y: 1000 });
-  // Catch an unbounded scan directly, without a timing threshold or a large map fixture.
+  // Catch an unbounded scan of the adapter's records directly, without a timing threshold or a large map fixture.
+  // The core's commit keeps its own list of dynamic bodies (rust/core/src/world.rs, #1232).
   const commit = () => {
-    const scans = [Symbol.iterator, 'values', 'keys', 'entries', 'forEach'];
-    for (const method of scans) world.bodies[method] = () => { throw new Error('commit traversed all map bodies'); };
+    const scans = [Symbol.iterator, 'values', 'keys', 'entries', 'forEach', 'map', 'filter'];
+    for (const method of scans) world.records[method] = () => { throw new Error('commit traversed all map bodies'); };
     try { world.commitMutations(); } finally {
-      for (const method of scans) delete world.bodies[method];
+      for (const method of scans) delete world.records[method];
     }
   };
   const check = ids => {
@@ -327,5 +328,23 @@ test('map geometry shares one fixed body but keeps its own pose, contacts and re
     assert.equal(world.getTransform('wall:a'), undefined);
     assert.equal(world.getTransform('wall:b').x, -100);
     assert.equal(world.counts().static, 1);
+  } finally { world.dispose(); }
+});
+
+test('a hull Rapier rejects mid-commit keeps what the commit already did (review 972)', async () => {
+  const world = await createPhysicsWorld();
+  try {
+    world.queueAddBody(circle('a')); world.commitMutations();
+    world.queueRemoveBody('a');
+    // Strictly convex in f64, collinear once rounded to Rapier's f32.
+    world.queueAddBody({ id: 'z', kind: 'static', x: 0, y: 0,
+      shape: { kind: 'convex', vertices: [{ x: -1e8, y: -1e8 }, { x: 1e8, y: 1e8 - 1 }, { x: 1e8, y: 1e8 + 1 }] } });
+    assert.throws(() => world.commitMutations(), /invalid convex body/);
+    assert.equal(world.hasBody('a'), false);
+    assert.equal(world.bodyLifetime('a'), undefined);
+    assert.equal(world.getTransform('a'), undefined);
+    assert.equal(world.counts().dynamic, 0);
+    assert.deepEqual(world.snapshot().pending.add.map(spec => spec.id), ['z']);
+    assert.throws(() => world.commitMutations(), /invalid convex body/);
   } finally { world.dispose(); }
 });
