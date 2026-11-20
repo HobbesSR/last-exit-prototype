@@ -1,10 +1,10 @@
 //! Rapier compiled into the core (docs/27 "Physics", #1192), behind `shared/physics/world.ts`.
 //!
-//! world.ts keeps everything that is not the engine: validation, the command queues, IDs, the
-//! commit order, generations and every ordering by ID. This module holds Rapier's sets and does
-//! what rapier.js did for it, with the same parameters and in the same order, so a world built by
-//! the same calls steps the same way. Bodies are addressed by *slot*, a small index world.ts maps
-//! to its IDs; a collider's `user_data` is its slot, so events name slots, never handles.
+//! `world.rs` keeps everything that is not the engine: the records, the command queues, the
+//! commit order, generations and every ordering by ID (#1232). This module holds Rapier's sets and
+//! does what rapier.js did for it, with the same parameters and in the same order, so a world built
+//! by the same calls steps the same way. Bodies are addressed by *slot*, a small index `world.rs`
+//! maps to its keys; a collider's `user_data` is its slot, so events name slots, never handles.
 //!
 //! One `step` is one call: all four substeps, with the motors, queued forces and impulses, the
 //! bounded constraints and the speed caps world.ts used to apply between rapier.js calls, run here
@@ -24,7 +24,7 @@ pub const SCALE: f64 = 40.0;
 pub const SUBSTEPS: usize = 4;
 pub const DT: f64 = 0.0125;
 
-/// Values per entry of each section of the step's input (world.ts writes them).
+/// Values per entry of each section of the step's input (`world.rs` writes them).
 pub const DYNAMIC_STRIDE: usize = 7;
 pub const PUSH_STRIDE: usize = 3;
 pub const CONSTRAINT_STRIDE: usize = 13;
@@ -107,7 +107,7 @@ impl EventHandler for Events {
     fn handle_soft_body_tear_event(&self, _soft_bodies: &SoftBodySet, _event: &SoftBodyTearEvent) {}
 }
 
-/// One room's physics: Rapier's sets plus the slot table world.ts addresses them by.
+/// One room's physics: Rapier's sets plus the slot table `world.rs` addresses them by.
 pub struct World {
     parameters: IntegrationParameters,
     pipeline: PhysicsPipeline,
@@ -132,7 +132,7 @@ pub struct World {
     /// The live slots floor drag applies to, in slot order: at most the dynamic bodies, never the
     /// map's thousands of colliders.
     dragged: Vec<u32>,
-    /// The step's input, written by world.ts through `input`.
+    /// The input: rows JavaScript writes through `input`, or a step's, written by `world.rs`.
     input: Vec<f64>,
     /// The last result: a step's, a pose's or the debug contacts'.
     output: Vec<f64>,
@@ -419,7 +419,7 @@ impl World {
 
     /// Floor drag over every dynamic prop, before the solve (`floor_drag`). A damping is set only
     /// when it changes, which never wakes a sleeper. Returns the changes as `DRAG_STRIDE` rows in
-    /// slot order, for world.ts to keep its specs equal; nothing when no floor was sent.
+    /// slot order, for `world.rs` to name; nothing when no floor was sent.
     pub fn apply_floor_drag(&mut self) -> &[f64] {
         let mut output = std::mem::take(&mut self.output);
         output.clear();
@@ -575,6 +575,21 @@ impl World {
         self.input.clear();
         self.input.resize(len, 0.0);
         &mut self.input
+    }
+
+    /// The input as JavaScript last filled it.
+    pub fn input_values(&self) -> &[f64] {
+        &self.input
+    }
+
+    /// The input buffer itself, for `world.rs` to fill a step's rows.
+    pub fn input_vec(&mut self) -> &mut Vec<f64> {
+        &mut self.input
+    }
+
+    /// The damping last set, `[linear, angular]`, unset read as 0.
+    pub fn damping(&self, slot: u32) -> [f64; 2] {
+        self.slot(slot).damping
     }
 
     fn cap_speeds(&mut self, dynamics: &[f64]) -> Result<(), (u32, usize)> {
@@ -774,7 +789,7 @@ impl World {
     }
 
     /// Every touching pair's manifold points: `slot 1, slot 2, x, y, nx, ny, distance`, the normal
-    /// pointing from the first collider to the second, in world units. world.ts orders and caps them.
+    /// pointing from the first collider to the second, in world units. `world.rs` names, orders and caps them.
     pub fn debug_contacts(&mut self) -> &[f64] {
         self.output.clear();
         for pair in self.narrow_phase.contact_pairs() {

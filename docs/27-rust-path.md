@@ -314,7 +314,12 @@ and the effects' lives, then per player in roster order runs respawn, transit ar
 
 **Step 5 is staged** under #1213, each stage passing the fixture unchanged:
 - #1226: phase 4's glue;
-- #1227: the physics adapter's bookkeeping and phase 1's remainder;
+- #1227: the physics adapter's bookkeeping and phase 1's remainder, in three stages:
+  - #1232: the world's records, generations, queues and ID order;
+  - #1233: the map's collision queries (`canOccupy`, `reachClear`), which the landing placement and attachment
+    admission need;
+  - #1234: `synchronize`, `prepareHooks`, the pending admission and the landing placement, which retires
+    `NEED_LANDING`;
 - #1228: phase 3 with the item counters;
 - #1229: phase 5;
 - #1230: phases 6 and 7.
@@ -329,6 +334,22 @@ The physics adapter goes before phase 3 because drops and attacks call into it (
 - **Poses come from the step's output.** The end of a body's path is its pose after the solve, so the write-back of items and actors (`p.x`, `p.y`, `movedThisTick`) reads the paths instead of one `getTransform` call per body. JavaScript still writes the records, which it owns until #1214.
 - **The tick keeps no contacts.** `step({ discardContacts: true })` builds no contact records but still enforces the 8,192-fact capacity. Gameplay has no contact damage, so the tick drained and dropped them anyway.
 - **Cost:** [42.64](42.64-phase-four-glue-core.md).
+
+**Step 5b.1, the world's bookkeeping (#1232, adapter version 8).** `rust/core/src/world.rs` holds what
+`shared/physics/world.ts` kept beside the engine. That is the body records (slot, generation, kind, speed cap, motor),
+the mutation queues with their capacity checks and commit order, the constraints in insertion order, the retained
+contacts, and every ordering by ID. It calls the engine (`physics.rs`) in the order world.ts did, so Rapier allocates
+the same handles and slots.
+- **IDs cross once.** world.ts interns each ID string to a key, sending its UTF-16 code units to the core the first
+  time it is seen. The core compares those units, so its ID order is JavaScript's `<`. Every later call names keys.
+- **JavaScript keeps** spec validation, the intern table, and the frozen spec, motor and lifetime objects that
+  snapshots share (#655). A commit reports its facts (bodies removed and added, constraints added), and world.ts
+  applies them to those records. JavaScript owns them until the flip (#1214), which removes them.
+- **The same refusals.** The core returns a code, and world.ts throws the old message. Values are validated, and an
+  unknown dynamic body refused, in world.ts's old order before the call.
+- **The step packs nothing.** The core has the motors, caps, pushes and constraints. Its output names the dynamic
+  bodies by key, followed by their paths.
+- **Cost:** [42.65](42.65-world-bookkeeping-core.md).
 
 ## One math library on both sides
 

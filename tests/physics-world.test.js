@@ -223,12 +223,13 @@ test('dynamic iteration stays sorted through mixed mutations without scanning ma
   const world = await createPhysicsWorld();
   const wall = id => ({ id, kind: 'static', mapGeometry: true,
     shape: { kind: 'box', hx: 2, hy: 2 }, x: 1000, y: 1000 });
-  // Catch an unbounded scan directly, without a timing threshold or a large map fixture.
+  // Catch an unbounded scan of the adapter's records directly, without a timing threshold or a large map fixture.
+  // The core's commit keeps its own list of dynamic bodies (rust/core/src/world.rs, #1232).
   const commit = () => {
-    const scans = [Symbol.iterator, 'values', 'keys', 'entries', 'forEach'];
-    for (const method of scans) world.bodies[method] = () => { throw new Error('commit traversed all map bodies'); };
+    const scans = [Symbol.iterator, 'values', 'keys', 'entries', 'forEach', 'map', 'filter'];
+    for (const method of scans) world.records[method] = () => { throw new Error('commit traversed all map bodies'); };
     try { world.commitMutations(); } finally {
-      for (const method of scans) delete world.bodies[method];
+      for (const method of scans) delete world.records[method];
     }
   };
   const check = ids => {
