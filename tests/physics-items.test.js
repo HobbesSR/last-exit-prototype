@@ -212,6 +212,18 @@ test('authored crate moves and rotates without contact damage; floor drag uses p
   } finally { disposePhysics(s); }
 });
 
+test('floor drag accepts any finite floor, beyond the body representability bound (review 970)', async () => {
+  const map = arena();
+  map.physicsProps = [{ id: 'crate', profile: 'crate', x: 200, y: 200, angle: 0 }];
+  map.motorSurfaces = [{ id: 'wide', x: 0, y: 0, w: 1e10, h: 400, priority: 1, speed: 1, traction: 1, braking: 1, drag: 0.5 }];
+  const { s } = await game(map);
+  try {
+    step(s);
+    assert.equal(snapshot(s).physics.world.bodies.find(b => b.spec.id === 'prop:crate').spec.linearDamping,
+      s.content.worldPhysics.prop.linearDamping * 0.5);
+  } finally { disposePhysics(s); }
+});
+
 test('world physics authoring is validated and match-pinned', async () => {
   const bad = arena();
   bad.motorSurfaces = [{ id: 'floor', x: 100, y: 100, w: 200, h: 200,

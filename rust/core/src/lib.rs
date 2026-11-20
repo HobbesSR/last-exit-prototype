@@ -5,6 +5,7 @@
 //! WASM memory (docs/27, rule 1), so there is no generated JavaScript glue to keep in step.
 
 pub mod discovery;
+pub mod floor_drag;
 pub mod math;
 pub mod phase_one;
 pub mod physics;
@@ -15,7 +16,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 6;
+pub const ADAPTER_VERSION: u32 = 7;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -530,6 +531,28 @@ pub unsafe extern "C" fn physics_step(
             .step(dynamic_count, force_count, impulse_count, constraint_count)
             .as_ptr()
     }
+}
+
+/// Takes the floors and damping profiles floor drag reads from the input buffer
+/// (`floor_drag::Floor::from_input`).
+///
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_set_floor(world: *mut physics::World) {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).set_floor() }
+}
+
+/// Floor drag (`physics::World::apply_floor_drag`); returns how many rows of
+/// `physics::DRAG_STRIDE` `f64`s are at `physics_output`.
+///
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_floor_drag(world: *mut physics::World) -> usize {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).apply_floor_drag().len() / physics::DRAG_STRIDE }
 }
 
 /// The debug contacts (`physics::World::debug_contacts`); returns how many rows of seven `f64`s

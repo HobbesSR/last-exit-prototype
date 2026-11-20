@@ -312,6 +312,24 @@ and the effects' lives, then per player in roster order runs respawn, transit ar
   rules are tiny, and about 0.06% of the tick. It is accepted under
   [42.58's state-flip exception](42.58-sight-core-adapter.md#the-budget), which ends with the flip (#1214).
 
+**Step 5 is staged** under #1213, each stage passing the fixture unchanged:
+- #1226: phase 4's glue;
+- #1227: the physics adapter's bookkeeping and phase 1's remainder;
+- #1228: phase 3 with the item counters;
+- #1229: phase 5;
+- #1230: phases 6 and 7.
+
+The physics adapter goes before phase 3 because drops and attacks call into it (`launchPhysicalDrops`, impulses, attachments).
+
+**Step 5a, phase 4's glue (#1226, adapter version 7).**
+- **Floor drag runs in the core.** It lives in `rust/core/src/floor_drag.rs`, called by the world before the solve.
+  - **Sent once per world:** the motor surfaces, in the motor's priority and ID order, and the loot and prop damping profiles. `applyFloorDrag` in `world-physics.ts` keys the upload on the surface list and the profile.
+  - **Classes are fixed when a body is added:** a prop in the loot group follows loot's profile, any other prop follows prop's, and nothing else is dragged.
+  - **Only changes come back.** The core holds each body's damping as `f64`, with unset read as 0, and reports only what changed. `world.ts` writes those values into the body specs as `setDamping` did, so the gameplay snapshot reads the same specs.
+- **Poses come from the step's output.** The end of a body's path is its pose after the solve, so the write-back of items and actors (`p.x`, `p.y`, `movedThisTick`) reads the paths instead of one `getTransform` call per body. JavaScript still writes the records, which it owns until #1214.
+- **The tick keeps no contacts.** `step({ discardContacts: true })` builds no contact records but still enforces the 8,192-fact capacity. Gameplay has no contact damage, so the tick drained and dropped them anyway.
+- **Cost:** [42.64](42.64-phase-four-glue-core.md).
+
 ## One math library on both sides
 
 "Native on the server, WebAssembly in the browser" is not bit-identical by itself. Native Rust's `sin`, `cos` and

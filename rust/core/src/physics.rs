@@ -12,6 +12,7 @@
 //! units are divided by `SCALE` in `f64` and rounded once to Rapier's `f32`, and what comes back is
 //! widened to `f64` before it is scaled.
 
+use crate::floor_drag::{self, Floor};
 use crate::math;
 use rapier2d::parry::query;
 use rapier2d::prelude::*;
@@ -39,6 +40,12 @@ pub const STEP_NONFINITE_ANGULAR: u32 = 2;
 /// Body kinds, as world.ts encodes them.
 pub const KIND_STATIC: u32 = 0;
 pub const KIND_ACTOR: u32 = 1;
+pub const KIND_PROP: u32 = 2;
+/// The loot collision group's membership bit (world.ts's `LOOT_GROUP`): a prop in it is loot.
+pub const LOOT_GROUP: u32 = 0x0008;
+/// Values per row of `apply_floor_drag`'s output: `slot, changed, linear, angular`, where
+/// `changed` has bit 1 for linear and bit 2 for angular.
+pub const DRAG_STRIDE: usize = 4;
 /// Shapes, as world.ts encodes them.
 pub const SHAPE_CIRCLE: u32 = 0;
 pub const SHAPE_BOX: u32 = 1;
@@ -48,6 +55,10 @@ struct Slot {
     body: RigidBodyHandle,
     collider: ColliderHandle,
     map_geometry: bool,
+    /// Which damping profile floor drag applies to the body.
+    drag: floor_drag::Class,
+    /// The damping last set, `[linear, angular]`, unset read as 0 as world.ts's spec did.
+    damping: [f64; 2],
 }
 
 type Event = (ColliderHandle, ColliderHandle, bool);
@@ -116,6 +127,11 @@ pub struct World {
     free_slots: Vec<u32>,
     ropes: Vec<Option<ImpulseJointHandle>>,
     free_ropes: Vec<u32>,
+    /// The floors and damping profiles floor drag reads, once world.ts has sent them.
+    floor: Option<Floor>,
+    /// The live slots floor drag applies to, in slot order: at most the dynamic bodies, never the
+    /// map's thousands of colliders.
+    dragged: Vec<u32>,
     /// The step's input, written by world.ts through `input`.
     input: Vec<f64>,
     /// The last result: a step's, a pose's or the debug contacts'.
@@ -223,6 +239,8 @@ impl World {
             free_slots: Vec::new(),
             ropes: Vec::new(),
             free_ropes: Vec::new(),
+            floor: None,
+            dragged: Vec::new(),
             input: Vec::new(),
             output: Vec::new(),
         }
@@ -298,15 +316,29 @@ impl World {
         let collider = self
             .colliders
             .insert_with_parent(collider, body, &mut self.bodies);
+        let drag = if params.kind != KIND_PROP {
+            floor_drag::Class::None
+        } else if params.groups >> 16 == LOOT_GROUP {
+            floor_drag::Class::Loot
+        } else {
+            floor_drag::Class::Prop
+        };
+        let unset = |value: f64| if value.is_nan() { 0.0 } else { value };
         let entry = Some(Slot {
             body,
             collider,
             map_geometry: params.map_geometry,
+            drag,
+            damping: [unset(params.damping[0]), unset(params.damping[1])],
         });
         if slot as usize == self.slots.len() {
             self.slots.push(entry);
         } else {
             self.slots[slot as usize] = entry;
+        }
+        if drag != floor_drag::Class::None {
+            let at = self.dragged.partition_point(|&other| other < slot);
+            self.dragged.insert(at, slot);
         }
         Some(slot)
     }
@@ -336,6 +368,7 @@ impl World {
         }
         self.slots[slot as usize] = None;
         self.free_slots.push(slot);
+        self.dragged.retain(|&other| other != slot);
     }
 
     pub fn wake(&mut self, slot: u32) {
@@ -368,12 +401,61 @@ impl World {
     }
 
     pub fn set_damping(&mut self, slot: u32, angular: bool, value: f64) {
+        if let Some(entry) = self.slots[slot as usize].as_mut() {
+            entry.damping[usize::from(angular)] = value;
+        }
         let body = self.body_mut(slot);
         if angular {
             body.set_angular_damping(value as Real);
         } else {
             body.set_linear_damping(value as Real);
         }
+    }
+
+    /// Takes the floors and damping profiles from the input buffer (`Floor::from_input`'s layout).
+    pub fn set_floor(&mut self) {
+        self.floor = Some(Floor::from_input(&self.input));
+    }
+
+    /// Floor drag over every dynamic prop, before the solve (`floor_drag`). A damping is set only
+    /// when it changes, which never wakes a sleeper. Returns the changes as `DRAG_STRIDE` rows in
+    /// slot order, for world.ts to keep its specs equal; nothing when no floor was sent.
+    pub fn apply_floor_drag(&mut self) -> &[f64] {
+        let mut output = std::mem::take(&mut self.output);
+        output.clear();
+        if let Some(floor) = &self.floor {
+            for &slot in &self.dragged {
+                let Some(entry) = self.slots[slot as usize].as_mut() else {
+                    continue;
+                };
+                let p = self.bodies[entry.body].translation();
+                let (x, y) = (f64::from(p.x) * SCALE, f64::from(p.y) * SCALE);
+                let Some(next) = floor.damping(entry.drag, x, y) else {
+                    continue;
+                };
+                let body = &mut self.bodies[entry.body];
+                let mut changed = 0u8;
+                if entry.damping[0] != next[0] {
+                    body.set_linear_damping(next[0] as Real);
+                    changed |= 1;
+                }
+                if entry.damping[1] != next[1] {
+                    body.set_angular_damping(next[1] as Real);
+                    changed |= 2;
+                }
+                if changed != 0 {
+                    entry.damping = next;
+                    output.extend_from_slice(&[
+                        f64::from(slot),
+                        f64::from(changed),
+                        next[0],
+                        next[1],
+                    ]);
+                }
+            }
+        }
+        self.output = output;
+        &self.output
     }
 
     /// An explicit teleport: the pose, at rest, awake.
