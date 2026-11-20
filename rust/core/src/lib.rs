@@ -5,6 +5,7 @@
 //! WASM memory (docs/27, rule 1), so there is no generated JavaScript glue to keep in step.
 
 pub mod math;
+pub mod physics;
 pub mod sight;
 
 use std::alloc::{Layout, alloc, dealloc};
@@ -41,6 +42,12 @@ pub extern "C" fn math_atan(x: f64) -> f64 {
 #[unsafe(no_mangle)]
 pub extern "C" fn math_atan2(y: f64, x: f64) -> f64 {
     math::atan2(y, x)
+}
+
+/// Rapier's probe (`physics::probe`), until the world's adapter replaces it (#1192).
+#[unsafe(no_mangle)]
+pub extern "C" fn physics_probe(steps: u32) -> f64 {
+    physics::probe(steps)
 }
 
 #[unsafe(no_mangle)]

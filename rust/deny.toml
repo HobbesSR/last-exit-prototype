@@ -25,6 +25,8 @@ allow = [
   "Unlicense",
   # The Unicode data licence: the ICU and unicode-ident crates under URL and certificate parsing (#1174).
   "Unicode-3.0",
+  # The zlib licence: `foldhash`, the hasher under parry2d's and spade's hash tables (#1192).
+  "Zlib",
 ]
 confidence-threshold = 0.93
 # The list is the policy, not an inventory: an entry no crate uses yet is not a warning.
