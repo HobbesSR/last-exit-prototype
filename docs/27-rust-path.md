@@ -190,11 +190,26 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
     | Instant transit | `transit.ts` (`transit`, then `land`) | 6 | `route` cleared only | `tick_finish` |
     | A gate opened or closed by its user | `interactions.ts` (`interact`) | 6 | that player's `route` cleared | `tick_finish` |
     | A cell picked up | `loot.ts` (`automaticPickups`) | 6 | `route` cleared | `tick_finish` |
-    | Teleport | `dev.ts` | Between ticks | `route` cleared | The command's own list |
-    | Join, resume, choose, leave | `state.ts` (`resetInput`, `clearRoute`) | Between ticks | All input bookkeeping reset, `route` cleared | The command's own list |
 
     `clearRoute` sets an existing route to empty and leaves an absent one absent; the fact keeps that
     distinction. A port that adds, moves or drops one of these writes updates this table in the same change.
+  - **Between-tick commands write Node-owned fields in Node** (review 959). Their existing code stays the owner of
+    what each does to those fields: `joinGame` and `changeSeat` (`shared/simulation/state.ts`), `resume` and
+    `leave` (`server/match.js`), and `teleport` (`shared/simulation/dev.ts`). Only their writes to core-owned
+    fields go through the core call, and Node applies the call's change list to the mirror before the command
+    returns. The differences that must survive, as the code has them today:
+
+    | Command | Input bookkeeping | `route` |
+    | --- | --- | --- |
+    | Join | `resetInput` | Emptied if present (`clearRoute`) |
+    | Resume | `resetInput` | Emptied if present |
+    | Leave | `resetInput` | Kept |
+    | Choose, same role | Unchanged; only the kit changes, when one is given | Kept |
+    | Choose, a seat move | `resetInput` on both seats | Deleted on the seat left (absent); emptied on the seat taken |
+    | Teleport | Unchanged | Emptied if present |
+
+    `resetInput` resets the queue, `input`, `lastSeq`, `receivedSeq`, `inputStalled`, `inputMargin`/`inputMarginNext`
+    and `inputLeadTicks`, and leaves `inputTick` as it was.
   - **The same tick boundary.** Snapshot, recording and projection are built after `tick_finish`, from the
     mirror with both change lists and that tick's phase-2 writes applied. They see what one in-place `step` shows
     today. The fixture's private snapshots, which keep `input` and `route`, check this at every step.
