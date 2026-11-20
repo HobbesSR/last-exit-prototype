@@ -7,8 +7,8 @@ import type { BodyDefinition } from '../physics/types.ts';
 
 /**
  * The largest map side physics accepts, in world units: a precision bound, not a content one. Rapier keeps f32
- * positions, whose spacing grows with distance from the origin; at this extent the jelly still settles within its
- * gates (tests/physics-jelly.test.js), and its settled error doubles with each further doubling (42.22). A larger
+ * positions, whose spacing grows with distance from the origin; at this extent the retired jelly lab (#455) still settled within its
+ * gates, and its settled error doubles with each further doubling (42.22). A larger
  * map would need the world recentred, not a larger number here.
  */
 export const MAX_PHYSICS_EXTENT = 2 ** 18;

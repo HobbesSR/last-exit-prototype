@@ -159,11 +159,10 @@ export async function main(argv = process.argv.slice(2)) {
       'shared/physics/constraints.ts', 'shared/simulation/hook.ts',
       'shared/simulation/dynamic-navigation.ts', 'shared/simulation/physics-presentation.ts',
       'shared/simulation/world-physics.ts', 'package.json', 'package-lock.json',
-      'node_modules/@dimforge/rapier2d-compat/dist/rapier.mjs',
-      'node_modules/@dimforge/rapier2d-compat/dist/rapier_wasm2d_bg.wasm'];
+      'rust/core/src/physics.rs', 'rust/Cargo.lock'];
     const hashes = {};
     for (const file of files) hashes[file] = sha(await readFile(file));
-    const rapier = JSON.parse(await readFile('node_modules/@dimforge/rapier2d-compat/package.json', 'utf8'));
+    const rapier = { name: 'rapier2d', license: 'Apache-2.0', version: (/name = "rapier2d"\r?\nversion = "([^"]+)"/.exec(await readFile('rust/Cargo.lock', 'utf8'))?.[1]) };
     const report = { schema: 'physics-p9-integration-1', date: new Date().toISOString(),
       provenance: { commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
         dirtyTracked: execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim(),

@@ -27,10 +27,8 @@
     "bench": "node tests/bench.mjs",
     "bench:client": "node tests/bench-client.mjs",
     "bench:stages": "node tests/bench-stages.mjs",
-    "physics:report": "node --expose-gc tools/physics/report.mjs",
     "physics:integration": "node --expose-gc tools/physics/integration-report.mjs",
     "physics:ballistics": "node tools/physics/ballistic-report.mjs",
-    "physics:jelly": "node tools/physics/jelly-report.mjs",
     "demo": "node tests/demo.mjs",
     "test:browser": "node tests/sets.mjs browser",
     "test:micro": "node tests/sets.mjs micro --browser",
@@ -43,7 +41,6 @@
     "notices": "node tools/third-party-notices.mjs"
   },
   "dependencies": {
-    "@dimforge/rapier2d-compat": "0.21.0",
     "@kninnug/constrainautor": "^4.1.0",
     "clipper-lib": "^6.4.2",
     "delaunator": "^5.1.0",

@@ -14,8 +14,9 @@ Navigation's free-space mesh ([22.6.1](22.6.1-portal-graph-and-mesh.md#bottom-le
 
 References: [Phaser](https://github.com/phaserjs/phaser), [SAT.js collision response](https://github.com/jriecken/sat-js), [PathFinding.js](https://github.com/qiao/PathFinding.js), [Clipper](https://github.com/junmer/clipper-lib), [Delaunator](https://github.com/mapbox/delaunator), [Constrainautor](https://github.com/kninnug/Constrainautor).
 
-Physics uses Rapier 2D/WASM as the required match simulation engine (`last-exit-0.8-physics`), pinned at
-Apache-2.0 `@dimforge/rapier2d-compat` **0.21.0** (#920, #975, #976). The legacy custom solver
+Physics uses Rapier 2D as the required match simulation engine (`last-exit-0.8-physics`), pinned at
+Apache-2.0 `rapier2d` **0.36.1**, compiled into the Rust core's WASM ([27](27-rust-path.md#physics), #1192).
+It was `@dimforge/rapier2d-compat` 0.21.0, built from the same parry2d and nalgebra, until #1192 (#920, #975, #976). The legacy custom solver
 (`behavior-seat-1.json.gz`, [42.6](42.6-physics-comparison.md)) is retired (#920);
 Planck.js was the reserve during integration. The P0 comparison and retained failures are in
 [42.6](42.6-physics-comparison.md); reviewed remediation gates are in
