@@ -1,28 +1,31 @@
-import { lineClear } from '../sight.ts';
+import { physicsRuntime } from './physics-runtime.ts';
 import { equipped, syncWeapon } from '../equipment.ts';
 import { qualityDamage } from '../loot-tiers.ts';
+import { atan2, cos, sin } from '../math.ts';
+import { hearShot } from './hearing.ts';
+import { lineClear } from '../sight.ts';
 import { HZ } from './rules.ts';
 import { distance } from './geometry.ts';
 import { effect } from './loot.ts';
 import { eliminate } from './lifecycle.ts';
 import { asSeenBy } from './rewind.ts';
 import { hookSkill } from './hook.ts';
-import { hearShot } from './hearing.ts';
+import { attackInCore } from './phase-three.ts';
+import { UTILITY_RULES } from './action-records.ts';
 import type { Game, Player, InventoryItem, StackItem } from '../types.ts';
-import { atan2, cos, sin } from '../math.ts';
 
 type UtilityState = Pick<Player, 'hp' | 'maxHp' | 'shield'>;
 
 /** Whether this utility can change the current health/shield state. */
 export function utilityApplies(p: UtilityState, item: InventoryItem | null | undefined): item is StackItem {
-  return item?.kind === 'med' ? p.hp < p.maxHp : item?.kind === 'shield' && p.shield < 75;
+  return item?.kind === 'med' ? p.hp < p.maxHp : item?.kind === 'shield' && p.shield < UTILITY_RULES.maxShield;
 }
 
-/** Pure utility effect, shared by actual use and bots previewing their own use. */
+/** Pure utility preview; actual core use receives the same rules and is checked for parity. */
 export function utilityOutcome(p: UtilityState, item: InventoryItem | null | undefined): Pick<Player, 'hp' | 'shield'> | null {
   if (!utilityApplies(p, item)) return null;
-  return item.kind === 'med' ? { hp: Math.min(p.maxHp, p.hp + 40), shield: p.shield }
-    : { hp: p.hp, shield: Math.min(75, p.shield + 30) };
+  return item.kind === 'med' ? { hp: Math.min(p.maxHp, p.hp + UTILITY_RULES.medHealth), shield: p.shield }
+    : { hp: p.hp, shield: Math.min(UTILITY_RULES.maxShield, p.shield + UTILITY_RULES.shieldAmount) };
 }
 
 export function damage(s: Game, target: Player, amount: number, source: Player | null): void {
@@ -50,6 +53,7 @@ export function skill(s: Game, p: Player): void {
   } else { p.boost = 55; effect(s, p, 'upgrade', 75); }
 }
 export function attack(s: Game, p: Player): void {
+  if (physicsRuntime(s)) { attackInCore(s, p, damage); return; }
   if (p.attackCd > 0) return;
   if (p.role === 'gladiator') {
     p.attackCd = 13; effect(s, { x: p.x + cos(p.heading) * 30, y: p.y + sin(p.heading) * 30 }, 'slash', 55);

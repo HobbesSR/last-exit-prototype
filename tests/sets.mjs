@@ -46,7 +46,7 @@ export const SETS = {
   },
   simulation: {
     about: 'game rules, items, bots, navigation, sight and projections, and the legacy generator',
-    fast: ['simulation', 'player-relations', 'tick-phases', 'boundary-core', 'drop-scatter-core', 'characterization-physics', 'equipment', 'loot-tiers', 'item-*', 'ground-items', 'cache-preparation', 'traps', 'transit',
+    fast: ['simulation', 'player-relations', 'tick-phases', 'phase-three-core', 'action-parity', 'boundary-core', 'drop-scatter-core', 'characterization-physics', 'equipment', 'loot-tiers', 'item-*', 'ground-items', 'cache-preparation', 'traps', 'transit',
       'utility-use', 'hearing', 'hearing-bots', 'hunting', 'hunter-planning', 'discovery', 'visibility', 'view', 'view-items',
       'projection-contract', 'presentation', 'frame-gates', 'frame-layers', 'rewind', 'reloading', 'input-queue', 'input-clock',
       'movement-speed', 'movement-preparation', 'bot-discovery', 'bot-memory', 'navigation-knowledge', 'map-boundary', 'route', 'boundaries', 'arena', 'playability',

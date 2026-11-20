@@ -1,4 +1,5 @@
 import type { Game, GroundItem, InventoryItem, ItemId, ItemLabel } from './types.ts';
+import { allocateInCore, ensureInCore, nextItemIdInCore } from './item-allocation-core.ts';
 
 const validId = (id: unknown): id is ItemId => Number.isSafeInteger(id) && (id as number) > 0;
 const validQuality = (quality: unknown): boolean => quality === undefined || Number.isInteger(quality) && (quality as number) >= 1 && (quality as number) <= 5;
@@ -52,6 +53,12 @@ export function registerItemLabel(s: Game, label: string): ItemId {
   if (typeof label !== 'string' || !label.length) throw new Error('Invalid item label');
   const existing = itemIdForLabel(s, label);
   if (existing !== undefined) return existing;
+  const coreId = nextItemIdInCore(s);
+  if (coreId !== undefined) {
+    const r = registry(s);
+    r.ids.set(label, coreId); r.labels.set(coreId, label as ItemLabel);
+    return coreId;
+  }
   const next = s.itemSerial ?? 1;
   if (!Number.isSafeInteger(next) || next < 1 || next >= Number.MAX_SAFE_INTEGER) throw new Error('Item instance counter exhausted');
   const id = next as ItemId, r = registry(s);
@@ -74,6 +81,8 @@ export function commitItemAllocation(s: Game, stage: Game): void {
 }
 /** One monotonic numeric domain; legacy allocation labels preserve the independent scatter schedule. */
 export function allocateItemId(s: Game): ItemId {
+  const coreId = allocateInCore(s);
+  if (coreId !== undefined) return coreId;
   let scatter = s.scatterSerial ?? 0;
   if (!Number.isSafeInteger(scatter) || scatter < 0) throw new Error('Invalid item scatter counter');
   // Reachable identities and roots precede persisted scatter. Reserved labels need no live-item scan.
@@ -87,6 +96,7 @@ export function allocateItemId(s: Game): ItemId {
   }
 }
 export function ensureItemIdentity(s: Game, item: InventoryItem): void {
+  if (ensureInCore(s, item)) return;
   if (!validQuality(item.quality) || item.instanceId !== undefined && !validId(item.instanceId) || item.lineageId !== undefined && !validId(item.lineageId)) throw new Error('Invalid carried item identity');
   item.instanceId ??= allocateItemId(s);
   item.lineageId ??= item.instanceId;

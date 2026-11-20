@@ -1,9 +1,9 @@
-import { AMMO_FAMILIES, equipped, isAmmoFamily } from '../equipment.ts';
+import { AMMO_FAMILIES, isAmmoFamily } from '../equipment.ts';
 import { commitItemAllocation, allocateItemId } from '../item-instances.ts';
 import { planAmmoDrop, scatterPoint } from './loot.ts';
 import { addItems } from './ground-items.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
-import type { AmmoFamily, Game, GroundItem, Player, PlayerInput, WeaponItem } from '../types.ts';
+import type { AmmoFamily, Game, GroundItem, Player, WeaponItem } from '../types.ts';
 
 // L2 reloading (14 "Reloading", #444): weapon-owned magazines, per-player reserves outside the six
 // slots and explicit ammo pickups. Every rule here conserves rounds; none creates or deletes any.
@@ -53,27 +53,6 @@ export function seedAmmo(s: Game, rest: Map<GroundItem, number>): void {
     addItems(s, { kind: 'ammo', id, lineageId: id, family: rules.weapons[weapon.weaponType ?? 'pistol'].family, count, x: at.x, y: at.y,
       ...(weapon.buildingId !== undefined ? { buildingId: weapon.buildingId } : {}) });
   }
-}
-
-/**
- * Cancel, complete or start this player's reload, after the tick's selection, move and drop and before
- * attack. Cancelling comes first, so a reload interrupted on its last tick transfers nothing.
- */
-export function advanceReload(s: Game, p: Player, input: PlayerInput): void {
-  if (!s.content.reloading || !p.reserves) return;
-  const item = equipped(p), weapon = item?.kind === 'weapon' ? item : null;
-  const reload = p.reload;
-  if (reload && (p.stun > 0 || p.selectedSlot !== reload.slot || !weapon || weapon.instanceId !== reload.instanceId)) p.reload = null;
-  else if (reload && s.tick >= reload.until) {
-    const rule = reloadRule(s, weapon!)!;
-    const transfer = Math.min(rule.magazine - weapon!.ammo, p.reserves[rule.family]);
-    weapon!.ammo += transfer; p.reserves[rule.family] -= transfer; p.reload = null;
-    return;
-  }
-  if (!input.reload || p.reload || p.stun > 0 || !weapon?.instanceId) return;
-  const rule = reloadRule(s, weapon);
-  if (!rule || weapon.ammo >= rule.magazine || p.reserves[rule.family] <= 0) return;
-  p.reload = { slot: p.selectedSlot!, instanceId: weapon.instanceId, until: s.tick + rule.reloadTicks };
 }
 
 /** A validated ammo-drop intent: up to `count` reserve rounds of one family as one pickup. */

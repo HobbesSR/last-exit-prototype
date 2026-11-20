@@ -3,6 +3,7 @@ import { prepareMovementGeometry } from '../movement.ts';
 import { prepareSightIndex } from '../sight.ts';
 import { initCoreSight } from '../sight-core.ts';
 import { initPhaseOne } from './phase-one.ts';
+import { initItemAllocation } from '../item-allocation-core.ts';
 import { attachSight } from './sight-runtime.ts';
 import { validateActorPhysics } from './actor-physics.ts';
 import { addAuthoredProps, validateWorldPhysics } from './world-physics.ts';
@@ -31,7 +32,8 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
   if (yieldControl) { await prepareMovementGeometry(map, yieldControl); await prepareSightIndex(map, yieldControl); }
   const sight = await initCoreSight();
   await initPhaseOne();
-  const s = createGameRecord(seed, map, content, sight);
+  const itemAllocator = await initItemAllocation();
+  const s = createGameRecord(seed, map, content, sight, itemAllocator);
   attachSight(s, sight);
   if (yieldControl) await yieldControl();
   // The core's collision upload, sight index and gate set, which phase 1, the body sync and the placement search

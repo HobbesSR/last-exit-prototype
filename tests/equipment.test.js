@@ -1,9 +1,12 @@
 import { renderedPlayerView as playerView } from './helpers/relational.js';
-import { itemId } from './helpers/item-identity.js';
+import { identifyItems, itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { isDeepStrictEqual } from 'node:util';
+import { phaseThree } from '../shared/simulation/phase-three.ts';
+import { damage } from '../shared/simulation/combat.ts';
 import { disposePhysics, setInput, step, snapshot, } from '../shared/simulation.ts';
-import { collectInstanceEquipment, WEAPONS, rearrangeInstanceEquipment, SLOT_COUNT } from '../shared/equipment.ts';
+import { collectInstanceEquipment, WEAPONS, SLOT_COUNT } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openField } from './helpers/arena.js';
 import { stagePhysics } from './helpers/scenario.js';
@@ -16,6 +19,15 @@ const scene = body => async () => {
     { role: 'contestant', bot: false, x: 600, y: 200 }, { role: 'gladiator', bot: false, x: 2400, y: 1000 }] });
   for (const q of s.players) q.input = {};
   try { await body({ s, p }); } finally { disposePhysics(s); }
+};
+// Exercise only this actor's phase-three action, without unrelated ground pickups.
+const moveSlot = (s, p, from, to) => {
+  identifyItems(s);
+  const state = () => ({ inventory: p.inventory, selectedSlot: p.selectedSlot, weapon: p.weapon,
+    itemSerial: s.itemSerial, scatterSerial: s.scatterSerial });
+  const before = structuredClone(state());
+  phaseThree(s, s.players.map(actor => actor === p ? { input: { moveSlot: { from, to } } } : undefined), damage);
+  return !isDeepStrictEqual(state(), before);
 };
 const ground = (s, fields) => {
   const item = { id: itemId(s, `ground-${s.itemSerial}`), x: 0, y: 0, ...fields };
@@ -49,16 +61,16 @@ test('weapons stop firing at zero ammo and matching pickups replenish without lo
 
 test('slot moves follow selection, merge compatible stacks, swap cells and reject invalid requests', scene(({ s, p }) => {
   p.inventory[0] = { kind: 'med', count: 2 }; p.inventory[1] = { kind: 'med', count: 2 };
-  assert.ok(rearrangeInstanceEquipment(s, p, 0, 1)); assert.equal(p.inventory[0].count, 1); assert.equal(p.inventory[1].count, 3);
-  assert.equal(rearrangeInstanceEquipment(s, p, 0, 1), false);
+  assert.ok(moveSlot(s, p, 0, 1)); assert.equal(p.inventory[0].count, 1); assert.equal(p.inventory[1].count, 3);
+  assert.equal(moveSlot(s, p, 0, 1), false);
   p.inventory[2] = { kind: 'cell', charge: 71 };
   setInput(s, p.id, { seq: 1, slot: 2, moveSlot: { from: 2, to: 5 } }); step(s);
   assert.equal(p.selectedSlot, 5); assert.equal(p.inventory[5].charge, 71); assert.equal(p.inventory[2], null);
   const settled = structuredClone(p.inventory);
   step(s);
   assert.deepEqual(p.inventory, settled, 'an input a tick already spent is not applied again');
-  assert.equal(rearrangeInstanceEquipment(s, p, -1, 0), false); assert.equal(rearrangeInstanceEquipment(s, p, 5, SLOT_COUNT), false);
-  assert.equal(rearrangeInstanceEquipment(s, p, 1.2, 0), false);
+  assert.equal(moveSlot(s, p, -1, 0), false); assert.equal(moveSlot(s, p, 5, SLOT_COUNT), false);
+  assert.equal(moveSlot(s, p, 1.2, 0), false);
   const before = structuredClone(p.inventory);
   setInput(s, p.id, { seq: 3, moveSlot: { from: 5, to: 999 } }); step(s);
   assert.deepEqual(p.inventory, before);

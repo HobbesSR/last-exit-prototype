@@ -4,12 +4,18 @@
 //! The WASM module uses plain exports, not wasm-bindgen: the adapter passes flat typed buffers in
 //! WASM memory (docs/27, rule 1), so there is no generated JavaScript glue to keep in step.
 
+pub mod action_combat;
+pub mod action_equipment;
+pub mod action_types;
 pub mod boundary;
 pub mod collision;
 pub mod discovery;
+pub mod drop_planner;
 pub mod floor_drag;
+pub mod item_allocation;
 pub mod math;
 pub mod phase_one;
+pub mod phase_three;
 pub mod physics;
 pub mod placement;
 pub mod scatter;
@@ -21,7 +27,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 11;
+pub const ADAPTER_VERSION: u32 = 13;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -696,6 +702,45 @@ pub unsafe extern "C" fn physics_scatter(
 ) {
     // SAFETY: the caller's contract.
     unsafe { boundary::scatter(&mut *world, &mut *map, &*index, &mut *gates) }
+}
+
+/// Phase 3's reusable per-world flat input (27, step 5c.2).
+/// # Safety
+/// `world` is a live world handle; returned views expire on the next growing core call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn actions_input(world: *mut world::World, len: usize) -> *mut f64 {
+    // SAFETY: the caller owns the live world.
+    let actions = unsafe { &mut (*world).actions };
+    actions.input.resize(len, 0.0);
+    actions.input.as_mut_ptr()
+}
+/// Upload the match-pinned phase 3 rules in the input.
+/// # Safety
+/// The input holds the complete phase_three configuration layout.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn actions_configure(world: *mut world::World) {
+    // SAFETY: the caller owns the live world and complete input.
+    unsafe { (*world).actions.configure() }
+}
+/// Run phase 3, a shared attack, or a transactional drop plan.
+/// # Safety
+/// All handles are live, disjoint, and the input and gate mask are complete.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn actions_run(
+    world: *mut world::World,
+    map: *mut collision::CollisionMap,
+    index: *const sight::SightIndex,
+    gates: *mut sight::GateSet,
+) -> *const f64 {
+    // SAFETY: these handles are owned by the calling game. Move the buffers out so the
+    // phase can mutate the world's bodies without aliasing its own storage.
+    unsafe {
+        let w = &mut *world;
+        let mut actions = std::mem::take(&mut w.actions);
+        actions.run(w, &mut *map, &*index, &mut *gates);
+        w.actions = actions;
+        w.actions.output.as_ptr()
+    }
 }
 
 #[cfg(test)]

@@ -1,8 +1,5 @@
-import { movementSpeed } from '../movement.ts';
-import { actorMotor } from './actor-physics.ts';
 import { applyFloorDrag, writePhysicalItemPoses } from './world-physics.ts';
-import { HZ } from './rules.ts';
-import { syncWeapon, rearrangeInstanceEquipment } from '../equipment.ts';
+import { phaseThree } from './phase-three.ts';
 import { collectBotIntent } from './bots.ts';
 import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
 import type { BotIntent } from './bots.ts';
@@ -14,8 +11,7 @@ import { solvePhysicsProjectiles } from './physics-projectiles.ts';
 import { prepareHooks, finishHooks } from './hook.ts';
 import { interact, advanceCharging } from './interactions.ts';
 import { transit } from './transit.ts';
-import { automaticPickups, dropInventorySlot, effect } from './loot.ts';
-import { advanceReload, dropReserve } from './ammo.ts';
+import { automaticPickups, effect } from './loot.ts';
 import { stepTraps } from '../traps.ts';
 import { applyEnvironment, advanceDiscovery } from './tick-rules.ts';
 import { playerIndex } from './relations.ts';
@@ -62,23 +58,7 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   } finally { endDynamicNavigationCollection(s); stop('sim.bots'); }
   // 3: inventory then utilities/projectile admission, without damage callbacks during solve.
   start('sim.actions');
-  for (const p of ordered(s)) {
-    const intent = intents[playerIndex(s, p)]; if (!intent) continue;
-    const input = intent.input;
-    p.heading = input.aim || 0;
-    if (p.inventory && input.slot !== undefined) { p.selectedSlot = input.slot; syncWeapon(p, s.content.weapons); }
-    if (input.moveSlot) rearrangeInstanceEquipment(s, p, input.moveSlot.from, input.moveSlot.to);
-    if (intent.utilitySlot !== undefined && p.selectedSlot === intent.utilitySlot) attack(s, p);
-    const discard = intent.discardSlot ?? (input.drop ? p.selectedSlot : undefined);
-    if (discard !== undefined) dropInventorySlot(s, p, discard);
-    if (input.dropAmmo) dropReserve(s, p, input.dropAmmo.family, input.dropAmmo.count);
-    // After the tick's selection, move and drops, so each cancels a reload before it transfers; before attack, which it blocks.
-    advanceReload(s, p, input);
-    if (input.skill && p.kit !== 'warden') skill(s, p);
-    if (input.attack && p.role === 'contestant') attack(s, p);
-    const speed = movementSpeed(p, input, HZ);
-    r.world.setMotor(actorId(p), actorMotor(s, p, input.x ?? 0, input.y ?? 0, speed));
-  }
+  phaseThree(s, intents, damage);
   stop('sim.actions');
   // 4: all bodies together. Query projectiles use these actual substep paths.
   start('sim.solve');

@@ -425,6 +425,12 @@ export class PhysicsWorld {
   adoptCommit(code: number, facts: Float64Array, at: number): void { this.applyCommit(code, facts, at); }
   /** A teleport the core made (`setTransform`), which clears the motor. */
   adoptTeleport(key: number): void { delete this.records[key]!.motor; }
+  /** A motor set by phase 3 inside the core; only its frozen snapshot record is materialized here. */
+  adoptMotor(key: number, x: number, y: number, accel: number): void {
+    const record = this.records[key]!, previous = record.motor;
+    if (!previous || !Object.is(previous.x, x) || !Object.is(previous.y, y) || !Object.is(previous.accel, accel))
+      record.motor = frozen({ x, y, accel });
+  }
   /** After a boundary call: whether anything stays queued for the next commit. */
   adoptQueue(queued: number): void { this.dirty = queued > 0; }
   private record(id: string): BodyRecord | undefined {

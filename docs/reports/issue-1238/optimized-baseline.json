@@ -1,0 +1,56 @@
+{
+  "root": "C:\\Users\\Corey\\Documents\\Projects\\astra_test.agents\\codex\\.tmp-phase3-baseline",
+  "seed": 4217,
+  "size": "24x12",
+  "warmTicks": 300,
+  "timedTicks": 600,
+  "rounds": 5,
+  "results": [
+    {
+      "round": 1,
+      "meanTickAndSnapshotMs": 4.9933448333333335,
+      "simActionsMeanMs": 0.01844683333333781,
+      "simActionsCoreMeanMs": null,
+      "simActionsMinusCoreMs": null
+    },
+    {
+      "round": 2,
+      "meanTickAndSnapshotMs": 4.629433333333333,
+      "simActionsMeanMs": 0.015271333333318277,
+      "simActionsCoreMeanMs": null,
+      "simActionsMinusCoreMs": null
+    },
+    {
+      "round": 3,
+      "meanTickAndSnapshotMs": 4.667132166666667,
+      "simActionsMeanMs": 0.0148918333333404,
+      "simActionsCoreMeanMs": null,
+      "simActionsMinusCoreMs": null
+    },
+    {
+      "round": 4,
+      "meanTickAndSnapshotMs": 4.719753666666662,
+      "simActionsMeanMs": 0.013958499999910903,
+      "simActionsCoreMeanMs": null,
+      "simActionsMinusCoreMs": null
+    },
+    {
+      "round": 5,
+      "meanTickAndSnapshotMs": 4.822040833333333,
+      "simActionsMeanMs": 0.01483283333329382,
+      "simActionsCoreMeanMs": null,
+      "simActionsMinusCoreMs": null
+    }
+  ],
+  "medianMeanTickAndSnapshotMs": 4.719753666666662,
+  "medianSimActionsMeanMs": 0.0148918333333404,
+  "medianSimActionsCoreMeanMs": null,
+  "medianSimActionsMinusCoreMs": null,
+  "contention": {
+    "wallMs": 26313.6409,
+    "selfCpuMs": 37157,
+    "otherBusyShare": 0.0519,
+    "contended": false,
+    "threshold": 0.25
+  }
+}
