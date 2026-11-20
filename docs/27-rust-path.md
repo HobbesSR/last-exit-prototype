@@ -167,8 +167,23 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
   3. `tick_finish(intents)` runs phases 3–7 and returns a second change list.
   - **The mirror.** Node keeps a read-only copy built from the change lists. Projection, recording, the
     private snapshot and the bots read it. Unchanged records keep their identity (#655).
-  - **The input queue stays in Node** while phase 2 does.
+  - **Input bookkeeping is Node-owned** while phase 2 is in Node (review 957 on PR #1216). `consumeInput` writes
+    the player's `inputQueue`, `input`, `lastSeq`, `inputStalled` and `inputMargin`/`inputMarginNext`, and the
+    owning client's projection reads the last three. Those fields live in Node, outside the core's state, and
+    the mirror's player record overlays them on the core's fields. The intents carry everything phases 3–7
+    read, so none of these fields crosses into the core.
+    - **The core's resets come back as facts.** Respawn (phase 1) and transit (phase 6) clear `input` and set
+      `inputTick`. They report it in their change list, and Node applies it before the next phase 2 that could
+      read it: the same tick's for respawn, from `tick_begin`; the next tick's for transit, from `tick_finish`.
+    - **The same tick boundary.** Snapshot, recording and projection are built after `tick_finish`, from the
+      mirror with both the change lists and that tick's phase-2 writes applied. They see what one in-place
+      `step` shows today.
 - **Between-tick commands (D5).** Roster changes, teleport and view lag stay separate calls, applied at once.
+  Each call returns its own change list, which Node applies to the mirror before the call returns (review 957).
+  A command's effect is then visible at once: a paused room's teleport takes and broadcasts a snapshot before
+  any further tick (`server/room.js`), and that snapshot shows the moved pose. View lag splits by reader:
+  `viewLagTicks` goes into the core, since rewind (`shared/simulation/rewind.ts`) reads it in combat, while
+  `inputLeadTicks` bounds input stamps and stays with the Node-owned input bookkeeping.
   #1066's single command queue drained at the start of the step is not part of the flip: it would change what
   a between-tick snapshot shows, and nothing needs it. It stays an option.
 - **IDs (D6).** `serial`, `itemSerial` and `scatterSerial` move into the core with the same allocation points and
@@ -196,7 +211,7 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
 | 2 | Discovery in the core (#1210) | Preserved |
 | 3 | Live items, gates and traps off `s.map`, in TypeScript (#1211) | Preserved |
 | 4 | Phase 1 and the ID counters in the core (#1212) | Preserved |
-| 5 | Phases 3 and 5–7 in the core (#1213) | Preserved |
+| 5 | Phases 3–7 in the core (#1213): actions; phase 4's floor drag and the solver around it, with the write-back of item and actor poses and `movedThisTick` and the contact drain; then 5–7 | Preserved |
 | 6 | The flip: the core keeps the state, Node mirrors it (#1214) | Preserved |
 | Later | Bots and navigation in the core, with the language-neutral map format (#1215) | Preserved |
 
