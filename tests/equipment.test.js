@@ -19,7 +19,7 @@ const scene = body => async () => {
 };
 const ground = (s, fields) => {
   const item = { id: itemId(s, `ground-${s.itemSerial}`), x: 0, y: 0, ...fields };
-  s.map.items.push(item);
+  s.items.push(item);
   return item;
 };
 
@@ -68,7 +68,7 @@ test('dropped weapons keep remaining ammo and a sixth-slot item can be selected'
   p.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7 };
   setInput(s, p.id, { seq: 1, slot: 5, drop: true }); step(s);
   assert.equal(p.selectedSlot, 5); assert.equal(p.inventory[5], null);
-  assert.equal(s.map.items.find(i => i.weaponType === 'rifle').ammo, 7);
+  assert.equal(s.items.find(i => i.weaponType === 'rifle').ammo, 7);
 }));
 
 test('slot selection is validated and held; firing uses the selected weapon and utilities consume charges', scene(({ s, p }) => {

@@ -95,11 +95,11 @@ export function ensureItemIdentity(s: Game, item: InventoryItem): void {
 /** Match-load normalization. Original artifact labels and disappeared lineage roots remain registered. */
 export function initializeItemInstances(s: Game): void {
   const capacity = s.content.itemInstances.groundCapacity;
-  if (!Number.isSafeInteger(capacity) || capacity < 0 || s.map.items.length > capacity
+  if (!Number.isSafeInteger(capacity) || capacity < 0 || s.items.length > capacity
     || s.itemSerial !== undefined && (!Number.isSafeInteger(s.itemSerial) || s.itemSerial < 0)
     || s.scatterSerial !== undefined && (!Number.isSafeInteger(s.scatterSerial) || s.scatterSerial < 0)) throw new Error('Invalid item instance configuration');
   // At this one input boundary records can still carry artifact labels. Validate before mutating them.
-  const all = [...s.map.items, ...s.players.flatMap(p => p.inventory?.filter(i => i !== null) ?? [])];
+  const all = [...s.items, ...s.players.flatMap(p => p.inventory?.filter(i => i !== null) ?? [])];
   const reloads = s.players.flatMap(p => p.reload ? [p.reload] : []);
   const used = new Set<unknown>();
   const inputId = (id: unknown) => typeof id === 'string' && id.length > 0 || validId(id);

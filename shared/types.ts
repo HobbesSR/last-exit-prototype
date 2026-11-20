@@ -642,6 +642,12 @@ export interface GameMap<I extends ItemKey = ItemLabel> {
 }
 
 /**
+ * The map a game runs on (#1211): the arena without the stores a match changes. Ground items and traps are the
+ * game's (`Game.items`, `Game.traps`); stations and chargers never change in a match, so they stay here.
+ */
+export type MatchMap = Omit<GameMap<ItemId>, 'items' | 'traps'>;
+
+/**
  * The map fields the geometry code reads. Narrower than {@link GameMap} on purpose: collision and
  * sight queries run during generation, before objectives or spawns exist.
  */
@@ -846,7 +852,17 @@ export interface Game {
   rng: number;
   tick: Tick;
   phase: Phase;
-  map: GameMap<ItemId>;
+  /** The arena: read-only once the game is prepared. Its gate list is `gates`, which it carries as geometry. */
+  map: MatchMap;
+  /** The ground (#1211). A published frame holds this list, so a step replaces it rather than editing it (ground-items.ts). */
+  items: GroundItem<ItemId>[];
+  /** The live traps, in map order. */
+  traps: Trap[];
+  /**
+   * The doors, in map order: the same list as `map.gates`, which collision and sight read as geometry. Only `open`
+   * and `locked` change in a match, and the game writes them through this list (docs/27 "The state flip", step 3).
+   */
+  gates: Gate[];
   players: Player[];
   projectiles: Projectile[];
   effects: Effect[];

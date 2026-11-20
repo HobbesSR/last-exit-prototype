@@ -147,7 +147,7 @@ try {
   const arenaBox = await page.locator('#game canvas').boundingBox();
   await dragInventory(4, { x: arenaBox.x + arenaBox.width / 2, y: arenaBox.y + arenaBox.height / 2 });
   await page.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
-  const droppedRifle = () => server.rooms.get(ownerRoom).game.map.items.find(item => item.id === itemId(inventoryGame, 'browser-rifle') && item.droppedBy === ownerPlayer);
+  const droppedRifle = () => server.rooms.get(ownerRoom).game.items.find(item => item.id === itemId(inventoryGame, 'browser-rifle') && item.droppedBy === ownerPlayer);
   for (let waited = 0; !droppedRifle() && waited < 2000; waited += 50) await page.waitForTimeout(50);
   assert.equal(droppedRifle()?.ammo, 7, 'world drag drops the unselected source with its ammunition');
   // Live guest admission below needs its replaceable bot slots back.
@@ -626,7 +626,7 @@ try {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [worldTouch] });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
-  assert.equal(server.rooms.get(mobileInfo.room).game.map.items.find(item => item.id === itemId(mobileGame, 'browser-mobile-rifle') && item.droppedBy === mobilePlayer.id)?.ammo, 7, 'touch world drag preserves source ammo');
+  assert.equal(server.rooms.get(mobileInfo.room).game.items.find(item => item.id === itemId(mobileGame, 'browser-mobile-rifle') && item.droppedBy === mobilePlayer.id)?.ammo, 7, 'touch world drag preserves source ammo');
   // Fixed-coordinate sight and projectile probes stand on the geometry scene; the normal rooms above and the
   // spectator below exercise the live chain map.
   const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seed: SCENE.geometry }) })).json();
@@ -745,10 +745,10 @@ try {
   // Several archetypes are in the catalogue, so every position here comes from the building rather
   // than a fixed offset: one lands inside a partition or a stack and the body is separated straight
   // back out, and the door is not in the same place in all of them.
-  const entrance = artRoom.game.map.gates.find(g => g.buildingId && !g.locked && artRoom.game.map.items.some(i => i.buildingId === g.buildingId));
+  const entrance = artRoom.game.map.gates.find(g => g.buildingId && !g.locked && artRoom.game.items.some(i => i.buildingId === g.buildingId));
   assert.ok(entrance, 'the roof/door fixture has an unlocked entrance and indoor loot');
   const interior = artRoom.game.map.buildings.find(b => b.id === entrance.buildingId);
-  const indoors = artRoom.game.map.items.find(i => i.buildingId === interior.id);
+  const indoors = artRoom.game.items.find(i => i.buildingId === interior.id);
   Object.assign(artPlayer, { x: indoors.x, y: indoors.y });
   // The body may be separated out of a partition, so wait for wherever it settles rather than for the
   // exact spot: rooms have random seeds, so which buildings put loot against a partition varies.

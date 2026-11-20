@@ -17,7 +17,7 @@ async function fixture(kind, { extra = {}, cover = false } = {}) {
     actors: [{ role: 'contestant', bot: false, ...at }, { role: 'gladiator', bot: false, x: 2400, y: at.y },
       { role: 'contestant', bot: false, x: 2400, y: 150 }] });
   for (const q of s.players) q.input = {};
-  return { s, p, g, trap: s.map.traps[0] };
+  return { s, p, g, trap: s.traps[0] };
 }
 
 test('motion mine ignores stationary players and damages either role when triggered once', async () => {

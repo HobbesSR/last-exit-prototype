@@ -13,7 +13,7 @@ test('live sites allow charging, extraction, and safe hunter redeployment', asyn
   const map = structuredClone(live()), game = await createGame(1, map, defaultContent()), contestant = game.players[0];
   t.after(() => disposePhysics(game));
   for (const player of game.players) player.bot = false;
-  game.map.traps = [];
+  game.traps = [];
   Object.assign(contestant, map.chargers[0]);
   contestant.inventory[0] = { kind: 'cell', charge: 0 };
   const press = (player, input) => { setInput(game, player.id, { seq: player.lastSeq + 1, ...input }); step(game); };

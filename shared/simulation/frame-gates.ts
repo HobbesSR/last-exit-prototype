@@ -29,7 +29,7 @@ function current(copy: Gate, gate: Gate): boolean {
 
 /** The frame's gate list: the last one when no gate changed, else one that shares every unchanged copy. */
 export function publishGates(s: Game): readonly Gate[] {
-  const live = s.map.gates, last = frames.get(live), list: Gate[] = new Array(live.length);
+  const live = s.gates, last = frames.get(live), list: Gate[] = new Array(live.length);
   let changed = last?.length !== live.length;
   for (let i = 0; i < live.length; i++) {
     const gate = live[i]!;

@@ -2,7 +2,7 @@ import { mergeGateGeometry } from '../shared/relational-frame.ts';
 import { playerSlot, seatMetadata } from '../shared/simulation/relations.ts';
 import { createGameRecord, createGame, disposePhysics, joinGame, playerView, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { inputLeadFrom, resetInput } from '../shared/simulation/input.ts';
-import { changeSeat } from '../shared/simulation/state.ts';
+import { changeSeat, wholeMap } from '../shared/simulation/state.ts';
 import { viewLagFrom } from '../shared/simulation/rewind.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { clearRoute } from '../shared/simulation/geometry.ts';
@@ -81,7 +81,8 @@ function seatsOf(game, reconcile = () => {}) {
 
 // A map with no places on it. A lobby's game exists only for its roster, which createGameRecord builds from
 // content alone; positions come from the map and are never read before the real match takes over.
-const NOWHERE = { spawns: [], stations: [], items: [], exit: { x: 0, y: 0 } };
+// A fresh one per lobby: a game takes its map's live stores off it (#1211).
+const nowhere = () => ({ spawns: [], stations: [], items: [], exit: { x: 0, y: 0 } });
 
 /**
  * The seats of a room whose map is still being generated (#258): the same roster the match will have,
@@ -89,7 +90,7 @@ const NOWHERE = { spawns: [], stations: [], items: [], exit: { x: 0, y: 0 } };
  */
 export function createLobby(content = defaultContent()) {
   // Described once, from the content the match will be pinned to, for every welcome and the recording (22.7).
-  return { content, presentation: describeContent(content), ...seatsOf(createGameRecord(0, NOWHERE, content)) };
+  return { content, presentation: describeContent(content), ...seatsOf(createGameRecord(0, nowhere(), content)) };
 }
 
 // The application's only mutable access to simulation. Returned frames/commands are detached.
@@ -163,13 +164,14 @@ function matchOf(game, payloads, wire) {
     project: (frame, id) => playerView(game, frame, id, wire),
     /** What a client predicts with that never changes in this match (24.3 proposal 3): sent with the map. */
     constants: () => predictionConstants(game.version, game.content.actorPhysics),
-    map: () => structuredClone({ ...game.map, gates: mergeGateGeometry({ gates: publishGates(game) }), items: publishItems(game) }),
+    map: () => structuredClone(wholeMap(game, { gates: mergeGateGeometry({ gates: publishGates(game) }), items: publishItems(game) })),
     /** Detached immutable payload data; ordinary map queries above remain writable copies. */
     payloadMap(kind, frame) {
       if (!payloads) throw new Error('match disposed');
-      const source = { ...game.map, gates: mergeGateGeometry({ gates: publishGates(game) }, kind === 'spectator' ? frame.gates : undefined),
+      // The map whole, in its own field order, so the payload's JSON is what it was when the map held its stores (#1211).
+      const source = wholeMap(game, { gates: mergeGateGeometry({ gates: publishGates(game) }, kind === 'spectator' ? frame.gates : undefined),
         items: kind === 'recording' ? publishItems(game) : outward(kind === 'spectator' ? frame.items : publishItems(game)),
-        ...(kind !== 'recording' ? { traps: [] } : {}) };
+        ...(kind !== 'recording' ? { traps: [] } : {}) });
       return payloads.read(source, { publicMap: kind !== 'recording', itemsJson, gatesJson });
     },
     end({ strand = false } = {}) {

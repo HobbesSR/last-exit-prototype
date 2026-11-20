@@ -30,7 +30,7 @@ async function play(prune) {
   const wallStart = performance.now(), cpuStart = process.cpuUsage();
   for (let t = 1; t <= from + window && s.phase === 'live'; t++) {
     if (t === from + 1 && prune) {
-      const near = [...s.players.filter(p => p.status === 'active'), ...s.map.items.filter(i => physicsRuntime(s).items.has(i.id))];
+      const near = [...s.players.filter(p => p.status === 'active'), ...s.items.filter(i => physicsRuntime(s).items.has(i.id))];
       const far = statics.filter(body => near.every(q => Math.hypot(q.x - body.x, q.y - body.y) > radius));
       for (let i = 0; i < far.length; i++) { world.queueRemoveBody(far[i].id); if (i % 512 === 511) world.commitMutations(); }
       world.commitMutations();

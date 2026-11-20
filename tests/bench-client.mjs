@@ -49,7 +49,7 @@ try {
   if (args.get('location') === 'dense' && !spectator) {
     const { info, game } = await builtMatch();
     const player = game.players.find(p => p.id === info.me.id);
-    const site = game.map.items.filter(item => item.buildingId && canOccupy(game.map, item.x, item.y, player.role === 'gladiator' ? 23 : 12))
+    const site = game.items.filter(item => item.buildingId && canOccupy(game.map, item.x, item.y, player.role === 'gladiator' ? 23 : 12))
       .sort((a, b) => Math.abs(a.x - game.map.width / 2) - Math.abs(b.x - game.map.width / 2))[0];
     if (!site) throw new Error('Dense benchmark needs a usable building interior');
     Object.assign(player, { x: site.x, y: site.y });

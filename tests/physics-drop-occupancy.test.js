@@ -50,7 +50,7 @@ test('crowded optional physical drop refuses atomically without consuming invent
     while (r.world.canAddBodies(1)) r.world.queueAddBody({ id: `crowd:${count++}`, kind: 'prop',
       shape: { kind: 'circle', radius: 2 }, x: 700, y: 700 });
     r.world.commitMutations();
-    const before = { serial: s.itemSerial, items: s.map.items.length, bodyCount: r.world.counts().dynamic };
+    const before = { serial: s.itemSerial, items: s.items.length, bodyCount: r.world.counts().dynamic };
     assert.ok(planDrop(s, p, p.inventory[0]));
     const synchronize = r.synchronize;
     r.synchronize = () => { throw new Error('planning must not synchronize the runtime'); };
@@ -58,7 +58,7 @@ test('crowded optional physical drop refuses atomically without consuming invent
     finally { r.synchronize = synchronize; }
     assert.deepEqual(p.inventory[0], { ...carried('held'), instanceId: itemId(s, 'held'), lineageId: itemId(s, 'held') });
     assert.equal(s.itemSerial, before.serial);
-    assert.equal(s.map.items.length, before.items);
+    assert.equal(s.items.length, before.items);
     assert.equal(r.world.counts().dynamic, before.bodyCount);
   } finally { disposePhysics(s); }
 });
@@ -71,7 +71,7 @@ test('a full-inventory swap stages its serial but still checks rotated prop occu
     synchronizePhysics(s);
     for (let i = 0; i < p.inventory.length; i++) p.inventory[i] = carried(`held-${i}`);
     p.selectedSlot = 0;
-    s.map.items.push({ id: 'incoming', lineageId: 'incoming', kind: 'cell', charge: 91, x: 300, y: 420 });
+    s.items.push({ id: 'incoming', lineageId: 'incoming', kind: 'cell', charge: 91, x: 300, y: 420 });
     identifyItems(s);
     synchronizePhysics(s);
     const phase = s.itemSerial ?? 0, first = { x: p.x + Math.cos(phase * 2.39996) * 36,
@@ -82,7 +82,7 @@ test('a full-inventory swap stages its serial but still checks rotated prop occu
     interact(s, p);
     assert.equal(itemLabel(s, p.inventory[0].instanceId), 'incoming');
     assert.equal(s.itemSerial, serial, 'a whole-instance swap allocates no ID');
-    const outgoing = s.map.items.find(item => item.id === itemId(s, 'held-0'));
+    const outgoing = s.items.find(item => item.id === itemId(s, 'held-0'));
     assert.ok(outgoing);
     assert.notDeepEqual({ x: outgoing.x, y: outgoing.y }, first);
     assert.equal(r.world.overlapsProp(outgoing.x, outgoing.y, s.content.worldPhysics.loot.radius), false);
@@ -104,13 +104,13 @@ test('mandatory fallback remains logical and pickable, then admits a body after 
     assert.ok(plan);
     const item = plan.records[0];
     assert.deepEqual({ x: item.x, y: item.y }, { x: p.x, y: p.y });
-    s.map.items.push(item);
+    s.items.push(item);
     synchronizePhysics(s);
     assert.equal(r.world.hasBody('item:mandatory'), false);
-    assert.deepEqual(s.map.items[0], item);
+    assert.deepEqual(s.items[0], item);
     p.x = 300; p.y = 400;
     synchronizePhysics(s);
     assert.equal(r.world.hasBody('item:mandatory'), true);
-    assert.equal(s.map.items[0].charge, 71);
+    assert.equal(s.items[0].charge, 71);
   } finally { disposePhysics(s); }
 });

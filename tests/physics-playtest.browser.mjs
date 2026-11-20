@@ -56,6 +56,7 @@ try {
   assert.equal(exportA.content.id, 'content-6');
   assert.equal(exportA.frames[0].bodies.filter(body => body.kind === 'actor').length, 4, 'A offers a four-actor crowd');
   assert.deepEqual(exportA.map.obstacles.map(obstacle => obstacle.id), ['doorway-top', 'doorway-bottom']);
+  assert.ok(Array.isArray(exportA.map.items) && Array.isArray(exportA.map.traps), 'the export keeps the initial map whole, since a game takes its map stores (#1211)');
   assert.equal(exportA.trace.length, 3);
   assert.equal(exportA.trace[0].input.x, 1);
   assert.deepEqual(exportA.trace[1], { kind: 'impulse', tick: 1, actorId: 'c0', value: { x: 300, y: 0 } });

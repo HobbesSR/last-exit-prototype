@@ -16,7 +16,7 @@ function captureTrace(name) {
     samples++;
     digest.update(JSON.stringify({ tick: s.tick, phase: s.phase, rng: s.rng, serial: s.serial,
       itemSerial: s.itemSerial, scatterSerial: s.scatterSerial, slots: s.slots, hazardX: s.hazardX,
-      players: s.players, items: s.map.items, gates: s.map.gates, traps: s.map.traps,
+      players: s.players, items: s.items, gates: s.map.gates, traps: s.traps,
       projectiles: s.projectiles, effects: s.effects, events: s.events.map(e => ({ id: e.id, tick: e.tick, text: formatEvent(e) })),
       physics: frame.physics }));
   }, finish() { result[name] = { samples, sha256: digest.digest('hex') }; } };

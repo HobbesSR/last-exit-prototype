@@ -86,7 +86,7 @@ test('legacy diagnostic edits refresh lookup without attaching substrate fields'
   assert.equal(indexRoster(s.players), indexed);
   assert.equal(Object.keys(s.players[0]).some(key => /idx|index/i.test(key)), false);
   const gates = [{ id: 'door-2' }, { id: 'door-10' }];
-  assert.equal(gateAt({ map: { gates } }, 1), gates[1]);
+  assert.equal(gateAt({ gates }, 1), gates[1]);
 });
 
 test('dense player slots survive joins, role changes, and metadata renames', () => {

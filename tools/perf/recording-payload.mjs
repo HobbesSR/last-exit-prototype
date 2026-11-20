@@ -30,9 +30,9 @@ const entry = structuredClone(cache.maps[0]);
 if (entry.navigation) attachPortalGraph(entry.map, entry.navigation);
 for (const packed of entry.tiles ?? []) adoptPackedTiles(entry.map, packed);
 const match = await createMatch(cache.seed, liveZoneSize({ zoneWidth, zoneHeight }), entry.map, contentById(cache.content));
-const source = match.snapshot(), map = tileMap(entry.map, columns, rows);
+const source = match.snapshot(), map = tileMap(match.map(), columns, rows);
 match.dispose();
-const frame = { ...source, items: publishItems({ map }), gates: publishGates({ map }) };
+const frame = { ...source, items: publishItems({ items: map.items }), gates: publishGates({ gates: map.gates }) };
 const archive = createHash('sha256');
 const writer = create({ header: { id: 'payload-probe', seed: cache.seed, contentId: cache.content, map },
   output: new Writable({ write(chunk, _encoding, next) { archive.update(chunk); next(); } }),

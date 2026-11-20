@@ -5,7 +5,7 @@ import { hypot } from '../math.ts';
 export const actorRadius = (s: Game, p: Player): number => s.content.actorPhysics.geometry[p.role].bodyRadius;
 
 /** Reject malformed tuning before allocating a world. */
-export function validateActorPhysics(profile: ActorPhysics, map: Omit<GameMap, 'items'>): void {
+export function validateActorPhysics(profile: ActorPhysics, map: Omit<GameMap, 'items' | 'traps'>): void {
   if (!profile || typeof profile !== 'object' || !profile.geometry?.contestant || !profile.geometry?.gladiator)
     throw new RangeError('invalid actor physics profile');
   for (const role of ['contestant', 'gladiator'] as const) {

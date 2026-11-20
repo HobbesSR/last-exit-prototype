@@ -188,7 +188,7 @@ test('live and delayed map payloads carry keyed item IDs, recordings internal on
   const match = await createMatch(4217, undefined, map, contentById(fixture.content), { wireKey: KEY });
   try {
     const frame = match.snapshot();
-    const recorded = match.payloadMap('recording').items, internal = match.diagnosticState.map.items.map(i => i.id);
+    const recorded = match.payloadMap('recording').items, internal = match.diagnosticState.items.map(i => i.id);
     assert.deepEqual(recorded.map(i => i.id), internal, 'recordings keep internal IDs');
     for (const kind of ['live', 'spectator']) {
       const items = match.payloadMap(kind, frame).items;

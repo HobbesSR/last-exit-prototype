@@ -8,7 +8,7 @@ test('contestants complete a combat-neutralized live-chain match with solid acto
   const content = contentById('content-6');
   const game = await createGame(4217, generateLiveMap(4217, content), content);
   try {
-    game.map.traps = [];
+    game.traps = [];
     for (const player of game.players) {
       if (player.role === 'gladiator') player.status = 'eliminated';
       else player.shield = 1000000;

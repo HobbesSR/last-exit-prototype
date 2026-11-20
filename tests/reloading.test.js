@@ -64,9 +64,9 @@ test('spawn migration splits each map weapon into a full magazine and an ammo pi
     { id: 'rifle', kind: 'weapon', weaponType: 'rifle', ammo: 90, x: 300, y: 120 },
     { id: 'shotty', kind: 'weapon', weaponType: 'scattergun', ammo: 4, x: 300, y: 300 });
   const s = createGameRecord(17, map, content());
-  const byId = Object.fromEntries(s.map.items.map(item => [itemLabel(s, item.id), item]));
+  const byId = Object.fromEntries(s.items.map(item => [itemLabel(s, item.id), item]));
   assert.deepEqual([byId.kit.ammo, byId.rifle.ammo, byId.shotty.ammo], [12, 30, 4]);
-  const piles = s.map.items.filter(item => item.kind === 'ammo');
+  const piles = s.items.filter(item => item.kind === 'ammo');
   assert.deepEqual(piles.map(item => [item.family, item.count]), [['pistol', 36], ['rifle', 60]]);
   assert.ok(piles.every(item => typeof item.id === 'number' && item.id > 0 && itemLabel(s, item.id).startsWith('instance-') && item.lineageId === item.id));
   // Totals are exactly today's pickup rounds: 48 pistol, 90 rifle, 4 shells.
@@ -129,7 +129,7 @@ test('switch, move, drop and stun cancel before transfer; every round is conserv
   const { s, p } = await fixture(t);
   p.inventory[0] = pistol(4); p.reserves.pistol = 30;
   tick(s, p, { reload: true }); tick(s, p, { drop: true });
-  const dropped = s.map.items.find(item => item.id === itemId(s, 'gun'));
+  const dropped = s.items.find(item => item.id === itemId(s, 'gun'));
   assert.equal(dropped.ammo, 4, 'a dropped weapon keeps its magazine');
   assert.equal(p.reserves.pistol, 30, 'and not the player\'s reserve');
 });
@@ -166,10 +166,10 @@ test('death drops every reserve family and the magazines as recoverable pickups'
   eliminate(s, p, null);
   assert.equal(p.reload, null);
   assert.deepEqual(p.reserves, { pistol: 0, rifle: 0, shell: 0 });
-  assert.deepEqual(s.map.items.filter(item => item.kind === 'ammo').map(item => [item.family, item.count]), [['pistol', 40], ['shell', 9]]);
+  assert.deepEqual(s.items.filter(item => item.kind === 'ammo').map(item => [item.family, item.count]), [['pistol', 40], ['shell', 9]]);
   assert.deepEqual(['pistol', 'rifle', 'shell'].map(family => rounds(s, family)), before);
   q.x = p.x; q.y = p.y;
-  for (const item of s.map.items) { item.x = q.x; item.y = q.y; }
+  for (const item of s.items) { item.x = q.x; item.y = q.y; }
   automaticPickups(s, q, {});
   assert.deepEqual([q.reserves.pistol, q.reserves.shell], [40, 9]);
   assert.deepEqual(['pistol', 'rifle', 'shell'].map(family => rounds(s, family)), before);
@@ -180,9 +180,9 @@ test('ammo pickups fill reserves with six full slots, leave the remainder, and a
   for (let slot = 0; slot < 6; slot++) p.inventory[slot] = { kind: 'med', count: 3, instanceId: `m${slot}`, lineageId: `m${slot}` };
   p.reserves.pistol = 60;
   const pile = { id: 'pile', kind: 'ammo', family: 'pistol', count: 20, x: p.x, y: p.y };
-  s.map.items.push(pile);
+  s.items.push(pile);
   // A partial take replaces the ground record (22.1 "Frames"), so look it up again.
-  const ground = () => s.map.items.find(item => item.id === itemId(s, 'pile'));
+  const ground = () => s.items.find(item => item.id === itemId(s, 'pile'));
   automaticPickups(s, p, {});
   assert.deepEqual([p.reserves.pistol, ground()?.count, pile.count], [72, 8, 20]);
   const left = ground();
@@ -199,7 +199,7 @@ test('a matching weapon feeds its family reserve; its magazine never merges into
   const { s, p } = await fixture(t);
   p.inventory[0] = pistol(3); p.reserves.pistol = 65;
   const spare = { id: 'spare', kind: 'weapon', weaponType: 'pistol', ammo: 12, x: p.x, y: p.y };
-  s.map.items.push(spare);
+  s.items.push(spare);
   assert.equal(collectInstanceEquipment(s, p, spare), false);
   assert.deepEqual([p.inventory[0].ammo, p.reserves.pistol, spare.ammo], [3, 72, 5]);
   assert.equal(p.inventory.filter(Boolean).length, 1);
@@ -209,15 +209,15 @@ test('the ammo-drop intent drops a bounded reserve quantity as one pickup; a sel
   const { s, p } = await fixture(t);
   p.reserves.rifle = 50;
   tick(s, p, { dropAmmo: { family: 'rifle', count: 20 } });
-  const pile = s.map.items.find(item => item.kind === 'ammo');
+  const pile = s.items.find(item => item.kind === 'ammo');
   assert.deepEqual([p.reserves.rifle, pile.family, pile.count, pile.droppedBy], [30, 'rifle', 20, p.id]);
   tick(s, p, { dropAmmo: { family: 'rifle', count: 999 } });
   assert.equal(p.reserves.rifle, 0, 'at most the reserve drops');
   assert.equal(rounds(s, 'rifle'), 50);
   tick(s, p, { dropAmmo: { family: 'rifle', count: 5 } });
-  assert.equal(s.map.items.filter(item => item.kind === 'ammo').length, 2, 'an empty reserve drops nothing');
+  assert.equal(s.items.filter(item => item.kind === 'ammo').length, 2, 'an empty reserve drops nothing');
   // A pickup has a body, which holds its place, so the player goes to it.
-  const collect = () => { const item = s.map.items.find(item => item.kind === 'ammo'); if (item) { p.x = item.x; p.y = item.y; } tick(s, p); };
+  const collect = () => { const item = s.items.find(item => item.kind === 'ammo'); if (item) { p.x = item.x; p.y = item.y; } tick(s, p); };
   collect();
   assert.equal(p.reserves.rifle, 0, 'own drop is not recollected at once');
   for (let i = 0; i < 20; i++) tick(s, p);
@@ -250,7 +250,7 @@ test('the owner sees reserves and reload progress; other players and older conte
   const seen = other.players.find(r => r.id === p.id);
   assert.equal(seen.reserves, undefined); assert.equal(seen.reload, undefined);
   // Ground ammo keeps its family on the live wire, as in recorded frames.
-  s.map.items = [...s.map.items, { id: 'box', kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }];
+  s.items = [...s.items, { id: 'box', kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }];
   const box = playerView(s, snapshot(s), q.id).items.find(item => item.id === itemId(s, 'box'));
   assert.equal(box.family, 'shell');
   const plain = createGameRecord(17, arena(), content('content-7'));
@@ -264,7 +264,7 @@ test('a full inventory E swap stages reserves: a rejected swap leaves them uncha
   p.selectedSlot = 1; p.reserves.pistol = 70;
   // The pickup would feed the reserve, but its 5 rounds cannot all fit: the swap is refused whole.
   const spare = { id: 'spare', kind: 'weapon', weaponType: 'pistol', ammo: 5, x: p.x, y: p.y };
-  s.map.items.push(spare);
+  s.items.push(spare);
   interact(s, p);
   assert.deepEqual([p.reserves.pistol, spare.ammo, p.inventory[1].kind], [70, 5, 'med']);
 });

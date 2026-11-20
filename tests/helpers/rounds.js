@@ -2,7 +2,7 @@
 export function rounds(s, family) {
   const weaponFamily = type => s.content.reloading.weapons[type].family;
   let total = 0;
-  for (const item of s.map.items) {
+  for (const item of s.items) {
     if (item.kind === 'ammo' && item.family === family) total += item.count;
     if (item.kind === 'weapon' && weaponFamily(item.weaponType ?? 'pistol') === family) total += item.ammo;
   }

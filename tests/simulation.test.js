@@ -99,7 +99,7 @@ test('power-cell objective requires pickup, stationary charging, and delivery; m
   try {
     input(s, p, { interact: true }); assert.equal(s.slots, 3, 'no cell, no extraction');
     Object.assign(p, { x: cell.x, y: cell.y }); input(s, p, {});
-    assert.equal(carriedCell(p)?.charge, 0); assert.ok(!s.map.items.some(i => i.id === 'cell'), 'picked up');
+    assert.equal(carriedCell(p)?.charge, 0); assert.ok(!s.items.some(i => i.id === 'cell'), 'picked up');
     Object.assign(p, { x: exit.x - 40, y: exit.y }); input(s, p, { interact: true }); assert.equal(s.slots, 3, 'an uncharged cell does not extract');
     Object.assign(p, { x: charger.x, y: charger.y + 40 });
     input(s, p, { interact: true }); assert.equal(carriedCell(p).charge, 1);
@@ -122,12 +122,12 @@ test('cells take individual slots and retain charge when dropped on death', asyn
     // Every slot but one full, however many slots the content gives.
     p.inventory = p.inventory.map((_, i, slots) => i < slots.length - 1 ? { kind: 'weapon', weaponType: 'pistol', instanceId: itemId(s, `w${i}`) } : null);
     // The engine collects on a tick that spends an input.
-    input(s, p, {}); assert.equal(s.map.items.filter(i => i.kind === 'cell').length, 1, 'one free slot takes one cell');
+    input(s, p, {}); assert.equal(s.items.filter(i => i.kind === 'cell').length, 1, 'one free slot takes one cell');
     carriedCell(p).charge = 55;
     p.hp = 1; p.shield = 0;
     input(s, hunter, { attack: true, aim: Math.PI });
     assert.equal(p.status, 'eliminated'); assert.equal(carriedCell(p), null);
-    assert.ok(s.map.items.some(i => i.kind === 'cell' && i.charge === 55));
+    assert.ok(s.items.some(i => i.kind === 'cell' && i.charge === 55));
   } finally { disposePhysics(s); }
 });
 
@@ -138,7 +138,7 @@ test('gladiator kills upgrade the kit and refill ability, contestants can damage
     input(s, p, { attack: true, aim: Math.PI });
     assert.equal(target.status, 'eliminated'); assert.equal(p.kills, 1); assert.equal(p.level, 2); assert.equal(p.cooldown, 0);
     const ground = { id: itemId(s, 'test-pistol'), kind: 'weapon', weaponType: 'pistol', ammo: s.content.weapons.pistol.ammo, x: a.x, y: a.y };
-    s.map.items.push(ground);
+    s.items.push(ground);
     collectInstanceEquipment(s, a, { ...ground }, ground); a.selectedSlot = a.inventory.findIndex(i => i?.kind === 'weapon');
     const hp = b.hp;
     input(s, a, { attack: true, aim: 0 }); assert.equal(b.hp, hp - s.content.weapons.pistol.damage);

@@ -10,7 +10,7 @@ export type DamageFn = (s: Game, target: Player, amount: number, source: Player 
 export type EffectFn = (s: Game, at: Vec2, kind: EffectKind, radius?: World) => void;
 
 export function stepTraps(s: Game, damage: DamageFn, effect: EffectFn): void {
-  for (const trap of s.map.traps || []) {
+  for (const trap of s.traps || []) {
     if (trap.spent) continue;
     trap.cooldown = Math.max(0, (trap.cooldown || 0) - 1);
     const active = s.players.filter(p => p.status === 'active');

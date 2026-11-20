@@ -23,7 +23,7 @@ export function scatterPoint(s: Game, origin: Vec2, phase: number, items: readon
     const angle = (phase + j) * 2.39996, radius = 36 + Math.floor(j / 12) * 24;
     const candidate = { x: origin.x + cos(angle) * radius, y: origin.y + sin(angle) * radius };
     if (canOccupy(s.map, candidate.x, candidate.y, 16) && reachClear(s.map, origin, candidate)
-      && (items === s.map.items ? itemsNear(s, candidate, 32) : items).every(other => distance(other, candidate) > 32)
+      && (items === s.items ? itemsNear(s, candidate, 32) : items).every(other => distance(other, candidate) > 32)
       && points.every(other => distance(other, candidate) > 32)
       && (!runtime || physicalDropPlacementClear(s, runtime, candidate.x, candidate.y))) return candidate;
   }
@@ -37,7 +37,7 @@ export interface DropPlan { records: GroundItem[]; itemSerial: number; scatterSe
  * Validate, place and identify every ground record of one carried L0 item without changing the
  * match. `items` stands in for the ground list, so a swap can plan around the pickup it removes.
  */
-export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = false, items: readonly GroundItem[] = s.map.items,
+export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = false, items: readonly GroundItem[] = s.items,
   source: Game = s): DropPlan | null {
   if (!['weapon', 'med', 'shield', 'cell'].includes(item.kind) || ![p.x, p.y].every(Number.isFinite) || !validateItemPayload(item, s)) return null;
   const copies = item.kind === 'med' || item.kind === 'shield' ? item.count : 1;
@@ -75,8 +75,8 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
  */
 export function planAmmoDrop(s: Game, p: Player, family: AmmoFamily, count: number, mandatory = false): DropPlan | null {
   if (!Number.isSafeInteger(count) || count < 1 || ![p.x, p.y].every(Number.isFinite)) return null;
-  if (!mandatory && s.map.items.length + 1 > s.content.itemInstances.groundCapacity) return null;
-  const point = scatterPoint(s, p, s.scatterSerial ?? 0, s.map.items);
+  if (!mandatory && s.items.length + 1 > s.content.itemInstances.groundCapacity) return null;
+  const point = scatterPoint(s, p, s.scatterSerial ?? 0, s.items);
   if (!point && !mandatory) return null;
   const allocation = forkItemAllocation(s);
   try {
@@ -123,7 +123,7 @@ export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
       physicsRuntime(s)?.synchronize();
       // Synchronizing can place the player again; the records still to visit are then those after `at` near where it stands.
       if (!Object.is(p.x, x) || !Object.is(p.y, y)) {
-        const later = new Set(s.map.items.slice(at));
+        const later = new Set(s.items.slice(at));
         near = itemsNear(s, p, 38).filter(other => later.has(other)); k = -1;
       }
     }

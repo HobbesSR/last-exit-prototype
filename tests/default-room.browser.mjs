@@ -34,7 +34,7 @@ try {
   await page.waitForFunction(() => window.arenaDebug().me.inventory[0]?.kind === 'weapon');
   await page.getByRole('button', { name: 'Drop selected', exact: false }).click();
   await page.waitForFunction(() => window.arenaDebug().me.inventory[0] === null, null, { timeout: 8000 });
-  const dropped = game.map.items.find(item => item.droppedBy === me);
+  const dropped = game.items.find(item => item.droppedBy === me);
   assert.ok(dropped, 'the dropped weapon is on the ground');
   assert.equal(physicsRuntime(game).items.has(`item:${itemLabel(game, dropped.id)}`), true, 'and has a physics body');
   assert.deepEqual(errors, []);

@@ -21,7 +21,7 @@ const body = (id, x, y, shape = { kind: 'circle', radius: 5 }, extra = {}) => ({
 test('a moving loot body changes recorded and projected item layers without mutating gameplay during capture', async () => {
   const game = await createGame(1, arena(), content());
   try {
-    game.map.items.push({ id: 'loot', kind: 'cell', charge: 100, x: 300, y: 200 });
+    game.items.push({ id: 'loot', kind: 'cell', charge: 100, x: 300, y: 200 });
     identifyItems(game);
     const world = physicsRuntime(game).world;
     world.queueAddBody({ id: 'item:loot', kind: 'prop', shape: { kind: 'circle', radius: 5 }, x: 300, y: 200 });
@@ -32,7 +32,7 @@ test('a moving loot body changes recorded and projected item layers without muta
     assert.equal('x' in captured.items[0], false);
     assert.deepEqual([captured.bodies.find(b => b.owner.kind === 'item').x, captured.bodies.find(b => b.owner.kind === 'item').y], [350, 220]);
     assert.equal('x' in projected.items[0], false);
-    assert.equal(game.map.items[0].x, 300, 'snapshot is read-only');
+    assert.equal(game.items[0].x, 300, 'snapshot is read-only');
     const moved = encoder.encode(projected);
     assert.equal(moved.items.k, initial.items.k);
     assert.equal(moved.items.changes.set, undefined, 'physical movement changes only the body layer');

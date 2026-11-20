@@ -86,7 +86,8 @@ export class PhysicsLab {
   async start(config) {
     const copy = structuredClone(config);
     if (copy.content?.id !== LAB_CONTENT) throw new RangeError(`lab requires ${LAB_CONTENT}`);
-    const next = await createGame(copy.seed, copy.map, copy.content);
+    // The game takes its map's live stores (#1211), so it gets its own copy; `copy.map` stays the initial map export writes.
+    const next = await createGame(copy.seed, structuredClone(copy.map), copy.content);
     if (SCENES[copy.scene]?.jelly) addJelly(next, SCENES[copy.scene].jelly);
     this.dispose();
     next.players.forEach(player => { player.bot = false; });

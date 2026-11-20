@@ -84,8 +84,8 @@ export async function scriptedTrace(arena, observe = () => {}) {
     const hunter = joinGame(s, 'hunter', 'gladiator', 'hook', 'Hook');
     synchronizePhysics(s);
     for (const other of s.players) { other.bot = false; other.input = {}; }
-    for (const item of [...s.map.items]) removeItem(s, item);
-    s.map.traps = [];
+    for (const item of [...s.items]) removeItem(s, item);
+    s.traps = [];
     synchronizePhysics(s);
     const rival = s.players.find(q => q.role === 'contestant' && q !== p);
     const g = s.players.find(q => q.role === 'gladiator' && q !== hunter);
@@ -109,7 +109,7 @@ export async function scriptedTrace(arena, observe = () => {}) {
     press(p, { slot: 4, drop: true }); capture('drop');
     for (let i = 0; i < 30; i++) step(s);
     capture('dropped-settled');
-    const dropped = s.map.items[0];
+    const dropped = s.items[0];
     place(s, p, dropped);
     for (let i = 0; i < 30; i++) step(s);
     capture('automatic-pickup');

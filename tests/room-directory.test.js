@@ -1,4 +1,5 @@
 import { itemLabel } from '../shared/item-instances.ts';
+import { wholeMap } from '../shared/simulation/state.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MAX_ROOMS } from '../server/room-directory.js';
@@ -115,7 +116,7 @@ test('rooms that reuse a generated map each hold their own copy of it', async ()
     assert.equal(pooled.seed, 9, 'an unseeded room takes the reused map with its own seed');
     // The pregenerated arena, which tests/slow/room-arena keeps equal to inline generation (#849).
     // The match adds the physics props to its map, which the arena does not carry, and makes its obstacles read-only.
-    const bare = game => { const { physicsProps, ...rest } = game.map;
+    const bare = game => { const { physicsProps, ...rest } = wholeMap(game);
       return { ...rest, items: rest.items.map(item => ({ ...item, id: itemLabel(game, item.id) })) }; };
     const games = [first, second, pooled].map(room => room.game), maps = games.map(game => game.map), inline = readArena().map;
     assert.deepEqual(bare(games[0]), inline, 'the map inline generation would have made');
