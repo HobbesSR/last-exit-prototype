@@ -494,9 +494,15 @@ export class PhysicsWorld {
     const input = this.view(this.core.physics_input(this.native, length), length);
     input[0] = nonnegative(loot.linearDamping); input[1] = nonnegative(loot.angularDamping);
     input[2] = nonnegative(prop.linearDamping); input[3] = nonnegative(prop.angularDamping);
+    // A floor stays f64 in the core, never a Rapier f32 coordinate, so any finite rectangle is accepted, as actor
+    // physics' validation accepts it (review 970); only body values carry finite()'s representability bound.
+    const real = (n: number): number => {
+      if (!Number.isFinite(n)) throw new TypeError('floor values must be finite');
+      return n;
+    };
     let at = 4;
     for (const f of surfaces) {
-      input[at++] = finite(f.x); input[at++] = finite(f.y); input[at++] = finite(f.w); input[at++] = finite(f.h);
+      input[at++] = real(f.x); input[at++] = real(f.y); input[at++] = real(f.w); input[at++] = real(f.h);
       input[at++] = nonnegative(f.drag);
     }
     this.core.physics_set_floor(this.native);
