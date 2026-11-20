@@ -4,6 +4,7 @@
 //! The WASM module uses plain exports, not wasm-bindgen: the adapter passes flat typed buffers in
 //! WASM memory (docs/27, rule 1), so there is no generated JavaScript glue to keep in step.
 
+pub mod discovery;
 pub mod math;
 pub mod physics;
 pub mod sight;
@@ -13,7 +14,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 4;
+pub const ADAPTER_VERSION: u32 = 5;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -193,6 +194,100 @@ pub unsafe extern "C" fn visibility_polygon(
 ) -> usize {
     // SAFETY: the caller's contract.
     unsafe { sight::visibility_polygon(&mut *index, &mut *gates, x, y, radius) }
+}
+
+// Discovery (`discovery::DiscoveryMap`), driven by `shared/discovery.ts` (#1210). A map is a
+// handle, uploaded once; each sample is one call over the map's input buffer, and its result is
+// left in the map's output buffer.
+
+/// Builds a discovery map (`discovery::DiscoveryMap::new`). The core copies every buffer.
+///
+/// # Safety
+/// The pointers hold 6, `cell_count`, `landmark_count * 3`, `roof_words` and
+/// `building_count * 5` items.
+#[unsafe(no_mangle)]
+#[allow(clippy::too_many_arguments)]
+pub unsafe extern "C" fn discovery_map_new(
+    constants: *const f64,
+    inside: *const u8,
+    cell_count: usize,
+    landmarks: *const f64,
+    landmark_count: usize,
+    roofs: *const f64,
+    roof_words: usize,
+    buildings: *const f64,
+    building_count: usize,
+) -> *mut discovery::DiscoveryMap {
+    // SAFETY: the caller's contract.
+    let map = unsafe {
+        discovery::DiscoveryMap::new(
+            items(constants, 6),
+            items(inside, cell_count),
+            items(landmarks, landmark_count * 3),
+            items(roofs, roof_words),
+            items(buildings, building_count * 5),
+        )
+    };
+    Box::into_raw(Box::new(map))
+}
+
+/// # Safety
+/// `map` came from `discovery_map_new` and is freed once.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn discovery_map_free(map: *mut discovery::DiscoveryMap) {
+    // SAFETY: the caller's contract.
+    drop(unsafe { Box::from_raw(map) });
+}
+
+/// The sample's input buffer, resized to `len` `f64`s (`discovery::DiscoveryMap::input`).
+///
+/// # Safety
+/// `map` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn discovery_input(
+    map: *mut discovery::DiscoveryMap,
+    len: usize,
+) -> *mut f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*map).input(len).as_mut_ptr() }
+}
+
+/// One sample (`discovery::DiscoveryMap::sample`); returns a pointer to its `u32` output, valid
+/// until the next call. `index` and `gates` are the map's sight handles, or null for a sample
+/// without line of sight.
+///
+/// # Safety
+/// `map` is live, its input holds a whole sample, and `index` and `gates` are live or null.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn discovery_sample(
+    map: *mut discovery::DiscoveryMap,
+    index: *mut sight::SightIndex,
+    gates: *mut sight::GateSet,
+) -> *const u32 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        let sight = if index.is_null() || gates.is_null() {
+            None
+        } else {
+            Some((&mut *index, &mut *gates))
+        };
+        (*map).sample(sight).as_ptr()
+    }
+}
+
+/// `roofAt`'s interned id at `(x, y)`, or -1: for the parity check against `shared/view.ts`
+/// (`tests/discovery-core.test.js`), since `roofAt` keeps JavaScript callers.
+///
+/// # Safety
+/// `map` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn discovery_roof_at(
+    map: *const discovery::DiscoveryMap,
+    x: f64,
+    y: f64,
+) -> i32 {
+    // SAFETY: the caller's contract.
+    unsafe { (*map).roof_at(x, y).map_or(-1, |id| id as i32) }
 }
 
 // Physics: Rapier's world (`physics::World`), driven by `shared/physics/world.ts` (#1192). A world

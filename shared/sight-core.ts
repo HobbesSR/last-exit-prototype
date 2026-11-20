@@ -1,7 +1,7 @@
 import { count } from './profiler.ts';
 import { initCore, type CoreExports } from './core.ts';
 import { gateTables, sightTables, VISION, type SightCaster, type VisibilityPoint } from './sight.ts';
-import type { CollisionMap, Gate, Obstacle, Vec2, World } from './types.ts';
+import type { CollisionMap, GameMap, Gate, ItemId, Obstacle, PlayableArea, Vec2, World } from './types.ts';
 
 // The adapter between `shared/sight.ts` and the Rust core's port of `visibilityPolygon`
 // (`rust/core/src/sight.rs`, #1175 stage 2, docs/27).
@@ -14,6 +14,11 @@ import type { CollisionMap, Gate, Obstacle, Vec2, World } from './types.ts';
 // - **Views are made after each call,** because any allocation may grow the memory and detach the
 //   old `memory.buffer`.
 
+/** The map fields a discovery upload reads: `DiscoveryMap` in `shared/discovery.ts`. */
+type DiscoveryMap = CollisionMap & Pick<GameMap, 'buildings'> & Partial<Pick<GameMap<ItemId>, 'chargers' | 'stations' | 'exit' | 'roofs'>>;
+/** What discovery uploads for a map, built by `discoveryTables` in `shared/discovery.ts`, which owns the rule's inputs. */
+export interface DiscoveryTables { constants: Float64Array; inside: Uint8Array; landmarks: Float64Array; roofs: Float64Array; buildings: Float64Array }
+
 /** A live handle, which is a pointer into WASM memory. */
 type Handle = number;
 
@@ -25,6 +30,17 @@ export interface CoreSight extends SightCaster {
    * objects. It is valid until the next call into the core; for measuring the crossing alone.
    */
   visibilityPolygonFlat(map: CollisionMap, origin: Vec2, radius?: World): Float64Array;
+  /**
+   * One discovery sample in the core (`rust/core/src/discovery.rs`, #1210), the transport `discover` in
+   * `shared/discovery.ts` packs and unpacks around. `fill` writes the `words` of input; the result is the
+   * core's output, valid until the next call into the core. A sample with line of sight builds the
+   * map's sight index and gate set, and writes the open-gate mask, first. `tables` builds the map's upload
+   * the first time the map is met.
+   */
+  sampleDiscovery<M extends DiscoveryMap>(map: M, tables: (map: M) => DiscoveryTables, lineOfSight: boolean, words: number,
+    fill: (input: Float64Array) => void): Uint32Array;
+  /** `roofAt`'s interned id at a point as the core reads the map's roofs, or -1: for the parity check only. */
+  roofIdAt<M extends DiscoveryMap>(map: M, tables: (map: M) => DiscoveryTables, x: World, y: World): number;
 }
 
 let processSight: Promise<CoreSight> | undefined;
@@ -38,6 +54,9 @@ export const initCoreSight = (): Promise<CoreSight> => processSight ??= initCore
 export function coreSight(core: CoreExports): CoreSight {
   const indexes = new WeakMap<readonly Obstacle[], { count: number; handle: Handle }>();
   const gateSets = new WeakMap<Gate[], { count: number; handle: Handle; open: number }>();
+  // Keyed on the playable area, which every match map has and a spread copy of the map keeps; the
+  // other fields the upload reads are checked, so a map that shares the area but not them rebuilds.
+  const discoveryMaps = new WeakMap<PlayableArea, { source: unknown[]; handle: Handle }>();
   const release = new FinalizationRegistry<() => void>(free => free());
   /** Free a handle a grown list superseded now, rather than when the list is collected. */
   const supersede = (entry: { handle: Handle } | undefined, free: (handle: Handle) => void) => {
@@ -47,7 +66,7 @@ export function coreSight(core: CoreExports): CoreSight {
   };
 
   /** Copy the arrays into fresh WASM buffers, call `use` with their pointers, then free them. */
-  function withBuffers<T>(arrays: (Float64Array | Int32Array | Uint32Array)[], use: (pointers: number[]) => T): T {
+  function withBuffers<T>(arrays: (Float64Array | Int32Array | Uint32Array | Uint8Array)[], use: (pointers: number[]) => T): T {
     const pointers = arrays.map(array => core.core_alloc(array.byteLength) >>> 0);
     try {
       arrays.forEach((array, i) => new Uint8Array(core.memory.buffer, pointers[i], array.byteLength)
@@ -83,14 +102,36 @@ export function coreSight(core: CoreExports): CoreSight {
     return entry;
   }
 
-  function cast(map: CollisionMap, origin: Vec2, radius: World): { index: Handle; points: Float64Array } {
-    count('calls.visibilityPolygon');
-    const index = indexFor(map), gates = gateSetFor(map);
+  /** The map's gate set, with the open mask written as the gates stand now. */
+  function openGates(map: CollisionMap): Handle {
+    const gates = gateSetFor(map);
     if (map.gates.length) {
       const open = new Uint8Array(core.memory.buffer, gates.open, map.gates.length);
       for (let i = 0; i < map.gates.length; i++) open[i] = map.gates[i].open ? 1 : 0;
     }
-    const n = core.visibility_polygon(index, gates.handle, origin.x, origin.y, radius);
+    return gates.handle;
+  }
+
+  function discoveryMapFor<M extends DiscoveryMap>(map: M, tables: (map: M) => DiscoveryTables): Handle {
+    const area = map.playableArea;
+    if (!area) throw new RangeError('Map has no playableArea');
+    const source = [map.width, map.height, map.buildings, map.roofs, map.chargers, map.stations, map.exit];
+    const cached = discoveryMaps.get(area);
+    if (cached && cached.source.every((v, i) => v === source[i])) return cached.handle;
+    supersede(cached, handle => core.discovery_map_free(handle));
+    const { constants, inside, landmarks, roofs, buildings } = tables(map);
+    const handle = withBuffers([constants, inside, landmarks, roofs, buildings], ([c, i, l, r, b]) =>
+      core.discovery_map_new(c, i, inside.length, l, landmarks.length / 3, r, roofs.length, b, buildings.length / 5) >>> 0);
+    const entry = { source, handle };
+    discoveryMaps.set(area, entry);
+    release.register(area, () => core.discovery_map_free(handle), entry);
+    return handle;
+  }
+
+  function cast(map: CollisionMap, origin: Vec2, radius: World): { index: Handle; points: Float64Array } {
+    count('calls.visibilityPolygon');
+    const index = indexFor(map), gates = openGates(map);
+    const n = core.visibility_polygon(index, gates, origin.x, origin.y, radius);
     count('work.visibilityRays', core.sight_index_tests(index));
     return { index, points: new Float64Array(core.memory.buffer, core.sight_index_points(index) >>> 0, n * 4) };
   }
@@ -103,6 +144,19 @@ export function coreSight(core: CoreExports): CoreSight {
     },
     visibilityPolygonFlat(map, origin, radius = VISION) {
       return cast(map, origin, radius).points;
+    },
+    sampleDiscovery(map, tables, lineOfSight, words, fill) {
+      const handle = discoveryMapFor(map, tables);
+      const index = lineOfSight ? indexFor(map) : 0, gates = lineOfSight ? openGates(map) : 0;
+      // Resizing the input may grow the memory, so the view is made from the buffer after the call.
+      const input = core.discovery_input(handle, words) >>> 0;
+      fill(new Float64Array(core.memory.buffer, input, words));
+      const out = core.discovery_sample(handle, index, gates) >>> 0;
+      // The output's length follows from its own counts, so the view runs to the end of memory.
+      return new Uint32Array(core.memory.buffer, out, (core.memory.buffer.byteLength - out) >>> 2);
+    },
+    roofIdAt(map, tables, x, y) {
+      return core.discovery_roof_at(discoveryMapFor(map, tables), x, y);
     },
   };
 }

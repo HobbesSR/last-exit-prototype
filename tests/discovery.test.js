@@ -22,15 +22,17 @@ import {
   createDiscoveryDecoder,
   isDiscovered,
   isFeatureDiscovered,
+  discoveryTables,
 } from '../shared/discovery.ts';
 import { readServerMessage } from '../shared/wire-schema.ts';
-import { initCoreSight } from '../shared/sight-core.ts';
+import { roofAt } from '../shared/view.ts';
+import { coreSight, initCoreSight } from '../shared/sight-core.ts';
 
 // Bots observe through the core's sight, as a game's do (sightOf).
 const sight = await initCoreSight();
 
 // Cases that never step build the game without its physics world; cases that step build the shipped engine (#920).
-const game = (seed = 4217) => createGameRecord(seed, generatedMap(), defaultContent());
+const game = (seed = 4217) => createGameRecord(seed, generatedMap(), defaultContent(), sight);
 
 test('discovery grid dimensions and cell coordinates match map scale', () => {
   const map = { width: 1920, height: 960 };
@@ -77,7 +79,7 @@ test('geometry in the view window is discovered behind a wall; only line of sigh
     buildings: [],
   };
 
-  const newlyDiscovered = discover(memory, map, eye);
+  const newlyDiscovered = discover(sight, memory, map, eye);
   assert.ok(newlyDiscovered.length > 0, 'some cells should be discovered');
 
   // Eye's own cell: col 1, row 1 -> index 1 * 10 + 1 = 11
@@ -95,7 +97,7 @@ test('geometry in the view window is discovered behind a wall; only line of sigh
   assert.equal(memory.seen, undefined, 'people keep no line-of-sight set');
   // A bot's line of sight sees its own side and not past the wall.
   const bot = createDiscovery();
-  discover(bot, map, eye, undefined, sight);
+  discover(sight, bot, map, eye, undefined, true);
   assert.ok(bot.seen.has(westCell) && bot.seen.has(eyeCell));
   assert.equal(bot.seen.has(eastCell), false, 'line of sight stops at the wall');
   // Beyond the window, nothing: (1824, 288) is 1536 east of the eye, past half of 2400.
@@ -117,7 +119,7 @@ test('a roof hides its interior from line of sight outside, not from the view wi
     buildings: [building],
   };
 
-  discover(memory, map, eye, undefined, sight);
+  discover(sight, memory, map, eye, undefined, true);
 
   // Cell inside the building: col 2, row 1 -> center (480, 288)
   const roofCell = cellIndexAt(map, 480, 288);
@@ -140,7 +142,7 @@ test('cells beyond DISCOVERY_RADIUS are not discovered', () => {
     buildings: [],
   };
 
-  discover(memory, map, eye);
+  discover(sight, memory, map, eye);
 
   // Point far away (e.g. 2000, 2000) > DISCOVERY_RADIUS (1200)
   assert.equal(isDiscovered(memory, map, 2000, 2000), false);
@@ -155,7 +157,7 @@ test('gladiators have no discovery memory', () => {
 
   // Fold over frames for a gladiator returns empty memory
   const frame = snapshot(s);
-  const folded = foldDiscovery(s.map, [frame], gladiator.id);
+  const folded = foldDiscovery(sight, s.map, [frame], gladiator.id);
   assert.equal(folded.discovered.size, 0, 'gladiator fold must have 0 discovered cells');
 });
 
@@ -177,7 +179,7 @@ test('discovery is stable under a pure fold over recorded frames', async () => {
     const liveDiscovered = new Set(contestant.discovery.discovered);
     assert.ok(liveDiscovered.size > 0, 'live contestant must have discovered cells');
 
-    const folded = foldDiscovery(s.map, frames, contestant.id);
+    const folded = foldDiscovery(sight, s.map, frames, contestant.id);
     assert.deepEqual(folded.discovered, liveDiscovered, 'folded discovery must exactly match live discovery');
   } finally { disposePhysics(s); }
 });
@@ -368,13 +370,13 @@ test('a landmark is discovered from its beacon radius, through walls, and the fo
     stations: [], exit: { x: 5900, y: 480 },
   };
   const eye = { x: 200, y: 480 }, memory = createDiscovery();
-  discover(memory, map, eye);
+  discover(sight, memory, map, eye);
   const [near, far] = map.chargers;
   assert.ok(isFeatureDiscovered(memory, map, near), 'a charger inside the beacon radius, behind a wall');
   assert.equal(isDiscovered(memory, map, near.x - DISCOVERY_CELL_SIZE, near.y), false, 'only its own cell, not the way to it');
   assert.equal(isFeatureDiscovered(memory, map, far), false, 'a charger beyond the beacon radius');
   assert.equal(isFeatureDiscovered(memory, map, map.exit), false, 'the exit beyond it');
-  const folded = foldDiscovery(map, [{ tick: 0, players: [{ id: 'c0', ...eye, role: 'contestant', status: 'active' }] }], 'c0');
+  const folded = foldDiscovery(sight, map, [{ tick: 0, players: [{ id: 'c0', ...eye, role: 'contestant', status: 'active' }] }], 'c0');
   assert.deepEqual([...folded.discovered].sort(), [...memory.discovered].sort());
 });
 
@@ -396,7 +398,7 @@ test('nearby items and gates within discovery radius are indexed and remembered 
 
   // 1. Unfrozen / loose items
   const memory = createDiscovery();
-  discover(memory, map, eye, undefined, sight);
+  discover(sight, memory, map, eye, undefined, true);
   assert.ok(memory.items?.has('item-near'), 'loose item at 700 units (inside radius) is remembered');
   assert.equal(memory.items?.has('item-far'), false, 'item beyond radius is not remembered');
   assert.ok(memory.gates?.has('gate-near'), 'gate at 700 units (inside radius) is observed');
@@ -405,7 +407,7 @@ test('nearby items and gates within discovery radius are indexed and remembered 
   // 2. Frozen items (which populate ground-items spatial cells)
   for (const item of map.items) Object.freeze(item);
   const memoryFrozen = createDiscovery();
-  discover(memoryFrozen, map, eye, undefined, sight);
+  discover(sight, memoryFrozen, map, eye, undefined, true);
   assert.ok(memoryFrozen.items?.has('item-near'), 'frozen item at 700 units is remembered');
   assert.equal(memoryFrozen.items?.has('item-far'), false, 'frozen item beyond radius is not remembered');
 });
@@ -429,10 +431,53 @@ test('discovery memory items match whole-list filter and preserve ground order (
     gates: [],
   };
   const memory = createDiscovery();
-  discover(memory, map, eye, undefined, sight);
+  discover(sight, memory, map, eye, undefined, true);
 
   const expectedIds = items.filter(i => Math.hypot(i.x - eye.x, i.y - eye.y) <= DISCOVERY_RADIUS).map(i => i.id);
   const rememberedIds = [...memory.items.keys()];
   assert.deepEqual(rememberedIds, expectedIds, 'memory.items matches whole-list candidates in list order');
 });
 
+
+// The core's roof index is a port of `roofAt`, which keeps JavaScript callers (the fog, projection), so the
+// two are held equal here (#1210, docs/27): over a grid through the generated map, and at every roof cell's
+// corners and centre and every building's edges, where the open bounds and cell flooring decide.
+test('the core reads roofs as roofAt does', () => {
+  const map = generatedMap(), ids = new Map();
+  for (const r of map.roofs ?? []) if (!ids.has(r.id)) ids.set(r.id, ids.size);
+  for (const b of map.buildings ?? []) if (!ids.has(b.id)) ids.set(b.id, ids.size);
+  assert.ok(map.roofs?.length && map.buildings?.length, 'the map has roofs and buildings to compare');
+  const points = [];
+  for (let x = 0; x < map.width; x += 37) for (let y = 0; y < map.height; y += 41) points.push([x, y]);
+  for (const r of map.roofs) for (const c of r.cells) {
+    const x0 = r.origin.x + c.x * r.cellSize, y0 = r.origin.y + c.y * r.cellSize;
+    points.push([x0, y0], [x0 + r.cellSize / 2, y0 + r.cellSize / 2], [x0 + r.cellSize, y0 + r.cellSize]);
+  }
+  for (const b of map.buildings) points.push([b.x, b.y + b.h / 2], [b.x + b.w, b.y + b.h / 2], [b.x + b.w / 2, b.y + b.h / 2], [b.x + 0.5, b.y + 0.5]);
+  points.push([NaN, 10], [Infinity, Infinity], [-5, -5]);
+  let roofed = 0;
+  for (const [x, y] of points) {
+    const roof = roofAt(map, { x, y }), expected = roof ? ids.get(roof.id) : -1;
+    if (roof) roofed++;
+    assert.equal(sight.roofIdAt(map, discoveryTables, x, y), expected, `roof at ${x}, ${y}`);
+  }
+  assert.ok(roofed > 1000, `points under roofs: ${roofed}`);
+});
+
+// Resizing a sample's input may grow WASM memory and detach the old buffer, so the adapter must make its view
+// after the call (review 964 on PR #1221). A stub core grows memory inside `discovery_input`.
+test('a sample whose input grows the core memory still packs it', () => {
+  const memory = new WebAssembly.Memory({ initial: 1 });
+  let heap = 64;
+  const alloc = bytes => { const at = heap; heap += (bytes + 7) & ~7; return at; };
+  const stub = {
+    memory, adapter_version: () => 5, core_alloc: alloc, core_free() {},
+    discovery_map_new: () => 8, discovery_map_free() {},
+    discovery_input: (_map, len) => { memory.grow(1); return alloc(len * 8); },
+    // Every list empty: no polygon, no cells.
+    discovery_sample: () => { const at = alloc(20); new Uint32Array(memory.buffer, at, 5).fill(0); return at; },
+  };
+  const map = { width: 960, height: 960, playableArea: openArea(960, 960, 120), obstacles: [], gates: [], buildings: [] };
+  const memo = createDiscovery();
+  assert.deepEqual(discover(coreSight(stub), memo, map, { x: 100, y: 100 }), []);
+});

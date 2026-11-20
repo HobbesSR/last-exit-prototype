@@ -26,6 +26,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.59](42.59-split-delivery-under-loss.md) | Stage 3's split delivery in Chrome through the edge and a lossy relay (#1095): received and drawn frames, deltas and whole-frame recovery, staleness per profile, the ping pile-up it found, and the relay's reordering |
 | [42.60](42.60-whole-fast-frames.md) | A live player's whole fast frame on each generated size (#1095): whole and delta sizes over full bot matches against the edge's 1,100-byte fragment |
 | [42.61](42.61-rapier-core-adapter.md) | Rapier compiled into the Rust core behind the batched adapter against rapier.js: the physics step about halved, the whole tick unchanged within noise (#1192) |
+| [42.62](42.62-discovery-core-adapter.md) | Discovery in the Rust core, packed and unpacked per sample: about 14% cheaper, its crossing about 2% of the TypeScript's cost against 42.58's 10% budget (#1210) |
 
 ### Navigation
 

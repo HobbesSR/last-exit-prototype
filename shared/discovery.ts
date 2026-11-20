@@ -1,14 +1,13 @@
 import { createFrameNormalizer } from './relational-frame.ts';
-import { litPoint, type SightCaster, type VisibilityPoint } from './sight.ts';
+import type { CoreSight, DiscoveryTables } from './sight-core.ts';
 import { gateShape, gatesNear } from './gate-index.ts';
 import { insideMap } from './playable-area.ts';
 import { itemsNear } from './simulation/ground-items.ts';
-import { ItemMemory, SeenCells } from './simulation/bot-memory.ts';
-import { MAX_VIEW_HEIGHT, MAX_VIEW_WIDTH, roofConceals } from './view.ts';
+import { ItemMemory, SeenCells, rememberedItems } from './simulation/bot-memory.ts';
+import { MAX_VIEW_HEIGHT, MAX_VIEW_WIDTH, roofTables } from './view.ts';
 import { nextVersion } from './frame-layers.ts';
 import { count } from './profiler.ts';
-import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, GateObservation, ItemId, Player, PlayerId, Role, Vec2, World } from './types.ts';
-import { hypot } from './math.ts';
+import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, GateObservation, GroundItem, ItemId, Player, PlayerId, Role, Vec2, World } from './types.ts';
 export type { DiscoveryMemory, DiscoveryWire };
 
 /** The side length of a coarse discovery cell in world units (4 x 48 map cells). */
@@ -26,7 +25,7 @@ export const DISCOVERY_INTERVAL = 10;
 export const BEACON_RADIUS: World = 4000;
 
 /** The map fields discovery reads. Items and landmarks are optional, so a bare collision map works. */
-type DiscoveryMap = CollisionMap & Pick<GameMap, 'buildings'> & Partial<Pick<GameMap<ItemId>, 'items' | 'chargers' | 'stations' | 'exit'>>;
+export type DiscoveryMap = CollisionMap & Pick<GameMap, 'buildings'> & Partial<Pick<GameMap<ItemId>, 'items' | 'chargers' | 'stations' | 'exit' | 'roofs'>>;
 
 /** The features that carry a beacon. */
 function landmarks(map: DiscoveryMap): Vec2[] {
@@ -93,84 +92,97 @@ export function isFeatureDiscovered(memory: DiscoveryMemory | null | undefined, 
 }
 
 /**
+ * What discovery uploads to the core for a map, once (`rust/core/src/discovery.rs`): the grid and the rule's
+ * constants, which cells' centres are playable ground, the landmarks with their cells, and the roofs.
+ */
+export function discoveryTables(map: DiscoveryMap): DiscoveryTables {
+  const { cols, rows } = discoveryGrid(map), inside = new Uint8Array(cols * rows);
+  for (let idx = 0; idx < inside.length; idx++) {
+    const { x, y } = cellCenter(map, idx);
+    inside[idx] = insideMap(map, x, y) ? 1 : 0;
+  }
+  const constants = Float64Array.of(cols, rows, DISCOVERY_CELL_SIZE, DISCOVERY_VIEW.halfWidth, DISCOVERY_VIEW.halfHeight, BEACON_RADIUS);
+  const beacons = Float64Array.from(landmarks(map).flatMap(l => [l.x, l.y, cellIndexAt(map, l.x, l.y)]));
+  return { constants, inside, landmarks: beacons, ...roofTables(map) };
+}
+
+/** The input header's words: `rust/core/src/discovery.rs`'s `HEADER`. */
+const HEADER = 11;
+
+/**
  * Sample discovery from an eye position against the map. Two rules, split by what is learned (Corey,
  * 2026-10-14, 15):
  * - **World geometry** is learned from the view window: every cell whose centre lies within the largest
  *   viewport a client may have is discovered, regardless of walls and roofs. Landmarks are discovered
  *   from their beacon radius. This is what the minimap draws.
- * - **Dynamic state** needs line of sight. Given a `sight` to observe through (bots, #230; a game's is
- *   `sightOf(s)`), one visibility polygon marks the cells whose centres are lit and not roof-concealed
- *   as `memory.seen`, which a bot searches against,
- *   and updates `memory.items`: items in sight are remembered, and a remembered item whose spot is seen
- *   empty is forgotten. Doors in sight are remembered as they stand (`memory.gates`), and every cell
- *   the view window covers is `memory.surveyed`, the layout navigation may treat as known (22.6).
+ * - **Dynamic state** needs line of sight. A sample `lineOfSight` (bots, #230) casts one visibility
+ *   polygon and marks the cells whose centres are lit and not roof-concealed as `memory.seen`, which a
+ *   bot searches against, and updates `memory.items`: items in sight are remembered, and a remembered
+ *   item whose spot is seen empty is forgotten. Doors in sight are remembered as they stand
+ *   (`memory.gates`), and every cell the view window covers is `memory.surveyed`, the layout navigation
+ *   may treat as known (22.6).
  * Returns the newly discovered cell indices; `memory.revision` counts each sample that changed anything.
+ *
+ * The rule runs in the core (#1210, docs/27 "The state flip"), through `sight`, the game's core binding
+ * (`sightOf(s)`). The memory stays here: this packs what the sample reads near the eye, and applies what
+ * it learned in the order the rule writes it, which is the order a bot's ties are broken in.
  */
 export function discover(
+  sight: CoreSight,
   memory: DiscoveryMemory,
   map: DiscoveryMap,
   eye: Vec2,
   radius: World = DISCOVERY_RADIUS,
-  sight?: SightCaster
+  lineOfSight = false
 ): number[] {
   const { cols, rows } = discoveryGrid(map);
-  const newlyDiscovered: number[] = [];
-  let changed = false;
-  const mark = (idx: number) => { if (!memory.discovered.has(idx)) { memory.discovered.add(idx); newlyDiscovered.push(idx); } };
-  const cells = (halfWidth: World, halfHeight: World, visit: (idx: number, cx: World, cy: World) => void, anyGround = false) => {
-    const minCol = Math.max(0, Math.floor((eye.x - halfWidth) / DISCOVERY_CELL_SIZE));
-    const maxCol = Math.min(cols - 1, Math.floor((eye.x + halfWidth) / DISCOVERY_CELL_SIZE));
-    const minRow = Math.max(0, Math.floor((eye.y - halfHeight) / DISCOVERY_CELL_SIZE));
-    const maxRow = Math.min(rows - 1, Math.floor((eye.y + halfHeight) / DISCOVERY_CELL_SIZE));
-    for (let row = minRow; row <= maxRow; row++) for (let col = minCol; col <= maxCol; col++) {
-      const cx = col * DISCOVERY_CELL_SIZE + DISCOVERY_CELL_SIZE / 2, cy = row * DISCOVERY_CELL_SIZE + DISCOVERY_CELL_SIZE / 2;
-      if (Math.abs(cx - eye.x) <= halfWidth && Math.abs(cy - eye.y) <= halfHeight && (anyGround || insideMap(map, cx, cy))) visit(row * cols + col, cx, cy);
-    }
-  };
-
-  cells(DISCOVERY_VIEW.halfWidth, DISCOVERY_VIEW.halfHeight, mark);
-  if (sight) {
-    const surveyed = memory.surveyed ??= new Set();
-    cells(DISCOVERY_VIEW.halfWidth, DISCOVERY_VIEW.halfHeight, idx => { if (!surveyed.has(idx)) { surveyed.add(idx); changed = true; } }, true);
-  }
-  // A landmark's beacon shows over walls and roofs, so its cell is discovered from much further away.
-  for (const landmark of landmarks(map)) {
-    const lx = landmark.x - eye.x, ly = landmark.y - eye.y;
-    if (lx * lx + ly * ly > BEACON_RADIUS * BEACON_RADIUS) continue;
-    const idx = cellIndexAt(map, landmark.x, landmark.y);
-    if (idx !== -1) mark(idx);
-  }
-
-  if (sight) {
-    let poly: VisibilityPoint[] | null = null;
-    const radiusSq = radius * radius;
-    // The polygon is built only once something in reach needs it.
-    const sees = (x: World, y: World): boolean => {
-      const ex = x - eye.x, ey = y - eye.y;
-      if (ex * ex + ey * ey > radiusSq) return false;
-      if (roofConceals(map, eye, { x, y })) return false;
-      if (!poly) poly = sight.visibilityPolygon(map, eye, radius);
-      return litPoint(poly, eye, x, y);
-    };
-    const seen = memory.seen ??= new SeenCells(cols, rows);
-    cells(radius, radius, (idx, cx, cy) => { if (!seen.has(idx) && sees(cx, cy)) seen.add(idx); });
+  let near: readonly GroundItem<ItemId>[] = [], held: readonly GroundItem<ItemId>[] = [], doors: Gate[] = [];
+  let items: ItemMemory | undefined, seen: Set<number> | undefined;
+  // The reach window, as the rule visits it; empty for an eye that is not a number.
+  let c0 = 0, c1 = -1, r0 = 0, r1 = -1;
+  if (lineOfSight) {
+    seen = memory.seen ??= new SeenCells(cols, rows);
     if (map.items) {
-      const items = memory.items ??= new ItemMemory();
+      items = rememberedItems(memory) ?? (memory.items = new ItemMemory());
+      near = itemsNear(map.items, eye, radius);
+      held = [...items.cellItems(), ...items.near(eye, radius)];
+    }
+    doors = gatesNear(map, eye.x - radius, eye.y - radius, eye.x + radius, eye.y + radius);
+    const minCol = Math.max(0, Math.floor((eye.x - radius) / DISCOVERY_CELL_SIZE)), maxCol = Math.min(cols - 1, Math.floor((eye.x + radius) / DISCOVERY_CELL_SIZE));
+    const minRow = Math.max(0, Math.floor((eye.y - radius) / DISCOVERY_CELL_SIZE)), maxRow = Math.min(rows - 1, Math.floor((eye.y + radius) / DISCOVERY_CELL_SIZE));
+    if (minCol <= maxCol && minRow <= maxRow) [c0, c1, r0, r1] = [minCol, maxCol, minRow, maxRow];
+  }
+  const width = c1 - c0 + 1, things = HEADER + (near.length + held.length) * 2 + doors.length * 4;
+  const out = sight.sampleDiscovery(map, discoveryTables, lineOfSight, things + width * (r1 - r0 + 1), input => {
+    input.set([eye.x, eye.y, radius, lineOfSight ? 1 : 0, near.length, held.length, doors.length, c0, c1, r0, r1]);
+    let at = HEADER;
+    for (const item of near) { input[at++] = item.x; input[at++] = item.y; }
+    for (const item of held) { input[at++] = item.x; input[at++] = item.y; }
+    for (const gate of doors) { const box = gateShape(gate); input[at++] = box.x; input[at++] = box.y; input[at++] = box.w; input[at++] = box.h; }
+    for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) input[at++] = seen!.has(row * cols + col) ? 1 : 0;
+  });
+
+  if (out[0]) { count('calls.visibilityPolygon'); count('work.visibilityRays', out[1]); }
+  let at = 2, changed = false;
+  const newlyDiscovered: number[] = [];
+  for (let n = out[at++]!; n > 0; n--) {
+    const idx = out[at++]!;
+    if (!memory.discovered.has(idx)) { memory.discovered.add(idx); newlyDiscovered.push(idx); }
+  }
+  const surveyedCount = out[at++]!;
+  if (lineOfSight) {
+    const surveyed = memory.surveyed ??= new Set();
+    for (let i = 0; i < surveyedCount; i++) { const idx = out[at + i]!; if (!surveyed.has(idx)) { surveyed.add(idx); changed = true; } }
+  }
+  at += surveyedCount;
+  for (let n = out[at++]!; n > 0; n--) seen!.add(out[at++]!);
+  if (lineOfSight) {
+    if (items) {
       const present = new Set<ItemId>();
-      for (const item of itemsNear(map.items, eye, radius)) {
-        if (!sees(item.x, item.y)) continue;
-        present.add(item.id);
-        items.set(item.id, { ...item });
-      }
-      for (const [id, item] of items) if (!present.has(id) && sees(item.x, item.y)) items.delete(id);
+      for (const item of near) if (out[at++]) { present.add(item.id); items.set(item.id, { ...item }); }
+      for (const item of held) if (out[at++] && !present.has(item.id)) items.delete(item.id);
     }
-    // A door is seen at the point of its outline nearest the eye, a unit toward the eye, so a closed door's own face does not hide it.
-    for (const gate of gatesNear(map, eye.x - radius, eye.y - radius, eye.x + radius, eye.y + radius)) {
-      const box = gateShape(gate);
-      const nx = Math.max(box.x, Math.min(box.x + box.w, eye.x)), ny = Math.max(box.y, Math.min(box.y + box.h, eye.y));
-      const dx = eye.x - nx, dy = eye.y - ny, d = hypot(dx, dy);
-      if (d <= radius && sees(d > 1 ? nx + dx / d : eye.x, d > 1 ? ny + dy / d : eye.y)) changed = observeGate(memory, gate, false) || changed;
-    }
+    for (const gate of doors) if (out[at++]) changed = observeGate(memory, gate, false) || changed;
   }
 
   if (changed || newlyDiscovered.length) memory.revision = (memory.revision ?? 0) + 1;
@@ -193,9 +205,10 @@ export function observeGate(memory: DiscoveryMemory, gate: Pick<Gate, 'id' | 'op
 
 /**
  * Reconstruct a player's discovery state by folding `discover` over recorded frames.
- * Gladiators have no discovery memory and return an empty set.
+ * Gladiators have no discovery memory and return an empty set. `sight` is the core binding samples run through.
  */
 export function foldDiscovery(
+  sight: CoreSight,
   map: DiscoveryMap,
   frames: Iterable<{
     tick?: number;
@@ -223,7 +236,7 @@ export function foldDiscovery(
     if (!shouldSample) continue;
 
     const currentMap = { ...map, gates: frame.gates as Gate[] };
-    if (p.x !== undefined && p.y !== undefined) discover(memory, currentMap, { x: p.x, y: p.y });
+    if (p.x !== undefined && p.y !== undefined) discover(sight, memory, currentMap, { x: p.x, y: p.y });
   }
 
   return memory;
