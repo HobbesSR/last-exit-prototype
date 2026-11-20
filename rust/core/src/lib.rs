@@ -13,7 +13,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 3;
+pub const ADAPTER_VERSION: u32 = 4;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -42,12 +42,6 @@ pub extern "C" fn math_atan(x: f64) -> f64 {
 #[unsafe(no_mangle)]
 pub extern "C" fn math_atan2(y: f64, x: f64) -> f64 {
     math::atan2(y, x)
-}
-
-/// Rapier's probe (`physics::probe`), until the world's adapter replaces it (#1192).
-#[unsafe(no_mangle)]
-pub extern "C" fn physics_probe(steps: u32) -> f64 {
-    physics::probe(steps)
 }
 
 #[unsafe(no_mangle)]
@@ -199,6 +193,241 @@ pub unsafe extern "C" fn visibility_polygon(
 ) -> usize {
     // SAFETY: the caller's contract.
     unsafe { sight::visibility_polygon(&mut *index, &mut *gates, x, y, radius) }
+}
+
+// Physics: Rapier's world (`physics::World`), driven by `shared/physics/world.ts` (#1192). A world
+// is a handle; bodies are slots. Results are left in the world's output buffer, which JavaScript
+// reads through a view made after the call.
+
+#[unsafe(no_mangle)]
+pub extern "C" fn physics_world_new() -> *mut physics::World {
+    Box::into_raw(Box::new(physics::World::new()))
+}
+
+/// # Safety
+/// `world` came from `physics_world_new` and is freed once.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_world_free(world: *mut physics::World) {
+    // SAFETY: the caller's contract.
+    drop(unsafe { Box::from_raw(world) });
+}
+
+/// Adds a body (`physics::World::add_body`); returns its slot, or -1 when a convex shape cannot be
+/// hulled. `vertices` holds `vertex_count` `x, y` pairs for a convex shape. Damping is `NaN` when
+/// unset.
+///
+/// # Safety
+/// `world` is live and `vertices` holds `vertex_count * 2` items.
+#[unsafe(no_mangle)]
+#[allow(clippy::too_many_arguments)]
+pub unsafe extern "C" fn physics_add_body(
+    world: *mut physics::World,
+    kind: u32,
+    map_geometry: u32,
+    shape: u32,
+    a: f64,
+    b: f64,
+    vertices: *const f64,
+    vertex_count: usize,
+    x: f64,
+    y: f64,
+    angle: f64,
+    vx: f64,
+    vy: f64,
+    omega: f64,
+    mass: f64,
+    friction: f64,
+    restitution: f64,
+    linear_damping: f64,
+    angular_damping: f64,
+    groups: u32,
+) -> i32 {
+    let params = physics::BodyParams {
+        kind,
+        map_geometry: map_geometry != 0,
+        pose: [x, y, angle, vx, vy, omega],
+        material: [mass, friction, restitution],
+        damping: [linear_damping, angular_damping],
+        groups,
+    };
+    // SAFETY: the caller's contract.
+    let (world, vertices) = unsafe { (&mut *world, items(vertices, vertex_count * 2)) };
+    world
+        .add_body(&params, shape, a, b, vertices)
+        .map_or(-1, |slot| slot as i32)
+}
+
+/// # Safety
+/// `world` is live and `slot` is a live body.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_remove_body(world: *mut physics::World, slot: u32) {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).remove_body(slot) }
+}
+
+/// # Safety
+/// `world` is live and `slot` is a live body.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_wake(world: *mut physics::World, slot: u32) {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).wake(slot) }
+}
+
+/// # Safety
+/// `world` is live and `a`, `b` are live bodies.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_add_rope(
+    world: *mut physics::World,
+    a: u32,
+    b: u32,
+    max_distance: f64,
+) -> u32 {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).add_rope(a, b, max_distance) }
+}
+
+/// # Safety
+/// `world` is live and `rope` came from `physics_add_rope` and is removed once.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_remove_rope(world: *mut physics::World, rope: u32) {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).remove_rope(rope) }
+}
+
+/// Sets linear (`angular` 0) or angular damping.
+///
+/// # Safety
+/// `world` is live and `slot` is a live dynamic body.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_set_damping(
+    world: *mut physics::World,
+    slot: u32,
+    angular: u32,
+    value: f64,
+) {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).set_damping(slot, angular != 0, value) }
+}
+
+/// # Safety
+/// `world` is live and `slot` is a live dynamic body.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_set_pose(
+    world: *mut physics::World,
+    slot: u32,
+    x: f64,
+    y: f64,
+    angle: f64,
+) {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).set_pose(slot, x, y, angle) }
+}
+
+/// The body's pose: seven `f64`s at the returned pointer, valid until the next call.
+///
+/// # Safety
+/// `world` is live and `slot` is a live body.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_pose(world: *mut physics::World, slot: u32) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).pose(slot).as_ptr() }
+}
+
+/// The body's position and external force: four `f64`s, valid until the next call.
+///
+/// # Safety
+/// `world` is live and `slot` is a live body.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_user_force(world: *mut physics::World, slot: u32) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).user_force(slot).as_ptr() }
+}
+
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_propagate(world: *mut physics::World) {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).propagate() }
+}
+
+/// Whether the body meets a ball (`shape` 0, radius `a`) or box (`shape` 1, half-extents `a`, `b`)
+/// at `(x, y)`; 1 or 0.
+///
+/// # Safety
+/// `world` is live and `slot` is a live body.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_intersects(
+    world: *const physics::World,
+    slot: u32,
+    shape: u32,
+    a: f64,
+    b: f64,
+    x: f64,
+    y: f64,
+) -> u32 {
+    // SAFETY: the caller's contract.
+    u32::from(unsafe { (*world).intersects(slot, shape, a, b, x, y) })
+}
+
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_prepare(world: *mut physics::World) -> usize {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).prepare() }
+}
+
+/// The step's input buffer, resized to `len` `f64`s, for JavaScript to fill before `physics_step`.
+///
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_input(world: *mut physics::World, len: usize) -> *mut f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).input(len).as_mut_ptr() }
+}
+
+/// One tick (`physics::World::step`); returns a pointer to its output, whose length follows from
+/// the header. Valid until the next call.
+///
+/// # Safety
+/// `world` is live and its input holds the counts' rows, naming live bodies.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_step(
+    world: *mut physics::World,
+    dynamic_count: usize,
+    force_count: usize,
+    impulse_count: usize,
+    constraint_count: usize,
+) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        (*world)
+            .step(dynamic_count, force_count, impulse_count, constraint_count)
+            .as_ptr()
+    }
+}
+
+/// The debug contacts (`physics::World::debug_contacts`); returns how many rows of seven `f64`s
+/// are at `physics_output`.
+///
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_debug_contacts(world: *mut physics::World) -> usize {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).debug_contacts().len() / 7 }
+}
+
+/// The world's output buffer, as the last call left it.
+///
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_output(world: *const physics::World) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).output().as_ptr() }
 }
 
 #[cfg(test)]

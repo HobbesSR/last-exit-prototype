@@ -188,9 +188,9 @@ try {
     'shared/simulation/world-physics.ts', 'shared/simulation/physics-presentation.ts', 'shared/simulation/visibility.ts',
     'shared/simulation/content.ts', 'shared/simulation/loot.ts', 'shared/simulation/interactions.ts', 'shared/equipment.ts', 'shared/item-instances.ts',
     'server/match.js', 'tests/bench.mjs', 'tests/bench-client.mjs', 'shared/types.ts', 'package.json', 'package-lock.json',
-    'node_modules/@dimforge/rapier2d-compat/dist/rapier.mjs', 'node_modules/@dimforge/rapier2d-compat/dist/rapier_wasm2d_bg.wasm'];
+    'rust/core/src/physics.rs', 'rust/Cargo.lock'];
   for (const file of files) report.provenance.hashes[file] = hash(await readFile(file));
-  const rapierPackage = JSON.parse(await readFile('node_modules/@dimforge/rapier2d-compat/package.json', 'utf8'));
+  const rapierPackage = { name: 'rapier2d', license: 'Apache-2.0', version: (/name = "rapier2d"\r?\nversion = "([^"]+)"/.exec(await readFile('rust/Cargo.lock', 'utf8'))?.[1]) };
   report.provenance.rapier = { name: rapierPackage.name, version: rapierPackage.version, license: rapierPackage.license };
   report.workload = { actors: 11, lootCounts: [0, 64, 117], additionalCases: [
       '116 loot + 1 inert crate', '53 loot + 64 authored inert crates; total dynamic capacity 128 including actors'],

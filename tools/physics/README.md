@@ -1,5 +1,7 @@
 # Physics P0 comparison lab
 
+The P0 comparison lab's engine harness (rapier.mjs, the runner, report, queries, lab prediction and the jelly lab) retired with the rapier.js package in #1192: the game's physics now runs in the Rust core ([27](../../docs/27-rust-path.md)). Their retained evidence stays in `docs/reports/` and the 42.x documents.
+
 P9's integrated local playtest is at `/dev/physics` when running `npm run dev`.
 Try A character contact/crowd, B crates and C hook; use Reset to pin tuning and
 Download JSON to retain configuration/actions/frames for Import and rerun.
@@ -27,7 +29,7 @@ awake-body counts accompany every run. A failed admission is retained as a
 failure rather than silently reducing the requested population.
 
 Isolated research for #437 and #451. The game uses its separate production adapter
-in `shared/physics/`. Rapier is an exact production dependency; `npm ci` installs the pinned artifact.
+in `shared/physics/`. Rapier is compiled into the Rust core (`rust/core`, docs/27); `rust/Cargo.lock` pins it.
 The scenario/action contract is in [contract.md](contract.md). This is neither a
 production physics API nor permission to activate new gameplay rules.
 
@@ -35,34 +37,11 @@ Run from the repository root:
 
 ```powershell
 npm run test:physics
-npm run physics:report -- --mode=correctness --out=test-results/physics-correctness.json
-npm run physics:report -- --mode=node --out=test-results/physics-node.json
-npm run physics:report -- --mode=browser --out=test-results/physics-browser.json
-npm run physics:report -- --mode=correctness --browser --queries --out=test-results/physics-supplement.json
 ```
 
-On npm versions that reject forwarded `--mode` flags, use the direct equivalent:
-`node --expose-gc tools/physics/report.mjs --mode=all --queries --out=test-results/physics-451.json`.
-Focused cost repetitions: `node tools/physics/repeat-timing.mjs test-results/physics-451-repeats.json`.
-Optional visual QA (Python/matplotlib): `python tools/physics/plot-springs.py test-results/physics-451.json docs/reports/physics-451-springs.png`.
 The retained revised measurements and limitations are in [42.9](../../docs/42.9-physics-remediation.md).
 
 The physics test files also run in the normal fast tier through `tests/*.test.js`.
-
-`node` measures the full actor × prop × tether × sparse/clustered × substep
-matrix, plus separate sleeping populations. `browser` runs all correctness
-scenarios at 2/4/8 substeps, then the diagonal capacity envelope at four substeps
-in installed headless Chrome. `all` runs Node then Chrome. `--diagonal` reduces
-only Node timing coverage; it is recorded in the command. `--samples=N` and
-`--warmup=N` default to 100 and 20 ticks. Revised reports evaluate Rapier only;
-the custom solver was retired after P0
-([42.6](../../docs/42.6-physics-comparison.md)). Every invocation acquires the machine benchmark lock.
-
-With `correctness`, `--browser` adds Chrome correctness without the full timing
-matrix. `--queries` adds 18 populated query microbenchmarks per candidate/runtime:
-one 12.5 ms scene step, then 128 fixed paths with 96 aimed through initial body
-centres. Original timing-grid casts run along the northern fringe; use the
-supplement for populated-query evidence. Input hashes and hit counts are retained.
 
 Reports keep exact state SHA-256 hashes, repeated runs, checkpoint continuation,
 per-substep geometry diagnostics, native spring stability/settling traces,
@@ -72,14 +51,8 @@ results, not reasons to alter the witness. Unexpected exceptions are retained
 as `error` entries and must be inspected. Reports save after each timing cell.
 Generated reports in `test-results/` are scratch; durable evidence belongs in
 `docs/reports/` with a numbered interpretation. Large retained reports use
-lossless `.json.gz`; decompress them before passing a file to `--resume`.
-For example, read one in Node with
-`JSON.parse(gunzipSync(readFileSync(path)))` from `node:zlib` and `node:fs`.
-
-An interrupted Node sweep can resume with `--mode=node --resume=<saved.json>
---out=<saved.json>`. It refuses changed solver/witness/runner/lockfile hashes or
-different sample settings, records the restart and source manifest, warms the
-candidate again, and skips only saved cells with the same complete configuration.
+lossless `.json.gz`; decompress them before reading. For example, read one in
+Node with `JSON.parse(gunzipSync(readFileSync(path)))` from `node:zlib` and `node:fs`.
 
 Limits that constrain interpretation:
 
@@ -141,12 +114,6 @@ behavior. Contract and promotion questions are in [29.1](../../docs/29.1-physics
 
 ## Jelly and player compression prototype (#455)
 
-Run `npm run physics:jelly` and open `test-results/physics-jelly.html` directly
-in a browser. Select a witness, press Play, or seek through retained frames.
-The JSON export includes the initial scene, ordered actions, transforms,
-compression state and lab threshold events. Playback needs no server or solver.
-`node tools/physics/jelly-report.mjs <output.json>` chooses another output path.
-
 Four synthetic scenes show stretched-jelly recovery, wall loading, opposing
 player presses and a one-sided control. The player collider stays radius 12;
 visual compression never changes collision geometry. The discrete jelly nodes
@@ -154,9 +121,7 @@ collide, but the filled connecting artwork is not a continuous shell collider.
 The threshold signal causes no damage or death. Fixed-wall CCD contacts may have
 no reported impulse, so the force proxy is not ready for gameplay crushing.
 
-Checks: `node --test tests/physics-jelly.test.js tests/physics-lab-contacts.test.js`
-and `node tests/physics-jelly.browser.mjs`. Assumptions, evidence and open
-promotion choices are in [42.21](../../docs/42.21-jelly-squish.md).
+Assumptions, evidence and open promotion choices are in [42.21](../../docs/42.21-jelly-squish.md).
 
 ## Experimental P1 evidence (#438)
 

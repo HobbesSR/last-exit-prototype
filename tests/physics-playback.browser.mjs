@@ -39,7 +39,7 @@ try {
     }
     scene.update(performance.now(), 16);
     return { calls, actorX: scene.actors.get('self').container.x,
-      engineLoaded: performance.getEntriesByType('resource').some(entry => /rapier|physics-world/i.test(entry.name)) };
+      engineLoaded: performance.getEntriesByType('resource').some(entry => /physics\/world\.ts|physics-world/i.test(entry.name)) };
   });
   assert.ok(result.calls.some(([method, args]) => method === 'fillCircle' && args[0] === 550 && args[1] === 400), 'visible circle uses recorded pose');
   assert.ok(result.calls.some(([method, args]) => method === 'fillPoints' && args.length), 'rotated box uses recorded shape');

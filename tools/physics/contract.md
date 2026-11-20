@@ -1,5 +1,8 @@
 # P0 lab contract (not a production API)
 
+Retired with rapier.js in #1192: the runner and engine harness this describes are gone; it stays as the
+record of what the P0 evidence (42.6, 42.9) measured.
+
 All values are world units, seconds, radians and mass units. Tick is .05 s;
 the runner calls `step(.05/substeps)` 2/4/8 times and inspects every substep.
 No Node imports in adapters: the same module runs in Chrome.

@@ -115,7 +115,7 @@ Port order is stability order:
     no Rust-native test computes the sight digest; it is checked through the adapter only.
   - **How the game reaches it (Corey, 2026-11-18, #1175).** Loading and choosing are kept apart:
     - **Loading is per process.** `initCoreSight()` (`shared/sight-core.ts`) binds the process's one core once, as
-      `initRapier` loads Rapier. It decides nothing.
+      `initPhysics` (`shared/physics/world.ts`) binds it for physics. It decides nothing.
     - **Choosing is per game.** `createGame`, already async and already giving each game its physics world,
       awaits it and attaches it beside physics (`shared/simulation/sight-runtime.ts`). That is a side table, so
       snapshots and replays never carry it, and none of `createGame`'s callers supply it.
@@ -412,12 +412,34 @@ PR); the results follow each:
     features stay off. `f32` matches rapier.js.
   - **The version.** `rapier2d` 0.36.1 links `parry2d` 0.31.1 and `nalgebra` 0.35.0, the versions found in rapier.js
     0.21.0's module (21.1), so the engine is the same generation.
-  - **The probe.** Until the adapter replaces it, `physics::probe` (`physics_probe`) steps a small world using every
-    Rapier feature `world.ts` uses, so their code is in the module the audit reads.
   - **Its size.** The module grew from about 55 KB to about 1.95 MB (2.6 MB as base64), close to rapier.js's
-    2.4 MB, which the next step retires.
+    2.4 MB, which then retired.
 - **The licence record.** Rapier is Apache-2.0, compatible with the MIT licence, but as a crate it passes
   `cargo deny` and is recorded in [21.1](21.1-third-party-licenses.md#the-rust-workspace), with its dependencies.
   The npm package's record goes when the wrapper does.
   - **Done.** `cargo deny` passes. One crate, `foldhash`, is Zlib alone, a permissive notice licence, added to the
-    allow-list and recorded in 21.1. The core's WASM has its `components.json` entry.
+    allow-list and recorded in 21.1. The core's WASM has its `components.json` entry, and the npm package's record
+    retired with the package (#1192).
+
+**The adapter (#1192, adapter version 4).** `shared/physics/world.ts` keeps its queue-and-commit interface and
+everything that is not the engine; `rust/core/src/physics.rs` holds Rapier's sets. The tick stays in TypeScript.
+- **What crosses, and how often.** One call commits each body or constraint and one reads each pose, as rapier.js's
+  calls did. A step is one call: it runs all four substeps, with the motors, queued forces and impulses, bounded
+  constraints and speed caps the adapter used to apply between rapier.js calls. Its input is one flat buffer the
+  core owns (rows of dynamic bodies, forces, impulses and constraints), and its output is another: each dynamic
+  body's position before and after every substep, then the collision events, then the constraints that broke.
+- **Slots, not handles.** A body is a slot; a collider's user data is its slot, so events name slots, and the
+  adapter maps them to IDs. Removed colliders' late events find no slot and are dropped, as rapier.js's unmapped
+  handles were.
+- **The same arithmetic.** World units are divided by the scale in `f64` and rounded once to Rapier's `f32`, as
+  rapier.js's arguments were; results are widened before scaling. The motor, speed cap and bounded constraint use
+  the core's port of `shared/math.ts` (`hypot`, `sin`, `cos`), bit-equal to what the adapter called.
+- **The fixture did not move.** `behavior-physics-1.v8.gz` passed unchanged: the scripted snapshots and both bot
+  matches. The decided recapture (D8) was not needed. rapier.js 0.21.0 was built from the same parry2d and nalgebra.
+- **Client prediction** (`public/physics-prediction.js`) builds its worlds through the same adapter, so it runs
+  the same core as the server with no change of its own. The browser loads the core before its scene.
+- **Retired with rapier.js:** the P0 comparison lab's engine harness (`tools/physics/rapier.mjs`, its runner,
+  report, queries and lab prediction, and the jelly lab), which used rapier.js features the game never did
+  (snapshots, shape casts, native springs, contact impulses). Their evidence stays in `docs/reports` and the 42.x
+  documents.
+- **Cost:** [42.61](42.61-rapier-core-adapter.md).

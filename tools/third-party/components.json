@@ -20,7 +20,7 @@
         { "name": "RBush", "license": "MIT", "source": "https://github.com/mourner/rbush", "texts": ["tools/third-party/texts/rbush.txt"] },
         { "name": "Simplify.js", "license": "BSD-2-Clause", "source": "https://github.com/mourner/simplify-js", "texts": ["tools/third-party/texts/simplify-js.txt"] },
         { "name": "Median (RoboWhale)", "license": "MIT", "source": "node_modules/phaser/src/math/Median.js", "texts": ["tools/third-party/texts/robowhale-median.txt"] },
-        { "name": "AudioContext-MonkeyPatch", "license": "Apache-2.0", "source": "https://github.com/cwilso/AudioContext-MonkeyPatch", "texts": ["tools/third-party/texts/audiocontext-monkeypatch.txt"], "textRef": "Rapier 2D" },
+        { "name": "AudioContext-MonkeyPatch", "license": "Apache-2.0", "source": "https://github.com/cwilso/AudioContext-MonkeyPatch", "texts": ["tools/third-party/texts/audiocontext-monkeypatch.txt"], "textRef": "Rapier 2D (rapier2d crate) and its Rust dependencies, compiled into the core's WebAssembly" },
         { "name": "SVG path conversion (Gavin Kistner), in Matter.js", "license": "BSD-style (phrogz reuse licence)", "source": "http://phrogz.net/js/_ReuseLicense.txt", "texts": ["tools/third-party/texts/phrogz-reuse.txt"] },
         { "name": "topologicalSort from javascript-algorithms (Minko Gechev), in Matter.js", "license": "MIT", "source": "https://github.com/mgechev/javascript-algorithms", "texts": ["tools/third-party/texts/javascript-algorithms.txt"] }
       ]
@@ -47,19 +47,6 @@
       "delivery": "game",
       "served": "/vendor/sat/SAT.js, and /vendor/sat.mjs for the dev labs",
       "texts": ["node_modules/sat/LICENSE"]
-    },
-    {
-      "name": "Rapier 2D",
-      "package": "@dimforge/rapier2d-compat",
-      "version": "0.21.0",
-      "license": "Apache-2.0",
-      "source": "https://github.com/dimforge/rapier.js",
-      "delivery": "game",
-      "served": "/vendor/rapier/rapier.mjs (WebAssembly embedded as base64)",
-      "texts": ["node_modules/@dimforge/rapier2d-compat/LICENSE"],
-      "embeds": [
-        { "name": "Rust crates compiled into the WebAssembly: nalgebra 0.35.0 and parry2d 0.31.1 (Apache-2.0); arrayvec 0.7.8, dlmalloc 0.2.13, ena 0.14.4, glam 0.33.10, hashbrown 0.17.1, js-sys 0.3.106, once_cell 1.21.4, robust 1.2.0, smallvec 1.16.2, spade 2.15.1, web-time 1.1.0 and the Rust standard library (each MIT OR Apache-2.0, distributed here under Apache-2.0)", "license": "Apache-2.0", "source": "crate paths in rapier_wasm2d_bg.wasm; licences from crates.io (docs/21.1)", "textRef": "Rapier 2D" }
-      ]
     },
     {
       "name": "Rapier 2D (rapier2d crate) and its Rust dependencies, compiled into the core's WebAssembly",

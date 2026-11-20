@@ -8,7 +8,7 @@
  */
 
 /** The adapter contract this loader speaks: `ADAPTER_VERSION` in `rust/core/src/lib.rs`. */
-export const CORE_ADAPTER_VERSION = 3;
+export const CORE_ADAPTER_VERSION = 4;
 
 // The project's lib is ES2023 without the DOM, which is where TypeScript declares WebAssembly.
 // Both hosts have it; this names only what the loader uses.
@@ -52,7 +52,7 @@ let embedded: Promise<CoreExports> | undefined;
 
 /**
  * The process's one core: the module `tools/build-core.mjs` embeds, instantiated once and shared by
- * every caller, as `initRapier` shares Rapier. Node and the browser import it the same way, so neither
+ * every caller, as `initPhysics` shares it with physics. Node and the browser import it the same way, so neither
  * host supplies the bytes. It only loads; which sight a game uses is given to the game (`createGame`).
  */
 export function initCore(): Promise<CoreExports> {

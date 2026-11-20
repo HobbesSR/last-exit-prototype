@@ -11,7 +11,7 @@ import { PhysicsIdentities } from './physics-identities.ts';
 import { PHYSICS_VERSION } from './physics-runtime.ts';
 import { predictionConstants } from './physics-presentation.ts';
 import { wireIds, type WireIdKey, type WireIds } from './wire-ids.ts';
-import { initRapier, isRapierInitialized, PhysicsWorld } from '../physics/world.ts';
+import { initPhysics, isPhysicsInitialized, PhysicsWorld } from '../physics/world.ts';
 import type { PhysicsBodyView } from '../physics/types.ts';
 import type { GameMap, Kit, Player, PlayerId, PlayerIdx, PlayerInput, Role, Tick } from '../types.ts';
 
@@ -90,11 +90,11 @@ export function createWaiting(map: WaitingMap, { wireKey = null }: { wireKey?: W
     for (const p of w.players) syncActorBody(w, p);
   };
 
-  if (isRapierInitialized()) {
+  if (isPhysicsInitialized()) {
     initWorld();
     w.ready = Promise.resolve();
   } else {
-    w.ready = initRapier().then(initWorld);
+    w.ready = initPhysics().then(initWorld);
   }
 
   return w;

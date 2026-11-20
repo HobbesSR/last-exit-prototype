@@ -297,9 +297,9 @@ const files = ['tools/physics/prediction-network.mjs', 'tests/physics-prediction
   'shared/physics/world.ts', 'shared/physics/motion-limits.ts', 'shared/simulation/game.ts', 'shared/simulation/tick.ts',
   'shared/simulation/visibility.ts', 'shared/simulation/input.ts', 'shared/input-clock.ts', 'shared/simulation/actor-physics.ts',
   'shared/simulation/content.ts', 'package-lock.json',
-  'node_modules/@dimforge/rapier2d-compat/dist/rapier_wasm2d_bg.wasm'];
+  'rust/core/src/physics.rs', 'rust/Cargo.lock'];
 const hashes = Object.fromEntries(files.map(file => [file, createHash('sha256').update(readFileSync(file)).digest('hex')]));
-const packageVersion = JSON.parse(readFileSync('node_modules/@dimforge/rapier2d-compat/package.json', 'utf8')).version;
+const packageVersion = (/name = "rapier2d"\r?\nversion = "([^"]+)"/.exec(readFileSync('rust/Cargo.lock', 'utf8'))?.[1]);
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const dirtySources = execFileSync('git', ['status', '--short', '--', ...files.filter(file => !file.startsWith('node_modules/'))], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
 const results = [];
