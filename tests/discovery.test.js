@@ -26,7 +26,7 @@ import {
 } from '../shared/discovery.ts';
 import { readServerMessage } from '../shared/wire-schema.ts';
 import { roofAt } from '../shared/view.ts';
-import { initCoreSight } from '../shared/sight-core.ts';
+import { coreSight, initCoreSight } from '../shared/sight-core.ts';
 
 // Bots observe through the core's sight, as a game's do (sightOf).
 const sight = await initCoreSight();
@@ -462,4 +462,22 @@ test('the core reads roofs as roofAt does', () => {
     assert.equal(sight.roofIdAt(map, discoveryTables, x, y), expected, `roof at ${x}, ${y}`);
   }
   assert.ok(roofed > 1000, `points under roofs: ${roofed}`);
+});
+
+// Resizing a sample's input may grow WASM memory and detach the old buffer, so the adapter must make its view
+// after the call (review 964 on PR #1221). A stub core grows memory inside `discovery_input`.
+test('a sample whose input grows the core memory still packs it', () => {
+  const memory = new WebAssembly.Memory({ initial: 1 });
+  let heap = 64;
+  const alloc = bytes => { const at = heap; heap += (bytes + 7) & ~7; return at; };
+  const stub = {
+    memory, adapter_version: () => 5, core_alloc: alloc, core_free() {},
+    discovery_map_new: () => 8, discovery_map_free() {},
+    discovery_input: (_map, len) => { memory.grow(1); return alloc(len * 8); },
+    // Every list empty: no polygon, no cells.
+    discovery_sample: () => { const at = alloc(20); new Uint32Array(memory.buffer, at, 5).fill(0); return at; },
+  };
+  const map = { width: 960, height: 960, playableArea: openArea(960, 960, 120), obstacles: [], gates: [], buildings: [] };
+  const memo = createDiscovery();
+  assert.deepEqual(discover(coreSight(stub), memo, map, { x: 100, y: 100 }), []);
 });

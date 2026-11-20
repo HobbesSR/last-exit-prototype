@@ -148,7 +148,9 @@ export function coreSight(core: CoreExports): CoreSight {
     sampleDiscovery(map, tables, lineOfSight, words, fill) {
       const handle = discoveryMapFor(map, tables);
       const index = lineOfSight ? indexFor(map) : 0, gates = lineOfSight ? openGates(map) : 0;
-      fill(new Float64Array(core.memory.buffer, core.discovery_input(handle, words) >>> 0, words));
+      // Resizing the input may grow the memory, so the view is made from the buffer after the call.
+      const input = core.discovery_input(handle, words) >>> 0;
+      fill(new Float64Array(core.memory.buffer, input, words));
       const out = core.discovery_sample(handle, index, gates) >>> 0;
       // The output's length follows from its own counts, so the view runs to the end of memory.
       return new Uint32Array(core.memory.buffer, out, (core.memory.buffer.byteLength - out) >>> 2);
