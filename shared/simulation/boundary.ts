@@ -268,7 +268,9 @@ function admitChunk(s: Game, r: PhysicsRuntime, markTick: number, launches: read
  */
 export function admitPending(s: Game, r: PhysicsRuntime): void {
   const impulses = r.pendingImpulses.splice(0);
-  const attachments = r.pendingAttachments.splice(0).sort((a, b) => compare(a.id, b.id));
+  // Read, not drained: as before, the attachment queue empties only once every admitted impulse has queued, so an
+  // impulse the world refuses leaves the attachments pending (review 975).
+  const attachments = [...r.pendingAttachments].sort((a, b) => compare(a.id, b.id));
   if (!impulses.length && !attachments.length) return;
   const world = r.world;
   const keyOf = (id: string) => world.hasBody(id) ? world.key(id) : -1;
@@ -285,6 +287,7 @@ export function admitPending(s: Game, r: PhysicsRuntime): void {
   core.physics_admit_pending(native, index, gates);
   const pass = Array.from(output(core, native).subarray(OUT_HEADER), flag => flag === 1);
   impulses.forEach((impulse, i) => { if (pass[i]) world.queueImpulse(impulse.id, impulse.value); });
+  r.pendingAttachments.splice(0);
   attachments.forEach((attachment: PendingAttachment, i) => { if (pass[impulses.length + i]) world.queueAddConstraint(attachment); });
 }
 

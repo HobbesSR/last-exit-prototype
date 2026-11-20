@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { disposePhysics, enqueuePhysicsAttachment, step, synchronizePhysics } from '../shared/simulation.ts';
+import { disposePhysics, enqueuePhysicsAttachment, enqueuePhysicsImpulse, step, synchronizePhysics } from '../shared/simulation.ts';
 import { canOccupy } from '../shared/movement.ts';
 import { cos, hypot, sin } from '../shared/math.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
@@ -167,4 +167,21 @@ test('an attachment is admitted in the clear and refused through a wall', async 
       assert.equal(r.world.hasConstraint('tether'), !wall, wall ? 'through a wall' : 'in the clear');
     } finally { disposePhysics(s); }
   }
+});
+
+test('an impulse the world refuses leaves the attachments pending, and the retry admits them (review 975)', async () => {
+  const { s, players: [a, b] } = await field({ obstacles: [{ id: 'wall', x: 300, y: 100, w: 20, h: 80 }], crates: false });
+  try {
+    const r = physicsRuntime(s);
+    a.x = 400; a.y = 400; b.x = 600; b.y = 400;
+    synchronizePhysics(s);
+    // A static body has a generation, so the impulse is accepted, then refused when it is queued in phase 1.
+    enqueuePhysicsImpulse(s, 'obstacle:wall', { x: 1, y: 0 });
+    enqueuePhysicsAttachment(s, { id: 'tether', a: 'actor:c0', b: 'actor:c1', maxDistance: 400 });
+    assert.throws(() => step(s), /unknown dynamic physics body obstacle:wall/);
+    assert.equal(r.pendingAttachments.length, 1, 'the attachment waits, as it did before the core');
+    assert.equal(r.pendingImpulses.length, 0);
+    step(s);
+    assert.equal(r.world.hasConstraint('tether'), true);
+  } finally { disposePhysics(s); }
 });

@@ -58,6 +58,100 @@ pub const OP_GATE: f64 = 8.0;
 /// `key, added, reference`: the runtime's item set; an added item leaves the admission order.
 pub const OP_ITEM: f64 = 9.0;
 
+/// A log entry, encoded by `Entry::encode` alone, so each kind's words and their count live in one
+/// place. The codes and layouts are the `OP_*` constants above, which `shared/simulation/boundary.ts`
+/// reads.
+enum Entry {
+    Queued {
+        key: Key,
+        template: f64,
+        reference: f64,
+        pose: [f64; 4],
+    },
+    Commit {
+        code: i32,
+    },
+    Transform {
+        key: Key,
+    },
+    Mark {
+        kind: f64,
+        key: Key,
+        generation: f64,
+    },
+    Actor {
+        key: Key,
+        added: bool,
+    },
+    Pose {
+        player: f64,
+        x: f64,
+        y: f64,
+    },
+    Retry {
+        player: f64,
+        respawn_at: f64,
+    },
+    Gate {
+        index: f64,
+        pushed: f64,
+        forced: bool,
+    },
+    Item {
+        key: Key,
+        added: bool,
+        reference: f64,
+    },
+}
+
+impl Entry {
+    /// Appends the entry's words. A commit's facts follow it, from the world's output.
+    fn encode(&self, out: &mut Vec<f64>) {
+        let flag = |b: bool| f64::from(u8::from(b));
+        match *self {
+            Entry::Queued {
+                key,
+                template,
+                reference,
+                pose: [x, y, vx, vy],
+            } => out.extend_from_slice(&[
+                OP_QUEUED,
+                f64::from(key),
+                template,
+                reference,
+                x,
+                y,
+                vx,
+                vy,
+            ]),
+            Entry::Commit { code } => out.extend_from_slice(&[OP_COMMIT, f64::from(code)]),
+            Entry::Transform { key } => out.extend_from_slice(&[OP_TRANSFORM, f64::from(key)]),
+            Entry::Mark {
+                kind,
+                key,
+                generation,
+            } => out.extend_from_slice(&[OP_MARK, kind, f64::from(key), generation]),
+            Entry::Actor { key, added } => {
+                out.extend_from_slice(&[OP_ACTOR, f64::from(key), flag(added)])
+            }
+            Entry::Pose { player, x, y } => out.extend_from_slice(&[OP_POSE, player, x, y]),
+            Entry::Retry { player, respawn_at } => {
+                out.extend_from_slice(&[OP_RETRY, player, respawn_at])
+            }
+            Entry::Gate {
+                index,
+                pushed,
+                forced,
+            } => out.extend_from_slice(&[OP_GATE, index, pushed, flag(forced)]),
+            Entry::Item {
+                key,
+                added,
+                reference,
+            } => out.extend_from_slice(&[OP_ITEM, f64::from(key), flag(added), reference]),
+        }
+    }
+}
+
 pub const MARK_PLACED: f64 = 0.0;
 pub const MARK_REMOVED: f64 = 1.0;
 
@@ -125,7 +219,12 @@ struct Log {
 }
 
 impl Log {
-    fn push(&mut self, words: &[f64]) {
+    fn entry(&mut self, entry: Entry) {
+        entry.encode(&mut self.out);
+    }
+
+    /// A call's answer words, for the calls that return answers rather than a log.
+    fn answer(&mut self, words: &[f64]) {
         self.out.extend_from_slice(words);
     }
 
@@ -138,7 +237,11 @@ impl Log {
             }
             self.markers.push(key);
         }
-        self.push(&[OP_MARK, kind, f64::from(key), generation]);
+        self.entry(Entry::Mark {
+            kind,
+            key,
+            generation,
+        });
         Ok(())
     }
 
@@ -146,7 +249,7 @@ impl Log {
     fn commit(&mut self, world: &mut World) -> Result<(), Refusal> {
         let code = world.commit();
         let facts = world.output();
-        self.out.extend_from_slice(&[OP_COMMIT, f64::from(code)]);
+        Entry::Commit { code }.encode(&mut self.out);
         self.out.extend_from_slice(facts);
         if code < 0 { Err(refused(code)) } else { Ok(()) }
     }
@@ -197,7 +300,12 @@ impl Log {
         if code < 0 {
             return Err((code, f64::from(key), -1.0));
         }
-        self.push(&[OP_QUEUED, f64::from(key), kind, reference, x, y, vx, vy]);
+        self.entry(Entry::Queued {
+            key,
+            template: kind,
+            reference,
+            pose: [x, y, vx, vy],
+        });
         Ok(())
     }
 }
@@ -273,7 +381,7 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
             }
             log.mark(world, MARK_REMOVED, key)?;
             log.remove(world, key)?;
-            log.push(&[OP_ACTOR, f64::from(key), 0.0]);
+            log.entry(Entry::Actor { key, added: false });
             live.retain(|&k| k != key);
         }
         log.commit(world)?;
@@ -306,20 +414,31 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
                 if let Some((cx, cy)) = current {
                     input[row + 3] = cx;
                     input[row + 4] = cy;
-                    log.push(&[OP_POSE, player, cx, cy]);
+                    log.entry(Entry::Pose {
+                        player,
+                        x: cx,
+                        y: cy,
+                    });
                     admitted.push(row);
                     continue;
                 }
                 // A gladiator's respawn retries at a later boundary; an initial contestant is refused.
                 if gladiator && tick > 0.0 {
-                    log.push(&[OP_RETRY, player, tick + 1.0]);
+                    log.entry(Entry::Retry {
+                        player,
+                        respawn_at: tick + 1.0,
+                    });
                     continue;
                 }
                 return Err((E_NO_PLACEMENT, f64::from(key), player));
             };
             input[row + 3] = px;
             input[row + 4] = py;
-            log.push(&[OP_POSE, player, px, py]);
+            log.entry(Entry::Pose {
+                player,
+                x: px,
+                y: py,
+            });
             if current.is_some() {
                 if !representable(px) || !representable(py) {
                     return Err(refused(E_UNREPRESENTABLE));
@@ -328,7 +447,7 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
                 if code < 0 {
                     return Err((code, f64::from(key), -1.0));
                 }
-                log.push(&[OP_TRANSFORM, f64::from(key)]);
+                log.entry(Entry::Transform { key });
             } else {
                 let kind = if gladiator {
                     TEMPLATE_GLADIATOR
@@ -343,7 +462,7 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
                     player,
                     [px, py, 0.0, 0.0],
                 )?;
-                log.push(&[OP_ACTOR, f64::from(key), 1.0]);
+                log.entry(Entry::Actor { key, added: true });
                 live.push(key);
                 log.commit(world)?;
             }
@@ -365,7 +484,11 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
             {
                 // Closing is refused while an actor or a solid prop is in the way; the gate stays open.
                 gates.open[index as usize] = 1;
-                log.push(&[OP_GATE, index, 1.0, 1.0]);
+                log.entry(Entry::Gate {
+                    index,
+                    pushed: 1.0,
+                    forced: true,
+                });
                 continue;
             }
             if pushed == 2.0 {
@@ -382,7 +505,11 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
                     [row[6], row[7], 0.0, 0.0],
                 )?;
             }
-            log.push(&[OP_GATE, index, if open { 1.0 } else { 2.0 }, 0.0]);
+            log.entry(Entry::Gate {
+                index,
+                pushed: if open { 1.0 } else { 2.0 },
+                forced: false,
+            });
             log.commit(world)?;
         }
         // The item bodies whose items are no longer on the ground leave, in ID order.
@@ -399,7 +526,11 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
             }
             log.mark(world, MARK_REMOVED, key)?;
             log.remove(world, key)?;
-            log.push(&[OP_ITEM, f64::from(key), 0.0, -1.0]);
+            log.entry(Entry::Item {
+                key,
+                added: false,
+                reference: -1.0,
+            });
         }
         log.commit(world)?;
         // With no launched item and no room beyond the reserves, nothing can be admitted.
@@ -461,7 +592,11 @@ pub fn synchronize_items(world: &mut World, map: &mut CollisionMap, gates: &mut 
             };
             log.queue(world, &template, TEMPLATE_LOOT, key, row[1], [x, y, vx, vy])?;
             items.push(key);
-            log.push(&[OP_ITEM, f64::from(key), 1.0, row[1]]);
+            log.entry(Entry::Item {
+                key,
+                added: true,
+                reference: row[1],
+            });
             log.commit(world)?;
             log.mark(world, MARK_PLACED, key)
         };
@@ -499,7 +634,7 @@ pub fn admit_pending(world: &mut World, index: &SightIndex, gates: &GateSet) {
             let pass = key >= 0.0
                 && world.has_body(key as Key)
                 && world.generation(key as Key) == generation;
-            log.push(&[f64::from(u8::from(pass))]);
+            log.answer(&[f64::from(u8::from(pass))]);
         }
         let base = 2 + 2 * impulses;
         for i in 0..attachments {
@@ -523,7 +658,7 @@ pub fn admit_pending(world: &mut World, index: &SightIndex, gates: &GateSet) {
                 }
                 _ => false,
             };
-            log.push(&[f64::from(u8::from(pass))]);
+            log.answer(&[f64::from(u8::from(pass))]);
         }
         Ok(())
     });
@@ -537,8 +672,8 @@ pub fn place(world: &mut World, map: &mut CollisionMap, gates: &mut GateSet) {
         let (radius, origin, count) = (input[0], (input[1], input[2]), input[3] as usize);
         let disks: Vec<Disk> = input[4..4 + count * 3].as_chunks::<3>().0.to_vec();
         match placement(world, map, gates, radius, origin, &disks) {
-            Some((x, y)) => log.push(&[1.0, x, y]),
-            None => log.push(&[0.0, 0.0, 0.0]),
+            Some((x, y)) => log.answer(&[1.0, x, y]),
+            None => log.answer(&[0.0, 0.0, 0.0]),
         }
         Ok(())
     });

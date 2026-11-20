@@ -390,7 +390,10 @@ and landing itself, in one call a tick.
   large map has thousands; a tick with no room packs none, as the TypeScript skipped ordering them.
 - **The admission decides; JavaScript queues.** The core checks each pending impulse's and attachment's generations,
   transforms, reach and `reachClear`. The admitted are queued through `world.ts`, which keeps their specs. With
-  nothing pending there is no call.
+  nothing pending there is no call. The attachment queue is drained only after every admitted impulse has queued, as
+  before, so an impulse the world refuses leaves the attachments pending (review 975).
+- **The log's entries are typed in Rust** (`Entry`, with one encoder), so each kind's words are written in one place;
+  the flat layout JavaScript reads is unchanged.
 - **Handles are passed in.** Each call takes the collision map, sight index and gate set (`queryHandles` in
   `shared/sight-core.ts`) and writes the open mask once. Phase 1 writes it only when a player is respawning or in
   transit, and the admission only when an attachment is pending. `createGame` builds the three uploads with the map
