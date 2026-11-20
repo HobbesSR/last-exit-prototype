@@ -12,7 +12,7 @@
 //! sorts, the same floating-point expressions, and the crate's own `atan2`/`cos`/`sin`. Keep it so;
 //! a moved digest is a gameplay change (docs/31).
 
-use crate::math::{atan2, cos, sin};
+use crate::math::{atan2, cos, js_max, js_min, sin};
 use core::f64::consts::PI;
 
 /// Cell side, in world units: `BUCKET` in `shared/buckets.ts`.
@@ -23,28 +23,6 @@ const SEAM: f64 = PI + 1e-4;
 
 /// One edge as `[ax, ay, bx, by]`.
 type Edge = [f64; 4];
-
-/// JavaScript's `Math.min`: NaN if either is, and -0 below +0.
-pub(crate) fn js_min(a: f64, b: f64) -> f64 {
-    if a.is_nan() || b.is_nan() {
-        f64::NAN
-    } else if a < b || (a == b && a.is_sign_negative()) {
-        a
-    } else {
-        b
-    }
-}
-
-/// JavaScript's `Math.max`: NaN if either is, and +0 above -0.
-pub(crate) fn js_max(a: f64, b: f64) -> f64 {
-    if a.is_nan() || b.is_nan() {
-        f64::NAN
-    } else if a > b || (a == b && a.is_sign_positive()) {
-        a
-    } else {
-        b
-    }
-}
 
 /// A bucket grid in compressed rows: the cells from (`col0`, `row0`), `cols` by `rows`, column
 /// outer, each listing its entries in the order the TypeScript buckets hold them.
@@ -471,11 +449,5 @@ mod tests {
             .find(|p| p[2] == -PI)
             .unwrap()[3];
         assert_eq!(west, 50.0);
-    }
-
-    #[test]
-    fn js_min_and_max_order_signed_zeros() {
-        assert!(js_min(0.0, -0.0).is_sign_negative() && js_max(-0.0, 0.0).is_sign_positive());
-        assert!(js_min(f64::NAN, 1.0).is_nan());
     }
 }

@@ -17,8 +17,8 @@
 //! It follows the TypeScript operation for operation: the same visiting order, the same
 //! floating-point expressions, and the crate's `atan2` and `hypot`. The fixture holds it there.
 
-use crate::math::{atan2, hypot};
-use crate::sight::{self, GateSet, SightIndex, js_max, js_min};
+use crate::math::{atan2, hypot, js_max, js_min};
+use crate::sight::{self, GateSet, SightIndex};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// The bucket side of the roof index: `ROOF_BUCKET` in `shared/view.ts`.

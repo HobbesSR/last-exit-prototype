@@ -309,7 +309,8 @@ and the effects' lives, then per player in roster order runs respawn, transit ar
   are allocated only in phases 3 and 6 (`item-instances.ts`, the drop planner and pickups), so they move into the core
   with those phases (#1213).
 - **Cost:** [42.63](42.63-phase-one-core-adapter.md). About 1.8 µs a tick: over 42.58's relative budget, because the
-  rules are tiny, and about 0.06% of the tick. The flip (#1214) removes the packing.
+  rules are tiny, and about 0.06% of the tick. It is accepted under
+  [42.58's state-flip exception](42.58-sight-core-adapter.md#the-budget), which ends with the flip (#1214).
 
 ## One math library on both sides
 

@@ -307,6 +307,46 @@ pub fn hypot(x: f64, y: f64) -> f64 {
     (a * a + b * b).sqrt() * max
 }
 
+// JavaScript's `Math` where Rust's differs, for ports that must match the TypeScript bit for bit
+// (sight, discovery, tick phase 1).
+
+/// JavaScript's `Math.min`: NaN if either is, and -0 below +0.
+pub fn js_min(a: f64, b: f64) -> f64 {
+    if a.is_nan() || b.is_nan() {
+        f64::NAN
+    } else if a < b || (a == b && a.is_sign_negative()) {
+        a
+    } else {
+        b
+    }
+}
+
+/// JavaScript's `Math.max`: NaN if either is, and +0 above -0.
+pub fn js_max(a: f64, b: f64) -> f64 {
+    if a.is_nan() || b.is_nan() {
+        f64::NAN
+    } else if a > b || (a == b && a.is_sign_positive()) {
+        a
+    } else {
+        b
+    }
+}
+
+/// JavaScript's `Math.round`: halves round up, and a negative input that rounds to zero keeps its
+/// sign.
+pub fn js_round(x: f64) -> f64 {
+    if !x.is_finite() {
+        return x;
+    }
+    let floor = x.floor();
+    let rounded = if x - floor >= 0.5 { floor + 1.0 } else { floor };
+    if rounded == 0.0 && x.is_sign_negative() {
+        -0.0
+    } else {
+        rounded
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -414,5 +454,24 @@ mod tests {
         assert!(atan2(-0.0, 0.0).to_bits() == (-0.0f64).to_bits());
         assert_eq!(atan2(0.0, -0.0), PI);
         assert_eq!(atan2(-0.0, -0.0), -PI);
+    }
+
+    #[test]
+    fn js_min_and_max_order_signed_zeros() {
+        assert!(js_min(0.0, -0.0).is_sign_negative() && js_max(-0.0, 0.0).is_sign_positive());
+        assert!(js_min(f64::NAN, 1.0).is_nan());
+        assert!(
+            js_max(0.0, f64::NAN).is_nan(),
+            "Math.max(0, NaN) is NaN, where f64::max drops it"
+        );
+    }
+
+    #[test]
+    fn js_round_keeps_negative_zero_and_rounds_halves_up() {
+        assert_eq!(js_round(2.5), 3.0);
+        assert_eq!(js_round(-2.5), -2.0);
+        assert!(js_round(-0.3).is_sign_negative());
+        assert!(js_round(-0.5).is_sign_negative());
+        assert!(js_round(0.3).is_sign_positive());
     }
 }

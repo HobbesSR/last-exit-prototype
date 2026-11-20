@@ -17,7 +17,7 @@
 //! from that player. Both are rare, so a normal tick is one call. The landing reads the players
 //! before it in roster order as they now stand, which is why the run stops rather than asking ahead.
 
-use crate::math::hypot;
+use crate::math::{hypot, js_max, js_round};
 
 /// Header words of the input. The run writes `tick`, `hazard_x` and `serial` back in place.
 pub const HEADER: usize = 18;
@@ -88,25 +88,6 @@ pub struct PhaseOne {
     output: Vec<f64>,
 }
 
-/// `Math.max(0, x)`: NaN stays NaN, where `f64::max` would drop it.
-fn at_least_zero(x: f64) -> f64 {
-    if x.is_nan() || x > 0.0 { x } else { 0.0 }
-}
-
-/// `Math.round`: halves round up, and a negative input that rounds to zero keeps its sign.
-pub fn js_round(x: f64) -> f64 {
-    if !x.is_finite() {
-        return x;
-    }
-    let floor = x.floor();
-    let rounded = if x - floor >= 0.5 { floor + 1.0 } else { floor };
-    if rounded == 0.0 && x.is_sign_negative() {
-        -0.0
-    } else {
-        rounded
-    }
-}
-
 impl PhaseOne {
     /// The input buffer, resized to `len` words. Its layout:
     /// - the header (`HEADER` words): `tick, hazardGraceTicks, durationTicks, map width, hazardX, serial`,
@@ -142,8 +123,7 @@ impl PhaseOne {
             input[TICK] += 1.0;
             let (tick, grace, duration) = (input[TICK], input[GRACE], input[DURATION]);
             input[HAZARD_X] = js_round(
-                -80.0
-                    + at_least_zero(tick - grace) / (duration - grace) * (input[MAP_WIDTH] + 100.0),
+                -80.0 + js_max(0.0, tick - grace) / (duration - grace) * (input[MAP_WIDTH] + 100.0),
             );
             for life in &mut input[HEADER..station_base] {
                 *life -= 1.0;
@@ -192,7 +172,7 @@ impl PhaseOne {
             }
             if input[row + STATUS] == ACTIVE {
                 for timer in &mut input[row + TIMERS..row + TIMERS + TIMER_COUNT] {
-                    *timer = at_least_zero(*timer - 1.0);
+                    *timer = js_max(0.0, *timer - 1.0);
                 }
             }
         }
@@ -292,15 +272,6 @@ mod tests {
         let t = HEADER + 2 + TIMERS;
         assert_eq!(input[t..t + 4], [2.0, 0.0, 0.0, 1.0]);
         assert!(input[t + 4].is_nan(), "Math.max(0, NaN) is NaN");
-    }
-
-    #[test]
-    fn math_round_keeps_negative_zero_and_rounds_halves_up() {
-        assert_eq!(js_round(2.5), 3.0);
-        assert_eq!(js_round(-2.5), -2.0);
-        assert!(js_round(-0.3).is_sign_negative());
-        assert!(js_round(-0.5).is_sign_negative());
-        assert!(js_round(0.3).is_sign_positive());
     }
 
     #[test]

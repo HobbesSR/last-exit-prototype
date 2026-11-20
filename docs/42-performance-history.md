@@ -27,7 +27,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.60](42.60-whole-fast-frames.md) | A live player's whole fast frame on each generated size (#1095): whole and delta sizes over full bot matches against the edge's 1,100-byte fragment |
 | [42.61](42.61-rapier-core-adapter.md) | Rapier compiled into the Rust core behind the batched adapter against rapier.js: the physics step about halved, the whole tick unchanged within noise (#1192) |
 | [42.62](42.62-discovery-core-adapter.md) | Discovery in the Rust core, packed and unpacked per sample: about 14% cheaper, its crossing about 2% of the TypeScript's cost against 42.58's 10% budget (#1210) |
-| [42.63](42.63-phase-one-core-adapter.md) | Tick phase 1's rules in the Rust core, packed per tick: about 1.8 µs a tick, over 42.58's relative budget because the rules are tiny, and about 0.06% of the tick; the flip (#1214) removes the packing (#1212) |
+| [42.63](42.63-phase-one-core-adapter.md) | Tick phase 1's rules in the Rust core, packed per tick: about 1.8 µs a tick, over 42.58's relative budget because the rules are tiny, and about 0.06% of the tick, accepted under 42.58's state-flip exception, which ends with the flip (#1214) (#1212) |
 
 ### Navigation
 
