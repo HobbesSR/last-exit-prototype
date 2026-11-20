@@ -8,7 +8,7 @@
  */
 
 /** The adapter contract this loader speaks: `ADAPTER_VERSION` in `rust/core/src/lib.rs`. */
-export const CORE_ADAPTER_VERSION = 8;
+export const CORE_ADAPTER_VERSION = 9;
 
 // The project's lib is ES2023 without the DOM, which is where TypeScript declares WebAssembly.
 // Both hosts have it; this names only what the loader uses.
@@ -24,11 +24,12 @@ export interface CoreExports {
   core_alloc(bytes: number): number;
   core_free(pointer: number, bytes: number): void;
   // Sight casting (`rust/core/src/sight.rs`), driven by `shared/sight-core.ts`.
-  sight_index_new(segments: number, segmentCount: number, grid: number, gridLength: number): number;
+  sight_index_new(segments: number, segmentCount: number, grid: number, gridLength: number,
+    through: number, throughCount: number, throughOffsets: number, obstacleCount: number, throughGrid: number, throughGridLength: number): number;
   sight_index_free(index: number): void;
   sight_index_points(index: number): number;
   sight_index_tests(index: number): number;
-  gate_set_new(edges: number, edgeCount: number, offsets: number, gateCount: number, grid: number, gridLength: number): number;
+  gate_set_new(edges: number, edgeCount: number, offsets: number, gateCount: number, boxes: number, grid: number, gridLength: number): number;
   gate_set_free(gates: number): void;
   gate_set_open(gates: number): number;
   visibility_polygon(index: number, gates: number, x: number, y: number, radius: number): number;
@@ -40,6 +41,18 @@ export interface CoreExports {
   discovery_sample(map: number, index: number, gates: number): number;
   /** `roofAt`'s interned id at a point, or -1: for `tests/discovery-core.test.js`'s parity check with `shared/view.ts`. */
   discovery_roof_at(map: number, x: number, y: number): number;
+  // Collision (`rust/core/src/collision.rs`, #1233), through `shared/sight-core.ts`, with sight's index and gate set.
+  collision_map_new(constants: number, occupied: number, cellCount: number, colliders: number, colliderWords: number,
+    offsets: number, colliderCount: number, grid: number, gridLength: number): number;
+  collision_map_free(map: number): void;
+  /** 1 when clear; `flags` bit 1 ignores gates, bit 2 is a projectile's test. */
+  can_occupy(map: number, gates: number, x: number, y: number, radius: number, flags: number): number;
+  /** `lineClear` and `reachClear`: the ray-edge tests made, doubled, plus 1 when clear. */
+  line_clear(index: number, gates: number, ax: number, ay: number, bx: number, by: number): number;
+  reach_clear(index: number, gates: number, ax: number, ay: number, bx: number, by: number): number;
+  /** For the parity check with `shared/playable-area.ts` and `shared/shape-queries.ts` only. */
+  collision_inside(map: number, x: number, y: number, radius: number): number;
+  collision_depth(map: number, collider: number, x: number, y: number, radius: number): number;
 }
 
 /**

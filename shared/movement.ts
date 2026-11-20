@@ -5,9 +5,9 @@ import { diskPenetration, prepare, segmentShapeDistance, type Prepared } from '.
 import type { Bounded, Shape } from './shape.ts';
 import type { Box, CollisionMap, Obstacle, Player, PlayerInput, Vec2, World } from './types.ts';
 import { hypot } from './math.ts';
-import { BUCKET, bucketBox, cellsAlong } from './buckets.ts';
+import { BUCKET, bucketBox, cellsAlong, flatGrid } from './buckets.ts';
 import { gateIndex, gateShape, gatesNear } from './gate-index.ts';
-import { insideMap, occupiedCell, playableAreaOf } from './playable-area.ts';
+import { insideMap, occupiedCell, playableAreaOf, playableCells } from './playable-area.ts';
 import { obstacleCache, PREPARATION_CHUNK } from './obstacle-cache.ts';
 import { seeThrough } from './sight.ts';
 
@@ -59,6 +59,31 @@ function nearbyShapes(map: CollisionMap, x: World, y: World, radius: World): Set
     for (let by = Math.floor((y - radius) / BUCKET); by <= Math.floor((y + radius) / BUCKET); by++)
       for (const shape of buckets.get(`${bx},${by}`) || []) found.add(shape);
   return found;
+}
+/**
+ * The map's collision data as flat arrays for the Rust core (`rust/core/src/collision.rs`, #1233), which
+ * answers `canOccupy` from them: `width, height, cellSize, cols, rows` and the playable cells; then each
+ * collider as `kind` (0 rect, 1 circle, 2 polygon), `seeThrough`, its bounds `x, y, w, h` and its shape's
+ * `x, y` with `r`, `w, h` or `n` and `n` points; with offsets per collider and the colliders' cells.
+ */
+export function collisionTables(map: CollisionMap): { constants: Float64Array; occupied: Uint8Array; colliders: Float64Array; offsets: Uint32Array; grid: Int32Array } {
+  const { cellSize, cols, rows, occupied } = playableCells(map), { shapes, buckets } = colliderIndex.get(map);
+  const offsets = new Uint32Array(shapes.length + 1), at = new Map<Collider, number>();
+  shapes.forEach(({ shape }, i) => { offsets[i + 1] = offsets[i] + 8 + (shape.kind === 'rect' ? 2 : shape.kind === 'circle' ? 1 : 1 + 2 * shape.points.length); });
+  const words = new Float64Array(offsets[shapes.length]);
+  shapes.forEach((c, i) => {
+    at.set(c, i);
+    const { shape, box } = c;
+    let w = offsets[i];
+    words[w++] = shape.kind === 'rect' ? 0 : shape.kind === 'circle' ? 1 : 2;
+    words[w++] = seeThrough(c.kind) ? 1 : 0;
+    words[w++] = box.x; words[w++] = box.y; words[w++] = box.w; words[w++] = box.h; words[w++] = shape.x; words[w++] = shape.y;
+    if (shape.kind === 'rect') { words[w++] = shape.w; words[w] = shape.h; }
+    else if (shape.kind === 'circle') words[w] = shape.r;
+    else { words[w++] = shape.points.length; for (const p of shape.points) { words[w++] = p.x; words[w++] = p.y; } }
+  });
+  const grid = flatGrid(new Map([...buckets].map(([key, list]) => [key, list.map(c => at.get(c)!)])));
+  return { constants: Float64Array.of(map.width, map.height, cellSize, cols, rows), occupied, colliders: words, offsets, grid };
 }
 function voidCellsNear(map: CollisionMap, x: number, y: number, reach: number): Box[] {
   const area = map.playableArea!;

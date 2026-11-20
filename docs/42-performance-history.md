@@ -30,6 +30,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.63](42.63-phase-one-core-adapter.md) | Tick phase 1's rules in the Rust core, packed per tick: about 1.8 µs a tick, over 42.58's relative budget because the rules are tiny, and about 0.06% of the tick, accepted under 42.58's state-flip exception, which ends with the flip (#1214) (#1212) |
 | [42.64](42.64-phase-four-glue-core.md) | Phase 4's glue in the Rust core: floor drag over the core's own props and the pose write-back from the step's paths, both cheaper than the TypeScript (#1226) |
 | [42.65](42.65-world-bookkeeping-core.md) | The physics world's bookkeeping in the Rust core: the tick slightly cheaper and match construction about 20% cheaper, with no added crossing cost (#1232) |
+| [42.66](42.66-collision-queries-core.md) | The map's collision queries in the Rust core: about four times faster than the TypeScript per query, with the open-gate mask (about 0.55 µs on 421 gates) the cost to batch; no caller yet (#1233) |
 
 ### Navigation
 

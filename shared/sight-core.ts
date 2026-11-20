@@ -1,7 +1,8 @@
 import { count } from './profiler.ts';
 import { initCore, type CoreExports } from './core.ts';
 import { gateTables, sightTables, VISION, type SightCaster, type VisibilityPoint } from './sight.ts';
-import type { CollisionMap, GameMap, Gate, ItemId, Obstacle, PlayableArea, Vec2, World } from './types.ts';
+import { collisionTables } from './movement.ts';
+import type { CollisionMap, GameMap, Gate, GateId, ItemId, Obstacle, PlayableArea, Vec2, World } from './types.ts';
 
 // The adapter between `shared/sight.ts` and the Rust core's port of `visibilityPolygon`
 // (`rust/core/src/sight.rs`, #1175 stage 2, docs/27).
@@ -11,6 +12,10 @@ import type { CollisionMap, GameMap, Gate, ItemId, Obstacle, PlayableArea, Vec2,
 //   and freed when the list is collected.
 // - **Per call:** the open-gate mask is written into the gate set, then origin and radius go in and
 //   the points come back in a buffer the core owns.
+// - **Collision (#1233)** is the same binding's: `canOccupy`, `lineClear` and `reachClear` in the core
+//   (`rust/core/src/collision.rs`), from a collision map per obstacle list beside the sight index and
+//   gate set. They answer scalars. The TypeScript keeps its callers until #1234 moves them, and
+//   `tests/collision-core.test.js` holds the two equal.
 // - **Views are made after each call,** because any allocation may grow the memory and detach the
 //   old `memory.buffer`.
 
@@ -41,6 +46,16 @@ export interface CoreSight extends SightCaster {
     fill: (input: Float64Array) => void): Uint32Array;
   /** `roofAt`'s interned id at a point as the core reads the map's roofs, or -1: for the parity check only. */
   roofIdAt<M extends DiscoveryMap>(map: M, tables: (map: M) => DiscoveryTables, x: World, y: World): number;
+  /** `canOccupy` (`shared/movement.ts`) in the core, with the gates as they stand now. */
+  canOccupy(map: CollisionMap, x: World, y: World, radius?: World, ignoreGates?: boolean, projectile?: boolean): boolean;
+  /** `lineClear` (`shared/sight.ts`) in the core. */
+  lineClear(map: CollisionMap, a: Vec2, b: Vec2, ignoreGateId?: GateId | null): boolean;
+  /** `reachClear` (`shared/sight.ts`) in the core. */
+  reachClear(map: CollisionMap, a: Vec2, b: Vec2): boolean;
+  /** `insideMap` over the core's copy of the playable cells: for the parity check only. */
+  insideMap(map: CollisionMap, x: World, y: World, radius?: World): boolean;
+  /** The depth of the disk in the map's collider `i` as the core's SAT port reads it, or -1: for the parity check only. */
+  colliderDepth(map: CollisionMap, i: number, x: World, y: World, radius: World): number;
 }
 
 let processSight: Promise<CoreSight> | undefined;
@@ -57,6 +72,9 @@ export function coreSight(core: CoreExports): CoreSight {
   // Keyed on the playable area, which every match map has and a spread copy of the map keeps; the
   // other fields the upload reads are checked, so a map that shares the area but not them rebuilds.
   const discoveryMaps = new WeakMap<PlayableArea, { source: unknown[]; handle: Handle }>();
+  // Keyed on the obstacle list, as movement's colliders are; rebuilt when the list grows or the map's
+  // size or playable area differs.
+  const collisionMaps = new WeakMap<readonly Obstacle[], { count: number; width: World; height: World; area: PlayableArea | undefined; handle: Handle }>();
   const release = new FinalizationRegistry<() => void>(free => free());
   /** Free a handle a grown list superseded now, rather than when the list is collected. */
   const supersede = (entry: { handle: Handle } | undefined, free: (handle: Handle) => void) => {
@@ -81,8 +99,9 @@ export function coreSight(core: CoreExports): CoreSight {
     const cached = indexes.get(map.obstacles);
     if (cached && cached.count === map.obstacles.length) return cached.handle;
     supersede(cached, handle => core.sight_index_free(handle));
-    const { segments, grid } = sightTables(map);
-    const handle = withBuffers([segments, grid], ([s, g]) => core.sight_index_new(s, segments.length / 4, g, grid.length) >>> 0);
+    const { segments, grid, through } = sightTables(map);
+    const handle = withBuffers([segments, grid, through.edges, through.offsets, through.grid], ([s, g, te, to, tg]) =>
+      core.sight_index_new(s, segments.length / 4, g, grid.length, te, through.edges.length / 4, to, through.offsets.length - 1, tg, through.grid.length) >>> 0);
     const entry = { count: map.obstacles.length, handle };
     indexes.set(map.obstacles, entry);
     release.register(map.obstacles, () => core.sight_index_free(handle), entry);
@@ -93,23 +112,39 @@ export function coreSight(core: CoreExports): CoreSight {
     const cached = gateSets.get(map.gates);
     if (cached && cached.count === map.gates.length) return cached;
     supersede(cached, handle => core.gate_set_free(handle));
-    const { edges, offsets, grid } = gateTables(map);
-    const handle = withBuffers([edges, offsets, grid],
-      ([e, o, g]) => core.gate_set_new(e, edges.length / 4, o, offsets.length - 1, g, grid.length) >>> 0);
+    const { edges, offsets, boxes, grid } = gateTables(map);
+    const handle = withBuffers([edges, offsets, boxes, grid],
+      ([e, o, b, g]) => core.gate_set_new(e, edges.length / 4, o, offsets.length - 1, b, g, grid.length) >>> 0);
     const entry = { count: map.gates.length, handle, open: core.gate_set_open(handle) >>> 0 };
     gateSets.set(map.gates, entry);
     release.register(map.gates, () => core.gate_set_free(handle), entry);
     return entry;
   }
 
-  /** The map's gate set, with the open mask written as the gates stand now. */
-  function openGates(map: CollisionMap): Handle {
+  /** The map's gate set, with the open mask written as the gates stand now; a gate `lineClear` ignores is written open. */
+  function openGates(map: CollisionMap, ignore: GateId | null = null): Handle {
     const gates = gateSetFor(map);
     if (map.gates.length) {
-      const open = new Uint8Array(core.memory.buffer, gates.open, map.gates.length);
-      for (let i = 0; i < map.gates.length; i++) open[i] = map.gates[i].open ? 1 : 0;
+      const open = new Uint8Array(core.memory.buffer, gates.open, map.gates.length), list = map.gates;
+      if (ignore === null) for (let i = 0; i < list.length; i++) open[i] = list[i].open ? 1 : 0;
+      else for (let i = 0; i < list.length; i++) open[i] = list[i].open || list[i].id === ignore ? 1 : 0;
     }
     return gates.handle;
+  }
+
+  function collisionFor(map: CollisionMap): Handle {
+    const cached = collisionMaps.get(map.obstacles);
+    if (cached && cached.count === map.obstacles.length && cached.width === map.width && cached.height === map.height
+      && cached.area === map.playableArea) return cached.handle;
+    // Built before the stale handle is freed, so a map without a playable area throws as `canOccupy` does and keeps it.
+    const { constants, occupied, colliders, offsets, grid } = collisionTables(map);
+    supersede(cached, handle => core.collision_map_free(handle));
+    const handle = withBuffers([constants, occupied, colliders, offsets, grid], ([c, o, w, f, g]) =>
+      core.collision_map_new(c, o, occupied.length, w, colliders.length, f, offsets.length - 1, g, grid.length) >>> 0);
+    const entry = { count: map.obstacles.length, width: map.width, height: map.height, area: map.playableArea, handle };
+    collisionMaps.set(map.obstacles, entry);
+    release.register(map.obstacles, () => core.collision_map_free(handle), entry);
+    return handle;
   }
 
   function discoveryMapFor<M extends DiscoveryMap>(map: M, tables: (map: M) => DiscoveryTables): Handle {
@@ -157,6 +192,31 @@ export function coreSight(core: CoreExports): CoreSight {
     },
     roofIdAt(map, tables, x, y) {
       return core.discovery_roof_at(discoveryMapFor(map, tables), x, y);
+    },
+    canOccupy(map, x, y, radius = 12, ignoreGates = false, projectile = false) {
+      count('calls.canOccupy');
+      const handle = collisionFor(map), gates = ignoreGates ? gateSetFor(map).handle : openGates(map);
+      return core.can_occupy(handle, gates, x, y, radius, (ignoreGates ? 1 : 0) | (projectile ? 2 : 0)) === 1;
+    },
+    lineClear(map, a, b, ignoreGateId = null) {
+      count('calls.lineClear');
+      const index = indexFor(map), gates = openGates(map, ignoreGateId);
+      const answer = core.line_clear(index, gates, a.x, a.y, b.x, b.y) >>> 0;
+      count('work.rayEdgeTests', answer >>> 1);
+      return (answer & 1) === 1;
+    },
+    reachClear(map, a, b) {
+      count('calls.lineClear');
+      const index = indexFor(map), gates = openGates(map);
+      const answer = core.reach_clear(index, gates, a.x, a.y, b.x, b.y) >>> 0;
+      count('work.rayEdgeTests', answer >>> 1);
+      return (answer & 1) === 1;
+    },
+    insideMap(map, x, y, radius = 0) {
+      return core.collision_inside(collisionFor(map), x, y, radius) === 1;
+    },
+    colliderDepth(map, i, x, y, radius) {
+      return core.collision_depth(collisionFor(map), i, x, y, radius);
     },
   };
 }

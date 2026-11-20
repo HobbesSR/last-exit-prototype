@@ -299,8 +299,8 @@ and the effects' lives, then per player in roster order runs respawn, transit ar
 - **Two queries stay in JavaScript:** whether a station is clear for a respawn (`canOccupy`) and where a transit lands
   (`landing`, the placement search `synchronize` shares). The run stops before a player that needs one; `beginTick`
   applies the players before it, answers, and resumes from that player. A landing reads those players as they stand,
-  as the TypeScript tick did, so the run stops rather than asking ahead. They move into the core with the map format
-  (#1215) and the physics adapter's placement (#1213).
+  as the TypeScript tick did, so the run stops rather than asking ahead. Both move into the core in #1234, over the
+  core's collision queries (step 5b.2), which retires both stops.
 - **The rest of phase 1 stays in TypeScript for now:** the body sync (`synchronize`, which phase 7 and the between-tick
   commands share), the hook revalidation, and the pending spawns, impulses and attachments, whose queues and checks
   belong to the physics adapter (`physics-runtime.ts`, `shared/physics/world.ts`). They move with the solver around
@@ -319,7 +319,8 @@ and the effects' lives, then per player in roster order runs respawn, transit ar
   - #1233: the map's collision queries (`canOccupy`, `reachClear`), which the landing placement and attachment
     admission need;
   - #1234: `synchronize`, `prepareHooks`, the pending admission and the landing placement, which retires
-    `NEED_LANDING`;
+    `NEED_LANDING`, and the station clearance, which retires `NEED_STATIONS` with it, so phase 1's yield and resume
+    go in one change (Corey, 2026-11-20, on #1233);
 - #1228: phase 3 with the item counters;
 - #1229: phase 5;
 - #1230: phases 6 and 7.
@@ -350,6 +351,25 @@ the same handles and slots.
 - **The step packs nothing.** The core has the motors, caps, pushes and constraints. Its output names the dynamic
   bodies by key, followed by their paths.
 - **Cost:** [42.65](42.65-world-bookkeeping-core.md).
+
+**Step 5b.2, the map's collision queries (#1233, adapter version 9).** `rust/core/src/collision.rs` answers
+`canOccupy` (`shared/movement.ts`, with `insideMap`), `lineClear` and `reachClear` (`shared/sight.ts`) bit for bit.
+Nothing calls them yet; #1234 moves the callers.
+- **Uploaded once per map:** a collision map per obstacle list, holding the playable cells and each obstacle as a
+  collider (bounds, see-through or not, shape), with movement's cells (`collisionTables`). It is rebuilt when the list
+  grows or the map's size or playable area differs. Sight's two handles carry the rest: the sight index now also holds
+  the see-through obstacles' edges, which stop hands, and the gate set each gate's box (`gateShape`).
+- **Gate state is read live,** from the gate set's open mask, which the adapter writes before each call, as for sight.
+  A gate `lineClear` ignores is written open.
+- **The disk tests are SAT.js's,** `testCircleCircle` and `testCirclePolygon` as `diskPenetration` calls them,
+  including SAT's `x || 0` on constructed vectors and its merging of repeated points. The 0.01 obstacle tolerance and
+  contact-blocks-at-a-gate are `canOccupy`'s.
+- **Two copies on purpose,** as the roof rule's are: the TypeScript keeps its callers (movement, bots, tools), and
+  `tests/collision-core.test.js` holds the two equal, depth for depth on every collider of the room arena and answer
+  for answer at the places tolerances decide, with gates toggled between calls. Giving each one owner again is #1215
+  and #1222.
+- **Cost:** [42.66](42.66-collision-queries-core.md). A query costs about a quarter of the TypeScript's; the open mask,
+  about 0.55 µs for 421 gates, is the part to write once per batch.
 
 ## One math library on both sides
 

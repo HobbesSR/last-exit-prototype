@@ -3,33 +3,58 @@
 //!
 //! Its input is a derived flat index, not the map. JavaScript builds it from the map
 //! (`shared/sight-core.ts`) and uploads it once:
-//! - **A sight index:** the edges of every obstacle that blocks sight, and the cells they are listed in.
-//! - **A gate set:** each gate's edges, its cells, and a mask of which gates are open, which the
-//!   adapter rewrites before each call.
+//! - **A sight index:** the edges of every obstacle that blocks sight, and the cells they are listed in;
+//!   and each see-through obstacle's edges, which stop hands (`reachClear`, `collision.rs`), by its cells.
+//! - **A gate set:** each gate's edges and box, its cells, and a mask of which gates are open, which the
+//!   adapter rewrites before each call. Collision (`collision.rs`) reads the same set.
 //!
 //! It equalled the TypeScript's bit for bit, and `tests/sight-core.test.js` now pins its polygons by
 //! digest. So it follows that cast operation for operation: the same visiting order, the same stable
 //! sorts, the same floating-point expressions, and the crate's own `atan2`/`cos`/`sin`. Keep it so;
 //! a moved digest is a gameplay change (docs/31).
 
+use crate::collision::Body;
 use crate::math::{atan2, cos, js_max, js_min, sin};
 use core::f64::consts::PI;
 
 /// Cell side, in world units: `BUCKET` in `shared/buckets.ts`.
-const BUCKET: f64 = 200.0;
+pub(crate) const BUCKET: f64 = 200.0;
 const TAU: f64 = PI * 2.0;
 /// Sample angles straddle +-pi by the corner offset; keep them covered.
 const SEAM: f64 = PI + 1e-4;
 
 /// One edge as `[ax, ay, bx, by]`.
-type Edge = [f64; 4];
+pub(crate) type Edge = [f64; 4];
+
+/// Lists of edges, one per owner (a gate, a see-through obstacle): owner `i`'s edges are
+/// `edges[offsets[i]..offsets[i + 1]]`. Uploaded as `[ax, ay, bx, by]` per edge and `count + 1`
+/// offsets.
+pub(crate) struct EdgeLists {
+    edges: Vec<Edge>,
+    offsets: Vec<u32>,
+}
+
+impl EdgeLists {
+    fn new(edges: &[f64], offsets: &[u32]) -> EdgeLists {
+        EdgeLists {
+            edges: edges.as_chunks::<4>().0.to_vec(),
+            offsets: offsets.to_vec(),
+        }
+    }
+    fn count(&self) -> usize {
+        self.offsets.len().saturating_sub(1)
+    }
+    pub(crate) fn of(&self, i: usize) -> &[Edge] {
+        &self.edges[self.offsets[i] as usize..self.offsets[i + 1] as usize]
+    }
+}
 
 /// A bucket grid in compressed rows: the cells from (`col0`, `row0`), `cols` by `rows`, column
 /// outer, each listing its entries in the order the TypeScript buckets hold them.
 ///
 /// Uploaded as one `i32` array: `col0, row0, cols, rows`, then `cols * rows + 1` offsets into the
 /// entries, then the entries.
-struct Grid {
+pub(crate) struct Grid {
     col0: i64,
     row0: i64,
     cols: i64,
@@ -39,7 +64,7 @@ struct Grid {
 }
 
 impl Grid {
-    fn from_words(words: &[i32]) -> Grid {
+    pub(crate) fn from_words(words: &[i32]) -> Grid {
         let (col0, row0, cols, rows) = (words[0], words[1], words[2], words[3]);
         let cells = (cols.max(0) as usize) * (rows.max(0) as usize);
         let offsets: Vec<u32> = words[4..5 + cells].iter().map(|&w| w as u32).collect();
@@ -57,7 +82,7 @@ impl Grid {
     /// Each entry list of the cells the box touches, as `eachCellIn` visits them: columns outer,
     /// from `floor(left / BUCKET)` to `floor(right / BUCKET)`. Cells outside the grid are empty,
     /// so skipping them visits the same lists in the same order.
-    fn each_cell_in(
+    pub(crate) fn each_cell_in(
         &self,
         left: f64,
         top: f64,
@@ -111,29 +136,43 @@ impl Grid {
             }
         }
     }
+
+    /// The entries of cell (`col`, `row`), as the TypeScript's `buckets.get` reads them: empty
+    /// outside the grid. Both are whole numbers held as `f64`, as the TypeScript loops count.
+    pub(crate) fn at(&self, col: f64, row: f64) -> &[u32] {
+        if !(col >= self.col0 as f64
+            && col < (self.col0 + self.cols) as f64
+            && row >= self.row0 as f64
+            && row < (self.row0 + self.rows) as f64)
+        {
+            return &[];
+        }
+        let cell = ((col as i64 - self.col0) * self.rows + (row as i64 - self.row0)) as usize;
+        &self.entries[self.offsets[cell] as usize..self.offsets[cell + 1] as usize]
+    }
 }
 
 /// Which indices a query has already met: `Visited` in `shared/buckets.ts`.
-struct Visited {
+pub(crate) struct Visited {
     marks: Vec<u32>,
     mark: u32,
 }
 
 impl Visited {
-    fn new(size: usize) -> Visited {
+    pub(crate) fn new(size: usize) -> Visited {
         Visited {
             marks: vec![0; size],
             mark: 0,
         }
     }
-    fn begin(&mut self) {
+    pub(crate) fn begin(&mut self) {
         self.mark = self.mark.wrapping_add(1);
         if self.mark == 0 {
             self.marks.fill(0);
             self.mark = 1;
         }
     }
-    fn first(&mut self, i: usize) -> bool {
+    pub(crate) fn first(&mut self, i: usize) -> bool {
         if self.marks[i] == self.mark {
             return false;
         }
@@ -144,8 +183,11 @@ impl Visited {
 
 /// The edges that block sight, from the obstacle list, with the polygon's output buffer.
 pub struct SightIndex {
-    segments: Vec<Edge>,
-    grid: Grid,
+    pub(crate) segments: Vec<Edge>,
+    pub(crate) grid: Grid,
+    /// Each see-through obstacle's edges, and the cells its bounds touch: what stops hands.
+    pub(crate) through: EdgeLists,
+    pub(crate) through_grid: Grid,
     visited: Visited,
     /// The last polygon: `x, y, angle, length` per point.
     points: Vec<f64>,
@@ -155,12 +197,22 @@ pub struct SightIndex {
 
 impl SightIndex {
     /// `segments` is `[ax, ay, bx, by]` per edge; `grid` lists segment indices (see `Grid`).
-    pub fn new(segments: &[f64], grid: &[i32]) -> SightIndex {
+    /// `through` and `through_offsets` are the see-through obstacles' edges (`EdgeLists`), and
+    /// `through_grid` lists their indices.
+    pub fn new(
+        segments: &[f64],
+        grid: &[i32],
+        through: &[f64],
+        through_offsets: &[u32],
+        through_grid: &[i32],
+    ) -> SightIndex {
         let segments: Vec<Edge> = segments.as_chunks::<4>().0.to_vec();
         let visited = Visited::new(segments.len());
         SightIndex {
             segments,
             grid: Grid::from_words(grid),
+            through: EdgeLists::new(through, through_offsets),
+            through_grid: Grid::from_words(through_grid),
             visited,
             points: Vec::new(),
             tests: 0,
@@ -174,23 +226,32 @@ impl SightIndex {
     }
 }
 
-/// A gate list's edges and cells, and which gates are open now.
+/// A gate list's edges, boxes and cells, and which gates are open now.
 pub struct GateSet {
-    edges: Vec<Edge>,
-    /// Gate `i`'s edges are `edges[offsets[i]..offsets[i + 1]]`.
-    offsets: Vec<u32>,
-    grid: Grid,
-    visited: Visited,
+    pub(crate) edges: EdgeLists,
+    /// Each gate's box (`gateShape`) as `[x, y, w, h]`, and the body collision tests it as.
+    pub(crate) boxes: Vec<[f64; 4]>,
+    pub(crate) bodies: Vec<Body>,
+    pub(crate) grid: Grid,
+    pub(crate) visited: Visited,
     /// Nonzero where the gate is open. The adapter writes it before each call.
     pub open: Vec<u8>,
 }
 
 impl GateSet {
-    pub fn new(edges: &[f64], offsets: &[u32], grid: &[i32]) -> GateSet {
-        let count = offsets.len().saturating_sub(1);
+    /// `boxes` holds four `f64`s per gate.
+    pub fn new(edges: &[f64], offsets: &[u32], boxes: &[f64], grid: &[i32]) -> GateSet {
+        let edges = EdgeLists::new(edges, offsets);
+        let count = edges.count();
+        let boxes: Vec<[f64; 4]> = boxes.as_chunks::<4>().0.to_vec();
+        let bodies = boxes
+            .iter()
+            .map(|b| Body::rect(b[0], b[1], b[2], b[3]))
+            .collect();
         GateSet {
-            edges: edges.as_chunks::<4>().0.to_vec(),
-            offsets: offsets.to_vec(),
+            edges,
+            boxes,
+            bodies,
             grid: Grid::from_words(grid),
             visited: Visited::new(count),
             open: vec![0; count],
@@ -199,7 +260,7 @@ impl GateSet {
 }
 
 /// `hitRay`: the distance along the unit ray from `(ox, oy)` to the edge, or infinity.
-fn hit_ray(ox: f64, oy: f64, dx: f64, dy: f64, edge: &Edge) -> f64 {
+pub(crate) fn hit_ray(ox: f64, oy: f64, dx: f64, dy: f64, edge: &Edge) -> f64 {
     let (sx, sy) = (edge[2] - edge[0], edge[3] - edge[1]);
     let cross = dx * sy - dy * sx;
     if cross.abs() < 1e-9 {
@@ -306,17 +367,12 @@ pub fn visibility_polygon(
             }
         }
     });
-    let (edges, offsets, open, gate_visited) = (
-        &gates.edges,
-        &gates.offsets,
-        &gates.open,
-        &mut gates.visited,
-    );
+    let (edges, open, gate_visited) = (&gates.edges, &gates.open, &mut gates.visited);
     gates.grid.each_cell_in(left, top, right, bottom, |list| {
         for &i in list {
             let i = i as usize;
             if open[i] == 0 && gate_visited.first(i) {
-                for edge in &edges[offsets[i] as usize..offsets[i + 1] as usize] {
+                for edge in edges.of(i) {
                     consider(edge);
                 }
             }
@@ -366,10 +422,10 @@ pub fn visibility_polygon(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
-    fn grid_of(cells: &[((i32, i32), Vec<i32>)]) -> Vec<i32> {
+    pub(crate) fn grid_of(cells: &[((i32, i32), Vec<i32>)]) -> Vec<i32> {
         let (c0, c1) = (
             cells.iter().map(|c| c.0.0).min().unwrap(),
             cells.iter().map(|c| c.0.0).max().unwrap(),
@@ -397,8 +453,8 @@ mod tests {
 
     #[test]
     fn an_empty_map_sees_to_the_radius() {
-        let mut index = SightIndex::new(&[], &[0, 0, 0, 0, 0]);
-        let mut gates = GateSet::new(&[], &[0], &[0, 0, 0, 0, 0]);
+        let mut index = SightIndex::new(&[], &[0, 0, 0, 0, 0], &[], &[0], &[0, 0, 0, 0, 0]);
+        let mut gates = GateSet::new(&[], &[0], &[], &[0, 0, 0, 0, 0]);
         let n = visibility_polygon(&mut index, &mut gates, 100.0, 100.0, 50.0);
         assert_eq!(n, 100);
         assert!(
@@ -414,11 +470,17 @@ mod tests {
     #[test]
     fn a_wall_shortens_the_rays_that_meet_it_and_a_closed_gate_does_too() {
         // A vertical wall at x = 150 from y = 50 to 150, listed in cell (0, 0).
-        let mut index =
-            SightIndex::new(&[150.0, 50.0, 150.0, 150.0], &grid_of(&[((0, 0), vec![0])]));
+        let mut index = SightIndex::new(
+            &[150.0, 50.0, 150.0, 150.0],
+            &grid_of(&[((0, 0), vec![0])]),
+            &[],
+            &[0],
+            &[0, 0, 0, 0, 0],
+        );
         let mut gates = GateSet::new(
             &[50.0, 50.0, 50.0, 150.0],
             &[0, 1],
+            &[50.0, 50.0, 0.0, 100.0],
             &grid_of(&[((0, 0), vec![0])]),
         );
         gates.open[0] = 1;

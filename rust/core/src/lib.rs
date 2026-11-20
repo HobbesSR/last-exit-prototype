@@ -4,6 +4,7 @@
 //! The WASM module uses plain exports, not wasm-bindgen: the adapter passes flat typed buffers in
 //! WASM memory (docs/27, rule 1), so there is no generated JavaScript glue to keep in step.
 
+pub mod collision;
 pub mod discovery;
 pub mod floor_drag;
 pub mod math;
@@ -17,7 +18,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 8;
+pub const ADAPTER_VERSION: u32 = 9;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -94,20 +95,38 @@ unsafe fn items<'a, T>(ptr: *const T, len: usize) -> &'a [T] {
 }
 
 /// Builds a sight index from `segment_count` edges (`[ax, ay, bx, by]`, `f64`) and a grid of
-/// `grid_len` `i32` words (`sight::Grid`). The core copies both; the caller may free them.
+/// `grid_len` `i32` words (`sight::Grid`), with the see-through obstacles' `through_count` edges,
+/// `obstacle_count + 1` offsets (`u32`) giving each one's edges, and their grid. The core copies
+/// every buffer; the caller may free them.
 ///
 /// # Safety
-/// The pointers hold `segment_count * 4` and `grid_len` items.
+/// The pointers hold `segment_count * 4`, `grid_len`, `through_count * 4`, `obstacle_count + 1`
+/// and `through_grid_len` items.
 #[unsafe(no_mangle)]
+#[allow(clippy::too_many_arguments)]
 pub unsafe extern "C" fn sight_index_new(
     segments: *const f64,
     segment_count: usize,
     grid: *const i32,
     grid_len: usize,
+    through: *const f64,
+    through_count: usize,
+    through_offsets: *const u32,
+    obstacle_count: usize,
+    through_grid: *const i32,
+    through_grid_len: usize,
 ) -> *mut sight::SightIndex {
     // SAFETY: the caller's contract.
-    let (segments, grid) = unsafe { (items(segments, segment_count * 4), items(grid, grid_len)) };
-    Box::into_raw(Box::new(sight::SightIndex::new(segments, grid)))
+    let index = unsafe {
+        sight::SightIndex::new(
+            items(segments, segment_count * 4),
+            items(grid, grid_len),
+            items(through, through_count * 4),
+            items(through_offsets, obstacle_count + 1),
+            items(through_grid, through_grid_len),
+        )
+    };
+    Box::into_raw(Box::new(index))
 }
 
 /// # Safety
@@ -140,28 +159,31 @@ pub unsafe extern "C" fn sight_index_tests(index: *const sight::SightIndex) -> u
 }
 
 /// Builds a gate set: `edge_count` edges (`f64`), `gate_count + 1` offsets (`u32`) giving each
-/// gate's edges, and a grid of gate indices. All gates start closed.
+/// gate's edges, each gate's box (`x, y, w, h`, `f64`), and a grid of gate indices. All gates start
+/// closed.
 ///
 /// # Safety
-/// The pointers hold `edge_count * 4`, `gate_count + 1` and `grid_len` items.
+/// The pointers hold `edge_count * 4`, `gate_count + 1`, `gate_count * 4` and `grid_len` items.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn gate_set_new(
     edges: *const f64,
     edge_count: usize,
     offsets: *const u32,
     gate_count: usize,
+    boxes: *const f64,
     grid: *const i32,
     grid_len: usize,
 ) -> *mut sight::GateSet {
     // SAFETY: the caller's contract.
-    let (edges, offsets, grid) = unsafe {
+    let (edges, offsets, boxes, grid) = unsafe {
         (
             items(edges, edge_count * 4),
             items(offsets, gate_count + 1),
+            items(boxes, gate_count * 4),
             items(grid, grid_len),
         )
     };
-    Box::into_raw(Box::new(sight::GateSet::new(edges, offsets, grid)))
+    Box::into_raw(Box::new(sight::GateSet::new(edges, offsets, boxes, grid)))
 }
 
 /// # Safety
@@ -197,6 +219,142 @@ pub unsafe extern "C" fn visibility_polygon(
 ) -> usize {
     // SAFETY: the caller's contract.
     unsafe { sight::visibility_polygon(&mut *index, &mut *gates, x, y, radius) }
+}
+
+// Collision (`collision::CollisionMap`, #1233): a map's playable cells and colliders, uploaded once,
+// queried with the map's sight index and gate set. Answers are scalars, so nothing is left in memory.
+
+/// Builds a collision map (`collision::CollisionMap::new`). The core copies every buffer.
+///
+/// # Safety
+/// The pointers hold 5, `cell_count`, `collider_words`, `collider_count + 1` and `grid_len` items.
+#[unsafe(no_mangle)]
+#[allow(clippy::too_many_arguments)]
+pub unsafe extern "C" fn collision_map_new(
+    constants: *const f64,
+    occupied: *const u8,
+    cell_count: usize,
+    colliders: *const f64,
+    collider_words: usize,
+    offsets: *const u32,
+    collider_count: usize,
+    grid: *const i32,
+    grid_len: usize,
+) -> *mut collision::CollisionMap {
+    // SAFETY: the caller's contract.
+    let map = unsafe {
+        collision::CollisionMap::new(
+            items(constants, 5),
+            items(occupied, cell_count),
+            items(colliders, collider_words),
+            items(offsets, collider_count + 1),
+            items(grid, grid_len),
+        )
+    };
+    Box::into_raw(Box::new(map))
+}
+
+/// # Safety
+/// `map` came from `collision_map_new` and is freed once.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn collision_map_free(map: *mut collision::CollisionMap) {
+    // SAFETY: the caller's contract.
+    drop(unsafe { Box::from_raw(map) });
+}
+
+/// `canOccupy` (`collision::can_occupy`): 1 when clear. `flags` bit 1 ignores the gates, bit 2 is
+/// a projectile's test, which passes see-through obstacles.
+///
+/// # Safety
+/// `map` and `gates` are live, and `gates` is the map's gate set with its open mask written.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn can_occupy(
+    map: *mut collision::CollisionMap,
+    gates: *mut sight::GateSet,
+    x: f64,
+    y: f64,
+    radius: f64,
+    flags: u32,
+) -> u32 {
+    // SAFETY: the caller's contract.
+    let (map, gates) = unsafe { (&mut *map, &mut *gates) };
+    u32::from(collision::can_occupy(
+        map,
+        gates,
+        x,
+        y,
+        radius,
+        flags & 1 != 0,
+        flags & 2 != 0,
+    ))
+}
+
+/// `insideMap` over the uploaded cells: 1 when the disk lies wholly on playable ground.
+///
+/// # Safety
+/// `map` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn collision_inside(
+    map: *const collision::CollisionMap,
+    x: f64,
+    y: f64,
+    radius: f64,
+) -> u32 {
+    // SAFETY: the caller's contract.
+    u32::from(unsafe { (*map).inside(x, y, radius) })
+}
+
+/// Collider `i`'s disk test, for the parity check against `diskPenetration`: its depth, or -1.
+///
+/// # Safety
+/// `map` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn collision_depth(
+    map: *const collision::CollisionMap,
+    i: usize,
+    x: f64,
+    y: f64,
+    radius: f64,
+) -> f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*map).depth(i, x, y, radius) }
+}
+
+/// `lineClear` from `(ax, ay)` to `(bx, by)`: the ray-edge tests made, doubled, plus 1 when clear.
+/// A gate the caller ignores is written open in the mask.
+///
+/// # Safety
+/// `index` and `gates` are live, and `gates` has its open mask written.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn line_clear(
+    index: *const sight::SightIndex,
+    gates: *const sight::GateSet,
+    ax: f64,
+    ay: f64,
+    bx: f64,
+    by: f64,
+) -> u32 {
+    // SAFETY: the caller's contract.
+    let (clear, tests) = unsafe { collision::line_clear(&*index, &*gates, (ax, ay), (bx, by)) };
+    tests << 1 | u32::from(clear)
+}
+
+/// `reachClear`, answered as `line_clear` is.
+///
+/// # Safety
+/// As `line_clear`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn reach_clear(
+    index: *const sight::SightIndex,
+    gates: *const sight::GateSet,
+    ax: f64,
+    ay: f64,
+    bx: f64,
+    by: f64,
+) -> u32 {
+    // SAFETY: the caller's contract.
+    let (clear, tests) = unsafe { collision::reach_clear(&*index, &*gates, (ax, ay), (bx, by)) };
+    tests << 1 | u32::from(clear)
 }
 
 // Discovery (`discovery::DiscoveryMap`), driven by `shared/discovery.ts` (#1210). A map is a
