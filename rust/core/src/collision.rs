@@ -14,6 +14,10 @@
 //! - **Disk tests** are SAT.js 0.9's (`testCircleCircle`, `testCirclePolygon`), which
 //!   `shared/shape-queries.ts` calls: the same expressions in the same order, including its
 //!   `x || 0` on constructed vectors and its merging of consecutive duplicate points.
+//!
+//! The disk tests are translated from SAT.js 0.9.0, Copyright 2012 - 2021 Jim Riecken
+//! <jimr@jimr.ca>, released under the MIT License (https://github.com/jriecken/sat-js). The
+//! licence's full text is in `THIRD-PARTY-NOTICES.txt` (docs/21.1).
 
 use crate::math::{hypot, js_max, js_min};
 use crate::sight::{BUCKET, Edge, GateSet, Grid, SightIndex, Visited, hit_ray};
