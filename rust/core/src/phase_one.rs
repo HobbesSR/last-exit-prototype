@@ -10,17 +10,20 @@
 //! The game's `serial` counter is packed in and out (D6), and every ID phase 1 allocates is taken
 //! from it here, in the same order. Phase 1 allocates no item IDs.
 //!
-//! **Two queries stay with JavaScript** because what they read is not in the core yet: whether a
-//! station is clear for a respawn (`canOccupy` on the map) and where a transit lands (the physics
-//! placement search, which `synchronize` shares). When a player needs one, the run stops before that
-//! player and reports the query; JavaScript applies the players already run, answers, and resumes
-//! from that player. Both are rare, so a normal tick is one call. The landing reads the players
-//! before it in roster order as they now stand, which is why the run stops rather than asking ahead.
+//! **Both queries are answered here** (#1234): whether a station is clear for a respawn
+//! (`can_occupy` at the clearance radius, over the map's collision upload) and where a transit lands
+//! (the placement search the body sync shares, `placement.rs`). A landing reads the players before it
+//! in roster order as this run has left them, and the ones after it as they were packed, as the
+//! TypeScript tick did, so a tick is one call with no stop and no resume.
 
+use crate::collision::{CollisionMap, can_occupy};
 use crate::math::{hypot, js_max, js_round};
+use crate::placement::{Disk, placement};
+use crate::sight::GateSet;
+use crate::world::World;
 
 /// Header words of the input. The run writes `tick`, `hazard_x` and `serial` back in place.
-pub const HEADER: usize = 18;
+pub const HEADER: usize = 15;
 const TICK: usize = 0;
 const GRACE: usize = 1;
 const DURATION: usize = 2;
@@ -33,21 +36,15 @@ const STATIONS: usize = 8;
 const RESPAWN_MARGIN: usize = 9;
 const RESPAWN_DISTANCE: usize = 10;
 const RAIL_COOLDOWN: usize = 11;
-/// Nonzero once the stations' clearance flags are written.
-const STATIONS_ANSWERED: usize = 12;
-/// Nonzero when a landing answer is written for the player the run resumes from; then
-/// `LANDED` is nonzero when it can land, at `LANDING_X, LANDING_Y`.
-const LANDING_ANSWERED: usize = 13;
-const LANDED: usize = 14;
-const LANDING_X: usize = 15;
-const LANDING_Y: usize = 16;
-/// Nonzero once this tick's first run has advanced the tick, so a resume from player 0 does not again.
-const ADVANCED: usize = 17;
+/// The actors' body radii by role (`actorRadius`), and a respawn's station clearance radius.
+const CONTESTANT_RADIUS: usize = 12;
+const GLADIATOR_RADIUS: usize = 13;
+const CLEARANCE_RADIUS: usize = 14;
 
-/// Words per station: `x, y, clear`.
-pub const STATION_STRIDE: usize = 3;
+/// Words per station: `x, y`.
+pub const STATION_STRIDE: usize = 2;
 /// Words per player. Field offsets follow.
-pub const PLAYER_STRIDE: usize = 16;
+pub const PLAYER_STRIDE: usize = 17;
 const ROLE: usize = 0;
 const STATUS: usize = 1;
 const RESPAWN_AT: usize = 2;
@@ -66,16 +63,13 @@ const RAIL_CD: usize = TIMERS + 2;
 const BOOST: usize = TIMERS + 5;
 const STUN: usize = TIMERS + 6;
 const TIMER_COUNT: usize = 7;
+/// The index of a transit's destination station in the map's list, or -1 when none has its ID.
+const DESTINATION: usize = 16;
 
 pub const CONTESTANT: f64 = 0.0;
 pub const ACTIVE: f64 = 0.0;
 pub const RESPAWNING: f64 = 2.0;
 pub const TRANSIT: f64 = 5.0;
-
-/// What a run ends with: the first output word.
-pub const DONE: f64 = 0.0;
-pub const NEED_STATIONS: f64 = 1.0;
-pub const NEED_LANDING: f64 = 2.0;
 
 /// Facts in the output, three words each: `kind, player, id`.
 pub const RESPAWNED: f64 = 1.0;
@@ -92,53 +86,76 @@ impl PhaseOne {
     /// The input buffer, resized to `len` words. Its layout:
     /// - the header (`HEADER` words): `tick, hazardGraceTicks, durationTicks, map width, hazardX, serial`,
     ///   the counts of players, effects and stations, the respawn margin and contestant distance, the
-    ///   rail cooldown, then the query answers: whether the stations' `clear` flags are written, and
-    ///   for the player a run resumes from, whether its landing is written, whether it lands, and where;
-    ///   then whether the tick has advanced, which the first run sets;
+    ///   rail cooldown, the contestant's and the gladiator's body radii, then the clearance radius;
     /// - each effect's `life`;
-    /// - `x, y, clear` per station, in the map's order;
+    /// - `x, y` per station, in the map's order;
     /// - `PLAYER_STRIDE` words per player, in roster order: `role, status, respawnAt, arriveAt, x, y, hp,
-    ///   maxHp, shield`, then the timers. An absent `respawnAt` or `arriveAt` is NaN.
+    ///   maxHp, shield`, the timers, then the destination station. An absent `respawnAt` or `arriveAt`
+    ///   is NaN.
     pub fn input(&mut self, len: usize) -> &mut [f64] {
         self.input.resize(len, 0.0);
         &mut self.input
     }
 
-    /// Runs phase 1 from player `from`; the tick's first run also advances the tick. Players and effects are
-    /// written in place in the input. The output: how the run ended (`DONE`, `NEED_STATIONS` or
-    /// `NEED_LANDING`), the player it stopped before, the count of facts, then the facts in
-    /// allocation order.
-    pub fn run(&mut self, from: usize) -> &[f64] {
+    /// Runs phase 1 over the input; players and effects are written in place. `map` and `gates` are the
+    /// map's collision upload and gate set, with the open mask written, and `world` the game's physics
+    /// world, for the station clearance and the landing. The output: the count of facts, then the facts
+    /// in allocation order.
+    pub fn run(
+        &mut self,
+        world: &mut World,
+        map: &mut CollisionMap,
+        gates: &mut GateSet,
+    ) -> &[f64] {
         let mut out = std::mem::take(&mut self.output);
         out.clear();
-        out.extend_from_slice(&[DONE, 0.0, 0.0]);
+        out.push(0.0);
         let input = &mut self.input;
         let players = input[PLAYERS] as usize;
         let effects = input[EFFECTS] as usize;
         let stations = input[STATIONS] as usize;
         let station_base = HEADER + effects;
         let player_base = station_base + stations * STATION_STRIDE;
-        if input[ADVANCED] == 0.0 {
-            input[ADVANCED] = 1.0;
-            input[TICK] += 1.0;
-            let (tick, grace, duration) = (input[TICK], input[GRACE], input[DURATION]);
-            input[HAZARD_X] = js_round(
-                -80.0 + js_max(0.0, tick - grace) / (duration - grace) * (input[MAP_WIDTH] + 100.0),
-            );
-            for life in &mut input[HEADER..station_base] {
-                *life -= 1.0;
-            }
+        input[TICK] += 1.0;
+        let (tick, grace, duration) = (input[TICK], input[GRACE], input[DURATION]);
+        input[HAZARD_X] = js_round(
+            -80.0 + js_max(0.0, tick - grace) / (duration - grace) * (input[MAP_WIDTH] + 100.0),
+        );
+        for life in &mut input[HEADER..station_base] {
+            *life -= 1.0;
         }
-        let tick = input[TICK];
-        for i in from..players {
+        let radius = |input: &[f64], row: usize| {
+            input[if input[row + ROLE] == CONTESTANT {
+                CONTESTANT_RADIUS
+            } else {
+                GLADIATOR_RADIUS
+            }]
+        };
+        // Which stations are clear, found the first time a respawn needs them. The map and the gates
+        // do not change within the phase, so one answer serves every respawn of the tick.
+        let mut clear: Option<Vec<bool>> = None;
+        for i in 0..players {
             let row = player_base + i * PLAYER_STRIDE;
             if input[row + STATUS] == RESPAWNING && tick >= input[row + RESPAWN_AT] {
-                if input[STATIONS_ANSWERED] == 0.0 {
-                    out[0] = NEED_STATIONS;
-                    out[1] = i as f64;
-                    break;
-                }
-                if let Some(station) = respawn_station(input, station_base, player_base, players) {
+                let clear = clear.get_or_insert_with(|| {
+                    (0..stations)
+                        .map(|s| {
+                            let at = station_base + s * STATION_STRIDE;
+                            can_occupy(
+                                map,
+                                gates,
+                                input[at],
+                                input[at + 1],
+                                input[CLEARANCE_RADIUS],
+                                false,
+                                false,
+                            )
+                        })
+                        .collect()
+                });
+                if let Some(station) =
+                    respawn_station(input, clear, station_base, player_base, players)
+                {
                     let (x, y) = (input[station], input[station + 1]);
                     let p = &mut input[row..row + PLAYER_STRIDE];
                     p[X] = x;
@@ -154,13 +171,26 @@ impl PhaseOne {
                 }
             }
             if input[row + STATUS] == TRANSIT && tick >= input[row + ARRIVE_AT] {
-                if from != i || input[LANDING_ANSWERED] == 0.0 {
-                    out[0] = NEED_LANDING;
-                    out[1] = i as f64;
-                    break;
-                }
-                if input[LANDED] != 0.0 {
-                    let (x, y, rail) = (input[LANDING_X], input[LANDING_Y], input[RAIL_COOLDOWN]);
+                // Lands at the station, or nearest it, clear of every other active actor as they stand.
+                let destination = input[row + DESTINATION];
+                let origin = if destination < 0.0 {
+                    (input[row + X], input[row + Y])
+                } else {
+                    let at = station_base + destination as usize * STATION_STRIDE;
+                    (input[at], input[at + 1])
+                };
+                let admitted: Vec<Disk> = (0..players)
+                    .filter(|&j| {
+                        j != i && input[player_base + j * PLAYER_STRIDE + STATUS] == ACTIVE
+                    })
+                    .map(|j| {
+                        let other = player_base + j * PLAYER_STRIDE;
+                        [input[other + X], input[other + Y], radius(input, other)]
+                    })
+                    .collect();
+                let r = radius(input, row);
+                if let Some((x, y)) = placement(world, map, gates, r, origin, &admitted) {
+                    let rail = input[RAIL_COOLDOWN];
                     let p = &mut input[row..row + PLAYER_STRIDE];
                     p[STATUS] = ACTIVE;
                     p[ARRIVE_AT] = f64::NAN;
@@ -176,7 +206,7 @@ impl PhaseOne {
                 }
             }
         }
-        out[2] = ((out.len() - 3) / 3) as f64;
+        out[0] = ((out.len() - 1) / 3) as f64;
         self.output = out;
         &self.output
     }
@@ -193,6 +223,7 @@ fn fact(out: &mut Vec<f64>, input: &mut [f64], kind: f64, player: usize) {
 /// beyond the distance from every active contestant; the westmost of those, the first on a tie.
 fn respawn_station(
     input: &[f64],
+    clear: &[bool],
     station_base: usize,
     player_base: usize,
     players: usize,
@@ -201,11 +232,11 @@ fn respawn_station(
     let (margin, distance) = (input[RESPAWN_MARGIN], input[RESPAWN_DISTANCE]);
     let ahead = input[HAZARD_X] + margin;
     let mut best: Option<usize> = None;
-    for s in 0..stations {
+    for (s, &clear) in clear.iter().enumerate().take(stations) {
         let at = station_base + s * STATION_STRIDE;
         let (x, y) = (input[at], input[at + 1]);
         // As `filter` reads it: ahead of the wall (false for NaN), then clear, then far.
-        let candidate = x > ahead && input[at + 2] != 0.0;
+        let candidate = x > ahead && clear;
         let far = candidate
             && (0..players).all(|j| {
                 let other = player_base + j * PLAYER_STRIDE;
@@ -223,11 +254,32 @@ fn respawn_station(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sight::tests::grid_of;
+
+    /// A 2000 x 800 map with one circle obstacle of radius 150 at (1300, 300), in sight's 200-unit cells.
+    fn map() -> (World, CollisionMap, GateSet) {
+        let cells: Vec<((i32, i32), Vec<i32>)> = (5..=7)
+            .flat_map(|c| (0..=2).map(move |r| ((c, r), vec![0])))
+            .collect();
+        let map = CollisionMap::new(
+            &[2000.0, 800.0, 100.0, 20.0, 8.0],
+            &[1; 160],
+            &[1.0, 0.0, 1150.0, 150.0, 300.0, 300.0, 1300.0, 300.0, 150.0],
+            &[0, 9],
+            &grid_of(&cells),
+        );
+        let gates = GateSet::new(
+            &[],
+            &[0, 0],
+            &[1900.0, 700.0, 26.0, 54.0],
+            &grid_of(&[((9, 3), vec![0])]),
+        );
+        (World::new(), map, gates)
+    }
 
     fn header(players: usize, effects: usize, stations: usize) -> Vec<f64> {
         let mut h = vec![0.0; HEADER];
         h[TICK] = 99.0;
-        h[GRACE] = 0.0;
         h[DURATION] = 1000.0;
         h[MAP_WIDTH] = 900.0;
         h[SERIAL] = 7.0;
@@ -237,6 +289,9 @@ mod tests {
         h[RESPAWN_MARGIN] = 400.0;
         h[RESPAWN_DISTANCE] = 1000.0;
         h[RAIL_COOLDOWN] = 180.0;
+        h[CONTESTANT_RADIUS] = 12.0;
+        h[GLADIATOR_RADIUS] = 16.0;
+        h[CLEARANCE_RADIUS] = 25.0;
         h
     }
 
@@ -247,14 +302,18 @@ mod tests {
         p[RESPAWN_AT] = f64::NAN;
         p[ARRIVE_AT] = f64::NAN;
         p[X] = x;
+        p[Y] = 600.0;
         p[HP] = 10.0;
         p[MAX_HP] = 100.0;
         p[TIMERS..TIMERS + TIMER_COUNT].copy_from_slice(&[3.0, 1.0, 0.0, 2.0, f64::NAN, 5.0, 4.0]);
+        p[DESTINATION] = -1.0;
         p
     }
 
-    fn load(phase: &mut PhaseOne, words: Vec<f64>) {
+    fn run(phase: &mut PhaseOne, words: Vec<f64>) -> Vec<f64> {
+        let (mut world, mut map, mut gates) = map();
         phase.input(words.len()).copy_from_slice(&words);
+        phase.run(&mut world, &mut map, &mut gates).to_vec()
     }
 
     #[test]
@@ -262,9 +321,8 @@ mod tests {
         let mut phase = PhaseOne::default();
         let mut words = header(1, 2, 0);
         words.extend([1.0, 5.0]);
-        words.extend(player(CONTESTANT, ACTIVE, 0.0));
-        load(&mut phase, words);
-        assert_eq!(phase.run(0), [DONE, 0.0, 0.0]);
+        words.extend(player(CONTESTANT, ACTIVE, 100.0));
+        assert_eq!(run(&mut phase, words), [0.0]);
         let input = &phase.input;
         assert_eq!(input[TICK], 100.0);
         assert_eq!(input[HAZARD_X], js_round(-80.0 + 100.0 / 1000.0 * 1000.0));
@@ -275,26 +333,17 @@ mod tests {
     }
 
     #[test]
-    fn a_respawn_asks_for_the_stations_then_takes_the_westmost_clear_one_and_an_id() {
+    fn a_respawn_takes_the_westmost_clear_station_and_an_id() {
         let mut phase = PhaseOne::default();
         let mut words = header(1, 0, 3);
-        // Ahead of the wall (hazardX 20 + 400): 900 clear, 700 blocked, 800 clear.
-        words.extend([900.0, 0.0, 1.0, 700.0, 0.0, 0.0, 800.0, 5.0, 1.0]);
+        // Ahead of the wall (hazardX 20 + 400): 1300 is inside the obstacle, 1700 and 1600 are clear.
+        words.extend([1700.0, 300.0, 1300.0, 300.0, 1600.0, 305.0]);
         let mut g = player(1.0, RESPAWNING, -50.0);
         g[RESPAWN_AT] = 100.0;
         words.extend(g);
-        load(&mut phase, words);
-        assert_eq!(phase.run(0), [NEED_STATIONS, 0.0, 0.0]);
-        phase.input[STATIONS_ANSWERED] = 1.0;
-        assert_eq!(phase.run(0), [DONE, 0.0, 1.0, RESPAWNED, 0.0, 7.0]);
-        assert_eq!(
-            phase.input[TICK], 100.0,
-            "resuming from the first player advances the tick once"
-        );
-        let row = HEADER + 9;
-        assert_eq!(phase.input[HAZARD_X], 20.0);
-        assert_eq!(phase.input[row + X], 800.0);
-        assert_eq!(phase.input[row + Y], 5.0);
+        assert_eq!(run(&mut phase, words), [1.0, RESPAWNED, 0.0, 7.0]);
+        let row = HEADER + 6;
+        assert_eq!(phase.input[row + X..row + Y + 1], [1600.0, 305.0]);
         assert_eq!(phase.input[row + HP], 100.0);
         assert_eq!(phase.input[row + STATUS], ACTIVE);
         assert_eq!(phase.input[SERIAL], 8.0);
@@ -304,25 +353,26 @@ mod tests {
     }
 
     #[test]
-    fn a_due_arrival_stops_for_its_landing_and_lands_on_resume() {
+    fn a_due_arrival_lands_clear_of_an_actor_and_waits_when_it_cannot() {
         let mut phase = PhaseOne::default();
-        let mut words = header(2, 0, 0);
-        words.extend(player(CONTESTANT, ACTIVE, 0.0));
+        let mut words = header(3, 0, 2);
+        words.extend([500.0, 600.0, 1300.0, 300.0]);
+        // A contestant on the open station: the gladiator lands on the first ring spot clear of it.
+        words.extend(player(CONTESTANT, ACTIVE, 500.0));
         let mut g = player(1.0, TRANSIT, 0.0);
         g[ARRIVE_AT] = 100.0;
+        g[DESTINATION] = 0.0;
+        words.extend(g.clone());
+        // The second station is inside the obstacle, beyond the search's reach.
+        g[DESTINATION] = 1.0;
         words.extend(g);
-        load(&mut phase, words);
-        assert_eq!(phase.run(0), [NEED_LANDING, 1.0, 0.0]);
-        let row = HEADER + PLAYER_STRIDE;
-        phase.input[LANDING_ANSWERED] = 1.0;
-        phase.input[LANDED] = 1.0;
-        phase.input[LANDING_X] = 30.0;
-        phase.input[LANDING_Y] = 40.0;
-        assert_eq!(phase.run(1), [DONE, 0.0, 1.0, ARRIVED, 1.0, 7.0]);
-        assert_eq!(phase.input[row + X..row + Y + 1], [30.0, 40.0]);
+        assert_eq!(run(&mut phase, words), [1.0, ARRIVED, 1.0, 7.0]);
+        let (landed, waiting) = (HEADER + 4 + PLAYER_STRIDE, HEADER + 4 + 2 * PLAYER_STRIDE);
+        let (x, y) = (phase.input[landed + X], phase.input[landed + Y]);
+        assert!(hypot(x - 500.0, y - 600.0) >= 28.0 && hypot(x - 500.0, y - 600.0) < 36.0);
         // The cooldown starts on landing, then counts down with the other timers.
-        assert_eq!(phase.input[row + RAIL_CD], 179.0);
-        // The contestant before it ran once, in the first call.
-        assert_eq!(phase.input[HEADER + COOLDOWN], 2.0);
+        assert_eq!(phase.input[landed + RAIL_CD], 179.0);
+        assert_eq!(phase.input[waiting + STATUS], TRANSIT);
+        assert_eq!(phase.input[SERIAL], 8.0);
     }
 }

@@ -296,15 +296,14 @@ and the effects' lives, then per player in roster order runs respawn, transit ar
 - **Facts in allocation order.** The core takes every ID it allocates from `serial`, which is packed in and out (D6),
   and reports each respawn and landing as a fact with its ID. `beginTick` applies them in order: the event and effect
   records, built by `event` and `effect` with the core's IDs, and the Node-owned writes of the change-list table above.
-- **Two queries stay in JavaScript:** whether a station is clear for a respawn (`canOccupy`) and where a transit lands
-  (`landing`, the placement search `synchronize` shares). The run stops before a player that needs one; `beginTick`
-  applies the players before it, answers, and resumes from that player. A landing reads those players as they stand,
-  as the TypeScript tick did, so the run stops rather than asking ahead. Both move into the core in #1234, over the
-  core's collision queries (step 5b.2), which retires both stops.
-- **The rest of phase 1 stays in TypeScript for now:** the body sync (`synchronize`, which phase 7 and the between-tick
-  commands share), the hook revalidation, and the pending spawns, impulses and attachments, whose queues and checks
-  belong to the physics adapter (`physics-runtime.ts`, `shared/physics/world.ts`). They move with the solver around
-  phase 4 in step 5 (#1213).
+- **Both queries run in the core since #1234:** whether a station is clear for a respawn (`canOccupy` at
+  `RESPAWN_CLEARANCE_RADIUS`) and where a transit lands (the placement search the body sync shares). Until then
+  they stayed in JavaScript, and the run stopped before a player that needed one and resumed from it. Station
+  clearance had been tied to the bots' port (#1215) because nothing in the core could answer `canOccupy`; the core's
+  collision queries (step 5b.2) removed that reason. So Corey decided (2026-11-20, on #1233) that both stops retire
+  together in #1234, which removed the yield and resume (the resume index, the "advanced" flag and the answer
+  flags) in one change. A landing reads the players before it as the run has left them, as the TypeScript tick did.
+- **The rest of phase 1** moved in step 5b.3 (#1234), except the hook revalidation and the trap spawns (below).
 - **The item counters stay in TypeScript for now.** Phase 1 allocates no item IDs. `itemSerial` and `scatterSerial`
   are allocated only in phases 3 and 6 (`item-instances.ts`, the drop planner and pickups), so they move into the core
   with those phases (#1213).
@@ -318,11 +317,11 @@ and the effects' lives, then per player in roster order runs respawn, transit ar
   - #1232: the world's records, generations, queues and ID order;
   - #1233: the map's collision queries (`canOccupy`, `reachClear`), which the landing placement and attachment
     admission need;
-  - #1234: `synchronize`, `prepareHooks`, the pending admission and the landing placement, which retires
-    `NEED_LANDING`, and the station clearance, which retires `NEED_STATIONS` with it, so phase 1's yield and resume
-    go in one change (Corey, 2026-11-20, on #1233);
+  - #1234: `synchronize`, the pending admission and the landing placement, which retires `NEED_LANDING`, and
+    the station clearance, which retires `NEED_STATIONS` with it, so phase 1's yield and resume go in one change
+    (Corey, 2026-11-20, on #1233). `prepareHooks` was planned here too but moved to #1229 (step 5b.3, below);
 - #1228: phase 3 with the item counters;
-- #1229: phase 5;
+- #1229: phase 5, with the swept queries it shares with the hook's revalidation (`prepareHooks`, `reconcileHooks`);
 - #1230: phases 6 and 7.
 
 The physics adapter goes before phase 3 because drops and attacks call into it (`launchPhysicalDrops`, impulses, attachments).
@@ -354,7 +353,7 @@ the same handles and slots.
 
 **Step 5b.2, the map's collision queries (#1233, adapter version 9).** `rust/core/src/collision.rs` answers
 `canOccupy` (`shared/movement.ts`, with `insideMap`), `lineClear` and `reachClear` (`shared/sight.ts`) bit for bit.
-Nothing calls them yet; #1234 moves the callers.
+#1234 gave them their first callers in the tick (step 5b.3).
 - **Uploaded once per map:** a collision map per obstacle list, holding the playable cells and each obstacle as a
   collider (bounds, see-through or not, shape), with movement's cells (`collisionTables`). It is rebuilt when the list
   grows or the map's size or playable area differs. Sight's two handles carry the rest: the sight index now also holds
@@ -370,6 +369,42 @@ Nothing calls them yet; #1234 moves the callers.
   and #1222.
 - **Cost:** [42.66](42.66-collision-queries-core.md). A query costs about a quarter of the TypeScript's; the open mask,
   about 0.55 µs for 421 gates, is the part to write once per batch.
+
+**Step 5b.3, the tick boundary's body work (#1234, adapter version 10).** `rust/core/src/boundary.rs` runs the body
+sync (`synchronize` in `game.ts`, with `synchronizePhysicalItems`) and phase 1's admission of the pending impulses and
+attachments; `placement.rs` is the placement search that the sync, phase 1's landing and phase 6's instant transit
+share. `shared/simulation/boundary.ts` is their adapter, and phase 1 (`phase_one.rs`) answers its station clearance
+and landing itself, in one call a tick.
+- **The core drives the world.** The sync queues, commits and teleports in `world.rs` itself, in the TypeScript's order,
+  so Rapier allocates the same handles. JavaScript still owns the frozen spec records (step 5b.1), so the call returns a
+  **log**: each write the TypeScript made to a JavaScript record, in order. That is a body queued (with the template its
+  spec is built from), a commit's facts, a teleport, a discontinuity marker, the runtime's actor, item and gate state,
+  and a player's pose or retry. `world.ts` takes the world's entries (`adoptQueued`, `adoptCommit`, `adoptTeleport`),
+  building the specs `queueAddBody` built, and the adapter writes the rest.
+- **The same refusals, at the same point.** The core emulates what made the TypeScript throw partway, including
+  `markPhysicsDiscontinuity`'s capacity and `validateBody`'s checks on the values it sets. It stops there; JavaScript
+  applies the log before the stop, then throws the old message. `tests/boundary-core.test.js` refuses a sync partway
+  and checks that the records and the world agree and that the next sync finishes.
+- **Two calls per sync.** The first does the actors, the gates and the removal of item bodies whose items left the
+  ground, then reports whether any item could be admitted. Only then are the items awaiting a body packed, since a
+  large map has thousands; a tick with no room packs none, as the TypeScript skipped ordering them.
+- **The admission decides; JavaScript queues.** The core checks each pending impulse's and attachment's generations,
+  transforms, reach and `reachClear`. The admitted are queued through `world.ts`, which keeps their specs. With
+  nothing pending there is no call.
+- **Handles are passed in.** Each call takes the collision map, sight index and gate set (`queryHandles` in
+  `shared/sight-core.ts`) and writes the open mask once. Phase 1 writes it only when a player is respawning or in
+  transit, and the admission only when an attachment is pending. `createGame` builds the three uploads with the map
+  (`prepareCollision`), so no tick builds them.
+- **What stays in JavaScript:**
+  - the pending queues' generation filter at the end of the sync, which reads one generation per entry of queues
+    this runtime owns;
+  - the trap spawns, which are projectile records;
+  - the hook's revalidation (`prepareHooks`, `reconcileHooks`). It asks `solidContact`, the swept query that phase 5's
+    projectiles and `finishHooks` share, which the core does not have yet. So the hook rules move together with
+    phase 5 (#1229). `reconcileHooks` is the sync's last step, so the order is unchanged.
+- **Two copies on purpose:** `physicalDropPlacementClear` keeps its drop-planner caller (`loot.ts`) until phase 3 moves
+  it (#1228). The TypeScript placement search is gone; the parity test keeps it as its reference.
+- **Cost:** [42.67](42.67-boundary-core.md).
 
 ## One math library on both sides
 

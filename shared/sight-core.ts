@@ -14,8 +14,11 @@ import type { CollisionMap, GameMap, Gate, GateId, ItemId, Obstacle, PlayableAre
 //   the points come back in a buffer the core owns.
 // - **Collision (#1233)** is the same binding's: `canOccupy`, `lineClear` and `reachClear` in the core
 //   (`rust/core/src/collision.rs`), from a collision map per obstacle list beside the sight index and
-//   gate set. They answer scalars. The TypeScript keeps its callers until #1234 moves them, and
-//   `tests/collision-core.test.js` holds the two equal.
+//   gate set. They answer scalars, and `tests/collision-core.test.js` holds them equal to the TypeScript,
+//   which keeps its other callers (movement, bots, tools).
+// - **The tick boundary (#1234)** takes the three handles (`queryHandles`) into calls that query them many
+//   times: phase 1, the body sync, the pending admission and the placement search. The mask is written
+//   once per such call.
 // - **Views are made after each call,** because any allocation may grow the memory and detach the
 //   old `memory.buffer`.
 
@@ -56,6 +59,14 @@ export interface CoreSight extends SightCaster {
   insideMap(map: CollisionMap, x: World, y: World, radius?: World): boolean;
   /** The depth of the disk in the map's collider `i` as the core's SAT port reads it, or -1: for the parity check only. */
   colliderDepth(map: CollisionMap, i: number, x: World, y: World, radius: World): number;
+  /**
+   * The map's collision upload, sight index and gate set, for a core call that queries them many times
+   * (`shared/simulation/boundary.ts`, #1234). `openMask` writes the gates as they stand now, once for the call;
+   * without it the mask is as the last call left it, for a call that makes no gate-reading query.
+   */
+  queryHandles(map: CollisionMap, openMask: boolean): { core: CoreExports; collision: Handle; index: Handle; gates: Handle };
+  /** Builds the map's collision upload, sight index and gate set now, so no tick builds them (42.66). */
+  prepareCollision(map: CollisionMap): void;
 }
 
 let processSight: Promise<CoreSight> | undefined;
@@ -217,6 +228,13 @@ export function coreSight(core: CoreExports): CoreSight {
     },
     colliderDepth(map, i, x, y, radius) {
       return core.collision_depth(collisionFor(map), i, x, y, radius);
+    },
+    queryHandles(map, openMask) {
+      const collision = collisionFor(map), index = indexFor(map);
+      return { core, collision, index, gates: openMask ? openGates(map) : gateSetFor(map).handle };
+    },
+    prepareCollision(map) {
+      collisionFor(map); indexFor(map); gateSetFor(map);
     },
   };
 }

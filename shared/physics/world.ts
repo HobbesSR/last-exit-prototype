@@ -71,6 +71,13 @@ export interface PhysicsExports {
   physics_solid_props(world: number): number;
   physics_pending(world: number): number;
   physics_constraint_keys(world: number): number;
+  // The tick boundary (`rust/core/src/boundary.rs`, #1234), driven by `shared/simulation/boundary.ts`.
+  physics_boundary_input(world: number, length: number): number;
+  physics_boundary_output(world: number): number;
+  physics_sync_bodies(world: number, collision: number, gates: number): void;
+  physics_sync_items(world: number, collision: number, gates: number): void;
+  physics_admit_pending(world: number, index: number, gates: number): void;
+  physics_place(world: number, collision: number, gates: number): void;
 }
 
 // The process's one core, bound once, as sight binds it (`shared/sight-core.ts`). Worlds are made
@@ -192,10 +199,37 @@ function validateBody(input: BodySpec): BodySpec {
   return result;
 }
 
+/**
+ * The row `world.rs` queues a body from, keyed `key`: one owner of the layout, for `queueAddBody` and for the
+ * templates the core's own callers queue from (`shared/simulation/boundary.ts`).
+ */
+function bodyRow(spec: BodySpec, key: number, row: Float64Array = new Float64Array(BODY_ROW + (spec.shape.kind === 'convex' ? spec.shape.vertices.length * 2 : 0))): Float64Array {
+  const shape = spec.shape;
+  const vertices = shape.kind === 'convex' ? shape.vertices : [];
+  const { minimum, tip } = shapeRadii(shape);
+  const groups = spec.collisionProfile === 'loot' ? packGroups(LOOT_GROUP, STATIC_GROUP)
+    : spec.kind === 'static' ? packGroups(STATIC_GROUP, solidMask | LOOT_GROUP)
+      : spec.kind === 'actor' ? packGroups(ACTOR_GROUP, solidMask) : packGroups(PROP_GROUP, solidMask);
+  row[0] = key; row[1] = KIND[spec.kind]; row[2] = spec.mapGeometry ? 1 : 0; row[3] = SHAPE[shape.kind];
+  row[4] = shape.kind === 'circle' ? shape.radius : shape.kind === 'box' ? shape.hx : 0;
+  row[5] = shape.kind === 'box' ? shape.hy : 0;
+  row[6] = spec.x; row[7] = spec.y; row[8] = spec.angle!; row[9] = spec.vx!; row[10] = spec.vy!; row[11] = spec.omega!;
+  row[12] = spec.mass!; row[13] = spec.friction!; row[14] = spec.restitution!;
+  row[15] = spec.linearDamping ?? NaN; row[16] = spec.angularDamping ?? NaN; row[17] = groups;
+  row[18] = spec.collisionProfile === 'loot' ? 1 : 0;
+  row[19] = Math.min(spec.maxSpeed ?? Infinity, physicsSpeedLimit(minimum)); row[20] = tip;
+  row[21] = vertices.length;
+  vertices.forEach((point, i) => { row[BODY_ROW + 2 * i] = point.x; row[BODY_ROW + 2 * i + 1] = point.y; });
+  return row;
+}
+
+/** A validated body's row with key 0, for a template the core queues from with its own key and pose. */
+export function templateRow(input: BodySpec): Float64Array { return bodyRow(validateBody(input), 0); }
+
 /** What JavaScript keeps of a committed body: the frozen objects snapshots share (#655). */
 type BodyRecord = { spec: BodySpec; lifetime: object; motor?: MotorIntent };
 /** `world.rs`'s refusals, with the messages world.ts threw. */
-const refusal = (code: number, id = '', a = '', b = ''): Error => {
+export const physicsRefusal = (code: number, id = '', a = '', b = ''): Error => {
   switch (code) {
     case -1: return new RangeError('physics command queue capacity exceeded');
     case -2: return new Error(`duplicate physics body ${id}`);
@@ -290,7 +324,7 @@ export class PhysicsWorld {
   }
   private checkQueue(): void {
     const code = this.core.physics_check_queue(this.native);
-    if (code < 0) throw refusal(code);
+    if (code < 0) throw physicsRefusal(code);
   }
   /** Whether a batch of dynamic bodies fits without partial queue admission. */
   canAddBodies(count: number): boolean {
@@ -303,34 +337,19 @@ export class PhysicsWorld {
     this.ensure();
     let spec: BodySpec;
     try { spec = frozen(validateBody(input)); } catch (error) { this.checkQueue(); throw error; }
-    const key = this.intern(spec.id), shape = spec.shape;
-    const vertices = shape.kind === 'convex' ? shape.vertices : [];
-    const { minimum, tip } = shapeRadii(shape);
-    const groups = spec.collisionProfile === 'loot' ? packGroups(LOOT_GROUP, STATIC_GROUP)
-      : spec.kind === 'static' ? packGroups(STATIC_GROUP, solidMask | LOOT_GROUP)
-        : spec.kind === 'actor' ? packGroups(ACTOR_GROUP, solidMask) : packGroups(PROP_GROUP, solidMask);
-    const row = this.input(BODY_ROW + vertices.length * 2);
-    row[0] = key; row[1] = KIND[spec.kind]; row[2] = spec.mapGeometry ? 1 : 0; row[3] = SHAPE[shape.kind];
-    row[4] = shape.kind === 'circle' ? shape.radius : shape.kind === 'box' ? shape.hx : 0;
-    row[5] = shape.kind === 'box' ? shape.hy : 0;
-    row[6] = spec.x; row[7] = spec.y; row[8] = spec.angle!; row[9] = spec.vx!; row[10] = spec.vy!; row[11] = spec.omega!;
-    row[12] = spec.mass!; row[13] = spec.friction!; row[14] = spec.restitution!;
-    row[15] = spec.linearDamping ?? NaN; row[16] = spec.angularDamping ?? NaN; row[17] = groups;
-    row[18] = spec.collisionProfile === 'loot' ? 1 : 0;
-    row[19] = Math.min(spec.maxSpeed ?? Infinity, physicsSpeedLimit(minimum)); row[20] = tip;
-    row[21] = vertices.length;
-    vertices.forEach((point, i) => { row[BODY_ROW + 2 * i] = point.x; row[BODY_ROW + 2 * i + 1] = point.y; });
+    const key = this.intern(spec.id);
+    bodyRow(spec, key, this.input(BODY_ROW + (spec.shape.kind === 'convex' ? spec.shape.vertices.length * 2 : 0)));
     const code = this.core.physics_queue_add_body(this.native);
-    if (code < 0) throw refusal(code, spec.id);
+    if (code < 0) throw physicsRefusal(code, spec.id);
     this.pendingSpecs.set(key, spec);
     this.dirty = true;
   }
   queueRemoveBody(id: string): void {
     this.ensure();
     const key = typeof id === 'string' ? this.keys.get(id) : undefined;
-    if (key === undefined) { this.checkQueue(); validId(id); throw refusal(-4, id); }
+    if (key === undefined) { this.checkQueue(); validId(id); throw physicsRefusal(-4, id); }
     const code = this.core.physics_queue_remove_body(this.native, key);
-    if (code < 0) throw refusal(code, id);
+    if (code < 0) throw physicsRefusal(code, id);
     this.dirty = true;
   }
   queueAddConstraint(input: ConstraintSpec): void {
@@ -345,16 +364,16 @@ export class PhysicsWorld {
     row[7] = spec.damping ?? 0; row[8] = spec.maxForce ?? 0; row[9] = spec.breakDistance ?? NaN;
     row[10] = spec.anchorA?.x ?? 0; row[11] = spec.anchorA?.y ?? 0; row[12] = spec.anchorB?.x ?? 0; row[13] = spec.anchorB?.y ?? 0;
     const code = this.core.physics_queue_add_constraint(this.native);
-    if (code < 0) throw refusal(code, spec.id, spec.a, spec.b);
+    if (code < 0) throw physicsRefusal(code, spec.id, spec.a, spec.b);
     this.pendingConstraintSpecs.set(key, spec);
     this.dirty = true;
   }
   queueRemoveConstraint(id: string): void {
     this.ensure();
     const key = typeof id === 'string' ? this.keys.get(id) : undefined;
-    if (key === undefined) { this.checkQueue(); validId(id); throw refusal(-12, id); }
+    if (key === undefined) { this.checkQueue(); validId(id); throw physicsRefusal(-12, id); }
     const code = this.core.physics_queue_remove_constraint(this.native, key);
-    if (code < 0) throw refusal(code, id);
+    if (code < 0) throw physicsRefusal(code, id);
     this.dirty = true;
   }
   /**
@@ -367,8 +386,14 @@ export class PhysicsWorld {
     this.ensure();
     if (!this.dirty) return;
     const code = this.core.physics_commit(this.native);
-    const count = this.output(1)[0]!, facts = this.output(1 + count * 2);
-    for (let i = 1; i < facts.length; i += 2) {
+    const count = this.output(1)[0]!;
+    this.applyCommit(code, this.output(1 + count * 2), 0);
+    if (code < 0) throw physicsRefusal(code);
+  }
+  /** A commit's facts (`count`, then `kind, key` pairs, at `at`) taken into the records; a commit that stopped keeps its queues. */
+  private applyCommit(code: number, facts: Float64Array, at: number): void {
+    const end = at + 1 + facts[at]! * 2;
+    for (let i = at + 1; i < end; i += 2) {
       const kind = facts[i]!, key = facts[i + 1]!;
       if (kind === 0) this.records[key] = undefined;
       else if (kind === 1) {
@@ -376,10 +401,30 @@ export class PhysicsWorld {
         this.pendingSpecs.delete(key);
       } else this.constraintSpecs[key] = this.pendingConstraintSpecs.get(key)!;
     }
-    if (code < 0) throw refusal(code);
+    if (code < 0) return;
     this.pendingSpecs.clear(); this.pendingConstraintSpecs.clear();
     this.dirty = false;
   }
+
+  // The tick boundary in the core (`shared/simulation/boundary.ts`, #1234) runs rules that queue, commit and
+  // teleport inside one call. These take what it reports into the records, in the order it reports them.
+  /** The core and this world's handle, for a boundary call; views of its output follow the adapter's rules. */
+  boundaryCall(): { core: CoreExports & PhysicsExports; world: number } { this.ensure(); return { core: this.core, world: this.native }; }
+  /** The ID's key, interned the first time it is seen. */
+  key(id: string): number { this.ensure(); return this.intern(validId(id)); }
+  /** The ID a key was interned from. */
+  idOf(key: number): string { return this.ids[key]!; }
+  /** A body the core queued: its spec, validated and frozen as `queueAddBody` makes it. */
+  adoptQueued(key: number, input: BodySpec): void {
+    this.pendingSpecs.set(key, frozen(validateBody(input)));
+    this.dirty = true;
+  }
+  /** A commit the core made, logged as its code, then its facts at `at`. */
+  adoptCommit(code: number, facts: Float64Array, at: number): void { this.applyCommit(code, facts, at); }
+  /** A teleport the core made (`setTransform`), which clears the motor. */
+  adoptTeleport(key: number): void { delete this.records[key]!.motor; }
+  /** After a boundary call: whether anything stays queued for the next commit. */
+  adoptQueue(queued: number): void { this.dirty = queued > 0; }
   private record(id: string): BodyRecord | undefined {
     const key = this.keys.get(id);
     return key === undefined ? undefined : this.records[key];
@@ -414,7 +459,7 @@ export class PhysicsWorld {
   /** The key of a committed dynamic body, refused as world.ts's `dynamic` refused it. */
   private dynamicKey(id: string): number {
     const key = this.keys.get(validId(id)), record = key === undefined ? undefined : this.records[key];
-    if (!record || record.spec.kind === 'static') throw refusal(-14, id);
+    if (!record || record.spec.kind === 'static') throw physicsRefusal(-14, id);
     return key!;
   }
   setMotor(id: string, input: MotorIntent): void {
@@ -444,7 +489,7 @@ export class PhysicsWorld {
     this.ensure(); this.checkQueue();
     const key = this.dynamicKey(id), value = vector(input);
     const code = this.core.physics_queue_push(this.native, impulse, key, value.x, value.y);
-    if (code < 0) throw refusal(code, id);
+    if (code < 0) throw physicsRefusal(code, id);
     this.dirty = true;
   }
   queueForce(id: string, input: Point): void { this.push(0, id, input); }
@@ -535,7 +580,7 @@ export class PhysicsWorld {
   prepareStatics(): void {
     this.ensure();
     const events = this.core.physics_prepare_statics(this.native);
-    if (events < 0) throw refusal(events);
+    if (events < 0) throw physicsRefusal(events);
     if (events) throw new Error(`prepareStatics produced ${events} native events`);
   }
   drainContacts(): PhysicsContact[] {

@@ -1,5 +1,4 @@
 import { movementSpeed } from '../movement.ts';
-import { reachClear } from '../sight.ts';
 import { actorMotor } from './actor-physics.ts';
 import { applyFloorDrag, writePhysicalItemPoses } from './world-physics.ts';
 import { HZ } from './rules.ts';
@@ -21,11 +20,11 @@ import { stepTraps } from '../traps.ts';
 import { applyEnvironment, advanceDiscovery } from './tick-rules.ts';
 import { playerIndex } from './relations.ts';
 import { recordRewind } from './rewind.ts';
-import { actorId, compare, ordered, synchronize } from './game.ts';
+import { actorId, ordered, synchronize } from './game.ts';
+import { admitPending } from './boundary.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game } from '../types.ts';
-import { hypot } from '../math.ts';
 import { start, stop } from '../profiler.ts';
 
 /** The seven-phase tick. Actors move only through the physics world, never `movePlayer`. */
@@ -41,20 +40,15 @@ export function stepGame(s: Game): void {
 // Timed by phase (sim.*; 42.22). Every synchronize call is counted in sim.sync.
 function advanceGame(s: Game, r: PhysicsRuntime): void {
   // 1: all timers and previous-boundary lifecycle, before anyone decides: the tick, timers, respawn and arrival
-  // run in the core (phase-one.ts), then the body sync and the pending queues here.
+  // (phase-one.ts), then the body sync and the pending admission (boundary.ts), all in the core; the hooks here.
   beginTick(s);
   // Each marker reaches exactly one stepped capture: its own tick's, or the next after a between-tick change.
   r.discontinuities = r.discontinuities.filter(entry => entry.tick >= s.tick);
   start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
   prepareHooks(s);
+  // Trap spawns are projectile records, which stay here; impulses and attachments are admitted in the core.
   s.projectiles.push(...r.pendingSpawns.splice(0));
-  for (const impulse of r.pendingImpulses.splice(0)) if ((r.actors.has(impulse.id) || r.world.hasBody(impulse.id)) && r.world.getGeneration(impulse.id) === impulse.generation) r.world.queueImpulse(impulse.id, impulse.value);
-  for (const attachment of r.pendingAttachments.splice(0).sort((a, b) => compare(a.id, b.id))) {
-    const a = r.world.getTransform(attachment.a), b = r.world.getTransform(attachment.b);
-    if (a && b && r.actors.has(attachment.a) && r.actors.has(attachment.b)
-      && r.world.getGeneration(attachment.a) === attachment.generationA && r.world.getGeneration(attachment.b) === attachment.generationB
-      && hypot(a.x - b.x, a.y - b.y) <= attachment.maxDistance && reachClear(s.map, a, b)) r.world.queueAddConstraint(attachment);
-  }
+  admitPending(s, r);
   r.world.commitMutations();
   // 2: roster-order collection from the same pre-movement world.
   const intents = new Array<BotIntent | undefined>(s.players.length);

@@ -4,12 +4,14 @@
 //! The WASM module uses plain exports, not wasm-bindgen: the adapter passes flat typed buffers in
 //! WASM memory (docs/27, rule 1), so there is no generated JavaScript glue to keep in step.
 
+pub mod boundary;
 pub mod collision;
 pub mod discovery;
 pub mod floor_drag;
 pub mod math;
 pub mod phase_one;
 pub mod physics;
+pub mod placement;
 pub mod sight;
 pub mod world;
 
@@ -18,7 +20,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 9;
+pub const ADAPTER_VERSION: u32 = 10;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -452,15 +454,22 @@ pub unsafe extern "C" fn phase_one_input(phase: *mut phase_one::PhaseOne, len: u
     unsafe { (*phase).input(len).as_mut_ptr() }
 }
 
-/// Runs phase 1 from player `from` (`phase_one::PhaseOne::run`); returns a pointer to its `f64`
-/// output, valid until the next call.
+/// Runs phase 1 (`phase_one::PhaseOne::run`); returns a pointer to its `f64` output, valid until
+/// the next call. `world` is the game's physics world, and `map` and `gates` the map's collision
+/// upload and gate set, for the station clearance and the landing.
 ///
 /// # Safety
-/// `phase` came from `phase_one_new`, and its input holds a whole tick.
+/// `phase` came from `phase_one_new`, its input holds a whole tick, `world`, `map` and `gates` are
+/// live, and `gates` is the map's gate set with its open mask written.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn phase_one_run(phase: *mut phase_one::PhaseOne, from: usize) -> *const f64 {
+pub unsafe extern "C" fn phase_one_run(
+    phase: *mut phase_one::PhaseOne,
+    world: *mut world::World,
+    map: *mut collision::CollisionMap,
+    gates: *mut sight::GateSet,
+) -> *const f64 {
     // SAFETY: the caller's contract.
-    unsafe { (*phase).run(from).as_ptr() }
+    unsafe { (*phase).run(&mut *world, &mut *map, &mut *gates).as_ptr() }
 }
 
 /// `roofAt`'s interned id at `(x, y)`, or -1: for the parity check against `shared/view.ts`
@@ -599,6 +608,78 @@ world_export!(
 world_export!(physics_solid_props() -> usize = |w| w.solid_props());
 world_export!(physics_pending() -> u32 = |w| { w.pending(); 0 });
 world_export!(physics_constraint_keys() -> usize = |w| w.constraint_keys());
+
+// The tick boundary (`boundary::*`, #1234), driven by `shared/simulation/boundary.ts`: the body sync,
+// phase 1's pending admission and the placement search. Each reads the world's boundary input and
+// leaves its header and log in the world's boundary output.
+
+world_export!(
+    /// The boundary input, resized to `len` `f64`s.
+    physics_boundary_input(len: usize) -> *mut f64 = |w| {
+        w.boundary_input.resize(len, 0.0);
+        w.boundary_input.as_mut_ptr()
+    }
+);
+world_export!(
+    /// The boundary output, as the last boundary call left it.
+    physics_boundary_output() -> *const f64 = |w| w.boundary_output.as_ptr()
+);
+
+/// The sync's first call (`boundary::synchronize_bodies`).
+///
+/// # Safety
+/// `world`, `map` and `gates` are live, and `gates` is the map's gate set with its open mask written.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_sync_bodies(
+    world: *mut world::World,
+    map: *mut collision::CollisionMap,
+    gates: *mut sight::GateSet,
+) {
+    // SAFETY: the caller's contract.
+    unsafe { boundary::synchronize_bodies(&mut *world, &mut *map, &mut *gates) }
+}
+
+/// The sync's second call (`boundary::synchronize_items`).
+///
+/// # Safety
+/// As `physics_sync_bodies`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_sync_items(
+    world: *mut world::World,
+    map: *mut collision::CollisionMap,
+    gates: *mut sight::GateSet,
+) {
+    // SAFETY: the caller's contract.
+    unsafe { boundary::synchronize_items(&mut *world, &mut *map, &mut *gates) }
+}
+
+/// Phase 1's pending admission (`boundary::admit_pending`).
+///
+/// # Safety
+/// `world`, `index` and `gates` are live, and `gates` is the map's gate set with its open mask written.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_admit_pending(
+    world: *mut world::World,
+    index: *const sight::SightIndex,
+    gates: *const sight::GateSet,
+) {
+    // SAFETY: the caller's contract.
+    unsafe { boundary::admit_pending(&mut *world, &*index, &*gates) }
+}
+
+/// The placement search (`boundary::place`).
+///
+/// # Safety
+/// As `physics_sync_bodies`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_place(
+    world: *mut world::World,
+    map: *mut collision::CollisionMap,
+    gates: *mut sight::GateSet,
+) {
+    // SAFETY: the caller's contract.
+    unsafe { boundary::place(&mut *world, &mut *map, &mut *gates) }
+}
 
 #[cfg(test)]
 mod tests {

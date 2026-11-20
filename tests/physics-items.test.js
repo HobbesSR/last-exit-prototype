@@ -9,7 +9,7 @@ import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.t
 import { interact } from '../shared/simulation/interactions.ts';
 import { eliminate } from '../shared/simulation/lifecycle.ts';
 import { addItems, removeItem, unadmittedItems } from '../shared/simulation/ground-items.ts';
-import { synchronizePhysicalItems } from '../shared/simulation/world-physics.ts';
+import { synchronizeBodies, synchronizeItems } from '../shared/simulation/boundary.ts';
 import { openArea } from './helpers/arena.js';
 import { identifyItems, itemId, itemLabel } from './helpers/item-identity.js';
 
@@ -63,7 +63,9 @@ test('admission prioritizes launched ids, preserves reserve, and retries ordinar
     const originalHas = r.items.has.bind(r.items);
     let ownershipChecks = 0;
     r.items.has = id => { ownershipChecks++; return originalHas(id); };
-    synchronizePhysicalItems(s, r, 19);
+    // The item sync alone, as the body sync's item steps run it (`rust/core/src/boundary.rs`).
+    const synchronizePhysicalItems = (markTick) => { if (synchronizeBodies(s, r, markTick, true)) synchronizeItems(s, r, markTick); };
+    synchronizePhysicalItems(19);
     assert.deepEqual(r.discontinuities.filter(d => d.kind === 'placed' && d.id.startsWith('item:')).map(d => d.id),
       ['item:b-launch', 'item:z-launch', 'item:a']);
     assert.ok(Math.abs(r.world.getTransform('item:b-launch').vx - 7) < 1e-5);
@@ -74,12 +76,27 @@ test('admission prioritizes launched ids, preserves reserve, and retries ordinar
     assert.ok(ownershipChecks < 20, `only visited candidates check ownership (${ownershipChecks})`);
     const generation = r.world.getGeneration('item:a');
     removeItem(s, s.items.find(i => i.id === itemId(s, 'a')));
-    synchronizePhysicalItems(s, r, 20);
+    synchronizePhysicalItems(20);
     assert.equal(r.world.hasBody('item:a'), false);
     assert.equal(r.world.hasBody('item:c'), true, 'the next ordinary id fills the released slot');
     assert.ok(r.discontinuities.some(d => d.id === 'item:a' && d.kind === 'removed' && d.generation === generation));
     assert.equal(r.world.hasBody('item:0-blocked'), false, 'a blocked first id does not prevent a later valid admission');
     assert.equal(blockedChecks, 2, 'a failed launch remains pending for later ordinary admission');
+  } finally { disposePhysics(s); }
+});
+
+test('admission packs the items awaiting a body in chunks, and reaches one behind more than a chunk of blocked ones (#1234)', async () => {
+  const { s, runtime: r } = await game();
+  try {
+    // 70 items off the map lead the ID order: the first chunk (32) runs out with room left, so the next is packed.
+    const blocked = Array.from({ length: 70 }, (_, i) => item(`a-${String(i).padStart(2, '0')}`, 'cell', { charge: 1, x: -100 }));
+    const records = [...blocked, item('z', 'cell', { charge: 1 })];
+    for (const record of records) record.id = itemId(s, record.id);
+    addItems(s, ...records);
+    identifyItems(s);
+    synchronizePhysics(s);
+    assert.equal(r.world.hasBody('item:z'), true);
+    assert.equal(blocked.some(b => r.world.hasBody(`item:${itemLabel(s, b.id)}`)), false);
   } finally { disposePhysics(s); }
 });
 

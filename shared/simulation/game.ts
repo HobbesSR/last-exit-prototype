@@ -1,21 +1,19 @@
-import { gateAt } from './relations.ts';
 import { createGameRecord } from './state.ts';
-import { canOccupy, prepareMovementGeometry } from '../movement.ts';
+import { prepareMovementGeometry } from '../movement.ts';
 import { prepareSightIndex } from '../sight.ts';
 import { initCoreSight } from '../sight-core.ts';
 import { initPhaseOne } from './phase-one.ts';
 import { attachSight } from './sight-runtime.ts';
-import { gateShape } from '../gate-index.ts';
-import { actorRadius, validateActorPhysics } from './actor-physics.ts';
-import { addAuthoredProps, synchronizePhysicalItems, validateWorldPhysics } from './world-physics.ts';
+import { validateActorPhysics } from './actor-physics.ts';
+import { addAuthoredProps, validateWorldPhysics } from './world-physics.ts';
+import { placeInCore, synchronizeBodies, synchronizeItems } from './boundary.ts';
 import { reconcileHooks } from './hook.ts';
-import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION } from './physics-runtime.ts';
-import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
+import { attachPhysics, physicsRuntime, PHYSICS_VERSION } from './physics-runtime.ts';
+import { buildPhysicsGeometry } from './physics-geometry.ts';
 import { prepareBotGates } from './bot-routes.ts';
 import { prepareSweptGeometry, prepareSweptGates } from './swept.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, GateIdx, MatchContent, Player, Vec2 } from '../types.ts';
-import { cos, hypot, sin } from '../math.ts';
 import { start, stop, profiling, observe } from '../profiler.ts';
 import { PhysicsIdentities } from './physics-identities.ts';
 
@@ -35,6 +33,10 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
   await initPhaseOne();
   const s = createGameRecord(seed, map, content, sight);
   attachSight(s, sight);
+  if (yieldControl) await yieldControl();
+  // The core's collision upload, sight index and gate set, which phase 1, the body sync and the placement search
+  // query: built with the map, so neither the first sync below nor the first tick builds them (42.66).
+  sight.prepareCollision(s.map);
   if (yieldControl) await yieldControl();
   validateActorPhysics(s.content.actorPhysics, s.map);
   validateWorldPhysics(s.content, s.map);
@@ -127,68 +129,25 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
   } catch (error) { world.dispose(); throw error; }
 }
 
-/** Bounded placement is explicit; failing admission never spawns an overlapping body. */
+/**
+ * Bounded placement is explicit; failing admission never spawns an overlapping body. The search runs in the core
+ * (`rust/core/src/placement.rs`), which the body sync and phase 1's landing share.
+ */
 function placement(s: Game, r: PhysicsRuntime, p: Player, admitted: Player[], origin: Vec2 = p): Vec2 | null {
-  const radius = actorRadius(s, p);
-  const free = (x: number, y: number) => canOccupy(s.map, x, y, radius)
-    && admitted.every(q => hypot(x - q.x, y - q.y) >= radius + actorRadius(s, q))
-    && !r.world.overlapsProp(x, y, radius);
-  if (free(origin.x, origin.y)) return { x: origin.x, y: origin.y };
-  for (let ring = 1; ring <= 24; ring++) {
-    for (let i = 0; i < 32; i++) {
-      const angle = i * Math.PI / 16, x = origin.x + cos(angle) * ring * 4, y = origin.y + sin(angle) * ring * 4;
-      if (free(x, y)) return { x, y };
-    }
-  }
-  return null;
+  return placeInCore(s, r, p, admitted, origin);
 }
 
 /**
  * `markTick` is the last tick whose capture carries a discontinuity marked here: the current one
  * inside a step, the next one between ticks, whose capture has already been taken.
+ *
+ * The actors, gates and item bodies are synchronized in the core (`rust/core/src/boundary.rs`, #1234); the
+ * pending queues, which this runtime owns, are filtered here, and the hooks reconciled, as before.
  */
 export function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmission = false): void {
-  const active = ordered(s).filter(p => p.status === 'active');
-  const wanted = new Set(active.map(actorId));
-  for (const id of [...r.actors].sort(compare)) if (!wanted.has(id)) {
-    markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'removed', tick: markTick });
-    r.world.queueRemoveBody(id); r.actors.delete(id);
+  if (synchronizeBodies(s, r, markTick, !deferItemAdmission)) {
+    start('sim.itemSync'); synchronizeItems(s, r, markTick); stop('sim.itemSync');
   }
-  r.world.commitMutations();
-  const admitted: Player[] = [];
-  for (const p of active) {
-    const id = actorId(p), current = r.world.getTransform(id);
-    if (current && hypot(current.x - p.x, current.y - p.y) < 1e-6) { admitted.push(p); continue; }
-    const at = placement(s, r, p, [...admitted, ...active.filter(q => q !== p && r.actors.has(actorId(q)))]);
-    if (!at) {
-      if (current) { p.x = current.x; p.y = current.y; admitted.push(p); continue; }
-      // Gladiator respawns retry at a future boundary. Initial invalid contestant placement is refused.
-      if (p.role === 'gladiator' && s.tick > 0) { p.status = 'respawning'; p.respawnAt = s.tick + 1; continue; }
-      throw new Error(`no legal physics placement for ${p.id}`);
-    }
-    p.x = at.x; p.y = at.y;
-    if (current) r.world.setTransform(id, { ...at, angle: 0 });
-    else { r.world.queueAddBody({ id, kind: 'actor', shape: { kind: 'circle', radius: actorRadius(s, p) }, ...at, mass: 1, friction: 0, restitution: 0,
-      maxSpeed: s.content.actorPhysics.maxSpeed }); r.actors.add(id); r.world.commitMutations(); }
-    markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'placed', tick: markTick });
-    admitted.push(p);
-  }
-  for (let i = 0; i < r.gateOrder.length; i++) {
-    const idx = r.gateOrder[i]!, gate = gateAt(s, idx), pushed = r.gates[idx]!;
-    if (pushed === (gate.open ? 1 : 2)) continue;
-    if (!gate.open && r.world.overlapsDynamicBox(gateShape(gate))) {
-      // Closing is refused while any active actor or solid prop occupies the footprint; nothing
-      // retries it, so the gate stays open until someone closes it again.
-      gate.open = true;
-      r.gates[idx] = 1;
-      continue;
-    }
-    if (pushed === 2) r.world.queueRemoveBody(`gate:${gate.id}`);
-    if (!gate.open) r.world.queueAddBody(physicsGate(gate));
-    r.gates[idx] = gate.open ? 1 : 2;
-    r.world.commitMutations();
-  }
-  start('sim.itemSync'); synchronizePhysicalItems(s, r, markTick, !deferItemAdmission); stop('sim.itemSync');
   r.pendingImpulses = r.pendingImpulses.filter(entry => r.world.getGeneration(entry.id) === entry.generation);
   r.pendingAttachments = r.pendingAttachments.filter(entry => r.world.getGeneration(entry.a) === entry.generationA
     && r.world.getGeneration(entry.b) === entry.generationB);
