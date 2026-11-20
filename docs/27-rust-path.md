@@ -167,17 +167,37 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
   3. `tick_finish(intents)` runs phases 3–7 and returns a second change list.
   - **The mirror.** Node keeps a read-only copy built from the change lists. Projection, recording, the
     private snapshot and the bots read it. Unchanged records keep their identity (#655).
-  - **Input bookkeeping is Node-owned** while phase 2 is in Node (review 957 on PR #1216). `consumeInput` writes
-    the player's `inputQueue`, `input`, `lastSeq`, `inputStalled` and `inputMargin`/`inputMarginNext`, and the
-    owning client's projection reads the last three. Those fields live in Node, outside the core's state, and
-    the mirror's player record overlays them on the core's fields. The intents carry everything phases 3–7
-    read, so none of these fields crosses into the core.
-    - **The core's resets come back as facts.** Respawn (phase 1) and transit (phase 6) clear `input` and set
-      `inputTick`. They report it in their change list, and Node applies it before the next phase 2 that could
-      read it: the same tick's for respawn, from `tick_begin`; the next tick's for transit, from `tick_finish`.
-    - **The same tick boundary.** Snapshot, recording and projection are built after `tick_finish`, from the
-      mirror with both the change lists and that tick's phase-2 writes applied. They see what one in-place
-      `step` shows today.
+  - **Phase 2's state is Node-owned** while phase 2 is in Node (reviews 957 and 958 on PR #1216). It lives in
+    Node, outside the core's state, and the mirror's player record overlays it on the core's fields, so the
+    private snapshot, recording and projection read one record. The intents carry everything phases 3–7 read, so
+    none of it crosses into the core. It is:
+    - **input bookkeeping:** `inputQueue`, `input`, `inputTick`, `lastSeq`, `receivedSeq`, `inputStalled`,
+      `inputMargin`/`inputMarginNext` and `inputLeadTicks`. `setInput` writes some between ticks; `consumeInput`
+      writes the rest in phase 2.
+    - **the bot route,** `route`, which intent collection shifts in place and replanning replaces
+      (`bots.ts`, `bot-routes.ts`). Bot side tables keyed by player objects are re-keyed by ID (#1214).
+  - **Core writes to those fields come back as ordered facts.** Each core-side write is reported in the change
+    list of the call it happens in, in write order. Node applies the list to the mirror when the call returns,
+    before anything else reads the mirror. No snapshot is taken inside a call, so every write appears at the same
+    boundary as today. The writes today:
+
+    | Write | Where | Phase | Fields | Reaches the mirror |
+    | --- | --- | --- | --- | --- |
+    | Gladiator death, entering respawning | `lifecycle.ts` (`damage`) | Wherever damage lands, 3–7 | `input` cleared | `tick_finish` |
+    | Respawn | `lifecycle.ts` (`respawn`) | 1 | `input` cleared, `inputTick` set, `route` cleared | `tick_begin` |
+    | Transit arrival | `transit.ts` (`arrive`) | 1 | `inputTick` set | `tick_begin` |
+    | Delayed transit departure | `transit.ts` (`transit`) | 6 | `input` and `route` cleared | `tick_finish` |
+    | Instant transit | `transit.ts` (`transit`, then `land`) | 6 | `route` cleared only | `tick_finish` |
+    | A gate opened or closed by its user | `interactions.ts` (`interact`) | 6 | that player's `route` cleared | `tick_finish` |
+    | A cell picked up | `loot.ts` (`automaticPickups`) | 6 | `route` cleared | `tick_finish` |
+    | Teleport | `dev.ts` | Between ticks | `route` cleared | The command's own list |
+    | Join, resume, choose, leave | `state.ts` (`resetInput`, `clearRoute`) | Between ticks | All input bookkeeping reset, `route` cleared | The command's own list |
+
+    `clearRoute` sets an existing route to empty and leaves an absent one absent; the fact keeps that
+    distinction. A port that adds, moves or drops one of these writes updates this table in the same change.
+  - **The same tick boundary.** Snapshot, recording and projection are built after `tick_finish`, from the
+    mirror with both change lists and that tick's phase-2 writes applied. They see what one in-place `step` shows
+    today. The fixture's private snapshots, which keep `input` and `route`, check this at every step.
 - **Between-tick commands (D5).** Roster changes, teleport and view lag stay separate calls, applied at once.
   Each call returns its own change list, which Node applies to the mirror before the call returns (review 957).
   A command's effect is then visible at once: a paused room's teleport takes and broadcasts a snapshot before
