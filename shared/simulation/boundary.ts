@@ -317,8 +317,10 @@ export function scatterInCore(s: Game, r: PhysicsRuntime, origin: Vec2, phase: n
   points: readonly Vec2[]): Vec2 | undefined {
   const near = !Number.isFinite(origin.x) || !Number.isFinite(origin.y) ? items
     : items === s.items ? itemsNear(s, origin, SCATTER_REACH)
-      // A record off the numbers (NaN) fails every spot's spacing test, so it is kept, as the grid keeps it loose.
-      : items.filter(item => !(Math.abs(item.x - origin.x) > SCATTER_REACH || Math.abs(item.y - origin.y) > SCATTER_REACH));
+      // A record with a NaN coordinate fails every spot's spacing test, whatever its other coordinate, so it is kept,
+      // as the grid keeps it loose (review 977).
+      : items.filter(item => Number.isNaN(item.x) || Number.isNaN(item.y)
+        || Math.abs(item.x - origin.x) <= SCATTER_REACH && Math.abs(item.y - origin.y) <= SCATTER_REACH);
   const actors = s.players.filter(p => p.status === 'active'), taken = near.length + points.length;
   const { core, world, collision, index, gates } = handles(s, r, true);
   const view = input(core, world, 6 + actors.length * 3 + taken * 2);

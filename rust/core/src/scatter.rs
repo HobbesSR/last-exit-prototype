@@ -4,9 +4,9 @@
 //! A spot is free when a disk of 16 at it is on the map and clear of obstacles and closed gates
 //! (`can_occupy`), the dropper can reach it (`reach_clear`), it is more than 32 from every listed
 //! record and earlier spot of the same drop, and a loot body would fit there: no solid prop meets
-//! the loot disk and no active actor's disk does, the test the body sync's item admission makes in
-//! `boundary.rs` (it was `physicalDropPlacementClear` in TypeScript). They are tested in that order,
-//! as the TypeScript's `&&` tested them, so the prop query runs only where the rest passed.
+//! the loot disk and no active actor's disk does (`placement::loot_fits`, which the body sync's item
+//! admission asks too). They are tested in that order, as the TypeScript's `&&` tested them, so the
+//! prop query runs only where the rest passed.
 //!
 //! The spiral is 180 spots: spot `j` is at angle `(phase + j) * 2.39996` and radius
 //! `36 + floor(j / 12) * 24`, so the farthest is 372 from the origin. JavaScript packs only the
@@ -14,7 +14,7 @@
 
 use crate::collision::{CollisionMap, can_occupy, reach_clear};
 use crate::math::{cos, hypot, sin};
-use crate::placement::Disk;
+use crate::placement::{Disk, loot_fits};
 use crate::sight::{GateSet, SightIndex};
 use crate::world::World;
 
@@ -52,10 +52,7 @@ pub fn scatter_point(
         if can_occupy(map, gates, x, y, MAP_RADIUS, false, false)
             && reach_clear(index, gates, origin, (x, y)).0
             && taken.iter().all(|t| hypot(t[0] - x, t[1] - y) > SPACING)
-            && !world.overlaps_prop(loot_radius, x, y)
-            && actors
-                .iter()
-                .all(|d| hypot(x - d[0], y - d[1]) >= loot_radius + d[2])
+            && loot_fits(world, x, y, loot_radius, actors)
         {
             return Some((x, y));
         }

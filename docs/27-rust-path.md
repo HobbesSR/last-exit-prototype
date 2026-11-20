@@ -407,14 +407,16 @@ and landing itself, in one call a tick.
   - the hook's revalidation (`prepareHooks`, `reconcileHooks`). It asks `solidContact`, the swept query that phase 5's
     projectiles and `finishHooks` share, which the core does not have yet. So the hook rules move together with
     phase 5 (#1229). `reconcileHooks` is the sync's last step, so the order is unchanged.
-- **The drop planner's clear test** (`physicalDropPlacementClear`) moved to the core with the spiral search in step 5c.1
-  (#1228). The TypeScript placement search is gone; the parity test keeps it as its reference.
+- **The loot-body test has one owner,** `loot_fits` in `placement.rs`, since step 5c.1 (#1228, review 977): the sync's
+  item admission and the drop planner's search both ask it. The TypeScript placement search is gone; the parity test
+  keeps it as its reference.
 - **Cost:** [42.67](42.67-boundary-core.md).
 
 **Step 5c.1, the drop planner's spiral search (#1228, adapter version 11).** `rust/core/src/scatter.rs` is `scatterPoint`
 (`shared/simulation/loot.ts`), with the loot-body test `physicalDropPlacementClear` was: 180 spots of the spiral, each
 tested against the map (`can_occupy` at 16), the dropper's reach (`reach_clear`), the listed records and the drop's
-earlier spots (more than 32), then the solid props and the active actors, in the TypeScript's order. `scatterInCore`
+earlier spots (more than 32), then the solid props and the active actors (`loot_fits`, which the body sync's item
+admission shares), in the TypeScript's order. `scatterInCore`
 (`shared/simulation/boundary.ts`) is its adapter, one call per search, through the world's boundary input.
 - **Why this seam first.** #1228 held the whole action loop with the planner and item identity, about twice a stage
   (32, rule 4). The search is what the loop's drops need from the core, and it already has callers in phases 3, 5
@@ -422,7 +424,8 @@ earlier spots (more than 32), then the solid props and the active actors, in the
   counters are 5c.2 (#1238); until then `planDrop` and `planAmmoDrop` validate and allocate in JavaScript as before.
 - **Packed per search:** the active actors' disks and only the records within reach of the spiral (372 plus the 32
   spacing). On the ground list the grid finds them (`itemsNear`); a staged list, a swap's, is filtered whole, as the
-  TypeScript read it whole.
+  TypeScript read it whole. A record with a NaN coordinate is always packed, since it refuses every spot, as the grid
+  always offers it (review 977).
 - **Chosen per game, as sight is.** A game with a physics world searches in the core. A record without one, which is
   match setup's `seedAmmo` inside `createGameRecord` before `createGame` attaches the world, and tests on bare
   records, searches in TypeScript, where no body needs room, so that copy has no loot-body test.

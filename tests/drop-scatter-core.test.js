@@ -94,6 +94,14 @@ test('the core\'s drop scatter lands where the TypeScript\'s did, on the ground 
         }
       }
     }
+    // A staged record with a NaN coordinate refuses every spot, whatever its other coordinate, even one far beyond
+    // the spiral's reach (review 977); one with both coordinates far away refuses none.
+    const origin = { x: players[0].x, y: players[0].y };
+    for (const odd of [{ x: NaN, y: origin.y + 10000 }, { x: origin.x - 10000, y: NaN }, { x: NaN, y: NaN }, { x: origin.x + 10000, y: origin.y + 10000 }]) {
+      const want = scatterTs(s, r, origin, 0, [odd]), got = scatterPoint(s, origin, 0, [odd]);
+      assert.equal(want === undefined, Number.isNaN(odd.x) || Number.isNaN(odd.y));
+      if (!same(want, got)) misses.push({ origin, odd, want, got });
+    }
     assert.deepEqual(misses, []);
     // The cases reach the later spots, a refusal, and spots the loot-body test turns away.
     assert.ok(late > cases / 4 && refused > 0, `late ${late}, refused ${refused} of ${cases}`);

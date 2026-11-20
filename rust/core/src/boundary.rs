@@ -22,7 +22,7 @@
 
 use crate::collision::{CollisionMap, can_occupy, reach_clear};
 use crate::math::hypot;
-use crate::placement::{Disk, placement};
+use crate::placement::{Disk, loot_fits, placement};
 use crate::scatter::scatter_point;
 use crate::sight::{GateSet, SightIndex};
 use crate::world::{BODY_ROW, Key, World};
@@ -582,9 +582,7 @@ pub fn synchronize_items(world: &mut World, map: &mut CollisionMap, gates: &mut 
             if items.contains(&key)
                 || !world.can_add_bodies(1 + reserve_actors + reserve)
                 || !can_occupy(map, gates, x, y, radius, false, false)
-                // A loot body's room: no solid prop, then no active actor, in reach, as `scatter.rs` tests a drop's spot.
-                || world.overlaps_prop(radius, x, y)
-                || !disks.iter().all(|d| hypot(x - d[0], y - d[1]) >= radius + d[2])
+                || !loot_fits(world, x, y, radius, &disks)
             {
                 return Ok(());
             }
