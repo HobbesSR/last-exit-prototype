@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
-import { visibilityPolygon, VISION } from '../shared/sight.ts';
+import { VISION } from '../shared/sight.ts';
+import { initCoreSight } from '../shared/sight-core.ts';
+import { buildCore } from '../tools/build-core.mjs';
 import { readArena } from '../tools/room-arena.mjs';
 
 // The Rust core in Chrome (#1175 stage 2, docs/27): the client page loads it as it starts, and the
-// polygons it casts there equal shared/sight.ts's in Node bit for bit. Each side flattens its points
-// to float64 bytes, so a signed zero or a last-bit difference fails; tests/sight-core.test.js holds the
-// same parity in Node across its edge cases.
+// polygons it casts there equal the core's in Node bit for bit. Each side flattens its points to float64
+// bytes, so a signed zero or a last-bit difference fails; tests/sight-core.test.js pins Node's polygons
+// by digest across its edge cases.
 const { map } = readArena();
 let state = 11;
 const next = () => (state = (state * 1103515245 + 12345) % 2147483648) / 2147483648;
@@ -16,7 +18,8 @@ const gateStates = [map.gates.map(() => false), map.gates.map(() => true), map.g
 
 /** Per polygon its length, then each point's x, y, angle and length, as float64 bytes in hex. */
 const bytesOf = values => Array.from(new Uint8Array(new Float64Array(values).buffer), b => b.toString(16).padStart(2, '0')).join('');
-const expected = [];
+buildCore(); // Node's core is the embedded module, built before its first use.
+const { visibilityPolygon } = await initCoreSight(), expected = [];
 for (const states of gateStates) {
   map.gates.forEach((g, i) => { g.open = states[i]; });
   for (const origin of origins) {
@@ -47,8 +50,8 @@ try {
     }
     return Array.from(new Uint8Array(new Float64Array(values).buffer), b => b.toString(16).padStart(2, '0')).join('');
   }, { map, origins, gateStates, radius: VISION });
-  assert.ok(actual === bytesOf(expected), 'the core\'s polygons in Chrome equal the TypeScript\'s in Node, byte for byte');
+  assert.ok(actual === bytesOf(expected), 'the core\'s polygons in Chrome equal its polygons in Node, byte for byte');
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, browser: browser.version(), polygons: origins.length * gateStates.length,
-    checks: ['client page loads the core', 'Chrome core / Node TypeScript polygon byte equality'] }));
+    checks: ['client page loads the core', 'Chrome core / Node core polygon byte equality'] }));
 } finally { await browser.close(); await server.close(); }

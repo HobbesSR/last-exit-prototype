@@ -102,8 +102,16 @@ Port order is stability order:
     obstacle and gate segments with their buckets, built in JavaScript and uploaded once, plus a per-tick
     open-gate mask. The map's language-neutral format then waits for a consumer that needs the map itself.
   - **The port (#1175 stage 2).** `rust/core/src/sight.rs` is `visibilityPolygon`, and `shared/sight-core.ts` is
-    its adapter. `tests/sight-core.test.js` holds them equal to `shared/sight.ts` bit for bit, on synthetic maps
-    and on the room arena. Its measurement, and the budget it sets, are in [42.58](42.58-sight-core-adapter.md).
+    its adapter. It matched the TypeScript cast bit for bit, on synthetic maps and on the room arena, and the
+    TypeScript then retired (#1175). Its measurement, and the budget it sets, are in
+    [42.58](42.58-sight-core-adapter.md).
+  - **The reference after retirement (agent default, #1175; Corey may overrule).** A pinned digest of the core's
+    polygons, as `tests/math.test.js` pins math: `tests/sight-core.test.js` digests every field of every point
+    over the fixed synthetic cases in `tests/helpers/sight-cases.js`, taken where the TypeScript and the core
+    agreed. The cases are synthetic so content changes never move them. A moved digest is a gameplay change and a
+    fixture version decision (31), not a test update. Correctness beyond regression stays with
+    `tests/visibility.test.js`, an independent brute-force cast on the room arena. **Limitation:** unlike math,
+    no Rust-native test computes the sight digest; it is checked through the adapter only.
   - **How the game reaches it (Corey, 2026-11-18, #1175).** Loading and choosing are kept apart:
     - **Loading is per process.** `initCoreSight()` (`shared/sight-core.ts`) binds the process's one core once, as
       `initRapier` loads Rapier. It decides nothing.
@@ -118,9 +126,8 @@ Port order is stability order:
     - **Why not a module-level switch in `sight.ts`:** which implementation a game runs would be hidden process
       state. **Why not a parameter from every caller:** `createGame` is the one door a stepping game comes
       through, and its callers (the server, the physics lab, tools and tests) have no say in it.
-  - **Checks.** `tests/sight-core.test.js` holds parity in Node, and `tests/sight-core.browser.mjs` holds it in
-    Chrome through the client page's own load. The TypeScript `visibilityPolygon` stays as the reference
-    until its remaining callers, tests and benches, have moved.
+  - **Checks.** `tests/sight-core.test.js` pins the polygons in Node, and `tests/sight-core.browser.mjs` holds
+    Chrome's equal to Node's, byte for byte, through the client page's own load.
 
 The adapter's shape, as the sight port settled it (adapter version 3):
 - **Memory.** `core_alloc`/`core_free` give JavaScript 8-byte-aligned buffers to fill. The core copies what it

@@ -4,7 +4,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord, createGame, disposePhysics, joinGame, setInput, step, snapshot, visibleTo, couldSee, synchronizePhysics, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
 import { moveBody } from '../shared/movement.ts';
-import { lineClear, visibilityPolygon } from '../shared/sight.ts';
+import { lineClear } from '../shared/sight.ts';
+import { initCoreSight } from '../shared/sight-core.ts';
 import { collectInstanceEquipment, carriedCell } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { arena, openField } from './helpers/arena.js';
@@ -315,11 +316,11 @@ test('live visibility hides distant and cloaked enemies, sensor reveals restore 
   } finally { disposePhysics(s); }
 });
 
-test('the vision polygon stops at solid cover', () => {
+test('the vision polygon stops at solid cover', async () => {
   const at = { x: 600, y: Y };
   const { map } = openField(2400, { obstacles: [{ id: 'test-wall', x: at.x + 60, y: at.y - 100, w: 30, h: 200 }] });
   assert.equal(lineClear(map, at, { x: at.x + 150, y: at.y }), false);
-  const ray = visibilityPolygon(map, at).find(v => v.x > at.x && Math.abs(v.y - at.y) < 0.001);
+  const ray = (await initCoreSight()).visibilityPolygon(map, at).find(v => v.x > at.x && Math.abs(v.y - at.y) < 0.001);
   assert.ok(Math.abs(ray.x - at.x - 60) < 0.01);
 });
 

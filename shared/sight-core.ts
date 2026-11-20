@@ -18,7 +18,7 @@ import type { CollisionMap, Gate, Obstacle, Vec2, World } from './types.ts';
 type Handle = number;
 
 export interface CoreSight extends SightCaster {
-  /** `visibilityPolygon` computed by the core: equal to the TypeScript's bit for bit. */
+  /** `visibilityPolygon` computed by the core, pinned by `tests/sight-core.test.js`'s digests (#1175). */
   visibilityPolygon(map: CollisionMap, origin: Vec2, radius?: World): VisibilityPoint[];
   /**
    * The same polygon left in WASM memory as `x, y, angle, length` per point, without building
