@@ -4,11 +4,13 @@ import { carriedCell, collectAmmo, collectInstanceEquipment, syncWeapon } from '
 import { allocateItemId, ensureItemIdentity, validateItemPayload, forkItemAllocation, commitItemAllocation } from '../item-instances.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
 import { scatterInCore } from './boundary.ts';
+import { planDropInCore, planAmmoInCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { addItems, draftItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
 import { HZ, KEPT_EVENTS } from './rules.ts';
 import { clearRoute, distance } from './geometry.ts';
 import type { AmmoFamily, EffectKind, Game, GroundItem, InventoryItem, Player, PlayerInput, Vec2, World } from '../types.ts';
+import type { DropPlan } from './action-records.ts';
 import { cos, sin } from '../math.ts';
 import { playerIndex } from './relations.ts';
 import type { EventParticipant, GameEventPayload } from '../types.ts';
@@ -37,7 +39,7 @@ export function scatterPoint(s: Game, origin: Vec2, phase: number, items: readon
 }
 
 /** An L0 drop, fully represented but not yet committed. */
-export interface DropPlan { records: GroundItem[]; itemSerial: number; scatterSerial: number; allocation: Game }
+export type { DropPlan } from './action-records.ts';
 
 /**
  * Validate, place and identify every ground record of one carried L0 item without changing the
@@ -45,6 +47,7 @@ export interface DropPlan { records: GroundItem[]; itemSerial: number; scatterSe
  */
 export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = false, items: readonly GroundItem[] = s.items,
   source: Game = s): DropPlan | null {
+  if (physicsRuntime(s)) return planDropInCore(s, p, item, mandatory, items, source);
   if (!['weapon', 'med', 'shield', 'cell'].includes(item.kind) || ![p.x, p.y].every(Number.isFinite) || !validateItemPayload(item, s)) return null;
   const copies = item.kind === 'med' || item.kind === 'shield' ? item.count : 1;
   if (!Number.isInteger(copies) || copies < 1 || copies > 3
@@ -80,6 +83,7 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
  * capacity or placement failure, a mandatory one falls back to the player's position.
  */
 export function planAmmoDrop(s: Game, p: Player, family: AmmoFamily, count: number, mandatory = false): DropPlan | null {
+  if (physicsRuntime(s)) return planAmmoInCore(s, p, family, count, mandatory);
   if (!Number.isSafeInteger(count) || count < 1 || ![p.x, p.y].every(Number.isFinite)) return null;
   if (!mandatory && s.items.length + 1 > s.content.itemInstances.groundCapacity) return null;
   const point = scatterPoint(s, p, s.scatterSerial ?? 0, s.items);

@@ -1,15 +1,17 @@
-import { lineClear } from '../sight.ts';
+import { physicsRuntime } from './physics-runtime.ts';
 import { equipped, syncWeapon } from '../equipment.ts';
 import { qualityDamage } from '../loot-tiers.ts';
+import { atan2, cos, sin } from '../math.ts';
+import { hearShot } from './hearing.ts';
+import { lineClear } from '../sight.ts';
 import { HZ } from './rules.ts';
 import { distance } from './geometry.ts';
 import { effect } from './loot.ts';
 import { eliminate } from './lifecycle.ts';
 import { asSeenBy } from './rewind.ts';
 import { hookSkill } from './hook.ts';
-import { hearShot } from './hearing.ts';
+import { attackInCore } from './phase-three.ts';
 import type { Game, Player, InventoryItem, StackItem } from '../types.ts';
-import { atan2, cos, sin } from '../math.ts';
 
 type UtilityState = Pick<Player, 'hp' | 'maxHp' | 'shield'>;
 
@@ -50,6 +52,7 @@ export function skill(s: Game, p: Player): void {
   } else { p.boost = 55; effect(s, p, 'upgrade', 75); }
 }
 export function attack(s: Game, p: Player): void {
+  if (physicsRuntime(s)) { attackInCore(s, p, damage); return; }
   if (p.attackCd > 0) return;
   if (p.role === 'gladiator') {
     p.attackCd = 13; effect(s, { x: p.x + cos(p.heading) * 30, y: p.y + sin(p.heading) * 30 }, 'slash', 55);

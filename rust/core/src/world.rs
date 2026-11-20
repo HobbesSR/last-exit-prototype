@@ -157,6 +157,7 @@ pub struct World {
     /// calls into this world reuse.
     pub(crate) boundary_input: Vec<f64>,
     pub(crate) boundary_output: Vec<f64>,
+    pub(crate) actions: crate::phase_three::PhaseThree,
 }
 
 impl Default for World {
@@ -188,6 +189,7 @@ impl World {
             output: Vec::new(),
             boundary_input: Vec::new(),
             boundary_output: Vec::new(),
+            actions: crate::phase_three::PhaseThree::default(),
         }
     }
 
