@@ -9,6 +9,7 @@ pub mod action_equipment;
 pub mod action_types;
 pub mod boundary;
 pub mod collision;
+pub mod combat;
 pub mod discovery;
 pub mod drop_planner;
 pub mod floor_drag;
@@ -29,7 +30,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 14;
+pub const ADAPTER_VERSION: u32 = 15;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -845,6 +846,36 @@ pub unsafe extern "C" fn actions_run(
         actions.run(w, &mut *map, &*index, &mut *gates);
         w.actions = actions;
         w.actions.output.as_ptr()
+    }
+}
+
+/// Phase 5's combat input (27, step 5d.2; `combat::Combat`).
+/// # Safety
+/// `world` is a live world handle; the returned view expires on the next growing core call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn combat_input(world: *mut world::World, len: usize) -> *mut f64 {
+    // SAFETY: the caller owns the live world.
+    let combat = unsafe { &mut (*world).combat };
+    combat.input.resize(len, 0.0);
+    combat.input.as_mut_ptr()
+}
+/// Run phase 5's projectiles or casters, or one damage (`combat::Combat::run`), after phase 3's
+/// rules were configured (`actions_configure`). `swept` may be null except for a fresh projectile call.
+/// # Safety
+/// All handles are live, the gate mask is written and the input is complete.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn combat_run(
+    world: *mut world::World,
+    index: *const sight::SightIndex,
+    gates: *mut sight::GateSet,
+    swept: *const swept::SweptMap,
+) -> *const f64 {
+    // SAFETY: the caller's contract; the rules and the combat state are disjoint fields.
+    unsafe {
+        let w = &mut *world;
+        let rules = w.actions.rules();
+        w.combat.run(rules, &*index, &mut *gates, swept.as_ref());
+        w.combat.output.as_ptr()
     }
 }
 

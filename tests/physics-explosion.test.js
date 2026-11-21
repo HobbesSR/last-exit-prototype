@@ -84,12 +84,15 @@ test('explosion impulse uses linear falloff, deterministic zero-distance directi
 });
 
 test('a mine without a stepped physics world only deals damage', () => {
+  // Damage itself runs in the core since #1242 and needs a world; the trap's own record stays the witness here.
   const s = createGameRecord(4217, openField(1200).map, defaultContent());
   const p = s.players.find(player => player.role === 'contestant');
   s.items = [];
   p.x = 600; p.y = 576; p.movedThisTick = 1; p.shield = 60;
-  s.traps = [mineAt(580, 576)];
-  stepTraps(s, damage, () => {});
-  assert.equal(p.shield, 15);
-  assert.equal(p.hp, 100);
+  const mine = mineAt(580, 576);
+  s.traps = [mine];
+  const dealt = [];
+  stepTraps(s, (_, target, amount, source) => dealt.push([target, amount, source]), () => {});
+  assert.deepEqual(dealt, [[p, 45, null]]);
+  assert.equal(mine.spent, true);
 });

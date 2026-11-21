@@ -190,7 +190,7 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
 
     | Write | Where | Phase | Fields | Reaches the mirror |
     | --- | --- | --- | --- | --- |
-    | Gladiator death, entering respawning | `lifecycle.ts` (`damage`, including the shared core attack's damage fact) | Wherever damage lands, 3–7 | `input` cleared | `tick_finish` |
+    | Gladiator death, entering respawning | `phase_three.rs` (`actions_run`'s elimination, mode 4), applied by `phase-three.ts` | Wherever damage lands, 5–6 | `input` cleared | `tick_finish` |
     | Respawn | `phase_one.rs`, applied by `phase-one.ts` | 1 | `input` cleared, `inputTick` set, `route` cleared | `tick_begin` |
     | Transit arrival | `phase_one.rs`, applied by `phase-one.ts` | 1 | `inputTick` set | `tick_begin` |
     | Delayed transit departure | `transit.ts` (`transit`) | 6 | `input` and `route` cleared | `tick_finish` |
@@ -442,11 +442,10 @@ admission shares), in the TypeScript's order. `scatterInCore`
 `ordered(s)` order: heading, selection, rearrangement, utility use, slot and reserve drops, reload, non-warden
 skills, contestant attack and motor. `action_equipment.rs` and `action_combat.rs` own its equipment, reload,
 attack, skill and motor rules; the motor is set directly in the world's records. `phase-three.ts` packs and
-applies their flat records and facts. The shared attack also serves phase 5 through that adapter; its hit
-decision is in the core, while the damage/lifecycle callback stays in TypeScript until 5d. The gladiator-death
-write in D4's table therefore still happens in `damage` at the same boundary.
-Action and plan types live in the leaf `action-records.ts`; callers supply the remaining Node damage callback,
-so the core adapter does not import its callers.
+applies their flat records and facts. Until 5d.2 the shared attack also served phase 5's gladiator through that
+adapter, with a TypeScript damage callback; since 5d.2 (below) the gladiator attacks in phase 5's own run, and the
+adapter's attack serves a contestant's scenario call only. Action and plan types live in the leaf `action-records.ts`,
+and event and effect records in the leaf `event-records.ts`, so the core adapter does not import its callers.
 - **A successful drop is a sync boundary.** The loop returns after committing a slot or reserve drop. Node applies
   its ground records through `addItems`, launches them and runs the existing chunked admission; the next call
   resumes at the next operation of the same player, with all poses repacked. A slot drop and an ammo drop in one
@@ -483,8 +482,8 @@ so the core adapter does not import its callers.
   | --- | --- | --- | --- |
   | Motor, `action_combat::motor` | Client prediction's `movementSpeed` and `characterMotor` | `physics-prediction-contract` compares actual core motors across roles, boost/stun/sneak, zero input and surface ties; parameters are shared | #1241 decides a batched core caller versus retained prediction arithmetic with parity |
   | Utility outcome, `action_combat::attack` | Bots' `utilityOutcome` preview and bare-record attack | Shared `UTILITY_RULES`/`HZ`; `utility-use` compares preview with actual core use, including caps/refusal | #1215 moves bot previews; #1241 owns remaining setup callers |
-  | Attack/hearing, `action_combat::attack` and `phase_three.rs` | Bare-record/scenario fallback in `combat.ts` and `hearing.ts` | `action-parity` directly compares firearm, utility, melee and heard-cue state/facts with the core; frozen characterization covers live calls | #1241 |
-  | Non-warden skill and hook launch/cancel, `phase_three.rs`/`action_combat.rs` | Direct scenario entry points in `combat.ts` and `hook.ts` | `action-parity` compares specter/striker and hook launch/cancel with the core; `phase-three-core` covers key-zero capacity and refusal ordering | #1241. The hook's later rules moved in 5d.1 with no TypeScript copy; the warden skill is #1242's |
+  | Contestant attack/hearing, `action_combat::attack` and `phase_three.rs` | Bare-record/scenario fallback in `combat.ts` and `hearing.ts` | `action-parity` directly compares firearm, utility and heard-cue state/facts with the core; frozen characterization covers live calls. The gladiator's melee has had no TypeScript copy since 5d.2 | #1241 |
+  | Non-warden skill and hook launch/cancel, `phase_three.rs`/`action_combat.rs` | Direct scenario entry points in `combat.ts` and `hook.ts` | `action-parity` compares specter/striker and hook launch/cancel with the core; `phase-three-core` covers key-zero capacity and refusal ordering | #1241. The hook's later rules (5d.1) and the warden skill (5d.2) moved with no TypeScript copy |
   | Drop plans, `drop_planner.rs` | Bare setup planners in `loot.ts` | `action-parity` compares complete plans, staged allocations and NaN/fallback refusals on common empty-world geometry; 5c.1 documents the intentional physics-only loot-body test | #1241 |
   | Item allocation, `item_allocation.rs` | Explicitly unbound setup records | `item-id-allocation` checks selection before/after another game initializes, actual Rust operations and fork isolation; setup/live suites check the same allocation expectations | #1241 |
   | Equipment access, validation and weapon selection, `action_equipment.rs` | Node pickups/swaps and bot reads in `equipment.ts`/`item-instances.ts` | `equipment`, `item-instances`, `action-parity` and frozen characterization cover the core action and retained transfer/validation paths; weapon parameters remain content-owned | #1230 moves phase-6 writers, #1215 moves bot reads, #1241 owns remaining setup callers |
@@ -514,13 +513,47 @@ Launch and cancel are phase 3's, as before.
 - **No TypeScript copy of the hook's later rules.** They have no caller outside the tick. `characterization-physics`
   (its scripted `hook` label), the bots variant and `tests/physics-hook.test.js` cover flight, hits, attachment, the
   pull, standoff, gates, void, props and roster changes.
-- **Two copies of the sweep, on purpose.** Projectiles still sweep in TypeScript until #1242, so
-  `tests/swept-core.test.js` holds `swept.rs` equal to `geometryContact` to the bit. It covers both policies on the
+- **Two copies of the sweep, on purpose.** Projectiles swept in TypeScript until 5d.2 (#1242). The TypeScript
+  `geometryContact` now has no caller in the game and stays as the reference, as 5c.1 kept the placement search:
+  `tests/swept-core.test.js` holds `swept.rs` equal to it to the bit. It covers both policies on the
   room arena's statics and gates, with gates toggled between calls, rotated and degenerate extra shapes, and the
   world's solid props, rotated, against `solidContact`. `solidContact` keeps that test as its only caller. A sabotaged
   prop rotation is caught.
 - **Cost:** [42.70](42.70-hook-core.md). A call costs 2–5 µs. That is less than the TypeScript for a pulling hook and
   more for a flying hook's reconciliation; at most about 0.1% of the tick, under 42.58's state-flip exception.
+
+**Step 5d.2, the rest of phase 5 (#1242, adapter version 15).** `rust/core/src/combat.rs` runs projectile flight
+(`solvePhysicsProjectiles`), the end-of-tick casters (the warden skill, then the gladiator attack, in `ordered(s)`
+order) and `damage`, with the rewind reads (`asSeenBy`) the casters resolve against. The elimination (`eliminate`) is
+`actions_run`'s mode 4 in `phase_three.rs`, beside the drop planner it calls. `shared/simulation/phase-five.ts` is the
+adapter; `combat.ts`'s `damage` and `lifecycle.ts`'s `eliminate` are now entry points into it.
+- **The order is 29.2's.** Projectiles first: every bullet is swept (the shot policy of `swept.rs`, radius 2, against
+  each actor's substep path, `impact` and `hit_radius` now in `swept.rs`), then the hits apply by time of impact, bullet
+  ID and target ID. `finishHooks` runs next, in Node as before, then the casters, each one's status read at its turn.
+  A hit kills before the hook attaches, so a dead target never attaches.
+- **A kill is a stop.** When damage kills, the run returns before anything of the elimination is written. Node runs
+  the elimination, then resumes the run. The core keeps what the run needs across that: the sorted hits and the
+  bullets spent, or the caster and target it stopped at. Everything else is repacked, so a resume reads what the
+  elimination and its syncs left, as the TypeScript read the live records.
+- **The elimination keeps 5c.2's sync boundary.** Its steps are the lifecycle, each slot's mandatory drop, each
+  reserve family's, then the inventory's clear and the kill credit. Each committed drop returns, Node publishes and
+  launches its records and admits them, and the next call resumes at the next step. The target leaves no disk for the
+  loot-body test, since it is no longer active when its loot drops.
+- **Writes keep their order.** The elimination reports its lifecycle as one fact (status, the event with its ID,
+  `charging`, then a gladiator's `respawnAt` and the cleared `input`, D4's table), the `reload = null` that
+  `dropReserves` wrote even where `reload` was absent, and the kill credit. Damage reports `aggressor` and
+  `aggressionUntil` as a fact, in that order. Fields that always exist are written back where they changed.
+- **Rewind's frames are read in the core.** `recordRewind` still writes `s.rewind` in Node. A caster run packs the
+  frames only when a caster's view lags, which bots' and local players' never do.
+- **Event and effect records** (`event`, `effect`, `participant`) moved from `loot.ts` to the leaf
+  `event-records.ts`, so the adapters build the records the core's facts name without importing their callers.
+- **No TypeScript copy.** `damage`, `eliminate`, the warden skill, the gladiator attack and the projectile sweep have
+  no record-level copy: their only bare-record callers were tests, which now build real games
+  (`tests/physics-projectiles.test.js`, the mine case in `tests/physics-explosion.test.js`), and `action-parity` no
+  longer compares melee. Scenario `attack` and `skill` calls for a gladiator or warden run the caster run, which skips
+  a caster that is not active, as the tick did. `damage` from phase 6 (traps, the hazard wall) calls the core until
+  #1230 moves those phases.
+- **Cost:** [42.71](42.71-phase-five-core.md).
 
 ## One math library on both sides
 

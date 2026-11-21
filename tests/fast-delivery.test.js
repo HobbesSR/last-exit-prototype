@@ -6,7 +6,7 @@ import { MissingBaseline } from '../shared/wire-codec.ts';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '../shared/discovery.ts';
 import { ANGLE_QUANTUM, createEventWindow, createFastHistory, createFastReader, fastFrame, holdItemBodies, keptEvents, quantize, FAST_HISTORY_TICKS, FAST_QUANTA, DATAGRAM_PAYLOAD_BYTES, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
-import { event, participant } from '../shared/simulation/loot.ts';
+import { event, participant } from '../shared/simulation/event-records.ts';
 import { KEPT_EVENTS } from '../shared/simulation/rules.ts';
 import { deliversFast } from '../server/room-views.js';
 import { EFFECT_KINDS } from '../shared/enum-tables.ts';

@@ -384,6 +384,43 @@ impl Grid {
     }
 }
 
+/// `actorHitRadius` (`swept.ts`).
+pub fn hit_radius(gladiator: bool) -> f64 {
+    if gladiator { 26.0 } else { 15.0 }
+}
+
+/// `impact` (`swept.ts`): the first relative disk intersection of a moving point and a moving
+/// actor, including an initial overlap.
+pub fn impact(
+    a: [f64; 2],
+    b: [f64; 2],
+    start: [f64; 2],
+    end: [f64; 2],
+    radius: f64,
+) -> Option<f64> {
+    let x = a[0] - start[0];
+    let y = a[1] - start[1];
+    let dx = b[0] - a[0] - (end[0] - start[0]);
+    let dy = b[1] - a[1] - (end[1] - start[1]);
+    let c = x * x + y * y - radius * radius;
+    if c <= 0.0 {
+        return Some(0.0);
+    }
+    let aa = dx * dx + dy * dy;
+    let bb = 2.0 * (x * dx + y * dy);
+    let d = bb * bb - 4.0 * aa * c;
+    // `!aa`: zero or NaN.
+    if aa == 0.0 || aa.is_nan() || d < 0.0 {
+        return None;
+    }
+    let t = (-bb - d.sqrt()) / (2.0 * aa);
+    if (0.0..=1.0).contains(&t) {
+        Some(t)
+    } else {
+        None
+    }
+}
+
 /// A map's sweep geometry, uploaded once (`staticIndex` and `gateIndex` in `shared/simulation/swept.ts`).
 pub struct SweptMap {
     statics: Vec<Shape>,

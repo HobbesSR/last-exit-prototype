@@ -4,7 +4,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { isDeepStrictEqual } from 'node:util';
 import { phaseThree } from '../shared/simulation/phase-three.ts';
-import { damage } from '../shared/simulation/combat.ts';
 import { Writable } from 'node:stream';
 import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step as stepRaw, snapshot as snapshotRaw, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
@@ -46,7 +45,7 @@ const moveSlot = (s, p, from, to) => {
   const state = () => ({ inventory: p.inventory, selectedSlot: p.selectedSlot, weapon: p.weapon,
     itemSerial: s.itemSerial, scatterSerial: s.scatterSerial });
   const before = structuredClone(state());
-  phaseThree(s, s.players.map(actor => actor === p ? { input: { moveSlot: { from, to } } } : undefined), damage);
+  phaseThree(s, s.players.map(actor => actor === p ? { input: { moveSlot: { from, to } } } : undefined));
   return !isDeepStrictEqual(state(), before);
 };
 const automaticPickups = (s, ...args) => { identifyItems(s); return pickupsRaw(s, ...args); };

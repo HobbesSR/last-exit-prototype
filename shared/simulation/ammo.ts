@@ -1,4 +1,4 @@
-import { AMMO_FAMILIES, isAmmoFamily } from '../equipment.ts';
+import { isAmmoFamily } from '../equipment.ts';
 import { commitItemAllocation, allocateItemId } from '../item-instances.ts';
 import { planAmmoDrop, scatterPoint } from './loot.ts';
 import { addItems } from './ground-items.ts';
@@ -67,11 +67,4 @@ export function dropReserve(s: Game, p: Player, family: AmmoFamily, count: numbe
   p.reserves[family] -= rounds;
   launchPhysicalDrops(s, plan.records, p);
   return true;
-}
-
-/** Elimination: the reload stops and every reserve family drops as ordinary recoverable loot. */
-export function dropReserves(s: Game, p: Player): void {
-  p.reload = null;
-  if (!s.content.reloading || !p.reserves) return;
-  for (const family of AMMO_FAMILIES) dropReserve(s, p, family, p.reserves[family], true);
 }

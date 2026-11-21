@@ -38,7 +38,7 @@ test('prediction motor equals the authoritative core across speed modifiers, sur
       for (const [x, y] of [[0, 0], [3, 4]]) for (const position of [p, { x: 100, y: 10 }]) {
         Object.assign(actor, position, { boost, stun });
         const intents = []; intents[s.players.indexOf(actor)] = { input: { x, y, sneak } };
-        phaseThree(s, intents, () => assert.fail('motor-only intent cannot damage'));
+        phaseThree(s, intents);
         const actual = r.world.snapshot().bodies.find(b => b.spec.id === `actor:${actor.id}`).motor;
         const speed = movementSpeed(actor, { sneak }, HZ);
         assert.deepEqual(actual, characterMotor(profile, surfaces, actor, x, y, speed), `${actor.role}: ${JSON.stringify({ boost, stun, sneak, x, y, position })}`);

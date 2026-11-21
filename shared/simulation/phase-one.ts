@@ -1,6 +1,6 @@
 import { initCore, type CoreExports } from '../core.ts';
 import { clearRoute } from './geometry.ts';
-import { event, effect, participant } from './loot.ts';
+import { event, effect, participant } from './event-records.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { RESPAWN_CLEARANCE_RADIUS, RESPAWN_CONTESTANT_DISTANCE, RESPAWN_HAZARD_MARGIN } from './rules.ts';
 import { sightOf } from './sight-runtime.ts';

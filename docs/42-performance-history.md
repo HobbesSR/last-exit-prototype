@@ -35,6 +35,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.68](42.68-drop-scatter-core.md) | The drop planner's spiral search in the Rust core: about 2.2 µs more per search than the TypeScript, under the state-flip exception, with 7 searches in a whole bot match, so the tick is unchanged (#1228) |
 | [42.69](42.69-phase-three-core.md) | Tick phase 3 in the Rust core (#1238): conservative crossing 36–41 µs per tick, 0.771–0.874% of the whole tick under the state-flip exception; Node-only 24x12 comparison and raw results |
 | [42.70](42.70-hook-core.md) | The hook's later rules and the swept query in the Rust core (#1229): 2–5 µs a call, cheaper than the TypeScript for a pulling hook. A flying hook adds about 0.1% of the tick, under the state-flip exception |
+| [42.71](42.71-phase-five-core.md) | The rest of tick phase 5 in the Rust core (#1242): the phase about 17 µs a tick cheaper than the TypeScript; crossing about 9.9 µs, 0.21% of the tick, under the state-flip exception |
 
 ### Navigation
 

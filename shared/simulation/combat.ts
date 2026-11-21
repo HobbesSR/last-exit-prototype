@@ -1,16 +1,14 @@
 import { physicsRuntime } from './physics-runtime.ts';
 import { equipped, syncWeapon } from '../equipment.ts';
 import { qualityDamage } from '../loot-tiers.ts';
-import { atan2, cos, sin } from '../math.ts';
+import { cos, sin } from '../math.ts';
 import { hearShot } from './hearing.ts';
-import { lineClear } from '../sight.ts';
 import { HZ } from './rules.ts';
 import { distance } from './geometry.ts';
-import { effect } from './loot.ts';
-import { eliminate } from './lifecycle.ts';
-import { asSeenBy } from './rewind.ts';
+import { effect } from './event-records.ts';
 import { hookSkill } from './hook.ts';
 import { attackInCore } from './phase-three.ts';
+import { castersInCore, damageInCore } from './phase-five.ts';
 import { UTILITY_RULES } from './action-records.ts';
 import type { Game, Player, InventoryItem, StackItem } from '../types.ts';
 
@@ -28,58 +26,55 @@ export function utilityOutcome(p: UtilityState, item: InventoryItem | null | und
     : { hp: p.hp, shield: Math.min(UTILITY_RULES.maxShield, p.shield + UTILITY_RULES.shieldAmount) };
 }
 
+/**
+ * `damage` and the elimination it may cause run in the core (`rust/core/src/combat.rs`, #1242, docs/27 step 5d.2), so
+ * they need the game's physics world; this is their entry for phase 6's callers and scenarios.
+ */
 export function damage(s: Game, target: Player, amount: number, source: Player | null): void {
-  if (target.status !== 'active') return;
-  const blocked = Math.min(target.shield, amount);
-  target.shield -= blocked; target.hp = Math.max(0, target.hp - amount + blocked);
-  if (source && source.id !== target.id) { target.aggressor = source.id; target.aggressionUntil = s.tick + 10 * HZ; }
-  if (target.hp > 0) return;
-  eliminate(s, target, source);
+  if (!physicsRuntime(s)) throw new Error("damage runs in the core and needs the game's physics world");
+  damageInCore(s, target, amount, source);
 }
+/**
+ * A skill press outside the tick, for scenarios. The warden's runs in the core, as phase 5's caster run (which reads
+ * the caster's status at its turn); the hook's is `hookSkill`; specter and striker are phase 3's in the core, with
+ * this record-level copy held equal by `tests/action-parity.test.js` (27's retained-copy ledger, #1241).
+ */
 export function skill(s: Game, p: Player): void {
   if (p.kit === 'hook') { hookSkill(s, p); return; }
+  if (p.kit === 'warden') { castersInCore(s, [{ player: p, skill: true, attack: false }]); return; }
   if (p.cooldown > 0) return;
   if (p.role === 'contestant') return;
   p.cooldown = Math.max(45, s.content.kits[p.kit].cooldown - (p.level - 1) * 12);
-  if (p.kit === 'warden') {
-    effect(s, p, 'shock', 130);
-    // Resolved against where the caster saw them. The ring is drawn at the caster's own position, so
-    // nothing about the effect moves; only whether a target was inside it when they were aimed at.
-    const seen = asSeenBy(s, p);
-    for (const t of s.players) if (t.role !== p.role && t.status === 'active' && distance(p, seen(t)) < 130 && lineClear(s.map, p, seen(t))) { damage(s, t, 18 + 5 * p.level, p); t.stun = 22; }
-  } else if (p.kit === 'specter') {
+  if (p.kit === 'specter') {
     effect(s, p, 'scan', 450);
     for (const t of s.players) if (t.role !== p.role && distance(p, t) < 450) t.revealed = 110;
   } else { p.boost = 55; effect(s, p, 'upgrade', 75); }
 }
+/**
+ * An attack outside the tick, for scenarios. A gladiator's runs as phase 5's caster run in the core; a contestant's is
+ * phase 3's core attack, and a bare record (no physics world) keeps the record-level copy below (#1241).
+ */
 export function attack(s: Game, p: Player): void {
-  if (physicsRuntime(s)) { attackInCore(s, p, damage); return; }
+  if (p.role === 'gladiator') { castersInCore(s, [{ player: p, skill: false, attack: true }]); return; }
+  if (physicsRuntime(s)) { attackInCore(s, p); return; }
   if (p.attackCd > 0) return;
-  if (p.role === 'gladiator') {
-    p.attackCd = 13; effect(s, { x: p.x + cos(p.heading) * 30, y: p.y + sin(p.heading) * 30 }, 'slash', 55);
-    // Range, arc and cover all read the positions this gladiator was looking at when they swung.
-    const seen = asSeenBy(s, p);
-    const t = s.players.filter(t => t.role !== p.role && t.status === 'active' && distance(p, seen(t)) < 86 && cos(atan2(seen(t).y - p.y, seen(t).x - p.x) - p.heading) > 0.25 && lineClear(s.map, p, seen(t))).sort((a, b) => distance(p, seen(a)) - distance(p, seen(b)))[0];
-    if (t) damage(s, t, s.content.kits[p.kit]!.damage + (p.level - 1) * 4, p);
-  } else {
-    const item = equipped(p);
-    // An L2 reload blocks attacking until it completes or is cancelled.
-    if (!item || p.reload) return;
-    if (item.kind === 'med' || item.kind === 'shield') {
-      const outcome = utilityOutcome(p, item);
-      if (!outcome) return;
-      Object.assign(p, outcome);
-      if (--item.count <= 0) p.inventory![p.selectedSlot!] = null;
-      p.attackCd = HZ; syncWeapon(p, s.content.weapons); effect(s, p, 'loot', 30); return;
-    }
-    // A carried cell is not a firearm; the original fell through the same way on a missing spec.
-    if (item.kind !== 'weapon') return;
-    const weapon = s.content.weapons[item.weaponType]; if (!weapon) return;
-    item.ammo ??= weapon.ammo;
-    if (item.ammo <= 0) return;
-    item.ammo--;
-    p.attackCd = weapon.cooldown;
-    for (const spread of weapon.spread) s.projectiles.push({ id: s.serial++, owner: p.id, x: p.x, y: p.y, dx: cos(p.heading + spread) * weapon.speed, dy: sin(p.heading + spread) * weapon.speed, life: weapon.life, damage: weapon.damage * qualityDamage(s.content, item) }); p.cloak = 0;
-    hearShot(s, p, item.weaponType);
+  const item = equipped(p);
+  // An L2 reload blocks attacking until it completes or is cancelled.
+  if (!item || p.reload) return;
+  if (item.kind === 'med' || item.kind === 'shield') {
+    const outcome = utilityOutcome(p, item);
+    if (!outcome) return;
+    Object.assign(p, outcome);
+    if (--item.count <= 0) p.inventory![p.selectedSlot!] = null;
+    p.attackCd = HZ; syncWeapon(p, s.content.weapons); effect(s, p, 'loot', 30); return;
   }
+  // A carried cell is not a firearm; the original fell through the same way on a missing spec.
+  if (item.kind !== 'weapon') return;
+  const weapon = s.content.weapons[item.weaponType]; if (!weapon) return;
+  item.ammo ??= weapon.ammo;
+  if (item.ammo <= 0) return;
+  item.ammo--;
+  p.attackCd = weapon.cooldown;
+  for (const spread of weapon.spread) s.projectiles.push({ id: s.serial++, owner: p.id, x: p.x, y: p.y, dx: cos(p.heading + spread) * weapon.speed, dy: sin(p.heading + spread) * weapon.speed, life: weapon.life, damage: weapon.damage * qualityDamage(s.content, item) }); p.cloak = 0;
+  hearShot(s, p, item.weaponType);
 }

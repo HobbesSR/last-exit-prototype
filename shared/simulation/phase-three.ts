@@ -12,7 +12,7 @@ import { HZ } from './rules.ts';
 import { playerIndex } from './relations.ts';
 import { addItems, groundItem, itemsNear } from './ground-items.ts';
 import { physicsRuntime, type PhysicsRuntime } from './physics-runtime.ts';
-import { asSeenBy } from './rewind.ts';
+import { event, participant } from './event-records.ts';
 import { sightOf } from './sight-runtime.ts';
 import { launchPhysicalDrops } from './world-physics.ts';
 import { start as profileStart, stop as profileStop } from '../profiler.ts';
@@ -25,13 +25,15 @@ interface ActionsExports {
   actions_configure(world: number): void;
   actions_run(world: number, collision: number, index: number, gates: number): number;
 }
-type Core = CoreExports & PhysicsExports & ActionsExports;
+export type ActionsCore = CoreExports & PhysicsExports & ActionsExports;
+type Core = ActionsCore;
 const OUT_HEADER = 13, PLAYER_ROW = 24, ITEM_ROW = 10, RECORD_ROW = 14;
 const configured = new WeakMap<PhysicsWorld, Game['content']>();
 const n = (value: number | null | undefined): number => typeof value === 'number' ? value : NaN;
 const code = (values: readonly string[], value: string | undefined): number => value === undefined ? NaN : values.indexOf(value);
 
-function configure(s: Game, r: PhysicsRuntime, core: Core, world: number): void {
+/** Uploads the match-pinned rules once per world; phase 5's combat (`phase-five.ts`) reads them too. */
+export function configure(s: Game, r: PhysicsRuntime, core: Core, world: number): void {
   if (configured.get(r.world) === s.content) return;
   const c = s.content, a = c.actorPhysics;
   const data = [c.itemInstances.groundCapacity, c.reloading ? 1 : 0, a.acceleration, a.braking,
@@ -85,17 +87,18 @@ function ground(row: Float64Array, at: number, p: Player, tick: number): GroundI
       : kind === 'cell' ? { charge: row[at + 4]! } : { count: 1 }), x, y, droppedBy: p.id, pickupAfter: tick + HZ };
 }
 
-type Damage = (s: Game, target: Player, amount: number, source: Player | null) => void;
+const MODE_ELIMINATE = 4;
 interface Options { mode?: number; player?: Player; item?: InventoryItem; family?: AmmoFamily; count?: number;
-  mandatory?: boolean; items?: readonly GroundItem[]; source?: Game; start?: number; stage?: number; damage?: Damage }
+  mandatory?: boolean; items?: readonly GroundItem[]; source?: Game; start?: number; stage?: number; killer?: Player | null }
 
 function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: Options = {}): { resume: number; stage: number; plan: DropPlan | null } {
   const r = physicsRuntime(s);
   if (!r) throw new Error('phase 3 needs the game\'s physics world');
   const native = r.world.boundaryCall(), core = native.core as Core, world = native.world;
   configure(s, r, core, world);
-  const mode = options.mode ?? 0, source = options.source ?? s;
-  const actors = options.player ? [options.player] : s.players.filter((_, i) => intents[i])
+  const mode = options.mode ?? 0, source = options.source ?? s, killer = options.killer ?? null;
+  // An elimination packs its target, then its source when that is another player.
+  const actors = options.player ? [options.player, ...killer && killer !== options.player ? [killer] : []] : s.players.filter((_, i) => intents[i])
     .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   const pool: InventoryItem[] = [], tokens = new Map<InventoryItem, number>();
   const token = (item: InventoryItem): number => {
@@ -106,7 +109,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   for (const p of actors) {
     const intent = intents[playerIndex(s, p)], input = intent?.input;
     if (input?.moveSlot) { allocations.push(...p.inventory?.filter(i => i !== null) ?? []); allocationCount += p.inventory?.filter(i => i && i.instanceId === undefined).length ?? 0; }
-    if (mode === 2 || mode === 3 || input?.drop || input?.dropAmmo || intent?.discardSlot !== undefined) {
+    if (mode === 2 || mode === 3 || mode === MODE_ELIMINATE && p === options.player || input?.drop || input?.dropAmmo || intent?.discardSlot !== undefined) {
       droppers.push(p); allocations.push(...p.inventory?.filter(i => i !== null) ?? []); allocationCount += 4; context = true; queries = true;
     }
     if (input?.skill && p.kit === 'specter' && p.cooldown <= 0) context = true;
@@ -141,7 +144,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
     near.size, groundIds.length, carried.length / 2, hooks.length, options.mandatory ? 1 : 0, code(AMMO_FAMILIES, options.family), n(options.count), 0];
   for (const p of actors) {
     const intent = intents[playerIndex(s, p)], input: PlayerInput = intent?.input ?? {};
-    const inventory = options.item ? [options.item] : mode === 1 || mode === 2 || !!(input.slot !== undefined || input.moveSlot || intent?.utilitySlot !== undefined
+    const inventory = options.item ? [options.item] : mode === MODE_ELIMINATE ? p === options.player ? p.inventory : undefined : mode === 1 || mode === 2 || !!(input.slot !== undefined || input.moveSlot || intent?.utilitySlot !== undefined
       || input.drop || intent?.discardSlot !== undefined || input.reload || p.reload || input.attack && p.role === 'contestant' && p.attackCd <= 0) ? p.inventory : undefined;
     data.push(playerIndex(s, p), r.world.key(`actor:${p.id}`), p.role === 'contestant' ? 0 : 1, PLAYER_STATUSES.indexOf(p.status), KITS.indexOf(p.kit),
       p.x, p.y, p.heading, p.hp, p.maxHp, p.shield, n(p.selectedSlot), p.weapon, p.attackCd, p.cooldown, p.cloak, p.revealed, p.boost, p.stun, p.level,
@@ -153,10 +156,9 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
       code(AMMO_FAMILIES, input.dropAmmo?.family), n(input.dropAmmo?.count), input.reload ? 1 : 0, input.skill ? 1 : 0, input.attack ? 1 : 0,
       n(input.x), n(input.y), input.sneak ? 1 : 0);
   }
-  const seen = mode === 1 && options.player?.role === 'gladiator' ? asSeenBy(s, options.player) : undefined;
   for (const p of contexts) {
-    const at = seen?.(p) ?? p, cues = hearing ? p.heard ?? [] : [];
-    data.push(playerIndex(s, p), p.role === 'contestant' ? 0 : 1, PLAYER_STATUSES.indexOf(p.status), at.x, at.y,
+    const cues = hearing ? p.heard ?? [] : [];
+    data.push(playerIndex(s, p), p.role === 'contestant' ? 0 : 1, PLAYER_STATUSES.indexOf(p.status), p.x, p.y,
       s.content.actorPhysics.geometry[p.role].bodyRadius, r.world.key(`actor:${p.id}`), cues.length);
     for (const cue of cues) data.push(cue.x, cue.y, cue.tick, cue.until);
   }
@@ -164,6 +166,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   for (const item of near) data.push(item.x, item.y);
   data.push(...groundIds, ...carried);
   for (const hook of hooks) data.push(hook.casterIdx, r.world.key(hook.id), hook.id === `hook:${s.players[hook.casterIdx]?.id}` ? 1 : 0);
+  if (mode === MODE_ELIMINATE) data.push(!killer ? -1 : killer === options.player ? 0 : 1, killer?.kills ?? 0, s.content.gladiatorRespawnTicks);
   // Interning and map preparation can grow memory; view the input only after those calls.
   const map = sightOf(s).queryHandles(s.map, queries);
   if (map.core !== core) throw new Error('phase 3 and sight are bound to different cores');
@@ -175,11 +178,13 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   // Applying a drop synchronizes and can grow memory. Retain this call's facts across that boundary.
   const view = new Float64Array(core.memory.buffer, outPtr, new Float64Array(core.memory.buffer, outPtr, 1)[0]!);
   const out = mode === 1 || view[4]! >= 0 ? view.slice() : view;
+  // Loop, attack and elimination calls write their players back; a standalone plan writes nothing.
+  const writes = mode < 2 || mode === MODE_ELIMINATE;
   let at = OUT_HEADER;
   for (let i = 0; i < out[7]!; i++) {
     const row = at, p = s.players[out[row]!]!, invCount = out[row + 20]!, reserves = out[row + 21]!, reload = out[row + 22]!, retired = out[row + 23]!;
     at += PLAYER_ROW;
-    if (mode < 2) {
+    if (writes) {
       if (!Object.is(p.heading, out[row + 7])) p.heading = out[row + 7]!;
       if (!Object.is(p.hp, out[row + 8])) p.hp = out[row + 8]!;
       if (!Object.is(p.shield, out[row + 10])) p.shield = out[row + 10]!;
@@ -190,20 +195,20 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
       if (!Object.is(p.cloak, out[row + 15])) p.cloak = out[row + 15]!;
       if (!Object.is(p.boost, out[row + 17])) p.boost = out[row + 17]!;
     }
-    if (reserves) { if (mode < 2) for (let k = 0; k < 3; k++) p.reserves![AMMO_FAMILIES[k]!] = out[at + k]!; at += 3; }
+    if (reserves) { if (writes) for (let k = 0; k < 3; k++) p.reserves![AMMO_FAMILIES[k]!] = out[at + k]!; at += 3; }
     if (reload) {
-      if (mode < 2 && (!p.reload || p.reload.slot !== out[at] || p.reload.instanceId !== out[at + 1] || p.reload.until !== out[at + 2]))
+      if (writes && (!p.reload || p.reload.slot !== out[at] || p.reload.instanceId !== out[at + 1] || p.reload.until !== out[at + 2]))
         p.reload = { slot: out[at]!, instanceId: out[at + 1]! as ItemId, until: out[at + 2]! };
       at += 3;
-    } else if (mode < 2 && p.reload) p.reload = null;
-    if (invCount >= 0) for (let k = 0; k < invCount; k++, at += ITEM_ROW) if (mode < 2) {
+    } else if (writes && p.reload) p.reload = null;
+    if (invCount >= 0) for (let k = 0; k < invCount; k++, at += ITEM_ROW) if (writes) {
       const item = out[at] === -1 ? null : pool[out[at + 8]!]!;
       if (item) putItem(item, out, at);
       p.inventory![k] = item;
     }
-    for (let k = 0; k < retired; k++, at += ITEM_ROW) if (mode < 2) putItem(pool[out[at + 8]!]!, out, at);
+    for (let k = 0; k < retired; k++, at += ITEM_ROW) if (writes) putItem(pool[out[at + 8]!]!, out, at);
   }
-  const allocation = mode >= 2 ? forkItemAllocation(source) : s;
+  const allocation = mode === 2 || mode === 3 ? forkItemAllocation(source) : s;
   allocation.itemSerial = out[2]!; allocation.scatterSerial = out[3]!;
   allocation.itemIdentities ??= { ids: new Map(), labels: new Map() };
   for (let i = 0; i < out[8]!; i++, at += 2) {
@@ -211,7 +216,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
     allocation.itemIdentities.ids.set(label, id); allocation.itemIdentities.labels.set(id, label);
   }
   const logEnd = at + out[9]!;
-  if (mode < 2) s.serial = out[1]!;
+  if (writes) s.serial = out[1]!;
   while (at < logEnd) {
     const op = out[at]!, len = out[at + 1]!; at += 2;
     if (op === 1) s.effects.push({ id: out[at]!, x: out[at + 1]!, y: out[at + 2]!, kind: EFFECT_KINDS[out[at + 3]!]!, radius: out[at + 4]!, life: 12 });
@@ -220,8 +225,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
       const p = s.players[out[at]!]!;
       if (!p.heard) Object.defineProperty(p, 'heard', { value: [], writable: true, configurable: true, enumerable: false });
       p.heard = Array.from({ length: out[at + 1]! }, (_, i) => ({ x: out[at + 2 + i * 4]!, y: out[at + 3 + i * 4]!, tick: out[at + 4 + i * 4]!, until: out[at + 5 + i * 4]! }));
-    } else if (op === 4) options.damage!(s, s.players[out[at]!]!, out[at + 1]!, s.players[out[at + 2]!]!);
-    else if (op === 5) { const caster = out[at]!; r.hooks = r.hooks.filter(h => !(h.casterIdx === caster && h.id === `hook:${s.players[caster]!.id}`)); }
+    } else if (op === 5) { const caster = out[at]!; r.hooks = r.hooks.filter(h => !(h.casterIdx === caster && h.id === `hook:${s.players[caster]!.id}`)); }
     else if (op === 6) {
       const casterIdx = out[at]! as import('../types.ts').PlayerIdx, p = s.players[casterIdx]!;
       r.hooks.push({ id: `hook:${p.id}`, tetherId: r.identities.newTether(), casterIdx, x: p.x, y: p.y, dx: out[at + 2]!, dy: out[at + 3]!, travelled: 0,
@@ -234,6 +238,20 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
       addItems(s, ...records); launchPhysicalDrops(s, records, p);
     } else if (op === 10) s.players[out[at]!]!.charging = null;
     else if (op === 11) s.players[out[at]!]!.revealed = out[at + 1]!;
+    else if (op === 12) {
+      // `eliminate`'s first writes, in its order; the event takes the core's ID.
+      const p = s.players[out[at]!]!, killedBy = out[at + 2]! >= 0 ? s.players[out[at + 2]!]! : null, kept = s.serial;
+      p.status = 'eliminated';
+      s.serial = out[at + 1]!; event(s, { kind: 'eliminated', target: participant(s, p), ...(killedBy ? { source: participant(s, killedBy) } : {}) }); s.serial = kept;
+      p.charging = null;
+      // A gladiator's death clears `input`, Node-owned (27, D4's table).
+      if (!Number.isNaN(out[at + 3]!)) { p.status = 'respawning'; p.respawnAt = out[at + 3]!; p.input = {}; }
+    } else if (op === 14) s.players[out[at]!]!.reload = null;
+    else if (op === 13) {
+      const p = s.players[out[at]!]!;
+      p.kills = out[at + 1]!;
+      if (!Number.isNaN(out[at + 2]!)) { p.level = out[at + 2]!; p.maxHp = out[at + 3]!; }
+    }
     else throw new Error(`unknown phase 3 fact ${op}`);
     at += len;
   }
@@ -246,16 +264,31 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   return { resume: out[4]!, stage: out[5]!, plan: out[6] === 1 && mode >= 2 ? { records, itemSerial: allocation.itemSerial!, scatterSerial: allocation.scatterSerial!, allocation } : null };
 }
 
-export function phaseThree(s: Game, intents: readonly (ActionIntent | undefined)[], damage: Damage): void {
+export function phaseThree(s: Game, intents: readonly (ActionIntent | undefined)[]): void {
   let start = 0, stage = 0;
   for (;;) {
-    const result = call(s, intents, { start, stage, damage });
+    const result = call(s, intents, { start, stage });
     if (result.resume < 0) return;
     start = result.resume; stage = result.stage;
   }
 }
-/** Phase 5 shares the same attack while its damage/lifecycle owner remains in TypeScript until 5d. */
-export function attackInCore(s: Game, player: Player, damage: Damage): void { call(s, [], { mode: 1, player, damage }); }
+/** A contestant's attack outside the loop, for scenarios; a gladiator's is phase 5's (`phase-five.ts`). */
+export function attackInCore(s: Game, player: Player): void {
+  if (player.role === 'gladiator') throw new Error('a gladiator attacks in phase 5');
+  call(s, [], { mode: 1, player });
+}
+/**
+ * `eliminate` (`lifecycle.ts`) in the core: the lifecycle, each mandatory drop at its own sync boundary (as 5c.2's
+ * drops), the reserves, then the kill credit. Each committed drop returns; the next call resumes at the next step.
+ */
+export function eliminateInCore(s: Game, player: Player, killer: Player | null): void {
+  let stage = 0;
+  for (;;) {
+    const result = call(s, [], { mode: MODE_ELIMINATE, player, killer, stage });
+    if (result.resume < 0) return;
+    stage = result.stage;
+  }
+}
 export function planDropInCore(s: Game, player: Player, item: InventoryItem, mandatory: boolean, items: readonly GroundItem[], source: Game): DropPlan | null {
   return call(s, [], { mode: 2, player, item, mandatory, items, source }).plan;
 }

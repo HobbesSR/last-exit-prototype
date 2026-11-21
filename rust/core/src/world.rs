@@ -158,6 +158,7 @@ pub struct World {
     pub(crate) boundary_input: Vec<f64>,
     pub(crate) boundary_output: Vec<f64>,
     pub(crate) actions: crate::phase_three::PhaseThree,
+    pub(crate) combat: crate::combat::Combat,
     /// By key: a solid prop's shape as its spec gave it (`shape, a, b, vertices`), for the swept
     /// queries' `solidProps` (`hooks.rs`). Loot and every other kind keep none.
     prop_shapes: Vec<Option<PropShape>>,
@@ -202,6 +203,7 @@ impl World {
             boundary_input: Vec::new(),
             boundary_output: Vec::new(),
             actions: crate::phase_three::PhaseThree::default(),
+            combat: crate::combat::Combat::default(),
             prop_shapes: Vec::new(),
         }
     }
