@@ -26,8 +26,9 @@ pub const EQUIP_HEAD: usize = 13;
 /// Words per carried item (`action_types::Item::row`).
 pub const ITEM_ROW: usize = 10;
 
-/// A player's equipment (#1214 stage 6c.3c.1). Items keep their absence mask, so the records' key order survives. Their
-/// tokens are the uploading call's and mean nothing to the store yet.
+/// A player's equipment (#1214 stage 6c.3c.1). Items keep their absence mask, so the records' key order survives. Each
+/// item's token names the record that mirrors it (6c.3c.2): the upload numbers the carried records in roster and slot
+/// order, and a new item takes the next token when the store takes it (`put_items`), in the order the adapter builds it.
 #[derive(Clone, Default)]
 pub(crate) struct Equip {
     pub(crate) selected: f64,
@@ -58,14 +59,21 @@ fn item(row: &[f64]) -> Option<Item> {
     (row[0] != -1.0).then(|| Item::read(row))
 }
 
-/// Write `count` inventory rows from `rows` into slots `0..count`, as `putInventory` and phase 3's loop write them.
-fn put_items(q: &mut Equip, rows: &[f64], count: usize) {
+/// Write `count` inventory rows from `rows` into slots `0..count`, as `putInventory` and phase 3's loop write them. A new
+/// item (token -1) takes the next token, in slot order, as the adapter files the record it builds.
+fn put_items(q: &mut Equip, next_token: &mut f64, rows: &[f64], count: usize) {
     let inventory = q.inventory.get_or_insert_with(Vec::new);
     if inventory.len() < count {
         inventory.resize(count, None);
     }
     for (k, slot) in inventory.iter_mut().take(count).enumerate() {
-        *slot = item(&rows[k * ITEM_ROW..(k + 1) * ITEM_ROW]);
+        *slot = item(&rows[k * ITEM_ROW..(k + 1) * ITEM_ROW]).map(|mut i| {
+            if i.token < 0.0 {
+                i.token = *next_token;
+                *next_token += 1.0;
+            }
+            i
+        });
     }
 }
 
@@ -92,6 +100,8 @@ pub struct Players {
     pub(crate) extra: Vec<Extra>,
     /// Each player's equipment, in roster order.
     pub(crate) equip: Vec<Equip>,
+    /// The token the next new item takes (`put_items`).
+    pub(crate) next_token: f64,
     input: Vec<f64>,
 }
 
@@ -138,6 +148,12 @@ impl Players {
             self.input.len(),
             "the upload ends with the last equipment"
         );
+        self.next_token = self
+            .equip
+            .iter()
+            .flat_map(|q| q.inventory.iter().flatten().flatten())
+            .map(|i| i.token + 1.0)
+            .fold(0.0, f64::max);
         for row in self.input[..count * STORE_ROW].as_chunks::<STORE_ROW>().0 {
             self.rows.push(Row::read(&row[..PLAYER_ROW]));
             self.moved.push(row[PLAYER_ROW]);
@@ -205,10 +221,7 @@ impl Players {
                 rel[2],
             ]);
             for slot in q.inventory.iter().flatten() {
-                // Tokens are the uploading call's; the dump writes 0, as the drift check's pack does.
-                let mut row = slot.as_ref().map_or(EMPTY_ROW, Item::row);
-                row[8] = 0.0;
-                words.extend_from_slice(&row);
+                words.extend_from_slice(&slot.as_ref().map_or(EMPTY_ROW, Item::row));
             }
         }
         self.input = words;
@@ -224,6 +237,16 @@ impl Players {
         (p.hp, p.max_hp, p.shield) = (s.hp, s.max_hp, s.shield);
         (p.attack_cd, p.cooldown, p.stun, p.level) = (s.attack_cd, s.cooldown, s.stun, s.level);
         (p.cloak, p.revealed, p.boost) = (e.cloak, e.revealed, e.boost);
+    }
+
+    /// An action player's equipment from the store: selection, weapon, reserves and reload, and the inventory when the
+    /// adapter asked for it (`inventory`), as it would have packed them.
+    pub(crate) fn fill_equipment(&self, p: &mut crate::action_types::Player, inventory: bool) {
+        let q = &self.equip[p.roster];
+        (p.selected, p.weapon, p.reserves, p.reload) = (q.selected, q.weapon, q.reserves, q.reload);
+        if inventory {
+            p.inventory = q.inventory.clone();
+        }
     }
 
     /// How many players the store holds.
@@ -328,13 +351,13 @@ impl Players {
                         if p[3] != 0.0 && q.reserves.is_some() {
                             q.reserves = Some([p[4], p[5], p[6]]);
                         }
-                        put_items(q, &p[8..], p[7] as usize);
+                        put_items(q, &mut self.next_token, &p[8..], p[7] as usize);
                     }
                     15 => {
                         // A committed swap replaces the inventory whole.
                         let count = p[8] as usize;
                         q.inventory = Some(vec![None; count]);
-                        put_items(q, &p[9..], count);
+                        put_items(q, &mut self.next_token, &p[9..], count);
                         q.selected = p[2];
                         if p[4] != 0.0 && q.reserves.is_some() {
                             q.reserves = Some([p[5], p[6], p[7]]);
@@ -400,7 +423,7 @@ impl Players {
             }
             if inventory >= 0.0 {
                 if let Some(q) = q.as_mut() {
-                    put_items(q, &out[at..], inventory as usize);
+                    put_items(q, &mut self.next_token, &out[at..], inventory as usize);
                 }
                 at += inventory as usize * ITEM_ROW;
             }

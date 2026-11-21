@@ -12,7 +12,7 @@ import { HZ } from './rules.ts';
 import { playerIndex } from './relations.ts';
 import { addItems, groundItem, itemsNear } from './ground-items.ts';
 import { physicsRuntime, type PhysicsRuntime } from './physics-runtime.ts';
-import { appendItem, playersStale, uploadPlayers } from './player-store.ts';
+import { appendItem, carriedItem, carriedToken, playersStale, uploadPlayers } from './player-store.ts';
 export { appendItem };
 import { event, participant } from './event-records.ts';
 import { sightOf } from './sight-runtime.ts';
@@ -30,6 +30,8 @@ interface ActionsExports {
 export type ActionsCore = CoreExports & PhysicsExports & ActionsExports;
 type Core = ActionsCore;
 const OUT_HEADER = 13, PLAYER_ROW = 24, ITEM_ROW = 10, RECORD_ROW = 14;
+/** An inventory the core takes from its player store (`phase_three::FROM_STORE`), and the first of a call's own tokens. */
+const FROM_STORE = -2, EXTRA_TOKEN = 1e9;
 const configured = new WeakMap<PhysicsWorld, Game['content']>();
 const n = (value: number | null | undefined): number => typeof value === 'number' ? value : NaN;
 const code = (values: readonly string[], value: string | undefined): number => value === undefined ? NaN : values.indexOf(value);
@@ -87,15 +89,19 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   const r = physicsRuntime(s);
   if (!r) throw new Error('phase 3 needs the game\'s physics world');
   const native = r.world.boundaryCall(), core = native.core as Core, world = native.world;
+  // Between ticks the store is uploaded first (`player-store.ts`), before anything names a carried record by its token,
+  // since the upload numbers them afresh; inside a tick the store and the tokens are current.
+  if (playersStale(r)) uploadPlayers(s, r, core, world);
   configure(s, r, core, world);
   const mode = options.mode ?? 0, source = options.source ?? s, killer = options.killer ?? null;
   // An elimination packs its target, then its source when that is another player.
   const actors = options.player ? [options.player, ...killer && killer !== options.player ? [killer] : []] : s.players.filter((_, i) => intents[i])
     .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-  const pool: InventoryItem[] = [], tokens = new Map<InventoryItem, number>();
-  const token = (item: InventoryItem): number => {
-    let t = tokens.get(item); if (t === undefined) { t = pool.length; tokens.set(item, t); pool.push(item); } return t;
-  };
+  // Carried records are named by the store's tokens (`player-store.ts`, #1214 stage 6c.3c.2). A plan's standalone item
+  // that no inventory holds takes a token of this call's, far above the store's.
+  const extras: InventoryItem[] = [];
+  const token = (item: InventoryItem): number => carriedToken(r, item) ?? EXTRA_TOKEN + extras.push(item) - 1;
+  const itemOf = (t: number): InventoryItem => (t >= EXTRA_TOKEN ? extras[t - EXTRA_TOKEN] : carriedItem(r, t))!;
   const allocations: InventoryItem[] = [], droppers: Player[] = [];
   let allocationCount = 0, context = mode === 1, hearing = false;
   for (const p of actors) {
@@ -139,12 +145,13 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
     const inventory = options.item ? [options.item] : mode === MODE_ELIMINATE ? p === options.player ? p.inventory : undefined : mode === 1 || mode === 2 || !!(input.slot !== undefined || input.moveSlot || intent?.utilitySlot !== undefined
       || input.drop || intent?.discardSlot !== undefined || input.reload || p.reload || input.attack && p.role === 'contestant' && p.attackCd <= 0) ? p.inventory : undefined;
     // The store's fields (role, status, kit, pose, heading, health, cooldowns, cloak, reveal, boost, stun, level and the actor's
-    // key) come from the core's player store (`player-store.ts`, #1214 stage 6c.3b); their words stay 0.
-    data.push(playerIndex(s, p), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, n(p.selectedSlot), p.weapon, 0, 0, 0, 0, 0, 0, 0,
-      inventory?.length ?? -1, p.reserves ? 1 : 0, p.reload ? 1 : 0, 0);
-    if (p.reserves) data.push(p.reserves.pistol, p.reserves.rifle, p.reserves.shell);
-    if (p.reload) data.push(p.reload.slot, p.reload.instanceId, p.reload.until);
-    for (const item of inventory ?? []) appendItem(data, item, item ? token(item) : NaN);
+    // key, 6c.3b) and its equipment (selection, weapon, reserves, reload, 6c.3c.2) come from the core's player store
+    // (`player-store.ts`, #1214); their words stay 0. The inventory crosses as before only for a plan's standalone item;
+    // a carried one is asked for from the store (`FROM_STORE`) when the rules may read it, as it was packed before.
+    const fromStore = !options.item && inventory !== undefined && inventory === p.inventory;
+    data.push(playerIndex(s, p), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      fromStore ? FROM_STORE : inventory?.length ?? -1, 0, 0, 0);
+    if (!fromStore) for (const item of inventory ?? []) appendItem(data, item, item ? token(item) : NaN);
     data.push(n(input.aim), n(input.slot), n(input.moveSlot?.from), n(input.moveSlot?.to), n(intent?.utilitySlot), n(intent?.discardSlot), input.drop ? 1 : 0,
       code(AMMO_FAMILIES, input.dropAmmo?.family), n(input.dropAmmo?.count), input.reload ? 1 : 0, input.skill ? 1 : 0, input.attack ? 1 : 0,
       n(input.x), n(input.y), input.sneak ? 1 : 0);
@@ -164,8 +171,6 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   // Interning and map preparation can grow memory; view the input only after those calls.
   const map = sightOf(s).queryHandles(s.map);
   if (map.core !== core) throw new Error('phase 3 and sight are bound to different cores');
-  // Between ticks the store is uploaded first (`player-store.ts`); inside one it is current.
-  if (playersStale(r)) uploadPlayers(s, r, core, world);
   const ptr = core.actions_input(world, data.length) >>> 0;
   new Float64Array(core.memory.buffer, ptr, data.length).set(data);
   if (mode === 0) profileStart('sim.actions.core');
@@ -198,11 +203,11 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
       at += 3;
     } else if (writes && p.reload) p.reload = null;
     if (invCount >= 0) for (let k = 0; k < invCount; k++, at += ITEM_ROW) if (writes) {
-      const item = out[at] === -1 ? null : pool[out[at + 8]!]!;
+      const item = out[at] === -1 ? null : itemOf(out[at + 8]!);
       if (item) putItem(item, out, at);
       p.inventory![k] = item;
     }
-    for (let k = 0; k < retired; k++, at += ITEM_ROW) if (writes) putItem(pool[out[at + 8]!]!, out, at);
+    for (let k = 0; k < retired; k++, at += ITEM_ROW) if (writes) putItem(itemOf(out[at + 8]!), out, at);
   }
   const allocation = mode === 2 || mode === 3 ? forkItemAllocation(source) : s;
   allocation.itemSerial = out[2]!; allocation.scatterSerial = out[3]!;

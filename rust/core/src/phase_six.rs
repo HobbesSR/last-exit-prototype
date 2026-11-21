@@ -157,6 +157,8 @@ struct Gate {
 
 struct Actor {
     p: Player,
+    /// The adapter asked for this actor's inventory from the player store (`phase_three::FROM_STORE`).
+    inventory_from_store: bool,
     bot: bool,
     rail_cd: f64,
     keys: f64,
@@ -254,6 +256,7 @@ fn read_actor(r: &mut Reader<'_>) -> Actor {
             reload: None,
             retired: Vec::new(),
         },
+        inventory_from_store: a[18] == crate::phase_three::FROM_STORE,
         bot: a[3] != 0.0,
         rail_cd: a[6],
         keys: a[7],
@@ -1198,6 +1201,14 @@ impl PhaseSix {
             let (s, e) = (&store.rows[a.p.roster], &store.extra[a.p.roster]);
             (a.p.role, a.p.status, a.p.x, a.p.y, a.p.cloak, a.rail_cd) =
                 (s.role, s.status, s.x, s.y, e.cloak, e.rail_cd);
+            // The equipment too (6c.3c.2): selection, weapon, keys, charging and reserves, and the inventory where the
+            // adapter asked for it. A reload is not phase 6's, so it stays absent, as the adapter packed it.
+            let q = &store.equip[a.p.roster];
+            (a.p.selected, a.p.weapon, a.p.reserves, a.keys, a.charging) =
+                (q.selected, q.weapon, q.reserves, q.keys, q.charging);
+            if a.inventory_from_store {
+                a.p.inventory = q.inventory.clone();
+            }
         }
         let players = (0..h[PLAYERS] as usize)
             .map(|i| {

@@ -8,10 +8,10 @@ import { event, participant } from './event-records.ts';
 import { clearRoute } from './geometry.ts';
 import { writeDoor } from './doors.ts';
 import { addItems, draftItem, groundItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
-import { appendItem, configure, ground, putItem } from './phase-three.ts';
+import { configure, ground, putItem } from './phase-three.ts';
 import type { ActionsCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
-import { playersStale, uploadPlayers } from './player-store.ts';
+import { adoptCarried, carriedItem, carriedToken, playersStale, replaceCarried, uploadPlayers } from './player-store.ts';
 import { playerIndex } from './relations.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import { PICKUP_REACH } from './rules.ts';
@@ -35,6 +35,8 @@ type Core = ActionsCore & SixExports;
 
 export const STEP_INTERACT = 1, STEP_TRANSIT = 2, STEP_CHARGING = 4, STEP_PICKUPS = 8;
 const HEADER = 32, OUT_HEADER = 11;
+/** An inventory the core takes from its player store (`phase_three::FROM_STORE`). */
+const FROM_STORE = -2;
 const ABSENT_AMMO = 1, ABSENT_CHARGE = 2, ABSENT_INSTANCE = 4, ABSENT_LINEAGE = 8, ABSENT_QUALITY = 16, ABSENT_WEAPON = 32, ABSENT_COUNT = 64;
 /** The spiral's farthest spot and its spacing, with a unit spare (`scatter.rs`): a swap's drop reads records this near. */
 const SCATTER_REACH = 372 + 32 + 1;
@@ -59,14 +61,6 @@ class Writer {
 const writer = new Writer();
 /** Records that cross for no one. */
 const NONE: GroundItem[] = [];
-
-/** A carried item as phase 3's ten words (`appendItem`). */
-const carriedRow: number[] = [];
-function putCarried(w: Writer, item: InventoryItem | null, token: number): void {
-  carriedRow.length = 0;
-  appendItem(carriedRow, item, token);
-  for (let k = 0; k < 10; k++) w.put(carriedRow[k]!);
-}
 
 function putGround(w: Writer, s: Game, r: PhysicsRuntime | null, p: Player, item: GroundItem, rank: number): void {
   const kind = ITEM_KINDS.indexOf(item.kind as typeof ITEM_KINDS[number]);
@@ -96,13 +90,20 @@ function newItem(row: Float64Array, at: number): InventoryItem {
   return { kind: kind as 'med' | 'shield', count: row[at + 3]!, ...identity };
 }
 
-/** Write an inventory row (`inventory_row` in phase_six.rs) into `inventory`, reading carried objects from `pool`. */
-function putInventory(inventory: (InventoryItem | null)[], pool: InventoryItem[], out: Float64Array, at: number, clone: boolean): number {
+/**
+ * Write an inventory row (`inventory_row` in phase_six.rs) into `inventory`, reading carried records by the store's tokens
+ * (`player-store.ts`, #1214 stage 6c.3c.2). A new item is built and filed under the next token, as the store gives it; a
+ * swap's clone takes its original's token.
+ */
+function putInventory(inventory: (InventoryItem | null)[], r: PhysicsRuntime, out: Float64Array, at: number, clone: boolean): number {
   const count = out[at]!; at++;
   for (let k = 0; k < count; k++, at += 10) {
     if (out[at] === -1) { inventory[k] = null; continue; }
     const token = out[at + 8]!;
-    const item = token < 0 ? newItem(out, at) : clone ? structuredClone(pool[token]!) : pool[token]!;
+    let item: InventoryItem;
+    if (token < 0) { item = newItem(out, at); adoptCarried(r, item); }
+    else if (clone) { item = structuredClone(carriedItem(r, token)!); replaceCarried(r, token, item); }
+    else item = carriedItem(r, token)!;
     if (token >= 0) putItem(item, out, at);
     inventory[k] = item;
   }
@@ -115,11 +116,10 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
   const r = physicsRuntime(s);
   if (!r) throw new Error('phase 6 needs the game\'s physics world');
   const native = r.world.boundaryCall(), core = native.core as Core, world = native.world;
+  // Between ticks the store is uploaded first (`player-store.ts`), before anything names a carried record by its token,
+  // since the upload numbers them afresh; inside a tick the store and the tokens are current.
+  if (playersStale(r)) uploadPlayers(s, r, core, world);
   configure(s, r, core, world);
-  const pool: InventoryItem[] = [], tokens = new Map<InventoryItem, number>();
-  const token = (item: InventoryItem): number => {
-    let t = tokens.get(item); if (t === undefined) { t = pool.length; tokens.set(item, t); pool.push(item); } return t;
-  };
   const near: GroundItem[][] = [];
   let allocations = 0, swaps = false, interacting = false;
   const known = new Set<number>();
@@ -169,17 +169,16 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
     const taken = swap ? itemsNear(s, p, SCATTER_REACH) : NONE;
     const outgoing = swap ? p.inventory![p.selectedSlot ?? 0] : undefined;
     const groundId = outgoing?.instanceId && groundItem(s, outgoing.instanceId) ? outgoing.instanceId : undefined;
-    const charging = !p.charging ? -1 : s.map.chargers.findIndex(c => c.id === p.charging);
     // Role, status, pose, `railCd` and `cloak` come from the core's player store (`player-store.ts`, #1214 stage 6c.3b);
     // their words stay 0.
     w.put(playerIndex(s, p)); w.put(0); w.put(0); w.put(p.bot ? 1 : 0);
-    w.put(0); w.put(0); w.put(0); w.put(p.keys); w.put(0); w.put(charging === -1 && p.charging ? -2 : charging);
-    w.put(n(p.selectedSlot)); w.put(p.weapon); w.put(moved ? 1 : 0); w.put(p.discovery ? 1 : 0); w.put(steps);
-    w.put(choice === undefined ? NaN : s.map.stations.findIndex(st => st.id === choice)); w.put(sneak ? 1 : 0); w.put(p.reserves ? 1 : 0);
-    w.put(inventory ? inventory.length : -1); w.put(candidates.length); w.put(taken.length); w.put(groundId === undefined ? 0 : 1);
+    // The equipment comes from the store too (6c.3c.2): keys, charging, selection, weapon and reserves always, and the
+    // inventory where a rule can read it (`FROM_STORE`), as it was packed before.
+    w.put(0); w.put(0); w.put(0); w.put(0); w.put(0); w.put(0);
+    w.put(0); w.put(0); w.put(moved ? 1 : 0); w.put(p.discovery ? 1 : 0); w.put(steps);
+    w.put(choice === undefined ? NaN : s.map.stations.findIndex(st => st.id === choice)); w.put(sneak ? 1 : 0); w.put(0);
+    w.put(inventory ? FROM_STORE : -1); w.put(candidates.length); w.put(taken.length); w.put(groundId === undefined ? 0 : 1);
     w.put(list.length);
-    if (p.reserves) for (const f of AMMO_FAMILIES) w.put(p.reserves[f]);
-    if (inventory) for (const item of inventory) putCarried(w, item, item ? token(item) : NaN);
     if (candidates.length) {
       // The swap's tie-break is the item labels' order (`interact`).
       const labels = candidates.map(item => { try { return itemLabel(s, item.id); } catch { return undefined; } });
@@ -201,15 +200,13 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
   }
   w.buf[25] = phases;
   for (const id of known) w.put(id);
-  if (swaps) for (const p of s.players) for (const item of p.inventory ?? []) if (item?.instanceId) { w.put(token(item)); w.put(item.instanceId); w.buf[27]++; }
+  if (swaps) for (const p of s.players) for (const item of p.inventory ?? []) if (item?.instanceId) { w.put(carriedToken(r, item)!); w.put(item.instanceId); w.buf[27]++; }
   // The core finds the gates near an interacting actor in its own gate set. Their positions and kinds cross once per
   // gate set; their state is the set's own (stage 6a, `doors.ts`), so nothing about it crosses.
   if (interacting && core.gate_set_details(map.gates) !== s.map.gates.length) {
     w.buf[28] = s.map.gates.length;
     for (const gate of s.map.gates) { w.put(gate.x); w.put(gate.y); w.put(gate.kind === 'door' ? 1 : 0); }
   }
-  // Between ticks the store is uploaded first (`player-store.ts`); inside one it is current.
-  if (playersStale(r)) uploadPlayers(s, r, core, world);
   const ptr = core.interactions_input(world, w.len) >>> 0;
   new Float64Array(core.memory.buffer, ptr, w.len).set(w.buf.subarray(0, w.len));
   if (tickMode) profileStart('sim.pickups.core');
@@ -262,7 +259,7 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
       case 11: p.keys = out[at + 1]!; break;
       case 12: {
         const sel = out[at + 1]!, weapon = out[at + 2]!;
-        putInventory(p.inventory!, pool, out, at + 7, false);
+        putInventory(p.inventory!, r, out, at + 7, false);
         if (!Object.is(n(p.selectedSlot), sel)) p.selectedSlot = sel;
         if (!Object.is(p.weapon, weapon)) p.weapon = weapon;
         if (out[at + 3]) AMMO_FAMILIES.forEach((f, k) => { if (!Object.is(p.reserves![f], out[at + 4 + k])) p.reserves![f] = out[at + 4 + k]!; });
@@ -294,7 +291,7 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
         const pickup = groundItem(s, out[at + 1]! as ItemId)!;
         const sel = out[at + 2]!, weapon = out[at + 3]!;
         const inventory = new Array<InventoryItem | null>(out[at + 8]!);
-        const end = putInventory(inventory, pool, out, at + 8, true);
+        const end = putInventory(inventory, r, out, at + 8, true);
         p.inventory = inventory;
         p.selectedSlot = Object.is(n(p.selectedSlot), sel) ? p.selectedSlot : sel;
         const reserves = p.reserves && { ...p.reserves };

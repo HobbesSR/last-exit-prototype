@@ -125,7 +125,11 @@ impl PhaseThree {
         });
     }
 }
-fn read_player(r: &mut Reader<'_>) -> Player {
+/// The inventory length an adapter writes for an inventory the core takes from its player store (#1214 stage 6c.3c.2).
+pub const FROM_STORE: f64 = -2.0;
+
+/// One action player's row; the flag says the adapter asked for its inventory from the store.
+fn read_player(r: &mut Reader<'_>) -> (Player, bool) {
     let a: [f64; 24] = r.row();
     let reserves = if a[21] != 0.0 { Some(r.row()) } else { None };
     let reload = if a[22] != 0.0 { Some(r.row()) } else { None };
@@ -145,7 +149,7 @@ fn read_player(r: &mut Reader<'_>) -> Player {
                 .collect(),
         )
     };
-    Player {
+    let player = Player {
         roster: a[0] as usize,
         key: a[1] as u32,
         role: a[2],
@@ -170,7 +174,8 @@ fn read_player(r: &mut Reader<'_>) -> Player {
         reserves,
         reload,
         retired: Vec::new(),
-    }
+    };
+    (player, a[20] == FROM_STORE)
 }
 fn write_player(out: &mut Vec<f64>, p: &Player) {
     out.extend_from_slice(&[
@@ -471,9 +476,12 @@ impl PhaseThree {
             at: HEADER,
         };
         let mut players = Vec::new();
+        let mut from_store = Vec::new();
         let mut intents = Vec::new();
         for _ in 0..h[9] as usize {
-            players.push(read_player(&mut r));
+            let (p, store) = read_player(&mut r);
+            players.push(p);
+            from_store.push(store);
             intents.push(r.row::<15>());
         }
         let mut actors = Vec::new();
@@ -491,8 +499,11 @@ impl PhaseThree {
             });
         }
         // The store's fields come from the core's player store (#1214 stage 6c.3b); the adapter leaves those words 0.
-        for p in &mut players {
+        // So does the equipment (6c.3c.2): selection, weapon, reserves and reload always, as the adapter packed them,
+        // and the inventory where the adapter asked for it.
+        for (p, &store) in players.iter_mut().zip(&from_store) {
             world.players.fill_action(p);
+            world.players.fill_equipment(p, store);
         }
         for a in &mut actors {
             let s = &world.players.rows[a.roster];
