@@ -163,10 +163,23 @@ pub struct World {
     pub(crate) hazards: crate::hazards::Hazards,
     pub(crate) players: crate::players::Players,
     pub(crate) ground: crate::ground::Ground,
+    /// The gates' bodies as the body sync keeps them (#1214 stage 6d.2).
+    pub(crate) gate_bodies: GateBodies,
     pub(crate) phase_seven: crate::phase_seven::PhaseSeven,
     /// By key: a solid prop's shape as its spec gave it (`shape, a, b, vertices`), for the swept
     /// queries' `solidProps` (`hooks.rs`). Loot and every other kind keep none.
     prop_shapes: Vec<Option<PropShape>>,
+}
+
+/// The gates' bodies as the body sync keeps them (#1214 stage 6d.2): each gate's key (`gate:<id>`) and closed body's row,
+/// uploaded once per world, the legacy admission order (by ID), and what the world last saw of each gate (0 nothing yet,
+/// 1 open, 2 closed), which JavaScript's runtime kept as `gates` until then.
+#[derive(Default)]
+pub(crate) struct GateBodies {
+    pub(crate) keys: Vec<Key>,
+    pub(crate) rows: Vec<Vec<f64>>,
+    pub(crate) order: Vec<usize>,
+    pub(crate) seen: Vec<u8>,
 }
 
 /// A solid prop's shape: `physics::SHAPE_*`, its `a`, `b` and convex vertices, as queued.
@@ -213,6 +226,7 @@ impl World {
             hazards: crate::hazards::Hazards::default(),
             players: crate::players::Players::default(),
             ground: crate::ground::Ground::default(),
+            gate_bodies: GateBodies::default(),
             phase_seven: crate::phase_seven::PhaseSeven::default(),
             prop_shapes: Vec::new(),
         }
@@ -225,6 +239,32 @@ impl World {
 
     pub fn output(&self) -> &[f64] {
         &self.output
+    }
+
+    /// The keys of the live bodies whose IDs start with `prefix` (`actor:`, `item:`), in key order.
+    pub(crate) fn keys_with_prefix(&self, prefix: &str) -> Vec<Key> {
+        let prefix: Vec<u16> = prefix.encode_utf16().collect();
+        (0..self.bodies.len())
+            .filter(|&k| self.bodies[k].is_some() && self.ids[k].starts_with(&prefix))
+            .map(|k| k as Key)
+            .collect()
+    }
+
+    /// Take the gates' keys and closed rows (`count` rows of a key then `BODY_ROW` words) from the boundary input, once
+    /// per world.
+    pub fn load_gates(&mut self, count: usize) {
+        let rows: Vec<(Key, Vec<f64>)> = self.boundary_input[..count * (1 + BODY_ROW)]
+            .chunks(1 + BODY_ROW)
+            .map(|r| (r[0] as Key, r[1..].to_vec()))
+            .collect();
+        let mut order: Vec<usize> = (0..count).collect();
+        order.sort_by(|&a, &b| self.order(rows[a].0, rows[b].0));
+        self.gate_bodies = GateBodies {
+            keys: rows.iter().map(|r| r.0).collect(),
+            rows: rows.into_iter().map(|r| r.1).collect(),
+            order,
+            seen: vec![0; count],
+        };
     }
 
     /// JavaScript's `<` on the two IDs: UTF-16 code units, compared in order.

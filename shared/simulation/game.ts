@@ -9,7 +9,7 @@ import { ownDoors } from './doors.ts';
 import { ownGround } from './ground-store.ts';
 import { validateActorPhysics } from './actor-physics.ts';
 import { addAuthoredProps, validateWorldPhysics } from './world-physics.ts';
-import { placeInCore, synchronizeBodies, synchronizeItems } from './boundary.ts';
+import { placeInCore, synchronizeBodies, synchronizeItems, uploadGateBodies } from './boundary.ts';
 import { reconcileHooks } from './hook.ts';
 import { attachPhysics, physicsRuntime, PHYSICS_VERSION } from './physics-runtime.ts';
 import { buildPhysicsGeometry } from './physics-geometry.ts';
@@ -135,6 +135,8 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
     attachPhysics(s, runtime);
     // The ground helpers write through to the core's ground store from here on (#1214 stage 6d.1).
     ownGround(s);
+    // The body sync reconciles the gates' bodies in the core, from their keys and closed rows (#1214 stage 6d.2).
+    uploadGateBodies(s, runtime);
     Object.defineProperty(s, 'version', { value: PHYSICS_VERSION, enumerable: true, writable: false });
     synchronize(s, runtime, s.tick + 1);
     return s;
