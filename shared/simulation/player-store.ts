@@ -25,10 +25,40 @@ export function appendItem(data: number[], item: InventoryItem | null, token: nu
 }
 
 /**
- * Each player's equipment, in roster order, as `players::EQUIP_HEAD` and the item rows lay it out: selection, weapon,
- * keys, charging (the charger's index, -1 none, -2 unknown), the inventory, reserves and reload. Tokens are written 0.
+ * The carried records the core's tokens name (#1214 stage 6c.3c.2), per runtime: a token is a record's index. Each upload
+ * numbers the carried records in roster and slot order; a new record the core reports is filed with `adoptCarried` in the
+ * order the adapter builds it, which is the order the store gives new items their tokens (`players::put_items`); a
+ * swap's clone takes its original's token (`replaceCarried`). Phases 3 and 6 name carried records by these tokens.
  */
-function packEquipment(s: Game): number[] {
+interface CarriedTable { items: InventoryItem[]; tokens: Map<InventoryItem, number> }
+const tables = new WeakMap<PhysicsRuntime, CarriedTable>();
+const tableOf = (r: PhysicsRuntime): CarriedTable => {
+  let table = tables.get(r);
+  if (!table) tables.set(r, table = { items: [], tokens: new Map() });
+  return table;
+};
+/** A carried record's token, or undefined for one the store does not hold. */
+export const carriedToken = (r: PhysicsRuntime, item: InventoryItem): number | undefined => tableOf(r).tokens.get(item);
+/** The carried record a token names. */
+export const carriedItem = (r: PhysicsRuntime, token: number): InventoryItem | undefined => tableOf(r).items[token];
+/** File a new carried record under the next token, as the store gives the new item it. */
+export function adoptCarried(r: PhysicsRuntime, item: InventoryItem): void {
+  const table = tableOf(r);
+  table.tokens.set(item, table.items.length); table.items.push(item);
+}
+/** A swap's clone takes its original's token. */
+export function replaceCarried(r: PhysicsRuntime, token: number, item: InventoryItem): void {
+  const table = tableOf(r), old = table.items[token];
+  if (old) table.tokens.delete(old);
+  table.items[token] = item; table.tokens.set(item, token);
+}
+
+/**
+ * Each player's equipment, in roster order, as `players::EQUIP_HEAD` and the item rows lay it out: selection, weapon,
+ * keys, charging (the charger's index, -1 none, -2 unknown), the inventory, reserves and reload. Each item's token is
+ * `token`'s, -2 for a record it does not know.
+ */
+function packEquipment(s: Game, token: (item: InventoryItem) => number | undefined): number[] {
   const out: number[] = [], chargers = s.map.chargers;
   for (const p of s.players) {
     const charging = !p.charging ? -1 : chargers.findIndex(c => c.id === p.charging);
@@ -36,7 +66,7 @@ function packEquipment(s: Game): number[] {
     out.push(n(p.selectedSlot), p.weapon, n(p.keys), charging === -1 && p.charging ? -2 : charging, inventory ? inventory.length : -1,
       reserves ? 1 : 0, ...reserves ? AMMO_FAMILIES.map(f => reserves[f]) : [0, 0, 0],
       reload ? 1 : 0, ...reload ? [reload.slot, reload.instanceId, reload.until] : [0, 0, 0]);
-    for (const item of inventory ?? []) appendItem(out, item as InventoryItem | null, 0);
+    for (const item of inventory ?? []) appendItem(out, item as InventoryItem | null, item ? token(item) ?? -2 : NaN);
   }
   return out;
 }
@@ -90,11 +120,12 @@ function packPlayers(s: Game, keys: readonly number[], data: Float64Array): void
  */
 export function storeDrift(s: Game, r: PhysicsRuntime): string[] {
   const { core, world } = r.world.boundaryCall();
-  const keys = s.players.map(p => r.world.key(`actor:${p.id}`)), equipment = packEquipment(s), fixed = s.players.length * STORE_ROW;
+  // The tokens are the table's, so a store item that names another record than the one in the slot shows as drift.
+  const keys = s.players.map(p => r.world.key(`actor:${p.id}`)), equipment = packEquipment(s, item => carriedToken(r, item));
+  const fixed = s.players.length * STORE_ROW;
   const fresh = new Float64Array(fixed + equipment.length);
   packPlayers(s, keys, fresh);
   fresh.set(equipment, fixed);
-  for (let at = fixed; at < fresh.length;) { at += EQUIP_HEAD; const count = fresh[at - EQUIP_HEAD + 4]!; for (let k = 0; k < count; k++, at += ITEM_ROW) fresh[at + 8] = 0; }
   if (core.players_count(world) !== s.players.length) return [`the store holds ${core.players_count(world)} players, the roster ${s.players.length}`];
   const dumped = core.players_dump(world) >>> 0;
   const kept = new Float64Array(core.memory.buffer, dumped, fresh.length);
@@ -118,8 +149,12 @@ const FIELDS = ['role', 'status', 'kit', 'x', 'y', 'heading', 'hp', 'maxHp', 'sh
  * actors' world keys are interned first, which can grow the memory.
  */
 export function uploadPlayers(s: Game, r: PhysicsRuntime, core: StoreExports, world: number): void {
-  const players = s.players;
-  const keys = players.map(p => r.world.key(`actor:${p.id}`)), equipment = packEquipment(s), fixed = players.length * STORE_ROW;
+  const players = s.players, table = tableOf(r);
+  // The upload numbers the carried records afresh, in roster and slot order.
+  table.items.length = 0; table.tokens.clear();
+  for (const p of players) for (const item of p.inventory ?? []) if (item) adoptCarried(r, item as InventoryItem);
+  const keys = players.map(p => r.world.key(`actor:${p.id}`)), equipment = packEquipment(s, item => carriedToken(r, item));
+  const fixed = players.length * STORE_ROW;
   // Resizing the upload can grow the memory, so the view is made from the buffer after the call.
   const pointer = core.players_input(world, fixed + equipment.length) >>> 0;
   const data = new Float64Array(core.memory.buffer, pointer, fixed + equipment.length);

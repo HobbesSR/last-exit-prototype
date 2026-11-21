@@ -1,5 +1,25 @@
 # 27. Rust path
 
+**Step 6c.3c.2, the readers take equipment from the store (#1214, adapter version 24).** Phases 3 and 6 no longer pack
+inventories, reserves, reload, selection, weapon, keys or charging.
+- **Tokens name the records.** `player-store.ts` keeps a table per runtime: a token is a carried record's index there.
+  - Each upload numbers the carried records in roster and slot order, and the store loads those tokens.
+  - A new item the core reports (token -1) is filed under the next token, in the order the adapter builds it
+    (`adoptCarried`). That is the order the store gives new items their tokens (`players::put_items`), so both agree.
+  - A swap's clone takes its original's token (`replaceCarried`).
+  - The adapters read writes back by token (`carriedItem`), so a carried record keeps its identity across calls and
+    stops, as the per-call pools kept it within one.
+- **The adapters still decide what the rules may read.** Where an adapter used to pack an actor's inventory, it now writes
+  `FROM_STORE` (-2) for its length, and the core fills the inventory from the store; elsewhere it stays absent, as before.
+  Selection, weapon, reserves and reload (phase 3), and keys, charging, selection, weapon and reserves (phase 6), are
+  filled always, as their adapters always packed them. A plan's standalone item (`planDropInCore`) still crosses, with a
+  token of the call's own above `EXTRA_TOKEN`.
+- **Between ticks a call uploads first, at its start,** before anything names a carried record by its token, since the
+  upload numbers them afresh. Uploading after the identity lists were built broke eight item tests, which found it.
+- **The witness.** The dump now carries the store's tokens, and `storeDrift` packs the records with the table's, so a
+  store item naming a different record from the one in its slot shows as drift.
+- **Cost:** measured once, at the end of step 6, against the `main` before 6a (Corey, 2026-11-21).
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -670,8 +690,8 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
     - **6c.3c:** the equipment, in two PRs, as 6c.2 came before 6c.3 (design: #1214 comment 17519):
       - **6c.3c.1 (#1214):** the store keeps each player's equipment, and every write to it inside a tick reaches the
         store. Below.
-      - **6c.3c.2:** the readers take equipment from the store, with tokens made persistent per world, so the core's
-        reports name Node's carried objects.
+      - **6c.3c.2 (#1214):** the readers take equipment from the store, with tokens that name Node's carried records.
+        Below.
 
   Replacing the uploads between ticks with between-tick commands is 6e's.
 - **6d: the pending queues, the hooks, the ground and the ID counters,** with the explosion port. They depend on each
@@ -779,8 +799,8 @@ adapters write 0 in the store's words, and the core fills those words from the s
   each roster player's status and pose. Its rows leave the rest at 0, which its rules expect, so filling more could
   change behaviour.
 - **Between ticks** both upload first (`playersStale`), since scenarios call them directly.
-- **Cost:** measured once for stage 6c as a whole, at its end, against the `main` before 6c.1 (Corey, 2026-11-21: one bench at
-  the end rather than per PR).
+- **Cost:** measured once, at the end of step 6, against the `main` before 6a (Corey, 2026-11-21: one bench at the end of
+  the flip rather than per PR or per stage).
 
 **Step 6c.3c.1, the equipment kept current (#1214, adapter version 23).** The store keeps each player's equipment
 (`players::Equip`): `selectedSlot`, `weapon`, `keys`, `charging` (the charger's index), the inventory, reserves and reload.
