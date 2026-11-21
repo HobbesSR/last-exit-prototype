@@ -51,6 +51,22 @@ ammo, count, charge, ammo family, identity, quality, the dropper's roster index,
   read `actors.size` and phase 4's poses read `items`.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6d.3, the item admission (#1214, adapter version 27).** The sync's second call (`synchronize_items`) takes its
+lists from the core, so no ground record crosses for it.
+- **The records awaiting a body** are the world's `waiting` keys, in ID order (`unadmittedItems`' order). The world keeps
+  them as the ground store changes (`await_body`, `stop_awaiting` in `ground_write`) and as items are admitted; only a
+  whole upload sorts them (`rebuild_waiting`). Positions come from the ground store's key map (`Ground::by_key`).
+- **One call, not chunks.** The admission walks the waiting keys until the world has no room, where the chunks it
+  replaces stopped. No item frees room and a skipped one changes nothing, so the result is the same.
+- **The launches** are the world's (`launches`). Node's `itemLaunches` is now a buffer: each admission hands its contents
+  to the core (`physics_launch`) and clears it. The core takes the launches still on the ground, in ID order.
+- **An admitted item names its record by ID**, so Node's mirror (`r.items` and the admission order) finds it without
+  a packed list.
+- **`physics-items`' admission test** counted a blocked record's `x` reads in JavaScript. Node now reads no record during
+  the admission, so the count is 0, and the comments say where the guarantees moved: the core's walk skips a launched
+  record, and its waiting list keeps one until it is admitted or leaves the ground.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -734,9 +750,10 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
   - **6d.1 (#1214):** the core keeps a ground store, kept current. Below.
   - **6d.2 (#1214):** the body sync's bookkeeping is the core's: the actor and item bodies the world holds, each gate's
     body, and which item bodies' records left the ground. Below.
-  - **Then, removing Node's mid-tick work stop by stop** (Corey's direction below): the sync's item admission and the
-    launches, so the drop and pickup stops can sync inside the core; then the pending queues and the hooks with the
-    explosion port, which removes the explosion stop.
+  - **6d.3 (#1214):** the item admission takes the records awaiting a body and the launches from the core. Below.
+  - **Then, removing Node's mid-tick work stop by stop** (Corey's direction below): the discontinuity markers into the
+    core, so a run can sync inside itself and the drop and pickup stops go (6d.4); then the pending queues and the
+    hooks with the explosion port, which removes the explosion stop.
 - **The direction (Corey, 2026-11-21, on #1214):** "now the way this should work eventually is that essentially the core
   should just be receiving tick timed input events or roughly that at the interface betweeen it and JS". So from 6d.2
   the remaining work is ordered by the stops it removes, each a crossing gone for good, rather than reader by reader.

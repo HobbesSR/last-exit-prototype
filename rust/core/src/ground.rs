@@ -6,13 +6,16 @@
 //! tests may (`shared/simulation/ground-store.ts`). So a tick costs only its own changes, never the map's size. The
 //! readers still pack the records they need until 6d.2.
 
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
 /// Words per record, uploaded and dumped alike: id, the body's world key (`item:<label>`, whose order is the labels'),
 /// x, y, kind (`ITEM_KINDS`, -2 unknown), weapon type (`WEAPONS`, NaN absent), ammo, count, charge, ammo family
 /// (`AMMO_FAMILIES`, -1 absent), instance, lineage, quality, the dropper's roster index (-1 another player, -2
 /// absent), `pickupAfter`, and the absence mask of the optional fields.
 pub const RECORD: usize = 16;
+/// A record's position words.
+pub const X: usize = 2;
+pub const Y: usize = 3;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(crate) struct Record {
@@ -23,8 +26,8 @@ pub(crate) struct Record {
 pub struct Ground {
     /// The records, in the list's order.
     pub(crate) records: Vec<Record>,
-    /// The records' body keys, for the body sync's question of which item bodies left the ground (6d.2).
-    keys: BTreeSet<u64>,
+    /// The records by body key: which item bodies left the ground (6d.2), and where a waiting item lies (6d.3).
+    by_key: BTreeMap<u64, Record>,
     input: Vec<f64>,
 }
 
@@ -52,18 +55,43 @@ impl Ground {
     /// Replace the store with the input's records.
     pub fn load(&mut self) {
         self.records = self.rows().collect();
-        self.keys = self.records.iter().filter_map(key_of).collect();
+        self.by_key = self
+            .records
+            .iter()
+            .filter_map(|r| key_of(r).map(|k| (k, *r)))
+            .collect();
     }
 
     /// Whether a record with this body key is on the ground.
     pub(crate) fn holds(&self, key: u64) -> bool {
-        self.keys.contains(&key)
+        self.by_key.contains_key(&key)
+    }
+
+    /// The record with this body key, if it is on the ground.
+    pub(crate) fn by_key(&self, key: u64) -> Option<&Record> {
+        self.by_key.get(&key)
+    }
+
+    /// The body key of the record at `at`, if its label is known.
+    pub(crate) fn key_at(&self, at: usize) -> Option<u64> {
+        self.records.get(at).and_then(key_of)
+    }
+
+    /// The body keys of the records from position `start` on, in the list's order.
+    pub(crate) fn keys_from(&self, start: usize) -> impl Iterator<Item = u64> + '_ {
+        self.records[start..].iter().filter_map(key_of)
+    }
+
+    /// The body keys of the records, in the list's order.
+    pub(crate) fn keys(&self) -> impl Iterator<Item = u64> + '_ {
+        self.records.iter().filter_map(key_of)
     }
 
     /// Append the input's records, as `addItems` appends them.
     pub fn add(&mut self) {
         let added: Vec<Record> = self.rows().collect();
-        self.keys.extend(added.iter().filter_map(key_of));
+        self.by_key
+            .extend(added.iter().filter_map(|r| key_of(r).map(|k| (k, *r))));
         self.records.extend(added);
     }
 
@@ -72,7 +100,7 @@ impl Ground {
         assert!(at < self.records.len(), "no ground record {at}");
         let gone = self.records.remove(at);
         if let Some(key) = key_of(&gone) {
-            self.keys.remove(&key);
+            self.by_key.remove(&key);
         }
     }
 
@@ -81,9 +109,11 @@ impl Ground {
         assert!(at < self.records.len(), "no ground record {at}");
         let record = self.rows().next().expect("one record");
         if let Some(key) = key_of(&self.records[at]) {
-            self.keys.remove(&key);
+            self.by_key.remove(&key);
         }
-        self.keys.extend(key_of(&record));
+        if let Some(key) = key_of(&record) {
+            self.by_key.insert(key, record);
+        }
         self.records[at] = record;
     }
 

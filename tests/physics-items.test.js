@@ -75,7 +75,9 @@ test('admission prioritizes launched ids, preserves reserve, and retries ordinar
     assert.ok(Math.abs(r.world.getTransform('item:z-launch').vx - 12) < 1e-5);
     assert.equal(r.world.canAddBodies(1), true, 'ordinary admission leaves the drop reserve free');
     assert.equal(r.itemLaunches.size, 0);
-    assert.equal(blockedChecks, 1, 'a failed launch is not retried in the ordinary pass');
+    // Node reads no record during the admission: the core takes positions from its ground store and skips a launched
+    // record in its ordinary walk (#1214 stage 6d.3, `synchronize_items`). The blocked launch is not placed (above).
+    assert.equal(blockedChecks, 0, 'the admission reads no record in JavaScript');
     assert.ok(ownershipChecks < 20, `only visited candidates check ownership (${ownershipChecks})`);
     const generation = r.world.getGeneration('item:a');
     removeItem(s, s.items.find(i => i.id === itemId(s, 'a')));
@@ -84,7 +86,9 @@ test('admission prioritizes launched ids, preserves reserve, and retries ordinar
     assert.equal(r.world.hasBody('item:c'), true, 'the next ordinary id fills the released slot');
     assert.ok(r.discontinuities.some(d => d.id === 'item:a' && d.kind === 'removed' && d.generation === generation));
     assert.equal(r.world.hasBody('item:0-blocked'), false, 'a blocked first id does not prevent a later valid admission');
-    assert.equal(blockedChecks, 2, 'a failed launch remains pending for later ordinary admission');
+    // A failed launch stays among the records awaiting a body: the core's waiting list drops a record only when it is
+    // admitted or leaves the ground (`World::stop_awaiting`, 6d.3), and JavaScript no longer reads it to retry.
+    assert.equal(blockedChecks, 0);
   } finally { disposePhysics(s); }
 });
 

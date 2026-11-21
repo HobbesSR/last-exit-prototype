@@ -8,7 +8,7 @@
  */
 
 /** The adapter contract this loader speaks: `ADAPTER_VERSION` in `rust/core/src/lib.rs`. */
-export const CORE_ADAPTER_VERSION = 26;
+export const CORE_ADAPTER_VERSION = 27;
 
 // The project's lib is ES2023 without the DOM, which is where TypeScript declares WebAssembly.
 // Both hosts have it; this names only what the loader uses.
