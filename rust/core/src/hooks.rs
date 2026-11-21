@@ -28,8 +28,9 @@ pub const MODE_RECONCILE: f64 = 2.0;
 /// The input header: the mode, the tick, the roster's size, the hooks' count, whether paths follow,
 /// then the hook tuning (`content.hook`) and `HZ`.
 pub const IN_HEADER: usize = 16;
-/// Per player, in roster order: `actor key, active, hook kit, gladiator, x, y`.
-pub const PLAYER_STRIDE: usize = 6;
+/// The players (`actor key, active, hook kit, gladiator, x, y`, in roster order, and their ID order) come from the core's
+/// player store (`players.rs`, #1214 stage 6c.3a), not the input.
+const HOOK_KIT: f64 = 3.0;
 /// Per player, when paths follow: `has path`, then the path's five points.
 pub const PATH_STRIDE: usize = 11;
 /// Per hook, in the runtime's order: `key, caster, id matches the caster, x, y, dx, dy, travelled,
@@ -478,25 +479,32 @@ pub fn run(world: &mut World, swept: &SweptMap, gates: &GateSet) {
         speed: v(15),
     };
     let mut at = IN_HEADER;
-    let players: Vec<Player> = (0..player_count)
-        .map(|i| {
-            let r = &input[at + i * PLAYER_STRIDE..at + (i + 1) * PLAYER_STRIDE];
-            Player {
-                key: r[0] as Key,
-                active: r[1] != 0.0,
-                hook_kit: r[2] != 0.0,
-                gladiator: r[3] != 0.0,
-                x: r[4],
-                y: r[5],
-            }
+    assert_eq!(
+        world.players.len(),
+        player_count,
+        "the store holds the roster"
+    );
+    let players: Vec<Player> = world
+        .players
+        .rows
+        .iter()
+        .zip(&world.players.extra)
+        .map(|(r, e)| Player {
+            key: e.key as Key,
+            active: r.status == 0.0,
+            hook_kit: r.kit == HOOK_KIT,
+            gladiator: r.role != 0.0,
+            x: r.x,
+            y: r.y,
         })
         .collect();
-    at += player_count * PLAYER_STRIDE;
-    let order: Vec<usize> = input[at..at + player_count]
-        .iter()
-        .map(|&i| i as usize)
-        .collect();
-    at += player_count;
+    // `ordered(s)`: the roster by ID, which is each row's rank.
+    let mut order: Vec<usize> = (0..player_count).collect();
+    order.sort_by(|&a, &b| {
+        world.players.rows[a]
+            .rank
+            .total_cmp(&world.players.rows[b].rank)
+    });
     let mut paths: Vec<Option<[[f64; 2]; STEPS + 1]>> = vec![None; player_count];
     if with_paths {
         for path in paths.iter_mut() {

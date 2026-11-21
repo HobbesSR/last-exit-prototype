@@ -1,5 +1,6 @@
 import { playerIndex } from './relations.ts';
 import { physicsRuntime } from './physics-runtime.ts';
+import { playersStale, uploadPlayers } from './player-store.ts';
 import { sightOf } from './sight-runtime.ts';
 import { HZ } from './rules.ts';
 import { physicsRefusal } from '../physics/world.ts';
@@ -38,7 +39,8 @@ export function hookSkill(s: Game, p: Player): void {
 }
 
 // The hook's rules after launch run in the core (`rust/core/src/hooks.rs`, #1229, docs/27 step 5d.1): the records stay
-// here (D1), so each call packs the hooks, the players they read and, for the tip, the actors' substep paths, and applies
+// here (D1), so each call packs the hooks and, for the tip, the actors' substep paths (the players come from the core's
+// store, `player-store.ts`, #1214 stage 6c.3a), and applies
 // what comes back: each rope queued (its spec built here, as `queueAddConstraint` built it), each commit's facts, each
 // hook removed, then the hooks' fields as the rules left them. With no hook there is nothing to run, only the commit
 // each of the three ended with.
@@ -54,9 +56,6 @@ function runHooks(s: Game, mode: number, paths?: Record<string, Vec2[]>): void {
   const data: number[] = [mode, s.tick, players.length, hooks.length, paths ? 1 : 0, tuning.range, tuning.breakDistance,
     tuning.durationTicks, tuning.standoff, tuning.targetDistance, tuning.pullSpeed, HZ, tuning.stiffness, tuning.damping,
     tuning.maxForce, tuning.speed];
-  for (const p of players) data.push(world.key(actor(p.id)), p.status === 'active' ? 1 : 0, p.kit === 'hook' ? 1 : 0,
-    p.role === 'gladiator' ? 1 : 0, p.x, p.y);
-  data.push(...players.map((_, i) => i).sort((a, b) => compare(players[a]!.id, players[b]!.id)));
   if (paths) for (const p of players) {
     const path = paths[actor(p.id)];
     if (!path) { data.push(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0); continue; }
@@ -71,6 +70,8 @@ function runHooks(s: Game, mode: number, paths?: Record<string, Vec2[]>): void {
   }
   // Interning and the handles' preparation can grow memory; view the input only after them.
   const { core, world: native } = world.boundaryCall();
+  // The players come from the core's store (`player-store.ts`, #1214 stage 6c.3a).
+  if (playersStale(r)) uploadPlayers(s, r, core, native);
   const sight = sightOf(s), map = sight.queryHandles(s.map), swept = sight.sweptHandle(s.map);
   if (map.core !== core) throw new Error('the physics world and sight are bound to different cores');
   const pointer = core.physics_boundary_input(native, data.length) >>> 0;

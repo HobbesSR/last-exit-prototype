@@ -10,6 +10,7 @@ import { markPhysicsDiscontinuity } from './physics-runtime.ts';
 import type { PhysicsRuntime, PendingAttachment } from './physics-runtime.ts';
 import { physicsGate } from './physics-geometry.ts';
 import { sightOf } from './sight-runtime.ts';
+import { playersStale, uploadPlayers } from './player-store.ts';
 import { writeDoor } from './doors.ts';
 import type { Game, GroundItem, ItemId, Player, Vec2 } from '../types.ts';
 
@@ -30,7 +31,7 @@ type Core = CoreExports & PhysicsExports;
 
 // The layout of `boundary.rs`.
 const OUT_HEADER = 6, BODY_ROW = 22;
-const A_HEADER = 11, ACTOR_STRIDE = 5, GATE_STRIDE = 8 + BODY_ROW, HELD_STRIDE = 2;
+const A_HEADER = 11, GATE_STRIDE = 8 + BODY_ROW, HELD_STRIDE = 2;
 const B_HEADER = 8, LAUNCH_STRIDE = 6, WAITING_STRIDE = 4;
 const OP_QUEUED = 1, OP_COMMIT = 2, OP_TRANSFORM = 3, OP_MARK = 4, OP_ACTOR = 5, OP_POSE = 6, OP_RETRY = 7, OP_GATE = 8, OP_ITEM = 9;
 const MARK_PLACED = 0;
@@ -38,7 +39,6 @@ const TEMPLATE_CONTESTANT = 0, TEMPLATE_GLADIATOR = 1, TEMPLATE_LOOT = 2;
 const E_NO_PLACEMENT = -17, E_DISCONTINUITY_CAPACITY = -18, E_UNREPRESENTABLE = -19, E_INITIAL_SPEED = -20;
 
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
-const actorKey = (p: Player) => `actor:${p.id}`;
 const ITEM_PREFIX = 'item:';
 
 /** The specs a game's queued bodies are built from, and their rows: fixed by the match's pinned content. */
@@ -159,32 +159,28 @@ function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number, 
  */
 export function synchronizeBodies(s: Game, r: PhysicsRuntime, markTick: number, admit: boolean): boolean {
   const world = r.world, t = templatesOf(s);
-  const roster = new Map(s.players.map((p, i) => [p, i]));
-  const active = [...s.players].sort((a, b) => compare(a.id, b.id)).filter(p => p.status === 'active');
+  // The active actors' rows come from the core's player store (`player-store.ts`, #1214 stage 6c.3a).
   const gates: number[] = [];
   for (const index of r.gateOrder) if (r.gates[index] !== (s.gates[index]!.open ? 1 : 2)) gates.push(index);
   // Only the item bodies whose items left the ground: the core removes those and passes over the rest.
   const held: string[] = [];
   for (const id of r.items) if (!groundItem(s, heldItem(s, r, id))) held.push(id);
   const markers = r.discontinuities;
-  const words = A_HEADER + 2 * BODY_ROW + active.length * ACTOR_STRIDE + r.actors.size + gates.length * GATE_STRIDE
+  const words = A_HEADER + 2 * BODY_ROW + r.actors.size + gates.length * GATE_STRIDE
     + held.length * HELD_STRIDE + markers.length;
   // Keys are interned before the input is viewed: interning is a core call of its own.
-  const actorKeys = active.map(p => world.key(actorKey(p))), known = [...r.actors].map(id => world.key(id));
+  const known = [...r.actors].map(id => world.key(id));
   const gateKeys = gates.map(index => world.key(`gate:${s.gates[index]!.id}`));
   const gateRows = gates.map(index => s.gates[index]!.open ? undefined : templateRow(physicsGate(s.gates[index]!)));
   const heldRows = held.map(id => [world.key(id), 0] as const);
   const markerKeys = markers.map(entry => world.key(entry.id));
   const { core, world: native, collision, gates: gateSet } = handles(s, r);
+  if (playersStale(r)) uploadPlayers(s, r, core, native);
   const view = input(core, native, words);
   view.set([s.tick, admit ? 1 : 0, r.itemLaunches.size ? 1 : 0, s.players.length, s.content.worldPhysics.dropReserve ?? 0,
-    r.discontinuityCapacity, active.length, known.length, gates.length, held.length, markers.length]);
+    r.discontinuityCapacity, 0, known.length, gates.length, held.length, markers.length]);
   view.set(t.rows[0]!, A_HEADER); view.set(t.rows[1]!, A_HEADER + BODY_ROW);
   let at = A_HEADER + 2 * BODY_ROW;
-  for (let i = 0; i < active.length; i++, at += ACTOR_STRIDE) {
-    const p = active[i]!;
-    view[at] = actorKeys[i]!; view[at + 1] = roster.get(p)!; view[at + 2] = p.role === 'gladiator' ? 1 : 0; view[at + 3] = p.x; view[at + 4] = p.y;
-  }
   view.set(known, at); at += known.length;
   for (let i = 0; i < gates.length; i++, at += GATE_STRIDE) {
     const index = gates[i]!, gate = s.gates[index]!, box = gateShape(gate);
