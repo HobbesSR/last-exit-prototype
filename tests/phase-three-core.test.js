@@ -255,7 +255,6 @@ function activeHook(s, r, p) {
 }
 
 const hookInput = (s, p) => s.players.map(actor => actor === p ? { input: { skill: true, x: 1 } } : undefined);
-const noDamage = () => {};
 const actorMotor = (r, p) => r.world.snapshot().bodies.find(body => body.spec.id === `actor:${p.id}`).motor;
 
 test('new hook sentinels cannot alias an unrelated constraint at key zero', async t => {
@@ -263,7 +262,7 @@ test('new hook sentinels cannot alias an unrelated constraint at key zero', asyn
   for (let i = 0; i < 6; i++) r.world.queueAddConstraint(ropeFor(s, `limit:${i}`));
   r.world.commitMutations();
   assert.equal(r.world.counts().constraints, 6);
-  phaseThree(s, s.players.map(() => ({ input: { skill: true } })), noDamage);
+  phaseThree(s, s.players.map(() => ({ input: { skill: true } })));
   assert.deepEqual(r.hooks.map(hook => hook.id), ['hook:g0', 'hook:g1']);
   assert.deepEqual(s.players.map(p => p.cooldown), [s.content.hook.cooldownTicks, s.content.hook.cooldownTicks, 0]);
   assert.equal(r.world.counts().constraints, 6, 'flying hooks reserve capacity without creating constraints yet');
@@ -275,7 +274,7 @@ test('hook cancellation queue refusal preserves the hook, queued commands and pr
   r.world.setMotor(actor, { x: 0, y: -20, accel: 17 });
   for (let i = 0; i < 1024; i++) r.world.queueImpulse(actor, { x: 1, y: 0 });
   const before = r.world.snapshot();
-  assert.throws(() => phaseThree(s, hookInput(s, p), noDamage), /physics command queue capacity exceeded/);
+  assert.throws(() => phaseThree(s, hookInput(s, p)), /physics command queue capacity exceeded/);
   assert.equal(r.hooks[0], hook);
   assert.equal(r.world.hasConstraint(hook.id), true);
   assert.deepEqual(r.world.snapshot(), before, 'refusal occurs before commit or movement');
@@ -289,7 +288,7 @@ test('hook cancellation commit refusal preserves partial removal and stops befor
   // Strictly convex in f64, collinear in Rapier f32: admitted to the queue, refused at commit.
   r.world.queueAddBody({ id: 'invalid-hull', kind: 'static', x: 0, y: 0,
     shape: { kind: 'convex', vertices: [{ x: -1e8, y: -1e8 }, { x: 1e8, y: 1e8 - 1 }, { x: 1e8, y: 1e8 + 1 }] } });
-  assert.throws(() => phaseThree(s, hookInput(s, p), noDamage), /invalid convex body/);
+  assert.throws(() => phaseThree(s, hookInput(s, p)), /invalid convex body/);
   assert.deepEqual(r.hooks, [], 'the gameplay hook is removed before the commit attempt');
   assert.equal(r.world.hasConstraint(hook.id), false, 'commit retains its earlier constraint removal');
   assert.deepEqual(r.world.snapshot().pending.add.map(body => body.id), ['invalid-hull']);
@@ -304,7 +303,7 @@ test('an absent quality uses configured tier one damage while explicit NaN falls
     p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 1, ...metadata };
     p.attackCd = 0;
     s.projectiles = [];
-    phaseThree(s, s.players.map(actor => actor === p ? { input: { attack: true } } : undefined), noDamage);
+    phaseThree(s, s.players.map(actor => actor === p ? { input: { attack: true } } : undefined));
     assert.equal(s.projectiles.length, 1);
     assert.equal(s.projectiles[0].damage, expected);
   }

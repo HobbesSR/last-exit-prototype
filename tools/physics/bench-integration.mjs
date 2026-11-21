@@ -35,7 +35,7 @@ for (const mode of ['physics']) {
   } finally { disposePhysics(s); }
 }
 const sources = {};
-for (const file of ['shared/simulation/game.ts', 'shared/simulation/tick.ts', 'shared/physics/world.ts', 'shared/simulation/physics-projectiles.ts', 'tools/physics/bench-integration.mjs']) sources[file] = hash(await readFile(file));
+for (const file of ['shared/simulation/game.ts', 'shared/simulation/tick.ts', 'shared/physics/world.ts', 'shared/simulation/phase-five.ts', 'rust/core/src/combat.rs', 'tools/physics/bench-integration.mjs']) sources[file] = hash(await readFile(file));
 const report = { schema: 'physics-438-integration-1', baseCommit: 'd668586', node: process.version,
   machine: { cpu: cpus()[0]?.model, platform: platform(), release: release() },
   fixture: { seed: 4217, content: content.id, size: '12x6', actors: 11, warmup: 100, samples: 500,

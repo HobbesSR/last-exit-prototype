@@ -1,7 +1,7 @@
 import { TILE } from '../movement.ts';
 import { clearRoute, distance } from './geometry.ts';
 import { TRANSIT_REACH } from './rules.ts';
-import { effect } from './loot.ts';
+import { effect } from './event-records.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { Game, Player, Station, StationId, Vec2 } from '../types.ts';
 

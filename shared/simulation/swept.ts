@@ -7,12 +7,13 @@ import { bucketBox, eachCellIn, Visited } from '../buckets.ts';
 import type { BodyDefinition } from '../physics/types.ts';
 import { bodyShape } from '../physics/presentation-geometry.ts';
 import { physicsRuntime } from './physics-runtime.ts';
-import type { Box, CollisionMap, Game, Gate, Role, Vec2 } from '../types.ts';
+import type { Box, CollisionMap, Game, Gate, Vec2 } from '../types.ts';
 
 // Swept queries against actors and geometry: physical projectiles and the hook tip/tether ask the same questions,
-// differing only in radius and which geometry blocks them. The hook asks the core's port (`rust/core/src/swept.rs`,
-// #1229), uploaded from these caches (`sweptUpload`); projectiles ask here until #1242. `tests/swept-core.test.js`
-// holds the two equal to the bit.
+// differing only in radius and which geometry blocks them. Both ask the core's port (`rust/core/src/swept.rs`; the hook
+// since #1229, projectiles since #1242), uploaded from these caches (`sweptUpload`). The TypeScript queries below have no
+// caller in the game: they stay as `tests/swept-core.test.js`'s reference, which holds the core equal to them to the
+// bit, as 5c.1 kept the placement search (27, step 5d.2).
 
 const BISECTION_STEPS = 26;
 
@@ -54,9 +55,6 @@ function candidates(index: ShapeIndex, left: number, top: number, right: number,
   });
   return found.sort((a, b) => a - b);
 }
-
-/** Swept hit radius of an actor, shared by shots and the hook tip. */
-export function actorHitRadius(role: Role): number { return role === 'gladiator' ? 26 : 15; }
 
 function shapeOfBody(body: BodyDefinition): Shape {
   if (body.shape.kind === 'circle') return circle(body.x, body.y, body.shape.radius);
@@ -181,18 +179,6 @@ export function solidBlockers(game: Game): Shape[] {
  * is the parity test's reference (`tests/swept-core.test.js`). */
 export function solidContact(game: Game, a: Vec2, b: Vec2, radius: number): number {
   return geometryContact(game.map, false, a, b, radius, solidProps(game));
-}
-
-/** First relative disk intersection of a moving point and a moving actor, including an initial overlap. */
-export function impact(a: Vec2, b: Vec2, start: Vec2, end: Vec2, radius: number): number | null {
-  const x = a.x - start.x, y = a.y - start.y;
-  const dx = b.x - a.x - (end.x - start.x), dy = b.y - a.y - (end.y - start.y);
-  const c = x * x + y * y - radius * radius;
-  if (c <= 0) return 0;
-  const aa = dx * dx + dy * dy, bb = 2 * (x * dx + y * dy), d = bb * bb - 4 * aa * c;
-  if (!aa || d < 0) return null;
-  const t = (-bb - Math.sqrt(d)) / (2 * aa);
-  return t >= 0 && t <= 1 ? t : null;
 }
 
 /** First contact of a radius-`radius` point swept from a to b with any shape; Infinity when clear. */

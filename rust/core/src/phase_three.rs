@@ -2,7 +2,7 @@
 //! A successful drop returns at the sync boundary; the adapter admits bounded item chunks,
 //! then repacks the changed poses and resumes at the next operation of that same player.
 //!
-//! Input header: mode (loop, shared attack, carried plan, ammo plan), resume player and
+//! Input header: mode (loop, a contestant's scenario attack, carried plan, ammo plan, elimination), resume player and
 //! operation, tick, serial, item/scatter serials, ground count, reserved actor bodies,
 //! counts of action players, context actors, free label phases, known item IDs, near
 //! ground positions, ground IDs, carried identities and hooks; mandatory, ammo family/count,
@@ -18,11 +18,13 @@ use crate::action_equipment::{advance_reload, rearrange, sync_weapon};
 use crate::action_types::{Item, Player, Rules, Weapon, present, safe, truthy};
 use crate::collision::CollisionMap;
 use crate::drop_planner::{self, Allocation, Context, Plan};
+use crate::math::js_min;
 use crate::placement::Disk;
 use crate::sight::{GateSet, SightIndex};
 use crate::world::World;
 
 pub const HEADER: usize = 21;
+pub const MODE_ELIMINATE: usize = 4;
 #[derive(Default)]
 pub struct PhaseThree {
     pub input: Vec<f64>,
@@ -257,11 +259,9 @@ fn combat_facts(
                 life,
                 damage,
             } => op(log, 2.0, &[id, owner as f64, x, y, dx, dy, life, damage]),
-            Fact::Damage {
-                target,
-                amount,
-                source,
-            } => op(log, 4.0, &[target as f64, amount, source as f64]),
+            // Only a gladiator's attack damages, and it runs in phase 5's combat run (`combat.rs`, 27
+            // step 5d.2); phase 3 and the scenario attack (mode 1) serve contestants.
+            Fact::Damage { .. } => unreachable!("a gladiator attacks in phase 5"),
             Fact::Shot { shooter, weapon } => {
                 let Some(p) = actors.iter().find(|p| p.roster == shooter) else {
                     continue;
@@ -307,7 +307,153 @@ fn combat_facts(
     }
 }
 
+/// `eliminate` (`lifecycle.ts`) from `from`, its steps in order: the record's lifecycle (0), each slot's
+/// mandatory drop (1 to n), each reserve family's (n + 1 to n + 3), then the inventory's clear and the
+/// kill credit. A committed drop returns the next step, at 5c.2's sync boundary.
+#[allow(clippy::too_many_arguments)]
+fn eliminate(
+    players: &mut [Player],
+    rules: &Rules,
+    ctx: &mut Context<'_>,
+    // Every carried identity; each plan is given all but the dropped item's.
+    carried: &[[f64; 2]],
+    allocation: &mut Allocation,
+    serial: &mut f64,
+    log: &mut Vec<f64>,
+    from: usize,
+    [source, kills, respawn]: [f64; 3],
+    tick: f64,
+) -> Option<usize> {
+    let slots = players[0].inventory.as_ref().map_or(0, Vec::len);
+    let source = (source >= 0.0).then_some(source as usize);
+    for step in from..slots + 5 {
+        let p = &mut players[0];
+        if step == 0 {
+            // Status, the event (its ID), charging cleared, and a gladiator's respawn with its
+            // input cleared: JavaScript writes these in that order (op 12).
+            let respawn_at = if p.role == 1.0 {
+                tick + respawn
+            } else {
+                f64::NAN
+            };
+            let source_roster = source.map_or(-1.0, |s| players[s].roster as f64);
+            let p = &mut players[0];
+            op(
+                log,
+                12.0,
+                &[p.roster as f64, *serial, source_roster, respawn_at],
+            );
+            *serial += 1.0;
+            p.status = if p.role == 1.0 { 2.0 } else { 1.0 };
+        } else if step <= slots {
+            let Some(item) = p.inventory.as_ref().unwrap()[step - 1].clone() else {
+                continue;
+            };
+            let ids: Vec<f64> = carried
+                .iter()
+                .filter(|t| t[0] != item.token)
+                .map(|t| t[1])
+                .collect();
+            let mut ctx = Context {
+                world: ctx.world,
+                map: ctx.map,
+                index: ctx.index,
+                gates: ctx.gates,
+                actors: ctx.actors,
+                taken: ctx.taken,
+                ground_ids: ctx.ground_ids,
+                carried_ids: &ids,
+                ground_count: ctx.ground_count,
+            };
+            let plan =
+                drop_planner::plan_drop(&mut ctx, rules, (p.x, p.y), &item, true, allocation);
+            if let Some(plan) = plan {
+                *allocation = plan.allocation.clone();
+                p.inventory.as_mut().unwrap()[step - 1] = None;
+                sync_weapon(p, rules);
+                op(log, 10.0, &[p.roster as f64]);
+                let mut row = vec![p.roster as f64, plan.records.len() as f64];
+                records(&mut row, &plan);
+                op(log, 9.0, &row);
+                return Some(step + 1);
+            }
+        } else if step <= slots + 3 {
+            let family = step - slots - 1;
+            if family == 0 {
+                // `dropReserves` writes `reload = null` even where it was absent (op 14).
+                p.reload = None;
+                op(log, 14.0, &[p.roster as f64]);
+            }
+            let Some(reserves) = p.reserves.filter(|_| rules.reloading) else {
+                continue;
+            };
+            // `dropReserve(family, reserves[family], true)`: a non-integer count refuses.
+            let count = reserves[family];
+            if !safe(count) || count <= 0.0 {
+                continue;
+            }
+            let ids: Vec<f64> = carried.iter().map(|t| t[1]).collect();
+            let mut ctx = Context {
+                world: ctx.world,
+                map: ctx.map,
+                index: ctx.index,
+                gates: ctx.gates,
+                actors: ctx.actors,
+                taken: ctx.taken,
+                ground_ids: ctx.ground_ids,
+                carried_ids: &ids,
+                ground_count: ctx.ground_count,
+            };
+            let plan = drop_planner::plan_ammo(
+                &mut ctx,
+                rules,
+                (p.x, p.y),
+                family as f64,
+                count,
+                true,
+                allocation,
+            );
+            if let Some(plan) = plan {
+                *allocation = plan.allocation.clone();
+                p.reserves.as_mut().unwrap()[family] -= count;
+                let mut row = vec![p.roster as f64, plan.records.len() as f64];
+                records(&mut row, &plan);
+                op(log, 9.0, &row);
+                return Some(step + 1);
+            }
+        } else {
+            if let Some(inventory) = p.inventory.as_mut() {
+                inventory.fill(None);
+                sync_weapon(p, rules);
+            }
+            let Some(s) = source else { break };
+            let q = &mut players[s];
+            if q.role == 1.0 {
+                let kills = kills + 1.0;
+                q.level = js_min(4.0, 1.0 + kills);
+                q.max_hp += 20.0;
+                q.hp = js_min(q.max_hp, q.hp + 45.0);
+                q.cooldown = 0.0;
+                op(log, 13.0, &[q.roster as f64, kills, q.level, q.max_hp]);
+                op(log, 1.0, &[*serial, q.x, q.y, 4.0, 90.0]);
+                *serial += 1.0;
+            } else {
+                op(
+                    log,
+                    13.0,
+                    &[q.roster as f64, kills + 1.0, f64::NAN, f64::NAN],
+                );
+            }
+        }
+    }
+    None
+}
+
 impl PhaseThree {
+    pub fn rules(&self) -> &Rules {
+        self.rules.as_ref().expect("configured phase 3")
+    }
+
     pub fn run(
         &mut self,
         world: &mut World,
@@ -351,6 +497,13 @@ impl PhaseThree {
         let carried: Vec<[f64; 2]> = (0..h[15] as usize).map(|_| r.row()).collect();
         // Hooks: caster, interned constraint key, exact caster/id match.
         let mut hooks: Vec<[f64; 3]> = (0..h[16] as usize).map(|_| r.row()).collect();
+        // An elimination's source: -1 none, 0 the target itself, 1 the second player; its kills; the
+        // gladiator respawn delay.
+        let elimination: [f64; 3] = if mode == MODE_ELIMINATE {
+            r.row()
+        } else {
+            [-1.0, 0.0, 0.0]
+        };
         let mut allocation = Allocation {
             item_serial: h[5],
             scatter_serial: h[6],
@@ -413,6 +566,40 @@ impl PhaseThree {
             if let Some(plan) = &planned {
                 allocation = plan.allocation.clone();
             }
+        } else if mode == MODE_ELIMINATE {
+            // The target is no longer active when its loot drops, so its body leaves no disk.
+            let target = players[0].roster;
+            let disks: Vec<Disk> = actors
+                .iter()
+                .filter(|a| a.status == 0.0 && a.roster != target)
+                .map(|a| [a.x, a.y, a.radius])
+                .collect();
+            let mut ctx = Context {
+                world,
+                map,
+                index,
+                gates,
+                actors: &disks,
+                taken: &taken,
+                ground_ids: &ground_ids,
+                carried_ids: &[],
+                ground_count: h[7] as usize,
+            };
+            let step = eliminate(
+                &mut players,
+                rules,
+                &mut ctx,
+                &carried,
+                &mut allocation,
+                &mut serial,
+                &mut log,
+                h[2] as usize,
+                elimination,
+                tick,
+            );
+            if let Some(step) = step {
+                resume = (0.0, step as f64);
+            }
         } else {
             for i in h[1] as usize..players.len() {
                 let mut p = players[i].clone();
@@ -420,10 +607,8 @@ impl PhaseThree {
                 let stage = if i == h[1] as usize { h[2] as usize } else { 0 };
                 let mut facts = Vec::new();
                 if mode == 1 {
-                    let targets: Vec<_> = actors
-                        .iter()
-                        .map(|t| (t.roster, t.role, t.status, t.x, t.y))
-                        .collect();
+                    // A contestant's attack reads no targets; a gladiator's is phase 5's.
+                    let targets = [];
                     action_combat::attack(
                         &mut p,
                         rules,

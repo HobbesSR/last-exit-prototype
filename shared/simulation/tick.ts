@@ -6,12 +6,14 @@ import type { BotIntent } from './bots.ts';
 import { consumeInput } from './input.ts';
 import { finishMatch } from './lifecycle.ts';
 import { beginTick } from './phase-one.ts';
-import { damage, skill, attack } from './combat.ts';
-import { solvePhysicsProjectiles } from './physics-projectiles.ts';
+import { damage } from './combat.ts';
+import { castersInCore, solvePhysicsProjectiles } from './phase-five.ts';
+import type { Caster } from './phase-five.ts';
 import { prepareHooks, finishHooks } from './hook.ts';
 import { interact, advanceCharging } from './interactions.ts';
 import { transit } from './transit.ts';
-import { automaticPickups, effect } from './loot.ts';
+import { automaticPickups } from './loot.ts';
+import { effect } from './event-records.ts';
 import { stepTraps } from '../traps.ts';
 import { applyEnvironment, advanceDiscovery } from './tick-rules.ts';
 import { playerIndex } from './relations.ts';
@@ -58,7 +60,7 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   } finally { endDynamicNavigationCollection(s); stop('sim.bots'); }
   // 3: inventory then utilities/projectile admission, without damage callbacks during solve.
   start('sim.actions');
-  phaseThree(s, intents, damage);
+  phaseThree(s, intents);
   stop('sim.actions');
   // 4: all bodies together. Query projectiles use these actual substep paths.
   start('sim.solve');
@@ -76,14 +78,17 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   stop('sim.poses');
   // 5: physical TOI first, then finalized-pose abilities/melee by stable caster ID.
   start('sim.projectiles');
+  // All in the core (`combat.rs`, 27 step 5d.2); each caster's status is read at its turn there, as an earlier
+  // caster's hit may have removed it.
   solvePhysicsProjectiles(s, result.paths);
   finishHooks(s, result.paths);
+  const casters: Caster[] = [];
   for (const p of ordered(s)) {
     const input = intents[playerIndex(s, p)]?.input;
-    if (p.status !== 'active' || !input) continue;
-    if (input.skill && p.kit === 'warden') skill(s, p);
-    if (input.attack && p.role === 'gladiator') attack(s, p);
+    const skill = !!input?.skill && p.kit === 'warden', attack = !!input?.attack && p.role === 'gladiator';
+    if (skill || attack) casters.push({ player: p, skill, attack });
   }
+  castersInCore(s, casters);
   stop('sim.projectiles');
   // 6: interactions/pickups, environment, traps; trap spawns wait for next tick.
   start('sim.pickups');

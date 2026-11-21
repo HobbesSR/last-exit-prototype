@@ -5,7 +5,7 @@ import { PHYSICS_VERSION, createGame, disposePhysics, enqueuePhysicsAttachment, 
 import { contentById } from '../shared/simulation/content.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { solvePhysicsProjectiles } from '../shared/simulation/physics-projectiles.ts';
+import { solvePhysicsProjectiles } from '../shared/simulation/phase-five.ts';
 import { interact } from '../shared/simulation/interactions.ts';
 import { openArea } from './helpers/arena.js';
 

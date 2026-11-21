@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_LOCALE, formatEvent } from '../shared/events.ts';
-import { event, participant } from '../shared/simulation/loot.ts';
+import { event, participant } from '../shared/simulation/event-records.ts';
 
 test('formats every event kind and legacy recordings', () => {
   const actor = { playerIdx: 0, name: 'Mica' }, source = { playerIdx: 1, name: 'Rook' };

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createGame, createGameRecord, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { attack, damage, skill } from '../shared/simulation/combat.ts';
+import { attack, skill } from '../shared/simulation/combat.ts';
 import { planDrop, planAmmoDrop } from '../shared/simulation/loot.ts';
 import { phaseThree } from '../shared/simulation/phase-three.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
@@ -42,7 +42,9 @@ const planned = plan => plan && ({ records: plan.records, itemSerial: plan.itemS
 const allocationState = s => structuredClone({ itemSerial: s.itemSerial, scatterSerial: s.scatterSerial,
   identities: s.itemIdentities });
 
-test('record-only attacks match core firearms, utilities, hearing and melee damage', async t => {
+// A gladiator's melee has one owner since #1242: phase 5's caster run in the core (`combat.rs`), covered by the frozen
+// characterization, tick-phases and the rewind tests. Only the contestant's record-level copy remains here (#1241).
+test('record-only attacks match core firearms, utilities and hearing', async t => {
   const games = await pair(t);
   for (const s of games) {
     const p = s.players[0], id = itemId(s, 'carried-pistol');
@@ -63,13 +65,6 @@ test('record-only attacks match core firearms, utilities, hearing and melee dama
     assert.deepEqual(actions(games[1]), actions(games[0]));
     assert.equal(games[1].players[0].inventory[0], null);
   }
-  for (const s of games) {
-    const gladiator = s.players[2];
-    gladiator.heading = Math.PI;
-    attack(s, gladiator);
-  }
-  assert.deepEqual(actions(games[1]), actions(games[0]));
-  assert.ok(games[1].players[0].shield < 75, 'the melee witness reaches the shared damage callback');
 });
 
 test('bare drop planners match core staged records, refusals and mandatory fallback', async t => {
@@ -100,7 +95,7 @@ test('direct scenario skills match phase three specter, striker and hook launch/
   const [direct, core] = await pair(t, true);
   for (const caster of [2, 3, 4, 4]) {
     skill(direct, direct.players[caster]);
-    phaseThree(core, core.players.map((_, i) => i === caster ? { input: { skill: true } } : undefined), damage);
+    phaseThree(core, core.players.map((_, i) => i === caster ? { input: { skill: true } } : undefined));
     assert.deepEqual(actions(core), actions(direct));
     assert.deepEqual(physicsRuntime(core).hooks, physicsRuntime(direct).hooks);
   }
