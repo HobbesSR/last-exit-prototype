@@ -390,7 +390,7 @@ SOFTWARE.
 SAT.js 0.9.0
 License: MIT
 Source: https://github.com/jriecken/sat-js
-Served as: /vendor/sat/SAT.js, and /vendor/sat.mjs for the dev labs; its circle tests translated into rust/core/src/collision.rs (#1233), compiled into the core's WebAssembly (/shared/core-wasm.generated.ts)
+Served as: /vendor/sat/SAT.js, and /vendor/sat.mjs for the dev labs; its circle tests translated into rust/core/src/collision.rs (#1233) and its point-in-polygon test into rust/core/src/swept.rs (#1229), compiled into the core's WebAssembly (/shared/core-wasm.generated.ts)
 
 Copyright (C) 2012 - 2015 by Jim Riecken
 

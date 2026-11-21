@@ -23,7 +23,7 @@ use crate::math::{hypot, js_max, js_min};
 use crate::sight::{BUCKET, Edge, GateSet, Grid, SightIndex, Visited, hit_ray};
 
 /// SAT's `new Vector(x, y)` stores `x || 0`: -0 and NaN become 0.
-fn or_zero(v: f64) -> f64 {
+pub(crate) fn or_zero(v: f64) -> f64 {
     if v == 0.0 || v.is_nan() { 0.0 } else { v }
 }
 
@@ -40,6 +40,8 @@ pub(crate) enum Body {
         y: f64,
         points: Vec<[f64; 2]>,
         edges: Vec<[f64; 2]>,
+        /// SAT's `normals`: each edge turned by `perp` then `normalize`.
+        normals: Vec<[f64; 2]>,
     },
 }
 
@@ -84,12 +86,24 @@ impl Body {
                 let (p1, p2) = (points[i], points[if i < len - 1 { i + 1 } else { 0 }]);
                 [p2[0] - p1[0], p2[1] - p1[1]]
             })
+            .collect::<Vec<[f64; 2]>>();
+        let normals = edges
+            .iter()
+            .map(|e| {
+                let (mut nx, mut ny) = (e[1], -e[0]);
+                let d = (nx * nx + ny * ny).sqrt();
+                if d > 0.0 {
+                    (nx, ny) = (nx / d, ny / d);
+                }
+                [nx, ny]
+            })
             .collect();
         Body::Polygon {
             x: or_zero(x),
             y: or_zero(y),
             points,
             edges,
+            normals,
         }
     }
 }
@@ -131,6 +145,7 @@ pub(crate) fn disk_penetration(x: f64, y: f64, radius: f64, body: &Body) -> Opti
             y: py,
             points,
             edges,
+            ..
         } => {
             // `testPolygonCircle(polygon, disk)`, which `testCirclePolygon` runs; the depth is unchanged
             // by its swap.

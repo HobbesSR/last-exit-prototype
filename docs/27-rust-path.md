@@ -323,7 +323,10 @@ and the effects' lives, then per player in roster order runs respawn, transit ar
 - #1228: phase 3 with the item counters, in two stages:
   - 5c.1 (#1228): the drop planner's spiral search, with its loot-body test;
   - 5c.2 (#1238): the phase 3 loop, the rest of the planner and the item counters;
-- #1229: phase 5, with the swept queries it shares with the hook's revalidation (`prepareHooks`, `reconcileHooks`);
+- #1229: phase 5, in two stages:
+  - 5d.1 (#1229): the swept queries, with the hook's rules after launch (`prepareHooks`, `finishHooks`, `reconcileHooks`),
+    which share them;
+  - 5d.2 (#1242): projectiles, the warden skill, damage and elimination, and rewind;
 - #1230: phases 6 and 7.
 
 The physics adapter goes before phase 3 because drops and attacks call into it (`launchPhysicalDrops`, impulses, attachments).
@@ -404,9 +407,8 @@ and landing itself, in one call a tick.
   - the pending queues' generation filter at the end of the sync, which reads one generation per entry of queues
     this runtime owns;
   - the trap spawns, which are projectile records;
-  - the hook's revalidation (`prepareHooks`, `reconcileHooks`). It asks `solidContact`, the swept query that phase 5's
-    projectiles and `finishHooks` share, which the core does not have yet. So the hook rules move together with
-    phase 5 (#1229). `reconcileHooks` is the sync's last step, so the order is unchanged.
+  - the hook's revalidation (`prepareHooks`, `reconcileHooks`), until step 5d.1 (below) moved it with the swept query
+    it asks. `reconcileHooks` is still the sync's last step, so the order is unchanged.
 - **The loot-body test has one owner,** `loot_fits` in `placement.rs`, since step 5c.1 (#1228, review 977): the sync's
   item admission and the drop planner's search both ask it. The TypeScript placement search is gone; the parity test
   keeps it as its reference.
@@ -482,12 +484,43 @@ so the core adapter does not import its callers.
   | Motor, `action_combat::motor` | Client prediction's `movementSpeed` and `characterMotor` | `physics-prediction-contract` compares actual core motors across roles, boost/stun/sneak, zero input and surface ties; parameters are shared | #1241 decides a batched core caller versus retained prediction arithmetic with parity |
   | Utility outcome, `action_combat::attack` | Bots' `utilityOutcome` preview and bare-record attack | Shared `UTILITY_RULES`/`HZ`; `utility-use` compares preview with actual core use, including caps/refusal | #1215 moves bot previews; #1241 owns remaining setup callers |
   | Attack/hearing, `action_combat::attack` and `phase_three.rs` | Bare-record/scenario fallback in `combat.ts` and `hearing.ts` | `action-parity` directly compares firearm, utility, melee and heard-cue state/facts with the core; frozen characterization covers live calls | #1241 |
-  | Non-warden skill and hook launch/cancel, `phase_three.rs`/`action_combat.rs` | Direct scenario entry points in `combat.ts` and `hook.ts` | `action-parity` compares specter/striker and hook launch/cancel with the core; `phase-three-core` covers key-zero capacity and refusal ordering | #1241; #1229 owns the separate swept revalidation and warden skill |
+  | Non-warden skill and hook launch/cancel, `phase_three.rs`/`action_combat.rs` | Direct scenario entry points in `combat.ts` and `hook.ts` | `action-parity` compares specter/striker and hook launch/cancel with the core; `phase-three-core` covers key-zero capacity and refusal ordering | #1241. The hook's later rules moved in 5d.1 with no TypeScript copy; the warden skill is #1242's |
   | Drop plans, `drop_planner.rs` | Bare setup planners in `loot.ts` | `action-parity` compares complete plans, staged allocations and NaN/fallback refusals on common empty-world geometry; 5c.1 documents the intentional physics-only loot-body test | #1241 |
   | Item allocation, `item_allocation.rs` | Explicitly unbound setup records | `item-id-allocation` checks selection before/after another game initializes, actual Rust operations and fork isolation; setup/live suites check the same allocation expectations | #1241 |
   | Equipment access, validation and weapon selection, `action_equipment.rs` | Node pickups/swaps and bot reads in `equipment.ts`/`item-instances.ts` | `equipment`, `item-instances`, `action-parity` and frozen characterization cover the core action and retained transfer/validation paths; weapon parameters remain content-owned | #1230 moves phase-6 writers, #1215 moves bot reads, #1241 owns remaining setup callers |
 
 - **Cost:** [42.69](42.69-phase-three-core.md), under 42.58's state-flip exception; remeasure at #1214.
+
+**Step 5d.1, the swept queries and the hook's later rules (#1229, adapter version 14).** `rust/core/src/swept.rs` is
+`geometryContact` (`shared/simulation/swept.ts`), with `firstContact` and `segmentShapeDistance` (`shape-queries.ts`).
+`rust/core/src/hooks.rs` runs `prepareHooks`, `finishHooks` and `reconcileHooks` over it, and `hook.ts` is their adapter.
+Launch and cancel are phase 3's, as before.
+- **Uploaded once per map.** A swept map holds the solid static shapes in `buildPhysicsGeometry`'s order, which the
+  bisection's last bits depend on, each with whether shots also meet it (a see-through obstacle does not), and every
+  gate's closed shape. It is uploaded from `swept.ts`'s own caches (`sweptUpload`), so the core sweeps the very shapes
+  the TypeScript does. It is its own handle (`sweptHandle`), not one of `queryHandles`, so calls that never sweep do not
+  build it. `createGame` builds it (`prepareSwept`) after `prepareSweptGeometry` and `prepareSweptGates`, from the caches they
+  built while yielding (review 982). It is rebuilt when the map's size, playable area or gate list differs, as the
+  collision map is. Gates are read live from the gate set's open mask.
+- **Solid props are read from the world.** `world.rs` keeps each solid prop's shape as queued, and the core builds
+  `bodyShape` at the prop's current pose, reading again after every commit.
+- **The hooks stay in JavaScript (D1).** Each call packs the hooks, the roster's keys, status, kit, role and pose and,
+  for the tip, the actors' substep paths. The core reads generations, poses and constraints live and queues and commits
+  where the TypeScript did, so the world's facts keep their order. It returns a log: each rope queued (`hook.ts` builds
+  its frozen spec through `adoptQueuedConstraint`), each commit's facts and each hook removed, then each hook's fields.
+  `hook.ts` writes those fields in the order the TypeScript first wrote them, so a hook's keys keep their order in the
+  gameplay snapshot (`physicsState`). A refusal stops the call where the TypeScript threw. With no hook there is no
+  call, only the commit each rule ended with.
+- **No TypeScript copy of the hook's later rules.** They have no caller outside the tick. `characterization-physics`
+  (its scripted `hook` label), the bots variant and `tests/physics-hook.test.js` cover flight, hits, attachment, the
+  pull, standoff, gates, void, props and roster changes.
+- **Two copies of the sweep, on purpose.** Projectiles still sweep in TypeScript until #1242, so
+  `tests/swept-core.test.js` holds `swept.rs` equal to `geometryContact` to the bit. It covers both policies on the
+  room arena's statics and gates, with gates toggled between calls, rotated and degenerate extra shapes, and the
+  world's solid props, rotated, against `solidContact`. `solidContact` keeps that test as its only caller. A sabotaged
+  prop rotation is caught.
+- **Cost:** [42.70](42.70-hook-core.md). A call costs 2–5 µs. That is less than the TypeScript for a pulling hook and
+  more for a flying hook's reconciliation; at most about 0.1% of the tick, under 42.58's state-flip exception.
 
 ## One math library on both sides
 

@@ -158,6 +158,18 @@ pub struct World {
     pub(crate) boundary_input: Vec<f64>,
     pub(crate) boundary_output: Vec<f64>,
     pub(crate) actions: crate::phase_three::PhaseThree,
+    /// By key: a solid prop's shape as its spec gave it (`shape, a, b, vertices`), for the swept
+    /// queries' `solidProps` (`hooks.rs`). Loot and every other kind keep none.
+    prop_shapes: Vec<Option<PropShape>>,
+}
+
+/// A solid prop's shape: `physics::SHAPE_*`, its `a`, `b` and convex vertices, as queued.
+#[derive(Clone)]
+pub(crate) struct PropShape {
+    pub(crate) shape: u32,
+    pub(crate) a: f64,
+    pub(crate) b: f64,
+    pub(crate) vertices: Vec<f64>,
 }
 
 impl Default for World {
@@ -190,6 +202,7 @@ impl World {
             boundary_input: Vec::new(),
             boundary_output: Vec::new(),
             actions: crate::phase_three::PhaseThree::default(),
+            prop_shapes: Vec::new(),
         }
     }
 
@@ -351,7 +364,13 @@ impl World {
 
     /// Queues the constraint whose row fills the input: `key, a, b, legacy`, then `row`'s values.
     pub fn queue_add_constraint(&mut self) -> i32 {
-        let input = self.engine.input_values();
+        let input = self.engine.input_values().to_vec();
+        self.queue_constraint_row(&input)
+    }
+
+    /// Queues the constraint `input` describes, laid out as `queue_add_constraint`'s input, for the
+    /// core's own callers (`hooks.rs`).
+    pub(crate) fn queue_constraint_row(&mut self, input: &[f64]) -> i32 {
         let mut row = [0.0; 11];
         row.copy_from_slice(&input[3..CONSTRAINT_ROW]);
         let (key, a, b) = (input[0] as Key, input[1] as Key, input[2] as Key);
@@ -466,6 +485,18 @@ impl World {
             tip: p.tip,
             motor: None,
         });
+        if p.params.kind == physics::KIND_PROP && !p.loot {
+            let key = p.key as usize;
+            if key >= self.prop_shapes.len() {
+                self.prop_shapes.resize(key + 1, None);
+            }
+            self.prop_shapes[key] = Some(PropShape {
+                shape: p.shape,
+                a: p.a,
+                b: p.b,
+                vertices: p.vertices.clone(),
+            });
+        }
         if p.params.kind == physics::KIND_STATIC {
             self.static_count += 1;
         } else {
@@ -527,6 +558,9 @@ impl World {
             self.engine.remove_body(body.slot);
             self.slot_keys[body.slot as usize] = None;
             self.bodies[key as usize] = None;
+            if let Some(shape) = self.prop_shapes.get_mut(key as usize) {
+                *shape = None;
+            }
             if body.kind == physics::KIND_STATIC {
                 self.static_count -= 1;
             } else {
@@ -597,6 +631,11 @@ impl World {
         self.dynamic = dynamic;
         self.forces.retain(|f| !removed.contains(&f.0));
         self.impulses.retain(|f| !removed.contains(&f.0));
+    }
+
+    /// The live constraints' count (`counts().constraints`).
+    pub(crate) fn constraint_count(&self) -> usize {
+        self.constraints.len()
     }
 
     pub fn has_constraint(&self, key: Key) -> bool {
@@ -961,6 +1000,28 @@ impl World {
             self.dynamic.clone()
         };
         self.rows(&keys)
+    }
+
+    /// The solid props (no loot) in ID order, each with its shape and pose `x, y, angle`, as
+    /// `solidProps` in `swept.ts` reads them from the world's snapshot.
+    pub(crate) fn solid_prop_poses(&mut self) -> Vec<(PropShape, f64, f64, f64)> {
+        let keys: Vec<Key> = self
+            .dynamic
+            .iter()
+            .copied()
+            .filter(|&k| {
+                let b = self.body(k).expect("live");
+                b.kind == physics::KIND_PROP && !b.loot
+            })
+            .collect();
+        keys.into_iter()
+            .map(|key| {
+                let slot = self.body(key).expect("live").slot;
+                let shape = self.prop_shapes[key as usize].clone().expect("solid prop");
+                let pose = self.engine.pose(slot);
+                (shape, pose[0], pose[1], pose[2])
+            })
+            .collect()
     }
 
     /// The solid props (no loot), as `snapshot` rows.

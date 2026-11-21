@@ -12,6 +12,7 @@ pub mod collision;
 pub mod discovery;
 pub mod drop_planner;
 pub mod floor_drag;
+pub mod hooks;
 pub mod item_allocation;
 pub mod math;
 pub mod phase_one;
@@ -20,6 +21,7 @@ pub mod physics;
 pub mod placement;
 pub mod scatter;
 pub mod sight;
+pub mod swept;
 pub mod world;
 
 use std::alloc::{Layout, alloc, dealloc};
@@ -27,7 +29,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 13;
+pub const ADAPTER_VERSION: u32 = 14;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -327,6 +329,75 @@ pub unsafe extern "C" fn collision_depth(
 ) -> f64 {
     // SAFETY: the caller's contract.
     unsafe { (*map).depth(i, x, y, radius) }
+}
+
+// Swept contact (`swept::SweptMap`, #1229 stage 5d.1): the static and gate shapes a sweep reads,
+// uploaded once. Shape rows are `swept::shapes_from_rows`'s.
+
+/// Builds a sweep map (`swept::SweptMap::new`). The core copies every buffer.
+///
+/// # Safety
+/// The pointers hold `statics_len` words, `static_count` bytes and `gates_len` words.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn swept_map_new(
+    statics: *const f64,
+    statics_len: usize,
+    shots: *const u8,
+    static_count: usize,
+    gates: *const f64,
+    gates_len: usize,
+) -> *mut swept::SweptMap {
+    // SAFETY: the caller's contract.
+    let map = unsafe {
+        swept::SweptMap::new(
+            swept::shapes_from_rows(items(statics, statics_len)),
+            items(shots, static_count).iter().map(|&s| s != 0).collect(),
+            swept::shapes_from_rows(items(gates, gates_len)),
+        )
+    };
+    Box::into_raw(Box::new(map))
+}
+
+/// # Safety
+/// `map` came from `swept_map_new` and is freed once.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn swept_map_free(map: *mut swept::SweptMap) {
+    // SAFETY: the caller's contract.
+    drop(unsafe { Box::from_raw(map) });
+}
+
+/// `geometryContact` (`swept::SweptMap::contact`): the first contact of a sweep, infinity when
+/// clear. `pass_see_through` nonzero is the shot policy. `extra_ptr` holds `extra_len` words of shape rows.
+///
+/// # Safety
+/// `map` and `gates` are live, `gates` is the map's gate set with its open mask written, and
+/// `extra_ptr` holds `extra_len` words.
+#[unsafe(no_mangle)]
+#[allow(clippy::too_many_arguments)]
+pub unsafe extern "C" fn swept_contact(
+    map: *const swept::SweptMap,
+    gates: *const sight::GateSet,
+    pass_see_through: u32,
+    ax: f64,
+    ay: f64,
+    bx: f64,
+    by: f64,
+    radius: f64,
+    extra_ptr: *const f64,
+    extra_len: usize,
+) -> f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        let extra = swept::shapes_from_rows(items(extra_ptr, extra_len));
+        (*map).contact(
+            &*gates,
+            pass_see_through != 0,
+            [ax, ay],
+            [bx, by],
+            radius,
+            &extra,
+        )
+    }
 }
 
 /// `lineClear` from `(ax, ay)` to `(bx, by)`: the ray-edge tests made, doubled, plus 1 when clear.
@@ -702,6 +773,40 @@ pub unsafe extern "C" fn physics_scatter(
 ) {
     // SAFETY: the caller's contract.
     unsafe { boundary::scatter(&mut *world, &mut *map, &*index, &mut *gates) }
+}
+
+/// The hook's rules after launch (`hooks::run`, #1229): `prepareHooks`, `finishHooks` or
+/// `reconcileHooks` by the input's mode, over the world's boundary input and output.
+///
+/// # Safety
+/// `world`, `swept` and `gates` are live, and `gates` is the map's gate set with its open mask written.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_hooks(
+    world: *mut world::World,
+    swept: *const swept::SweptMap,
+    gates: *const sight::GateSet,
+) {
+    // SAFETY: the caller's contract.
+    unsafe { hooks::run(&mut *world, &*swept, &*gates) }
+}
+
+/// `solidContact` (`hooks::solid_contact`) with the world's solid props, for the parity check.
+///
+/// # Safety
+/// As `physics_hooks`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_solid_contact(
+    world: *mut world::World,
+    swept: *const swept::SweptMap,
+    gates: *const sight::GateSet,
+    ax: f64,
+    ay: f64,
+    bx: f64,
+    by: f64,
+    radius: f64,
+) -> f64 {
+    // SAFETY: the caller's contract.
+    unsafe { hooks::solid_contact(&mut *world, &*swept, &*gates, [ax, ay], [bx, by], radius) }
 }
 
 /// Phase 3's reusable per-world flat input (27, step 5c.2).
