@@ -377,7 +377,13 @@ mod tests {
     fn store_from(world: &mut World, words: &[f64]) {
         let players = words[PLAYERS] as usize;
         let base = HEADER + words[EFFECTS] as usize + words[STATIONS] as usize * STATION_STRIDE;
-        let up = world.players.input(players);
+        // Each player's fixed row, then an equipment header with no inventory (`players::EQUIP_HEAD`).
+        let up = world
+            .players
+            .input(players * (crate::players::STORE_ROW + crate::players::EQUIP_HEAD));
+        for i in 0..players {
+            up[players * crate::players::STORE_ROW + i * crate::players::EQUIP_HEAD + 4] = -1.0;
+        }
         for i in 0..players {
             let p = &words[base + i * PLAYER_STRIDE..base + (i + 1) * PLAYER_STRIDE];
             let u = &mut up[i * crate::players::STORE_ROW..(i + 1) * crate::players::STORE_ROW];

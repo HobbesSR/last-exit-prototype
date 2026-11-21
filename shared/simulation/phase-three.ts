@@ -12,7 +12,8 @@ import { HZ } from './rules.ts';
 import { playerIndex } from './relations.ts';
 import { addItems, groundItem, itemsNear } from './ground-items.ts';
 import { physicsRuntime, type PhysicsRuntime } from './physics-runtime.ts';
-import { playersStale, uploadPlayers } from './player-store.ts';
+import { appendItem, playersStale, uploadPlayers } from './player-store.ts';
+export { appendItem };
 import { event, participant } from './event-records.ts';
 import { sightOf } from './sight-runtime.ts';
 import { launchPhysicalDrops } from './world-physics.ts';
@@ -55,16 +56,6 @@ export function configure(s: Game, r: PhysicsRuntime, core: Core, world: number)
   const ptr = core.actions_input(world, data.length) >>> 0;
   new Float64Array(core.memory.buffer, ptr, data.length).set(data);
   core.actions_configure(world); configured.set(r.world, s.content);
-}
-
-export function appendItem(data: number[], item: InventoryItem | null, token: number): void {
-  if (!item) { data.push(-1, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 63); return; }
-  const absent = ('ammo' in item && item.ammo !== undefined ? 0 : 1) | ('charge' in item && item.charge !== undefined ? 0 : 2)
-    | (item.instanceId === undefined ? 4 : 0) | (item.lineageId === undefined ? 8 : 0) | (item.quality === undefined ? 16 : 0)
-    | (item.kind === 'weapon' && item.weaponType !== undefined ? 0 : 32);
-  data.push(code(ITEM_KINDS, item.kind) === -1 ? -2 : code(ITEM_KINDS, item.kind), item.kind === 'weapon' ? code(WEAPONS, item.weaponType) : NaN,
-    item.kind === 'weapon' ? n(item.ammo) : NaN, item.kind === 'med' || item.kind === 'shield' ? n(item.count) : NaN,
-    item.kind === 'cell' ? n(item.charge) : NaN, n(item.instanceId), n(item.lineageId), n(item.quality), token, absent);
 }
 
 /** Apply only writes, keeping the original carried objects through moves and stack merges. */

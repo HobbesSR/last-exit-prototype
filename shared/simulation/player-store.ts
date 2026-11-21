@@ -1,7 +1,7 @@
-import { KITS, PLAYER_STATUSES } from '../enum-tables.ts';
+import { AMMO_FAMILIES, ITEM_KINDS, KITS, PLAYER_STATUSES, WEAPONS } from '../enum-tables.ts';
 import type { CoreExports } from '../core.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
-import type { Game, Player } from '../types.ts';
+import type { Game, InventoryItem, Player } from '../types.ts';
 
 // The core's player store (`rust/core/src/players.rs`, #1214, docs/27 "The state flip", step 6c). Phase 1 (6c.2),
 // phase 5's combat and phase 6's environment and traps (6c.1) read the players from it rather than from rows of their
@@ -10,6 +10,36 @@ import type { Game, Player } from '../types.ts';
 // 1, and before a converted call between ticks, where tests, tools and the between-tick commands write the records.
 
 type StoreExports = Pick<CoreExports, 'memory' | 'players_input' | 'players_load'>;
+const n = (value: number | null | undefined): number => typeof value === 'number' ? value : NaN;
+const code = (values: readonly string[], value: string | undefined): number => value === undefined ? NaN : values.indexOf(value);
+
+/** A carried item's ten words (`action_types::Item`), or an empty slot's, with the call's `token`. Phases 3 and 6 pack the same. */
+export function appendItem(data: number[], item: InventoryItem | null, token: number): void {
+  if (!item) { data.push(-1, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 63); return; }
+  const absent = ('ammo' in item && item.ammo !== undefined ? 0 : 1) | ('charge' in item && item.charge !== undefined ? 0 : 2)
+    | (item.instanceId === undefined ? 4 : 0) | (item.lineageId === undefined ? 8 : 0) | (item.quality === undefined ? 16 : 0)
+    | (item.kind === 'weapon' && item.weaponType !== undefined ? 0 : 32);
+  data.push(code(ITEM_KINDS, item.kind) === -1 ? -2 : code(ITEM_KINDS, item.kind), item.kind === 'weapon' ? code(WEAPONS, item.weaponType) : NaN,
+    item.kind === 'weapon' ? n(item.ammo) : NaN, item.kind === 'med' || item.kind === 'shield' ? n(item.count) : NaN,
+    item.kind === 'cell' ? n(item.charge) : NaN, n(item.instanceId), n(item.lineageId), n(item.quality), token, absent);
+}
+
+/**
+ * Each player's equipment, in roster order, as `players::EQUIP_HEAD` and the item rows lay it out: selection, weapon,
+ * keys, charging (the charger's index, -1 none, -2 unknown), the inventory, reserves and reload. Tokens are written 0.
+ */
+function packEquipment(s: Game): number[] {
+  const out: number[] = [], chargers = s.map.chargers;
+  for (const p of s.players) {
+    const charging = !p.charging ? -1 : chargers.findIndex(c => c.id === p.charging);
+    const inventory = p.inventory, reserves = p.reserves, reload = p.reload;
+    out.push(n(p.selectedSlot), p.weapon, n(p.keys), charging === -1 && p.charging ? -2 : charging, inventory ? inventory.length : -1,
+      reserves ? 1 : 0, ...reserves ? AMMO_FAMILIES.map(f => reserves[f]) : [0, 0, 0],
+      reload ? 1 : 0, ...reload ? [reload.slot, reload.instanceId, reload.until] : [0, 0, 0]);
+    for (const item of inventory ?? []) appendItem(out, item as InventoryItem | null, 0);
+  }
+  return out;
+}
 
 /** Each player's rank in ID order, which is `ordered(s)`'s. */
 export function idRanks(s: Game): number[] {
@@ -23,6 +53,8 @@ export function idRanks(s: Game): number[] {
 export const PLAYER_ROW = 15;
 /** Words per player uploaded (`players::STORE_ROW`): the fields, `movedThisTick`, then `players::Extra`. */
 const STORE_ROW = PLAYER_ROW + 1 + 8;
+/** Words of a player's equipment header (`players::EQUIP_HEAD`), and per carried item (`players::ITEM_ROW`). */
+const EQUIP_HEAD = 13, ITEM_ROW = 10;
 const num = (value: number | null | undefined): number => value ?? NaN;
 
 /** Write a player's fields (`combat::Row`) at `at`; returns where they end. */
@@ -58,14 +90,24 @@ function packPlayers(s: Game, keys: readonly number[], data: Float64Array): void
  */
 export function storeDrift(s: Game, r: PhysicsRuntime): string[] {
   const { core, world } = r.world.boundaryCall();
-  const keys = s.players.map(p => r.world.key(`actor:${p.id}`));
-  const fresh = new Float64Array(s.players.length * STORE_ROW);
+  const keys = s.players.map(p => r.world.key(`actor:${p.id}`)), equipment = packEquipment(s), fixed = s.players.length * STORE_ROW;
+  const fresh = new Float64Array(fixed + equipment.length);
   packPlayers(s, keys, fresh);
+  fresh.set(equipment, fixed);
+  for (let at = fixed; at < fresh.length;) { at += EQUIP_HEAD; const count = fresh[at - EQUIP_HEAD + 4]!; for (let k = 0; k < count; k++, at += ITEM_ROW) fresh[at + 8] = 0; }
   if (core.players_count(world) !== s.players.length) return [`the store holds ${core.players_count(world)} players, the roster ${s.players.length}`];
-  const kept = new Float64Array(core.memory.buffer, core.players_dump(world) >>> 0, fresh.length);
+  const dumped = core.players_dump(world) >>> 0;
+  const kept = new Float64Array(core.memory.buffer, dumped, fresh.length);
   const out: string[] = [];
-  for (let k = 0; k < fresh.length; k++) if (!Object.is(kept[k], fresh[k]))
+  for (let k = 0; k < fixed; k++) if (!Object.is(kept[k], fresh[k]))
     out.push(`${s.players[Math.floor(k / STORE_ROW)]!.id}.${FIELDS[k % STORE_ROW]}: ${kept[k]} != ${fresh[k]}`);
+  // The equipment as a whole per player: its words differ in length when an inventory does.
+  for (let at = fixed, i = 0; at < fresh.length; i++) {
+    const words = EQUIP_HEAD + Math.max(0, fresh[at + 4]!) * ITEM_ROW;
+    const a = Array.from(kept.subarray(at, at + words)), b = Array.from(fresh.subarray(at, at + words));
+    if (a.some((v, k) => !Object.is(v, b[k]))) out.push(`${s.players[i]!.id}.equipment: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
+    at += words;
+  }
   return out;
 }
 const FIELDS = ['role', 'status', 'kit', 'x', 'y', 'heading', 'hp', 'maxHp', 'shield', 'level', 'cooldown', 'attackCd', 'stun', 'rank',
@@ -77,7 +119,11 @@ const FIELDS = ['role', 'status', 'kit', 'x', 'y', 'heading', 'hp', 'maxHp', 'sh
  */
 export function uploadPlayers(s: Game, r: PhysicsRuntime, core: StoreExports, world: number): void {
   const players = s.players;
-  const keys = players.map(p => r.world.key(`actor:${p.id}`));
-  packPlayers(s, keys, new Float64Array(core.memory.buffer, core.players_input(world, players.length) >>> 0, players.length * STORE_ROW));
+  const keys = players.map(p => r.world.key(`actor:${p.id}`)), equipment = packEquipment(s), fixed = players.length * STORE_ROW;
+  // Resizing the upload can grow the memory, so the view is made from the buffer after the call.
+  const pointer = core.players_input(world, fixed + equipment.length) >>> 0;
+  const data = new Float64Array(core.memory.buffer, pointer, fixed + equipment.length);
+  packPlayers(s, keys, data);
+  data.set(equipment, fixed);
   core.players_load(world, players.length);
 }

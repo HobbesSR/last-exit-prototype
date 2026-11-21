@@ -667,7 +667,11 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
   - **6c.3:** the remaining readers stop packing players from the records, in three PRs:
     - **6c.3a (#1214):** the readers of scalar fields only: phase 7, the hooks and the body sync. Below.
     - **6c.3b (#1214):** phase 3's and phase 6's player rows. Below.
-    - **6c.3c:** the inventories, with the carried items' identity, which Node tracks by object today.
+    - **6c.3c:** the equipment, in two PRs, as 6c.2 came before 6c.3 (design: #1214 comment 17519):
+      - **6c.3c.1 (#1214):** the store keeps each player's equipment, and every write to it inside a tick reaches the
+        store. Below.
+      - **6c.3c.2:** the readers take equipment from the store, with tokens made persistent per world, so the core's
+        reports name Node's carried objects.
 
   Replacing the uploads between ticks with between-tick commands is 6e's.
 - **6d: the pending queues, the hooks, the ground and the ID counters,** with the explosion port. They depend on each
@@ -777,6 +781,21 @@ adapters write 0 in the store's words, and the core fills those words from the s
 - **Between ticks** both upload first (`playersStale`), since scenarios call them directly.
 - **Cost:** measured once for stage 6c as a whole, at its end, against the `main` before 6c.1 (Corey, 2026-11-21: one bench at
   the end rather than per PR).
+
+**Step 6c.3c.1, the equipment kept current (#1214, adapter version 23).** The store keeps each player's equipment
+(`players::Equip`): `selectedSlot`, `weapon`, `keys`, `charging` (the charger's index), the inventory, reserves and reload.
+Items are `action_types::Item` rows with their absence mask, so a record's absent fields and key order are known.
+- **The upload** carries each player's equipment after every fixed row (`players::EQUIP_HEAD`, then ten words per item).
+  `appendItem`, the one item packer, moved to `player-store.ts`, and `phase-three.ts` re-exports it.
+- **Every write reaches the store,** mirroring the adapters:
+  - phase 3's rows (selection, weapon, reserves, reload, inventory) when the mode writes rows, and its facts for
+    charging cleared and reload cleared;
+  - phase 6's extraction, charging, transit, unlocking a door with a key, a cell's charge, keys, a pickup's equipment
+    and a committed swap.
+- **Readers are unchanged.** Phases 3 and 6 still pack equipment from the records; 6c.3c.2 moves them to the store. The
+  items' tokens in the store are the uploading call's and mean nothing yet, so the dump and the drift check write 0.
+- **The witness.** `storeDrift` also compares each player's equipment. With phase 6's pickup write disabled it fails at
+  tick 1, and with phase 3's inventory write disabled at tick 2.
 
 
 ## One math library on both sides
