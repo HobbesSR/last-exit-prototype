@@ -6,6 +6,7 @@ import type { Game, GroundItem, InventoryItem, ItemId, ItemLabel, Player, Statio
 import { actorRadius } from './actor-physics.ts';
 import { event, participant } from './event-records.ts';
 import { clearRoute } from './geometry.ts';
+import { writeDoor } from './doors.ts';
 import { addItems, draftItem, groundItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
 import { appendItem, configure, ground, putItem } from './phase-three.ts';
 import type { ActionsCore } from './phase-three.ts';
@@ -28,8 +29,6 @@ interface SixExports {
   interactions_input(world: number, words: number): number;
   interactions_run(world: number, collision: number, index: number, gates: number): number;
   gate_set_details(gates: number): number;
-  gate_set_locked(gates: number): number;
-  gate_set_open(gates: number): number;
 }
 type Core = ActionsCore & SixExports;
 
@@ -121,7 +120,7 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
     let t = tokens.get(item); if (t === undefined) { t = pool.length; tokens.set(item, t); pool.push(item); } return t;
   };
   const near: GroundItem[][] = [];
-  let allocations = 0, swaps = false, queries = false, interacting = false;
+  let allocations = 0, swaps = false, interacting = false;
   const known = new Set<number>();
   for (let i = 0; i < turns.length; i++) {
     const { player: p, steps } = turns[i]!;
@@ -143,10 +142,8 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
       }
     }
     interacting ||= interact;
-    queries ||= interact || (steps & STEP_TRANSIT) !== 0 || !!p.charging || list.length > 0;
   }
-  // The open mask is written only when a rule in this call reads a gate; with an interaction, together with the locks.
-  const map = sightOf(s).queryHandles(s.map, queries && !interacting);
+  const map = sightOf(s).queryHandles(s.map);
   if (map.core !== core) throw new Error('phase 6 and sight are bound to different cores');
   const w = writer;
   w.reset(HEADER);
@@ -202,19 +199,10 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
   for (const id of known) w.put(id);
   if (swaps) for (const p of s.players) for (const item of p.inventory ?? []) if (item?.instanceId) { w.put(token(item)); w.put(item.instanceId); w.buf[27]++; }
   // The core finds the gates near an interacting actor in its own gate set. Their positions and kinds cross once per
-  // gate set; their locks are written into its mask, as the open mask is.
-  if (interacting) {
-    if (core.gate_set_details(map.gates) !== s.map.gates.length) {
-      w.buf[28] = s.map.gates.length;
-      for (const gate of s.map.gates) { w.put(gate.x); w.put(gate.y); w.put(gate.kind === 'door' ? 1 : 0); }
-    }
-    const gates = s.map.gates;
-    const open = new Uint8Array(core.memory.buffer, core.gate_set_open(map.gates) >>> 0, gates.length);
-    const locked = new Uint8Array(core.memory.buffer, core.gate_set_locked(map.gates) >>> 0, gates.length);
-    for (let i = 0; i < gates.length; i++) {
-      const gate = gates[i]!;
-      open[i] = gate.open ? 1 : 0; locked[i] = gate.locked == null ? 0 : gate.locked ? 1 : 2;
-    }
+  // gate set; their state is the set's own (stage 6a, `doors.ts`), so nothing about it crosses.
+  if (interacting && core.gate_set_details(map.gates) !== s.map.gates.length) {
+    w.buf[28] = s.map.gates.length;
+    for (const gate of s.map.gates) { w.put(gate.x); w.put(gate.y); w.put(gate.kind === 'door' ? 1 : 0); }
   }
   const ptr = core.interactions_input(world, w.len) >>> 0;
   new Float64Array(core.memory.buffer, ptr, w.len).set(w.buf.subarray(0, w.len));
@@ -258,7 +246,8 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
       case 7: p.x = out[at + 1]!; p.y = out[at + 2]!; p.railCd = out[at + 3]!; break;
       case 8: {
         const gate = s.gates[out[at + 1]!]!;
-        if (out[at + 2]) { gate.open = true; if (out[at + 3]) { p.keys--; gate.locked = false; } } else gate.open = false;
+        // The core has written its gate set already; the mirror follows, in `interact`'s order.
+        if (out[at + 2]) { writeDoor(gate, 'open', true); if (out[at + 3]) { p.keys--; writeDoor(gate, 'locked', false); } } else writeDoor(gate, 'open', false);
         clearRoute(p);
         break;
       }

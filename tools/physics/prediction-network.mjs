@@ -9,6 +9,7 @@ import os from 'node:os';
 import { createGame, disposePhysics, playerView, setInput, snapshot, step } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { resetInput } from '../../shared/simulation/input.ts';
+import { setDoor } from '../../shared/simulation/doors.ts';
 import { createInputClock } from '../../shared/input-clock.ts';
 import { createPhysicsPrediction, PREDICTION_LIMITS } from '../../public/physics-prediction.js';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
@@ -203,7 +204,7 @@ async function run(profile, variant = null) {
         else input(tick);
       });
       enqueue(at, 2, () => {
-        if (profile.staleDoor && tick === 5) game.map.gates[0].open = false;
+        if (profile.staleDoor && tick === 5) setDoor(game, 0, { open: false });
         step(game);
         repeats.push(game.players[0].inputStalled ?? 0);
         if (profile.contact) {

@@ -49,8 +49,7 @@ function call(s: Game, parts: Parts, resume: boolean): { kind: number; which: nu
   const native = r.world.boundaryCall(), core = native.core as Core, world = native.world;
   configure(s, r, core, world);
   const players = s.players, traps = s.traps ?? [], areas = s.map.hazards, t = s.content.traps;
-  // Only the traps read gates (line of sight, a spider's step), so a call without them writes no open mask (42.73).
-  const map = sightOf(s).queryHandles(s.map, parts.traps && traps.length > 0);
+  const map = sightOf(s).queryHandles(s.map);
   if (map.core !== core) throw new Error('phase 6 and sight are bound to different cores');
   // Map preparation can grow memory, so the input is viewed only after it, and written there in place.
   const words = HEADER + CONTENT + players.length * ACTOR_ROW + areas.length * AREA_ROW + traps.length * TRAP_ROW;

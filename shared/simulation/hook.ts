@@ -71,7 +71,7 @@ function runHooks(s: Game, mode: number, paths?: Record<string, Vec2[]>): void {
   }
   // Interning and the handles' preparation can grow memory; view the input only after them.
   const { core, world: native } = world.boundaryCall();
-  const sight = sightOf(s), map = sight.queryHandles(s.map, true), swept = sight.sweptHandle(s.map);
+  const sight = sightOf(s), map = sight.queryHandles(s.map), swept = sight.sweptHandle(s.map);
   if (map.core !== core) throw new Error('the physics world and sight are bound to different cores');
   const pointer = core.physics_boundary_input(native, data.length) >>> 0;
   new Float64Array(core.memory.buffer, pointer, data.length).set(data);

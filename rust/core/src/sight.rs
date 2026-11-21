@@ -5,8 +5,10 @@
 //! (`shared/sight-core.ts`) and uploads it once:
 //! - **A sight index:** the edges of every obstacle that blocks sight, and the cells they are listed in;
 //!   and each see-through obstacle's edges, which stop hands (`reachClear`, `collision.rs`), by its cells.
-//! - **A gate set:** each gate's edges and box, its cells, and a mask of which gates are open, which the
-//!   adapter rewrites before each call. Collision (`collision.rs`) reads the same set.
+//! - **A gate set:** each gate's edges and box, its cells, and masks of which gates are open and locked.
+//!   A game's gate set holds its doors' state: the core's rules write the masks, and JavaScript mirrors them
+//!   (#1214 stage 6a). For a map no game owns, the adapter rewrites the open mask before each call.
+//!   Collision (`collision.rs`) reads the same set.
 //!
 //! It equalled the TypeScript's bit for bit, and `tests/sight-core.test.js` now pins its polygons by
 //! digest. So it follows that cast operation for operation: the same visiting order, the same stable
@@ -234,13 +236,14 @@ pub struct GateSet {
     pub(crate) bodies: Vec<Body>,
     pub(crate) grid: Grid,
     pub(crate) visited: Visited,
-    /// Nonzero where the gate is open. The adapter writes it before each call.
+    /// Nonzero where the gate is open. A game's doors' state since #1214 stage 6a, written by the core's rules
+    /// (phase 6's interactions, the body sync's refused close) and between ticks by `setDoor`; for a map no game
+    /// owns, the adapter writes it before each call.
     pub open: Vec<u8>,
     /// Each gate's position and whether it is a door, for phase 6's interactions (`phase_six.rs`). Gates never move
     /// and never change kind in a match, so phase 6's adapter sends these once per gate set; empty until then.
     pub(crate) details: Vec<[f64; 3]>,
-    /// Each gate's lock, for phase 6: 0 absent, 1 locked, 2 unlocked. Its adapter writes it before a call where an
-    /// actor interacts, as the open mask is written.
+    /// Each gate's lock, for phase 6: 0 absent, 1 locked, 2 unlocked. A game's doors' state, as the open mask is.
     pub locked: Vec<u8>,
 }
 

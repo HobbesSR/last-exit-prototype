@@ -10,6 +10,7 @@ import { markPhysicsDiscontinuity } from './physics-runtime.ts';
 import type { PhysicsRuntime, PendingAttachment } from './physics-runtime.ts';
 import { physicsGate } from './physics-geometry.ts';
 import { sightOf } from './sight-runtime.ts';
+import { writeDoor } from './doors.ts';
 import type { Game, GroundItem, ItemId, Player, Vec2 } from '../types.ts';
 
 // The adapter for the tick boundary's body work in the core (`rust/core/src/boundary.rs`, #1234, docs/27 "The
@@ -81,9 +82,9 @@ function heldItem(s: Game, r: PhysicsRuntime, id: string): ItemId {
 }
 
 /** The call's core and handles: the world's and the map's, from the one core both are bound to. */
-function handles(s: Game, r: PhysicsRuntime, openMask: boolean): { core: Core; world: number; collision: number; index: number; gates: number } {
+function handles(s: Game, r: PhysicsRuntime): { core: Core; world: number; collision: number; index: number; gates: number } {
   const { core, world } = r.world.boundaryCall();
-  const map = sightOf(s).queryHandles(s.map, openMask);
+  const map = sightOf(s).queryHandles(s.map);
   if (map.core !== core) throw new Error('the physics world and sight are bound to different cores');
   return { core, world, collision: map.collision, index: map.index, gates: map.gates };
 }
@@ -133,7 +134,8 @@ function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number, 
       p.status = 'respawning'; p.respawnAt = out[at + 2]!; at += 3;
     } else if (op === OP_GATE) {
       const index = out[at + 1]!;
-      if (out[at + 3]) s.gates[index]!.open = true;
+      // A refused close: the core has kept the gate open in its set, and the mirror follows.
+      if (out[at + 3]) writeDoor(s.gates[index]!, 'open', true);
       r.gates[index] = out[at + 2]!; at += 4;
     } else if (op === OP_ITEM) {
       const id = world.idOf(out[at + 1]!);
@@ -173,7 +175,7 @@ export function synchronizeBodies(s: Game, r: PhysicsRuntime, markTick: number, 
   const gateRows = gates.map(index => s.gates[index]!.open ? undefined : templateRow(physicsGate(s.gates[index]!)));
   const heldRows = held.map(id => [world.key(id), 0] as const);
   const markerKeys = markers.map(entry => world.key(entry.id));
-  const { core, world: native, collision, gates: gateSet } = handles(s, r, true);
+  const { core, world: native, collision, gates: gateSet } = handles(s, r);
   const view = input(core, native, words);
   view.set([s.tick, admit ? 1 : 0, r.itemLaunches.size ? 1 : 0, s.players.length, s.content.worldPhysics.dropReserve ?? 0,
     r.discontinuityCapacity, active.length, known.length, gates.length, held.length, markers.length]);
@@ -239,7 +241,7 @@ function admitChunk(s: Game, r: PhysicsRuntime, markTick: number, launches: read
   const keys = items.map(item => itemKey(s, world, item.id)), held = [...r.items].map(id => world.key(id));
   const markerKeys = r.discontinuities.map(entry => world.key(entry.id));
   const words = B_HEADER + BODY_ROW + active.length * 3 + held.length + launches.length * LAUNCH_STRIDE + waiting.length * WAITING_STRIDE + markerKeys.length;
-  const { core, world: native, collision, gates } = handles(s, r, true);
+  const { core, world: native, collision, gates } = handles(s, r);
   const view = input(core, native, words);
   view.set([Math.max(0, s.players.length - r.actors.size), s.content.worldPhysics.dropReserve ?? 0, r.discontinuityCapacity,
     launches.length, waiting.length, active.length, held.length, markerKeys.length]);
@@ -277,8 +279,7 @@ export function admitPending(s: Game, r: PhysicsRuntime): void {
   const keyOf = (id: string) => world.hasBody(id) ? world.key(id) : -1;
   const impulseKeys = impulses.map(impulse => keyOf(impulse.id));
   const ends = attachments.map(a => [keyOf(a.a), keyOf(a.b)] as const);
-  // Only an attachment's reach reads the gates.
-  const { core, world: native, index, gates } = handles(s, r, attachments.length > 0);
+  const { core, world: native, index, gates } = handles(s, r);
   const view = input(core, native, 2 + impulses.length * 2 + attachments.length * 7);
   view[0] = impulses.length; view[1] = attachments.length;
   impulses.forEach((impulse, i) => { view[2 + 2 * i] = impulseKeys[i]!; view[3 + 2 * i] = impulse.generation; });
@@ -294,7 +295,7 @@ export function admitPending(s: Game, r: PhysicsRuntime): void {
 
 /** The placement search in the core, for `p` nearest `origin`, clear of the `admitted` actors as they stand. */
 export function placeInCore(s: Game, r: PhysicsRuntime, p: Player, admitted: readonly Player[], origin: Vec2): Vec2 | null {
-  const { core, world, collision, gates } = handles(s, r, true);
+  const { core, world, collision, gates } = handles(s, r);
   const view = input(core, world, 4 + admitted.length * 3);
   view[0] = actorRadius(s, p); view[1] = origin.x; view[2] = origin.y; view[3] = admitted.length;
   admitted.forEach((q, i) => { view[4 + 3 * i] = q.x; view[5 + 3 * i] = q.y; view[6 + 3 * i] = actorRadius(s, q); });
@@ -322,7 +323,7 @@ export function scatterInCore(s: Game, r: PhysicsRuntime, origin: Vec2, phase: n
       : items.filter(item => Number.isNaN(item.x) || Number.isNaN(item.y)
         || Math.abs(item.x - origin.x) <= SCATTER_REACH && Math.abs(item.y - origin.y) <= SCATTER_REACH);
   const actors = s.players.filter(p => p.status === 'active'), taken = near.length + points.length;
-  const { core, world, collision, index, gates } = handles(s, r, true);
+  const { core, world, collision, index, gates } = handles(s, r);
   const view = input(core, world, 6 + actors.length * 3 + taken * 2);
   view[0] = origin.x; view[1] = origin.y; view[2] = phase; view[3] = s.content.worldPhysics.loot.radius;
   view[4] = actors.length; view[5] = taken;

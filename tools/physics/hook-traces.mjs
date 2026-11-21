@@ -9,6 +9,7 @@ import { createGame, disposePhysics, setInput, snapshot, step, synchronizePhysic
 import { contentById } from '../../shared/simulation/content.ts';
 import { physicsRuntime } from '../../shared/simulation/physics-runtime.ts';
 import { teleport } from '../../shared/simulation/dev.ts';
+import { setDoor } from '../../shared/simulation/doors.ts';
 import { createPhysicsWorld } from '../../shared/physics/world.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -88,7 +89,7 @@ async function hookScenarios() {
     await scenario('gate-closes-after-pending-hit', { gate: true }, ({ s, tick, capture }) => {
       press(s, 'g0', { skill: true, aim: 0 }); tick(); tick();
       assert.equal(physicsRuntime(s).hooks[0]?.phase, 'pending');
-      s.map.gates[0].open = false;
+      setDoor(s, 0, { open: false });
       synchronizePhysics(s); capture();
       for (let i = 0; i < 3; i++) tick();
       return [{ afterTick: 2, action: 'door closes before attachment boundary' }];

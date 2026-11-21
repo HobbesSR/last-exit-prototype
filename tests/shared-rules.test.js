@@ -6,6 +6,8 @@ import { defaultContent } from '../shared/simulation/content.ts';
 import { nearbyGate } from '../shared/gate-query.ts';
 import { canOccupy } from '../shared/movement.ts';
 import { interact } from '../shared/simulation/interactions.ts';
+import { setDoor } from '../shared/simulation/doors.ts';
+import { sightOf } from '../shared/simulation/sight-runtime.ts';
 import { GATE_REACH, RESPAWN_CLEARANCE_RADIUS, RESPAWN_HAZARD_MARGIN } from '../shared/simulation/rules.ts';
 import { openField } from './helpers/arena.js';
 import { stagePhysics } from './helpers/scenario.js';
@@ -72,6 +74,25 @@ test('the nearest gate takes the interaction even when it cannot be used', async
   });
 });
 
+test('the core keeps the doors\' state, and the gate records mirror it (#1214 stage 6a)', async () => {
+  const unflagged = gate('old', 3040, y, { kind: 'gate' });
+  delete unflagged.locked;
+  await dispose(await arena({ gates: [unflagged, gate('free', 3100, y)] }), ({ s, p }) => {
+    const sight = sightOf(s), gates = s.map.gates;
+    const core = () => gates.map((_, i) => sight.readGate(s.map, i));
+    const mirror = () => gates.map(g => ({ open: g.open, locked: g.locked == null ? 0 : g.locked ? 1 : 2 }));
+    assert.deepEqual(core(), mirror(), 'the core takes the records\' state when the game is made');
+    assert.throws(() => { gates[1].open = true; }, TypeError, 'nothing but the change lists writes the mirror');
+    p.keys = 1; press(s, p, { interact: true });
+    assert.deepEqual(gates.map(g => g.open), [true, false]);
+    assert.deepEqual(core(), mirror(), 'an interaction reaches both');
+    assert.deepEqual(Object.keys(gates[0]).slice(-2), ['kind', 'locked'], 'an absent lock is added last, as the rule added it');
+    setDoor(s, 1, { open: true, locked: true });
+    assert.deepEqual(core(), mirror(), 'a between-tick command reaches both');
+    assert.deepEqual([gates[1].open, gates[1].locked], [true, true]);
+  });
+});
+
 test('a bot skips open gates; a locked gate near a rail station stops transit', async () => {
   const stations = [{ id: 'here', x: 3000, y }, { id: 'there', x: 3500, y }];
   await dispose(await arena({ gates: [gate('open', 3030, y, { open: true }), gate('shut', 3070, y)], stations, role: 'gladiator' }), ({ s, p }) => {
@@ -80,8 +101,8 @@ test('a bot skips open gates; a locked gate near a rail station stops transit', 
     interact(s, p);
     assert.deepEqual(s.map.gates.map(g => g.open), [true, true], 'the bot opened the closed gate past the open one');
     assert.deepEqual(p.route, []);
-    s.map.gates[1].open = false; s.map.gates[1].locked = true; p.bot = false;
-    s.map.gates[0].open = false; s.map.gates[0].locked = true;
+    setDoor(s, 1, { open: false, locked: true }); p.bot = false;
+    setDoor(s, 0, { open: false, locked: true });
     interact(s, p);
     assert.deepEqual([p.x, p.y], [x, y], 'no fall through to the rail station');
     // The gates are part of the pinned map, so the player and a station pair move out of their reach instead.

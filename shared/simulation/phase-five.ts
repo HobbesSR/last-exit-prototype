@@ -113,7 +113,7 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
   }
   for (const k of casters) data.push(playerIndex(s, k.player), k.skill ? 1 : 0, k.attack ? 1 : 0);
   // Map preparation can grow memory; view the input only after it.
-  const sight = sightOf(s), map = sight.queryHandles(s.map, true);
+  const sight = sightOf(s), map = sight.queryHandles(s.map);
   const swept = c.mode === MODE_PROJECTILES && !c.resume ? sight.sweptHandle(s.map) : 0;
   if (map.core !== core) throw new Error('phase 5 and sight are bound to different cores');
   const ptr = core.combat_input(world, data.length) >>> 0;

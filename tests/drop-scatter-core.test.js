@@ -8,6 +8,7 @@ import { allocateItemId } from '../shared/item-instances.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { addItems } from '../shared/simulation/ground-items.ts';
 import { scatterPoint } from '../shared/simulation/loot.ts';
+import { setDoor } from '../shared/simulation/doors.ts';
 import { openField } from './helpers/arena.js';
 import { stagePhysics } from './helpers/scenario.js';
 
@@ -72,8 +73,8 @@ test('the core\'s drop scatter lands where the TypeScript\'s did, on the ground 
     }
     let cases = 0, late = 0, refused = 0, byProp = 0, byActor = 0;
     for (let round = 0; round < 2; round++) {
-      // Gates change between calls: each call writes the mask as they stand.
-      if (round) s.gates.forEach(g => { g.open = !g.open; });
+      // Gates change between calls, through the core that keeps their state (#1214 stage 6a).
+      if (round) s.gates.forEach((g, i) => setDoor(s, i, { open: !g.open }));
       for (const [k, [origin, given]] of origins.entries()) {
         const phase = given ?? (k * 7 + round * 3) % 40;
         // The ground list through its grid; a staged list (a swap's, one record left out) read whole; earlier spots.

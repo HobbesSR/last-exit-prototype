@@ -209,7 +209,8 @@ pub unsafe extern "C" fn gate_set_free(gates: *mut sight::GateSet) {
     drop(unsafe { Box::from_raw(gates) });
 }
 
-/// The open mask, one byte per gate, nonzero where open. JavaScript writes it before each call.
+/// The open mask, one byte per gate, nonzero where open: a game's doors' state (#1214 stage 6a), which JavaScript
+/// writes once when the game is made and between ticks; for a map no game owns, before each call.
 ///
 /// # Safety
 /// `gates` is live.
@@ -896,8 +897,7 @@ pub unsafe extern "C" fn gate_set_details(gates: *const sight::GateSet) -> usize
     // SAFETY: the caller's contract.
     unsafe { (*gates).details.len() }
 }
-/// The lock mask, one byte per gate (`GateSet::locked`). Phase 6's adapter writes it before a call where an actor
-/// interacts.
+/// The lock mask, one byte per gate (`GateSet::locked`), written as the open mask is.
 /// # Safety
 /// `gates` is live.
 #[unsafe(no_mangle)]

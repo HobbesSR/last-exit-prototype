@@ -7,6 +7,7 @@ import { collectAmmo, collectInstanceEquipment } from '../shared/equipment.ts';
 import { forkItemAllocation, registerItemLabel } from '../shared/item-instances.ts';
 import { addItems, draftItem, groundItem, removeItem, settledItem } from '../shared/simulation/ground-items.ts';
 import { interact } from '../shared/simulation/interactions.ts';
+import { setDoor } from '../shared/simulation/doors.ts';
 import { nearbyGate } from '../shared/gate-query.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openArea, openField } from './helpers/arena.js';
@@ -114,7 +115,7 @@ test('the core picks the gate nearbyGate picks, from its own gate buckets', asyn
       interact(s, p);
       const opened = s.map.gates.filter(g => g.open);
       assert.deepEqual(opened.map(g => g.id), expected ? [expected.id] : [], `at ${x},${y}`);
-      if (expected) { found++; expected.open = false; }
+      if (expected) { found++; setDoor(s, s.map.gates.indexOf(expected), { open: false }); }
     }
     assert.ok(found > 100, `the cases reach gates (${found})`);
   } finally { disposePhysics(s); }

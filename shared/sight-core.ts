@@ -12,15 +12,21 @@ import type { CollisionMap, GameMap, Gate, GateId, ItemId, Obstacle, PlayableAre
 // - **Uploaded once:** a sight index per obstacle list and a gate set per gate list, as flat
 //   arrays `sight.ts` derives from its own index. Each is cached on its list as `sight.ts` caches,
 //   and freed when the list is collected.
-// - **Per call:** the open-gate mask is written into the gate set, then origin and radius go in and
-//   the points come back in a buffer the core owns.
+// - **Per call:** origin and radius go in and the points come back in a buffer the core owns. A map's
+//   open-gate mask is written into the gate set first, from its gate records, unless a game owns the
+//   gate set (below).
+// - **A game's doors are the core's (#1214 stage 6a).** `ownGates` hands a game's gate set its door state
+//   once, when `createGame` prepares the map: from then on the gate set's open and lock masks are the doors'
+//   state, written only by the core's rules and by `writeGate`, and the gate records are their mirror
+//   (`shared/simulation/doors.ts`). Nothing writes the masks per call. A map no game owns, such as a
+//   client's remembered gates or a tool's, is written per call as before.
 // - **Collision (#1233)** is the same binding's: `canOccupy`, `lineClear` and `reachClear` in the core
 //   (`rust/core/src/collision.rs`), from a collision map per obstacle list beside the sight index and
 //   gate set. They answer scalars, and `tests/collision-core.test.js` holds them equal to the TypeScript,
 //   which keeps its other callers (movement, bots, tools).
 // - **The tick boundary (#1234)** takes the three handles (`queryHandles`) into calls that query them many
-//   times: phase 1, the body sync, the pending admission, the placement search and the drop scatter. The mask is written
-//   once per such call.
+//   times: phase 1, the body sync, the pending admission, the placement search and the drop scatter, and every
+//   later phase's run. Those are a game's, so they read the doors' state where the core keeps it and write no mask.
 // - **Views are made after each call,** because any allocation may grow the memory and detach the
 //   old `memory.buffer`.
 
@@ -63,10 +69,20 @@ export interface CoreSight extends SightCaster {
   colliderDepth(map: CollisionMap, i: number, x: World, y: World, radius: World): number;
   /**
    * The map's collision upload, sight index and gate set, for a core call that queries them many times
-   * (`shared/simulation/boundary.ts`, #1234). `openMask` writes the gates as they stand now, once for the call;
-   * without it the mask is as the last call left it, for a call that makes no gate-reading query.
+   * (`shared/simulation/boundary.ts`, #1234). Every caller is a game's, whose gate set holds its doors' state
+   * (`ownGates`), so nothing is written.
    */
-  queryHandles(map: CollisionMap, openMask: boolean): { core: CoreExports; collision: Handle; index: Handle; gates: Handle };
+  queryHandles(map: CollisionMap): { core: CoreExports; collision: Handle; index: Handle; gates: Handle };
+  /**
+   * Hand the map's gate set its doors' state, read once from the gate records: open, and the lock (absent,
+   * locked or unlocked). From then on the core's rules and `writeGate` write it, and no call writes the masks
+   * from the records. `createGame` calls it once the map's gate list is pinned (#1214 stage 6a).
+   */
+  ownGates(map: CollisionMap): void;
+  /** A between-tick write of one owned gate's state into the core: `locked` is 0 absent, 1 locked, 2 unlocked. */
+  writeGate(map: CollisionMap, index: number, open: boolean, locked: 0 | 1 | 2): void;
+  /** One owned gate's state as the core holds it: for tests that hold the mirror equal to it. */
+  readGate(map: CollisionMap, index: number): { open: boolean; locked: 0 | 1 | 2 };
   /**
    * The map's swept upload (`rust/core/src/swept.rs`, #1229), for the hook's rules (`shared/simulation/hook.ts`), which pair
    * it with `queryHandles`' gate set. Built only when first asked or by `prepareSwept`, so no call that never sweeps builds it.
@@ -93,7 +109,8 @@ export const initCoreSight = (): Promise<CoreSight> => processSight ??= initCore
 /** Bind a loaded core to sight. Instantiate once per core. */
 export function coreSight(core: CoreExports): CoreSight {
   const indexes = new WeakMap<readonly Obstacle[], { count: number; handle: Handle }>();
-  const gateSets = new WeakMap<Gate[], { count: number; handle: Handle; open: number }>();
+  // `owned` once a game holds its doors' state in the set (`ownGates`); the masks are then never written from the records.
+  const gateSets = new WeakMap<Gate[], { count: number; handle: Handle; open: number; locked: number; owned: boolean }>();
   // Keyed on the playable area, which every match map has and a spread copy of the map keeps; the
   // other fields the upload reads are checked, so a map that shares the area but not them rebuilds.
   const discoveryMaps = new WeakMap<PlayableArea, { source: unknown[]; handle: Handle }>();
@@ -137,22 +154,32 @@ export function coreSight(core: CoreExports): CoreSight {
     return handle;
   }
 
-  function gateSetFor(map: CollisionMap): { handle: Handle; open: number } {
+  function gateSetFor(map: CollisionMap): { handle: Handle; open: number; locked: number; owned: boolean } {
     const cached = gateSets.get(map.gates);
     if (cached && cached.count === map.gates.length) return cached;
+    // An owned list is pinned, so it never grows; a set rebuilt here would lose the doors' state.
+    if (cached?.owned) throw new Error('an owned gate list changed length');
     supersede(cached, handle => core.gate_set_free(handle));
     const { edges, offsets, boxes, grid } = gateTables(map);
     const handle = withBuffers([edges, offsets, boxes, grid],
       ([e, o, b, g]) => core.gate_set_new(e, edges.length / 4, o, offsets.length - 1, b, g, grid.length) >>> 0);
-    const entry = { count: map.gates.length, handle, open: core.gate_set_open(handle) >>> 0 };
+    const entry = { count: map.gates.length, handle, open: core.gate_set_open(handle) >>> 0, locked: core.gate_set_locked(handle) >>> 0, owned: false };
     gateSets.set(map.gates, entry);
     release.register(map.gates, () => core.gate_set_free(handle), entry);
     return entry;
   }
 
-  /** The map's gate set, with the open mask written as the gates stand now; a gate `lineClear` ignores is written open. */
+  /** A view of a gate set's mask, made after any call that may have grown the memory. */
+  const maskOf = (pointer: number, count: number): Uint8Array => new Uint8Array(core.memory.buffer, pointer, count);
+  const lockByte = (locked: boolean | null | undefined): 0 | 1 | 2 => locked == null ? 0 : locked ? 1 : 2;
+
+  /**
+   * The map's gate set. Unless a game owns it, the open mask is written as the gate records stand now, and a gate
+   * `lineClear` ignores is written open; an owned set's mask is the doors' state, which `lineClear` handles itself.
+   */
   function openGates(map: CollisionMap, ignore: GateId | null = null): Handle {
     const gates = gateSetFor(map);
+    if (gates.owned) return gates.handle;
     if (map.gates.length) {
       const open = new Uint8Array(core.memory.buffer, gates.open, map.gates.length), list = map.gates;
       if (ignore === null) for (let i = 0; i < list.length; i++) open[i] = list[i].open ? 1 : 0;
@@ -263,8 +290,13 @@ export function coreSight(core: CoreExports): CoreSight {
     },
     lineClear(map, a, b, ignoreGateId = null) {
       count('calls.lineClear');
-      const index = indexFor(map), gates = openGates(map, ignoreGateId);
+      const index = indexFor(map), gates = openGates(map, ignoreGateId), set = gateSetFor(map);
+      // An owned set's ignored gate is held open for the query and restored, as phase 6's rule does in the core.
+      const held = set.owned && ignoreGateId !== null ? map.gates.findIndex(g => g.id === ignoreGateId) : -1;
+      const was = held >= 0 ? maskOf(set.open, map.gates.length)[held]! : 0;
+      if (held >= 0) maskOf(set.open, map.gates.length)[held] = 1;
       const answer = core.line_clear(index, gates, a.x, a.y, b.x, b.y) >>> 0;
+      if (held >= 0) maskOf(set.open, map.gates.length)[held] = was;
       count('work.rayEdgeTests', answer >>> 1);
       return (answer & 1) === 1;
     },
@@ -285,9 +317,28 @@ export function coreSight(core: CoreExports): CoreSight {
       const handle = sweptFor(map), gates = openGates(map), rows = shapeRows(extra);
       return withBuffers([rows], ([e]) => core.swept_contact(handle, gates, passSeeThrough ? 1 : 0, a.x, a.y, b.x, b.y, radius, e, rows.length));
     },
-    queryHandles(map, openMask) {
+    queryHandles(map) {
       const collision = collisionFor(map), index = indexFor(map);
-      return { core, collision, index, gates: openMask ? openGates(map) : gateSetFor(map).handle };
+      return { core, collision, index, gates: openGates(map) };
+    },
+    ownGates(map) {
+      const set = gateSetFor(map);
+      if (set.owned) return;
+      const open = maskOf(set.open, map.gates.length), locked = maskOf(set.locked, map.gates.length);
+      for (let i = 0; i < map.gates.length; i++) { const gate = map.gates[i]!; open[i] = gate.open ? 1 : 0; locked[i] = lockByte(gate.locked); }
+      set.owned = true;
+    },
+    writeGate(map, index, open, locked) {
+      const set = gateSetFor(map);
+      if (!set.owned) throw new Error('writeGate needs a gate set a game owns');
+      if (!(index >= 0 && index < map.gates.length)) throw new RangeError(`no gate ${index}`);
+      maskOf(set.open, map.gates.length)[index] = open ? 1 : 0;
+      maskOf(set.locked, map.gates.length)[index] = locked;
+    },
+    readGate(map, index) {
+      const set = gateSetFor(map);
+      if (!set.owned) throw new Error('readGate needs a gate set a game owns');
+      return { open: maskOf(set.open, map.gates.length)[index] !== 0, locked: maskOf(set.locked, map.gates.length)[index] as 0 | 1 | 2 };
     },
     sweptHandle(map) {
       return sweptFor(map);

@@ -280,9 +280,9 @@ in `shared/discovery.ts` is now its adapter, through the game's binding (`shared
   caches keyed on it, and on its lists, still hit. The lists keep their identity and order; the ground's indexes
   (`ground-items.ts`) were already keyed on the list, not the map.
 - **Doors are one list read two ways.** `s.gates` is `s.map.gates`, and preparation refuses a game where they differ.
-  The game reads and writes door state through `s.gates` (frames, physics, interactions); collision and sight read the
-  same records as geometry through the map, as the core's gate set does. Only `open` and `locked` change in a match.
-  Splitting door state from door shape, so the arena holds shapes only, is #1214's, with the open-mask write.
+  The game reads door state through `s.gates` (frames, physics, interactions); collision and sight read the same
+  records as geometry through the map, as the core's gate set does. Only `open` and `locked` change in a match.
+  Since step 6a (below) the core keeps that state and the records mirror it.
 - **Stations and chargers stay on the map.** Nothing writes them in a match, so they are static data, and discovery's
   upload still reads them from there.
 - **What is sent is unchanged.** The server rebuilds the whole map for a client or a recording with `wholeMap`
@@ -366,8 +366,8 @@ the same handles and slots.
   collider (bounds, see-through or not, shape), with movement's cells (`collisionTables`). It is rebuilt when the list
   grows or the map's size or playable area differs. Sight's two handles carry the rest: the sight index now also holds
   the see-through obstacles' edges, which stop hands, and the gate set each gate's box (`gateShape`).
-- **Gate state is read live,** from the gate set's open mask, which the adapter writes before each call, as for sight.
-  A gate `lineClear` ignores is written open.
+- **Gate state is read live,** from the gate set's open mask. Until step 6a the adapter wrote it before each call, as
+  for sight; since then a game's gate set holds it. A gate `lineClear` ignores is held open for the query.
 - **The disk tests are SAT.js's,** `testCircleCircle` and `testCirclePolygon` as `diskPenetration` calls them,
   including SAT's `x || 0` on constructed vectors and its merging of repeated points. The 0.01 obstacle tolerance and
   contact-blocks-at-a-gate are `canOccupy`'s.
@@ -647,6 +647,41 @@ TypeScript `applyEnvironment`, `finishMatch`, `recordRewind` and `asSeenBy` are 
   order counts), the pending spawns and the pending impulses. Every hash matched between a pristine export of `main`
   and this change ([42.73](42.73-phase-six-seven-core.md)).
 - **Cost:** [42.73](42.73-phase-six-seven-core.md).
+
+**Step 6 is staged** under #1214, store by store, each stage passing the fixture unchanged.
+Every writing phase runs in the core, so a store can move on its own: the core keeps it, the adapters stop packing
+it, the facts they already apply become the mirror's only writes, and a write from outside the tick becomes a
+between-tick command (D5). The order below is the plan at 6a; each stage reassesses the next.
+- **6a (#1214): door state.** Below.
+- **6b: the traps.** A fixed list whose state only `hazards.rs` writes, with masked facts already; the hazards call
+  stops packing every trap.
+- **6c: the ID counters** (`serial`, `itemSerial`, `scatterSerial`, D6). Every adapter packs and unpacks them, and Node
+  allocates `serial` for its own events (`event-records.ts`), so those allocations become core calls.
+- **6d: the pending queues and the hooks.** The spawns, the impulses, with a mine's explosion impulses
+  (`enqueueExplosionImpulses`), which retires `hazards.rs`'s `STOP_EXPLOSION`, and the attachments.
+- **6e: the ground.** The drop and pickup stops' Node half (records, launches, the admission) moves in.
+- **6f: the players, effects, events and projectiles, and the two calls** (`tick_begin`, `tick_finish`, D4), with bot
+  side tables keyed by ID. The remaining packing goes, and the steps that used 42.58's exception are measured again.
+
+**Step 6a, door state (#1214).** A game's doors' `open` and `locked` live in the core, in its gate set's masks
+(`GateSet::open` and `::locked` in `sight.rs`), and the gate records are their mirror (`shared/simulation/doors.ts`).
+- **Owned when the game is made.** `createGame` pins the gate list, then `ownDoors` hands the gate set the records'
+  state once (`ownGates` in `shared/sight-core.ts`). A game's gate list is its own: a caller reusing a map passes a
+  copy, and the list is pinned. The core's rules already wrote the masks where they change a door, phase 6's
+  interaction and the body sync's refused close, so no rule changed.
+- **No call writes the mask.** Before, sight, discovery, every phase's run, the hook's rules and the tick boundary's
+  calls wrote the open mask from the records first, and phase 6's interactions wrote the lock mask too: one pass over
+  every gate on the map per call, the last packing that grew with the map (42.62). `queryHandles` takes no flag now.
+  A gate `lineClear` ignores is held open for that query and restored, as `phase_six.rs` does.
+- **The mirror is written only by facts.** The records' door fields are pinned read-only, so a write from anywhere
+  else throws at its site. `writeDoor` is the facts' write: an existing key keeps its place and an absent `locked` is
+  added last, where an assignment added it, so frames and the wire are byte for byte as before (`frame-gates.ts`).
+- **`setDoor` is the between-tick command** for tests, tools and labs; play never calls it. It writes the core, then
+  the mirror, and leaves the gate's body to the next sync, as a write to the record did.
+- **What stays.** A map no game owns, such as a client's remembered gates or a tool's, has its mask written per call
+  from its records, as before. The gate records still hold shape and state together: they are the mirror, which
+  frames and the wire read. The shapes cross once per map, as they did.
+- **Cost:** [42.74](42.74-door-state-core.md).
 
 
 ## One math library on both sides

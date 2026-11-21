@@ -32,6 +32,7 @@ export interface CoreExports {
   gate_set_new(edges: number, edgeCount: number, offsets: number, gateCount: number, boxes: number, grid: number, gridLength: number): number;
   gate_set_free(gates: number): void;
   gate_set_open(gates: number): number;
+  gate_set_locked(gates: number): number;
   visibility_polygon(index: number, gates: number, x: number, y: number, radius: number): number;
   // Discovery (`rust/core/src/discovery.rs`), driven by `shared/discovery.ts` through `shared/sight-core.ts`.
   discovery_map_new(constants: number, inside: number, cellCount: number, landmarks: number, landmarkCount: number,

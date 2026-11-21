@@ -5,6 +5,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime, physicsState } from '../shared/simulation/physics-runtime.ts';
 import { hookSkill } from '../shared/simulation/hook.ts';
 import { teleport } from '../shared/simulation/dev.ts';
+import { setDoor } from '../shared/simulation/doors.ts';
 import { openArea } from './helpers/arena.js';
 
 function fixture(contestants = 1) {
@@ -160,7 +161,7 @@ test('closing a gate across an attached tether releases it before the next solve
     press(s, 'g0', { skill: true, aim: 0 }); advance(s, 3);
     assert.equal(hooks(s)[0]?.phase, 'pulling');
     assert.equal(world(s).counts().constraints, 1);
-    s.map.gates[0].open = false;
+    setDoor(s, 0, { open: false });
     synchronizePhysics(s);
     assert.equal(s.map.gates[0].open, false);
     assert.equal(hooks(s).length, 0);
@@ -175,7 +176,7 @@ test('a gate closed after hit prevents next-boundary attachment', async () => {
   try {
     press(s, 'g0', { skill: true, aim: 0 }); step(s); step(s);
     assert.equal(hooks(s)[0]?.phase, 'pending');
-    s.map.gates[0].open = false; synchronizePhysics(s);
+    setDoor(s, 0, { open: false }); synchronizePhysics(s);
     assert.equal(hooks(s).length, 0);
     step(s);
     assert.equal(world(s).counts().constraints, 0);
