@@ -65,6 +65,9 @@ test('admission prioritizes launched ids, preserves reserve, and retries ordinar
     r.items.has = id => { ownershipChecks++; return originalHas(id); };
     // The item sync alone, as the body sync's item steps run it (`rust/core/src/boundary.rs`).
     const synchronizePhysicalItems = (markTick) => { if (synchronizeBodies(s, r, markTick, true)) synchronizeItems(s, r, markTick); };
+    // Only the admission's reads count: setup's addItems reads each record once to write it through to the core's
+    // ground store (#1214 stage 6d.1).
+    blockedChecks = 0;
     synchronizePhysicalItems(19);
     assert.deepEqual(r.discontinuities.filter(d => d.kind === 'placed' && d.id.startsWith('item:')).map(d => d.id),
       ['item:b-launch', 'item:z-launch', 'item:a']);

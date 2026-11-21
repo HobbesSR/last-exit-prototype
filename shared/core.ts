@@ -8,7 +8,7 @@
  */
 
 /** The adapter contract this loader speaks: `ADAPTER_VERSION` in `rust/core/src/lib.rs`. */
-export const CORE_ADAPTER_VERSION = 24;
+export const CORE_ADAPTER_VERSION = 25;
 
 // The project's lib is ES2023 without the DOM, which is where TypeScript declares WebAssembly.
 // Both hosts have it; this names only what the loader uses.
@@ -37,6 +37,11 @@ export interface CoreExports {
   players_input(world: number, words: number): number;
   players_load(world: number, count: number): void;
   players_after_step(world: number): void;
+  // The ground store (`rust/core/src/ground.rs`, #1214 stage 6d.1), driven by `shared/simulation/ground-store.ts`.
+  ground_input(world: number, count: number): number;
+  ground_write(world: number, op: number, at: number): void;
+  ground_dump(world: number): number;
+  ground_count(world: number): number;
   players_dump(world: number): number;
   players_count(world: number): number;
   visibility_polygon(index: number, gates: number, x: number, y: number, radius: number): number;

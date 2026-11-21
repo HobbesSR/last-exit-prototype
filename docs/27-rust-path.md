@@ -20,6 +20,23 @@ inventories, reserves, reload, selection, weapon, keys or charging.
   store item naming a different record from the one in its slot shows as drift.
 - **Cost:** measured once, at the end of step 6, against the `main` before 6a (Corey, 2026-11-21).
 
+**Step 6d.1, the ground store (#1214, adapter version 25).** `rust/core/src/ground.rs` keeps each ground record's rule
+fields in the list's order: id, the body's world key (`item:<label>`, whose order is the labels'), pose, kind, weapon type,
+ammo, count, charge, ammo family, identity, quality, the dropper's roster index, `pickupAfter`, and an absence mask.
+`shared/simulation/ground-store.ts` drives it.
+- **Written through, not uploaded each tick.** Node's ground helpers report each change (`GroundSink` in `ground-items.ts`),
+  and the store applies it: `addItems` appends, `removeItem` removes, `replaceItem` replaces. Those helpers make every
+  change inside a tick: drops, pickups, swaps, and phase 4's poses (`writePhysicalItemPoses`). So a tick pays for its own
+  changes and never for the map's size (#635).
+- **Uploaded whole only when the list changed without them.** Each change carries the list and length it started from.
+  When the store has not seen that list, or `groundList` announced raw edits, the store takes the result whole. That
+  covers match setup, which `createGame` uploads (`ownGround`), and a test that replaces `s.items` or edits it raw.
+- **Node's writes drive it until 6e.** The records stay Node's, so the store follows Node's helpers rather than the
+  reverse; 6e turns the core's facts into the only writes.
+- **The witness.** `tests/player-store.test.js` also holds the ground store equal to the live list after every tick
+  (`groundDrift`). With `replaceItem`'s or `removeItem`'s write-through disabled, it fails at tick 1.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -694,10 +711,15 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
         Below.
 
   Replacing the uploads between ticks with between-tick commands is 6e's.
-- **6d: the pending queues, the hooks, the ground and the ID counters,** with the explosion port. They depend on each
+- **6d: the ground, the ID counters, the pending queues and the hooks,** with the explosion port. They depend on each
   other: phase 1's admission reads the queues and the ground, the drop and pickup stops hand Node ground records,
   launches and admissions, and a drop plan's item counters (`itemSerial`, `scatterSerial`, D6) travel in a tentative
-  allocation across those stops. `serial` goes with the item counters.
+  allocation across those stops. `serial` goes with the item counters. The ground goes first: a mine's explosion
+  synchronizes every body, and the sync's item admission packs Node's ground, so the explosion port needs the ground
+  in the core.
+  - **6d.1 (#1214):** the core keeps a ground store, kept current. Below.
+  - **6d.2:** the readers take ground records from it: phases 3 and 6, the drop scatter, the item admission and discovery.
+  - **6d.3:** the ID counters, the pending queues and the hooks, with the explosion port.
 - **6e: the effects, events and projectiles, and the two calls** (`tick_begin`, `tick_finish`, D4), with bot side
   tables keyed by ID. The remaining packing goes, between-tick writes become commands, and the steps that used 42.58's
   exception are measured again.
