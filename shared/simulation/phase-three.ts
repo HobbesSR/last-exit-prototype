@@ -105,12 +105,12 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
     let t = tokens.get(item); if (t === undefined) { t = pool.length; tokens.set(item, t); pool.push(item); } return t;
   };
   const allocations: InventoryItem[] = [], droppers: Player[] = [];
-  let allocationCount = 0, context = mode === 1, hearing = false, queries = mode === 1;
+  let allocationCount = 0, context = mode === 1, hearing = false;
   for (const p of actors) {
     const intent = intents[playerIndex(s, p)], input = intent?.input;
     if (input?.moveSlot) { allocations.push(...p.inventory?.filter(i => i !== null) ?? []); allocationCount += p.inventory?.filter(i => i && i.instanceId === undefined).length ?? 0; }
     if (mode === 2 || mode === 3 || mode === MODE_ELIMINATE && p === options.player || input?.drop || input?.dropAmmo || intent?.discardSlot !== undefined) {
-      droppers.push(p); allocations.push(...p.inventory?.filter(i => i !== null) ?? []); allocationCount += 4; context = true; queries = true;
+      droppers.push(p); allocations.push(...p.inventory?.filter(i => i !== null) ?? []); allocationCount += 4; context = true;
     }
     if (input?.skill && p.kit === 'specter' && p.cooldown <= 0) context = true;
     if ((mode === 1 || input?.attack || intent?.utilitySlot !== undefined) && p.role === 'contestant' && p.attackCd <= 0) { context = true; hearing = true; }
@@ -168,7 +168,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   for (const hook of hooks) data.push(hook.casterIdx, r.world.key(hook.id), hook.id === `hook:${s.players[hook.casterIdx]?.id}` ? 1 : 0);
   if (mode === MODE_ELIMINATE) data.push(!killer ? -1 : killer === options.player ? 0 : 1, killer?.kills ?? 0, s.content.gladiatorRespawnTicks);
   // Interning and map preparation can grow memory; view the input only after those calls.
-  const map = sightOf(s).queryHandles(s.map, queries);
+  const map = sightOf(s).queryHandles(s.map);
   if (map.core !== core) throw new Error('phase 3 and sight are bound to different cores');
   const ptr = core.actions_input(world, data.length) >>> 0;
   new Float64Array(core.memory.buffer, ptr, data.length).set(data);

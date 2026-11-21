@@ -4,6 +4,7 @@ import { createGameRecord, createGame, disposePhysics, snapshot, playerView, ste
 import { defaultContent } from '../shared/simulation/content.ts';
 import { generatedMap } from './helpers/room-harness.js';
 import { gatesJson } from '../shared/simulation/frame-gates.ts';
+import { setDoor } from '../shared/simulation/doors.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
 
 test('a frame shares its gate list until a gate changes, then shares every unchanged copy (#655)', () => {
@@ -35,7 +36,7 @@ test('frame gates serialize, project and encode as cloned gates did (#655)', asy
   const s = await createGame(4217, generatedMap(), defaultContent()), encoders = new Map();
   try {
     for (let tick = 0; tick < 12; tick++) {
-      if (tick % 4 === 2) s.map.gates[tick % s.map.gates.length].open = !s.map.gates[tick % s.map.gates.length].open;
+      if (tick % 4 === 2) setDoor(s, tick % s.map.gates.length, { open: !s.map.gates[tick % s.map.gates.length].open });
       step(s);
       const frame = snapshot(s), expected = s.map.gates.map((g, gateIdx) => ({ gateIdx, open: g.open, locked: g.locked }));
       assert.equal(JSON.stringify(frame.gates), JSON.stringify(expected));
@@ -76,7 +77,7 @@ test('canonical gate state slots retain authored order while physics admits in l
     assert.deepEqual([...r.gates], [1, 2]);
     assert.deepEqual(s.map.gates.map(g => g.id), ['door-2', 'door-10']);
     assert.equal(r.world.hasBody('gate:door-10'), true);
-    s.map.gates[0].open = false; s.map.gates[1].open = true;
+    setDoor(s, 0, { open: false }); setDoor(s, 1, { open: true });
     synchronizePhysics(s);
     assert.deepEqual([...r.gates], [2, 1]);
     assert.equal(r.world.hasBody('gate:door-10'), false);

@@ -5,6 +5,7 @@ import { canOccupy } from '../shared/movement.ts';
 import { cos, hypot, sin } from '../shared/math.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { placeInCore } from '../shared/simulation/boundary.ts';
+import { setDoor } from '../shared/simulation/doors.ts';
 import { openField } from './helpers/arena.js';
 import { stagePhysics } from './helpers/scenario.js';
 
@@ -59,8 +60,8 @@ test('the core\'s placement search lands where the TypeScript\'s did, near crate
     for (const g of s.gates) origins.push({ x: g.x, y: g.y }, { x: g.x + 20, y: g.y });
     origins.push({ x: 1300, y: 500 }, { x: 1320, y: 520 }, { x: -50, y: 300 }, { x: 960, y: -200 });
     for (let round = 0; round < 2; round++) {
-      // Gates change between calls: each call writes the mask as they stand.
-      if (round) s.gates.forEach(g => { g.open = !g.open; });
+      // Gates change between calls, through the core that keeps their state (#1214 stage 6a).
+      if (round) s.gates.forEach((g, i) => setDoor(s, i, { open: !g.open }));
       for (const [k, origin] of origins.entries()) {
         const p = players[k % players.length], admitted = players.filter(q => q !== p);
         const want = placementTs(s, r, p, admitted, origin), got = placeInCore(s, r, p, admitted, origin);

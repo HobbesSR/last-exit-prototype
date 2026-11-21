@@ -10,6 +10,7 @@ import { defaultContent } from '../shared/simulation/content.ts';
 import { generatedMap } from './helpers/room-harness.js';
 import { itemsJson } from '../shared/simulation/ground-items.ts';
 import { gatesJson } from '../shared/simulation/frame-gates.ts';
+import { setDoor } from '../shared/simulation/doors.ts';
 import { createFileReplayStore } from '../server/replay-store.js';
 import { archiveText, readArchive, storedDigest, storedLines } from './helpers/recordings.js';
 
@@ -197,7 +198,7 @@ test('frames are written byte for byte as JSON.stringify writes them, with the g
   assert.ok(s.map.gates.length, 'the game has gates to record');
   for (let tick = 0; tick < 40; tick++) {
     // A gate that changes mid-recording, as a door does when it is opened, must reach the recorded frame.
-    if (tick === 20) s.map.gates[0].open = !s.map.gates[0].open;
+    if (tick === 20) setDoor(s, 0, { open: !s.map.gates[0].open });
     append(advance(), tick % 7 ? [] : [{ type: 'input', input: { name: 'Zoë ✓' } }]);
   }
   const frame = advance();

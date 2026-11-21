@@ -180,7 +180,7 @@ test('a collision upload that grows the core memory still writes the open mask w
   const grow = handle => { memory.grow(1); return handle; };
   const stub = {
     memory, adapter_version: () => 9, core_alloc: alloc, core_free() {},
-    gate_set_new: () => grow(16), gate_set_open: () => (mask = alloc(1)),
+    gate_set_new: () => grow(16), gate_set_open: () => (mask = alloc(1)), gate_set_locked: () => alloc(1),
     collision_map_new: () => grow(24), collision_map_free() {},
     can_occupy: () => new Uint8Array(memory.buffer, mask, 1)[0],
   };

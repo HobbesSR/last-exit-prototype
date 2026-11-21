@@ -9,6 +9,7 @@ import { staticShapes } from '../shared/simulation/swept.ts';
 import { insideMap } from '../shared/playable-area.ts';
 import { stringifyWithMap } from '../server/map-payload.js';
 import { replaceItem } from '../shared/simulation/ground-items.ts';
+import { setDoor } from '../shared/simulation/doors.ts';
 import { openArea } from './helpers/arena.js';
 import { readServerMessage } from '../shared/wire-schema.ts';
 
@@ -81,7 +82,8 @@ test('prepared map payloads match detached map queries at live and historical bo
     assert.equal(old.items[0].id, initial.items[0].id, 'frames and map delivery share numeric item identity');
     check('live', stripped(match.map()));
     check('spectator', stripped(match.map(), { gates: match.map().gates.map((g, i) => ({ ...g, ...old.gates[i] })), items: old.items }), old);
-    map.gates[0].open = true;
+    // Doors change through the core that keeps their state (#1214 stage 6a).
+    setDoor(match.diagnosticState, 0, { open: true });
     replaceItem(match.diagnosticState, match.diagnosticState.items[0], { ...match.diagnosticState.items[0], x: 420 });
     match.diagnosticState.traps.push({ id: 'private-trap', x: 20, y: 20 });
     const current = check('recording', match.map());

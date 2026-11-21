@@ -57,10 +57,8 @@ export function beginTick(s: Game): void {
   const players = s.players, effects = s.effects, stations = s.map.stations, radii = s.content.actorPhysics.geometry;
   const stationBase = HEADER + effects.length, playerBase = stationBase + stations.length * STATION_STRIDE;
   const words = playerBase + players.length * PLAYER_STRIDE;
-  // Only a respawn or an arrival reads the gates, so the mask is written only when a player could make one.
-  const queries = players.some(p => p.status === 'respawning' || p.status === 'transit');
   const { world } = runtime.world.boundaryCall();
-  const map = sightOf(s).queryHandles(s.map, queries);
+  const map = sightOf(s).queryHandles(s.map);
   if (map.core !== core) throw new Error('phase 1 and sight are bound to different cores');
   const pointer = core.phase_one_input(phase, words) >>> 0;
   let input = new Float64Array(core.memory.buffer, pointer, words);

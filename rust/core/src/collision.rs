@@ -9,8 +9,7 @@
 //! - **Uploaded once per map:** the playable cells and the colliders (`CollisionMap`); the sight
 //!   index (`SightIndex`, with its see-through edges) and the gate set (`GateSet`, with each
 //!   gate's box) are sight's handles, shared.
-//! - **Read live:** which gates are open, from the gate set's mask, which the adapter writes
-//!   before each call.
+//! - **Read live:** which gates are open, from the gate set's mask (`sight::GateSet::open`).
 //! - **Disk tests** are SAT.js 0.9's (`testCircleCircle`, `testCirclePolygon`), which
 //!   `shared/shape-queries.ts` calls: the same expressions in the same order, including its
 //!   `x || 0` on constructed vectors and its merging of consecutive duplicate points.

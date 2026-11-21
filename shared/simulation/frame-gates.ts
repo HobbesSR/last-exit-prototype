@@ -1,7 +1,8 @@
 import type { Game, Gate, GateState } from '../types.ts';
 
-// Gates follow the shared-frame model (#655 stage 2, 22.1 "Frames") from the frame's side. Rules and tests open,
-// close and unlock live gates in place, and physics pins the live list, so a frame cannot hold the live records.
+// Gates follow the shared-frame model (#655 stage 2, 22.1 "Frames") from the frame's side. Live gates open, close
+// and unlock in place (the core's facts and `setDoor` write them, `doors.ts`), and physics pins the live list, so a
+// frame cannot hold the live records.
 // It holds frozen copies instead: one per gate, made again only when that gate's fields differ from it, in a list
 // that is the last frame's list itself when no gate changed. Gates are flat, so a copy is a spread.
 

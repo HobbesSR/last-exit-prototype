@@ -4,6 +4,7 @@ import { PHYSICS_VERSION, createGame, disposePhysics, enqueuePhysicsAttachment, 
   setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { teleport } from '../shared/simulation/dev.ts';
+import { setDoor } from '../shared/simulation/doors.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { solvePhysicsProjectiles } from '../shared/simulation/phase-five.ts';
 import { interact } from '../shared/simulation/interactions.ts';
@@ -146,11 +147,11 @@ test('gate closure defers for an occupied footprint and succeeds after the actor
   const s = await game({ map, content });
   try {
     assert.deepEqual(teleport(s, 'c0', 300, 400), { x: 300, y: 400 });
-    s.map.gates[0].open = false; synchronizePhysics(s);
+    setDoor(s, 0, { open: false }); synchronizePhysics(s);
     assert.equal(s.map.gates[0].open, true);
     assert.equal(physicsRuntime(s).world.hasBody('gate:door'), false);
     assert.deepEqual(teleport(s, 'c0', 200, 400), { x: 200, y: 400 });
-    s.map.gates[0].open = false; synchronizePhysics(s);
+    setDoor(s, 0, { open: false }); synchronizePhysics(s);
     assert.equal(s.map.gates[0].open, false);
     assert.equal(physicsRuntime(s).world.hasBody('gate:door'), true);
   } finally { disposePhysics(s); }

@@ -5,6 +5,7 @@ import { initCoreSight } from '../sight-core.ts';
 import { initPhaseOne } from './phase-one.ts';
 import { initItemAllocation } from '../item-allocation-core.ts';
 import { attachSight } from './sight-runtime.ts';
+import { ownDoors } from './doors.ts';
 import { validateActorPhysics } from './actor-physics.ts';
 import { addAuthoredProps, validateWorldPhysics } from './world-physics.ts';
 import { placeInCore, synchronizeBodies, synchronizeItems } from './boundary.ts';
@@ -42,7 +43,8 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
   if (yieldControl) await yieldControl();
   validateActorPhysics(s.content.actorPhysics, s.map);
   validateWorldPhysics(s.content, s.map);
-  // One door list: the game writes its gates' state, and collision and sight read the same records as geometry.
+  // One door list: the records mirror the doors' state, which the core keeps (`doors.ts`), and collision and sight
+  // read the same records as geometry.
   if (s.gates !== s.map.gates) throw new RangeError('gates must be the map gate list');
   if (s.content.dynamicNavigation !== true) throw new RangeError('dynamic navigation required');
   if (!s.content.itemInstances || typeof s.content.itemInstances !== 'object'
@@ -110,6 +112,8 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
     }
     for (const gate of s.gates) for (const key of ['id', 'x', 'y', 'w', 'h', 'kind'] as const) Object.defineProperty(gate, key, { writable: false, configurable: false });
     Object.freeze(s.gates);
+    // The doors' state is the core's from here on; the records mirror it (#1214 stage 6a).
+    ownDoors(s);
     for (const key of ['width', 'height', 'obstacles', 'playableArea', 'gates'] as const) Object.defineProperty(s.map, key, { writable: false, configurable: false });
     // Return control after pinning geometry; small gate caches may finish without yielding.
     if (yieldControl) await yieldControl();

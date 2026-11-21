@@ -167,7 +167,7 @@ test('the core reads the world\'s solid props as solidContact does, rotated and 
     const { core, world: native } = world.boundaryCall(), misses = [];
     let found = 0, clear = 0;
     for (const [a, b, radius] of sweeps) {
-      const handles = sightOf(s).queryHandles(s.map, true), swept = sightOf(s).sweptHandle(s.map);
+      const handles = sightOf(s).queryHandles(s.map), swept = sightOf(s).sweptHandle(s.map);
       const want = solidContact(s, a, b, radius), got = core.physics_solid_contact(native, swept, handles.gates, a.x, a.y, b.x, b.y, radius);
       if (want === Infinity) clear++; else found++;
       if (!Object.is(want, got) && misses.push({ a, b, radius, want, got }) >= 5) break;
