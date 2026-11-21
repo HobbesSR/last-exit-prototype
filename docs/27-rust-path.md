@@ -37,6 +37,20 @@ ammo, count, charge, ammo family, identity, quality, the dropper's roster index,
   (`groundDrift`). With `replaceItem`'s or `removeItem`'s write-through disabled, it fails at tick 1.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6d.2, the body sync's bookkeeping (#1214, adapter version 26).** The body sync (`synchronize_bodies` in
+`boundary.rs`) no longer takes JavaScript's runtime bookkeeping as input:
+- **The actor bodies** are the world's bodies whose IDs start `actor:` (`World::keys_with_prefix`); they were the
+  runtime's `actors`.
+- **The item bodies whose records left the ground** are the world's `item:` bodies whose keys the ground store no longer
+  holds (`Ground::holds`, a key set kept with the store); they were `r.items` checked against `groundItem`.
+- **Each gate's body** is reconciled from the world's own record (`GateBodies` in `world.rs`): the gates' keys and closed
+  bodies' rows, uploaded once per world (`uploadGateBodies`, from `createGame`), the legacy admission order by ID, what
+  the world last saw of each gate, and the door state in the gate set (6a). It was `r.gateOrder` and `r.gates`.
+- **What still crosses** is the body templates, the discontinuity markers and whether anything was launched. The
+  runtime's `actors`, `items` and `gates` stay as mirrors, updated from the sync's log as before, since phases 3 and 6
+  read `actors.size` and phase 4's poses read `items`.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -718,8 +732,16 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
   synchronizes every body, and the sync's item admission packs Node's ground, so the explosion port needs the ground
   in the core.
   - **6d.1 (#1214):** the core keeps a ground store, kept current. Below.
-  - **6d.2:** the readers take ground records from it: phases 3 and 6, the drop scatter, the item admission and discovery.
-  - **6d.3:** the ID counters, the pending queues and the hooks, with the explosion port.
+  - **6d.2 (#1214):** the body sync's bookkeeping is the core's: the actor and item bodies the world holds, each gate's
+    body, and which item bodies' records left the ground. Below.
+  - **Then, removing Node's mid-tick work stop by stop** (Corey's direction below): the sync's item admission and the
+    launches, so the drop and pickup stops can sync inside the core; then the pending queues and the hooks with the
+    explosion port, which removes the explosion stop.
+- **The direction (Corey, 2026-11-21, on #1214):** "now the way this should work eventually is that essentially the core
+  should just be receiving tick timed input events or roughly that at the interface betweeen it and JS". So from 6d.2
+  the remaining work is ordered by the stops it removes, each a crossing gone for good, rather than reader by reader.
+  6e ends at D4's two calls, with intents crossing; #1215, which moves phase 2 into the core, is the step after the flip
+  and takes the interface to input events.
 - **6e: the effects, events and projectiles, and the two calls** (`tick_begin`, `tick_finish`, D4), with bot side
   tables keyed by ID. The remaining packing goes, between-tick writes become commands, and the steps that used 42.58's
   exception are measured again.

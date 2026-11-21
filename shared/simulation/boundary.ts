@@ -1,5 +1,4 @@
-import { itemIdForLabel, itemLabel } from '../item-instances.ts';
-import { gateShape } from '../gate-index.ts';
+import { itemLabel } from '../item-instances.ts';
 import { physicsRefusal, templateRow } from '../physics/world.ts';
 import type { PhysicsExports, PhysicsWorld } from '../physics/world.ts';
 import type { BodySpec } from '../physics/types.ts';
@@ -11,6 +10,7 @@ import type { PhysicsRuntime, PendingAttachment } from './physics-runtime.ts';
 import { physicsGate } from './physics-geometry.ts';
 import { sightOf } from './sight-runtime.ts';
 import { playersStale, uploadPlayers } from './player-store.ts';
+import { ensureGround } from './ground-store.ts';
 import { writeDoor } from './doors.ts';
 import type { Game, GroundItem, ItemId, Player, Vec2 } from '../types.ts';
 
@@ -31,7 +31,7 @@ type Core = CoreExports & PhysicsExports;
 
 // The layout of `boundary.rs`.
 const OUT_HEADER = 6, BODY_ROW = 22;
-const A_HEADER = 11, GATE_STRIDE = 8 + BODY_ROW, HELD_STRIDE = 2;
+const A_HEADER = 11;
 const B_HEADER = 8, LAUNCH_STRIDE = 6, WAITING_STRIDE = 4;
 const OP_QUEUED = 1, OP_COMMIT = 2, OP_TRANSFORM = 3, OP_MARK = 4, OP_ACTOR = 5, OP_POSE = 6, OP_RETRY = 7, OP_GATE = 8, OP_ITEM = 9;
 const MARK_PLACED = 0;
@@ -69,16 +69,6 @@ function itemKey(s: Game, world: PhysicsWorld, id: ItemId): number {
   let key = keys.get(id);
   if (key === undefined) keys.set(id, key = world.key(`${ITEM_PREFIX}${itemLabel(s, id)}`));
   return key;
-}
-
-/** Each runtime's ground item by held body ID, so a body's label is parsed once. */
-const heldItems = new WeakMap<PhysicsRuntime, Map<string, ItemId>>();
-function heldItem(s: Game, r: PhysicsRuntime, id: string): ItemId {
-  let ids = heldItems.get(r);
-  if (!ids) heldItems.set(r, ids = new Map());
-  let item = ids.get(id);
-  if (item === undefined) ids.set(id, item = itemIdForLabel(s, id.slice(ITEM_PREFIX.length))!);
-  return item;
 }
 
 /** The call's core and handles: the world's and the map's, from the one core both are bound to. */
@@ -159,42 +149,39 @@ function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number, 
  */
 export function synchronizeBodies(s: Game, r: PhysicsRuntime, markTick: number, admit: boolean): boolean {
   const world = r.world, t = templatesOf(s);
-  // The active actors' rows come from the core's player store (`player-store.ts`, #1214 stage 6c.3a).
-  const gates: number[] = [];
-  for (const index of r.gateOrder) if (r.gates[index] !== (s.gates[index]!.open ? 1 : 2)) gates.push(index);
-  // Only the item bodies whose items left the ground: the core removes those and passes over the rest.
-  const held: string[] = [];
-  for (const id of r.items) if (!groundItem(s, heldItem(s, r, id))) held.push(id);
+  // The active actors come from the core's player store (6c.3a). The actor and item bodies the world holds, each gate's
+  // body and which item bodies' records left the ground are the core's own (#1214 stage 6d.2): only the body templates,
+  // the discontinuity markers and whether anything was launched cross.
   const markers = r.discontinuities;
-  const words = A_HEADER + 2 * BODY_ROW + r.actors.size + gates.length * GATE_STRIDE
-    + held.length * HELD_STRIDE + markers.length;
+  const words = A_HEADER + 2 * BODY_ROW + markers.length;
   // Keys are interned before the input is viewed: interning is a core call of its own.
-  const known = [...r.actors].map(id => world.key(id));
-  const gateKeys = gates.map(index => world.key(`gate:${s.gates[index]!.id}`));
-  const gateRows = gates.map(index => s.gates[index]!.open ? undefined : templateRow(physicsGate(s.gates[index]!)));
-  const heldRows = held.map(id => [world.key(id), 0] as const);
   const markerKeys = markers.map(entry => world.key(entry.id));
+  ensureGround(s, r);
   const { core, world: native, collision, gates: gateSet } = handles(s, r);
   if (playersStale(r)) uploadPlayers(s, r, core, native);
   const view = input(core, native, words);
   view.set([s.tick, admit ? 1 : 0, r.itemLaunches.size ? 1 : 0, s.players.length, s.content.worldPhysics.dropReserve ?? 0,
-    r.discontinuityCapacity, 0, known.length, gates.length, held.length, markers.length]);
+    r.discontinuityCapacity, 0, 0, 0, 0, markers.length]);
   view.set(t.rows[0]!, A_HEADER); view.set(t.rows[1]!, A_HEADER + BODY_ROW);
-  let at = A_HEADER + 2 * BODY_ROW;
-  view.set(known, at); at += known.length;
-  for (let i = 0; i < gates.length; i++, at += GATE_STRIDE) {
-    const index = gates[i]!, gate = s.gates[index]!, box = gateShape(gate);
-    // `overlapsDynamicBox`'s box, as it centres `gateShape`.
-    view.set([index, gate.open ? 1 : 0, r.gates[index]!, box.w / 2, box.h / 2, box.x + box.w / 2, box.y + box.h / 2, gateKeys[i]!], at);
-    if (gateRows[i]) view.set(gateRows[i]!, at + 8);
-  }
-  for (const [key, onGround] of heldRows) { view[at++] = key; view[at++] = onGround; }
-  view.set(markerKeys, at);
+  view.set(markerKeys, A_HEADER + 2 * BODY_ROW);
   core.physics_sync_bodies(native, collision, gateSet);
   const out = output(core, native);
   const room = out[3] === 1;
   apply(s, r, out, markTick);
   return room;
+}
+
+/**
+ * Hand the world its gates' keys and closed bodies' rows, once (#1214 stage 6d.2): the body sync reconciles each gate's
+ * body in the core from them and the door state. `createGame` calls it before the first sync.
+ */
+export function uploadGateBodies(s: Game, r: PhysicsRuntime): void {
+  const world = r.world, keys = s.gates.map(gate => world.key(`gate:${gate.id}`));
+  const rows = s.gates.map(gate => templateRow(physicsGate({ ...gate, open: false })));
+  const { core, world: native } = world.boundaryCall() as unknown as { core: Core & { physics_gates_load(world: number, count: number): void }; world: number };
+  const words = s.gates.length * (1 + BODY_ROW), view = new Float64Array(core.memory.buffer, core.physics_boundary_input(native, words) >>> 0, words);
+  s.gates.forEach((_, i) => { view[i * (1 + BODY_ROW)] = keys[i]!; view.set(rows[i]!.subarray(0, BODY_ROW), i * (1 + BODY_ROW) + 1); });
+  core.physics_gates_load(native, s.gates.length);
 }
 
 /** The first chunk of items awaiting a body that the admission packs; each further chunk is twice the last. */

@@ -6,6 +6,8 @@
 //! tests may (`shared/simulation/ground-store.ts`). So a tick costs only its own changes, never the map's size. The
 //! readers still pack the records they need until 6d.2.
 
+use std::collections::BTreeSet;
+
 /// Words per record, uploaded and dumped alike: id, the body's world key (`item:<label>`, whose order is the labels'),
 /// x, y, kind (`ITEM_KINDS`, -2 unknown), weapon type (`WEAPONS`, NaN absent), ammo, count, charge, ammo family
 /// (`AMMO_FAMILIES`, -1 absent), instance, lineage, quality, the dropper's roster index (-1 another player, -2
@@ -21,7 +23,15 @@ pub(crate) struct Record {
 pub struct Ground {
     /// The records, in the list's order.
     pub(crate) records: Vec<Record>,
+    /// The records' body keys, for the body sync's question of which item bodies left the ground (6d.2).
+    keys: BTreeSet<u64>,
     input: Vec<f64>,
+}
+
+/// A record's body key, when its label is known.
+fn key_of(r: &Record) -> Option<u64> {
+    let key = r.words[1];
+    (key.is_finite() && key >= 0.0).then_some(key as u64)
 }
 
 impl Ground {
@@ -42,24 +52,38 @@ impl Ground {
     /// Replace the store with the input's records.
     pub fn load(&mut self) {
         self.records = self.rows().collect();
+        self.keys = self.records.iter().filter_map(key_of).collect();
+    }
+
+    /// Whether a record with this body key is on the ground.
+    pub(crate) fn holds(&self, key: u64) -> bool {
+        self.keys.contains(&key)
     }
 
     /// Append the input's records, as `addItems` appends them.
     pub fn add(&mut self) {
         let added: Vec<Record> = self.rows().collect();
+        self.keys.extend(added.iter().filter_map(key_of));
         self.records.extend(added);
     }
 
     /// Take the record at `at` off, as `removeItem` does; later records keep their order.
     pub fn remove(&mut self, at: usize) {
         assert!(at < self.records.len(), "no ground record {at}");
-        self.records.remove(at);
+        let gone = self.records.remove(at);
+        if let Some(key) = key_of(&gone) {
+            self.keys.remove(&key);
+        }
     }
 
     /// Put the input's one record where the record at `at` is, as `replaceItem` does.
     pub fn replace(&mut self, at: usize) {
         assert!(at < self.records.len(), "no ground record {at}");
         let record = self.rows().next().expect("one record");
+        if let Some(key) = key_of(&self.records[at]) {
+            self.keys.remove(&key);
+        }
+        self.keys.extend(key_of(&record));
         self.records[at] = record;
     }
 

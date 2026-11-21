@@ -35,7 +35,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 25;
+pub const ADAPTER_VERSION: u32 = 26;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -945,6 +945,15 @@ pub unsafe extern "C" fn interactions_run(
         w.players.apply_interactions(&w.interactions.output);
         w.interactions.output.as_ptr()
     }
+}
+/// The gates' keys and closed bodies' rows, from the boundary input, once per world (`World::load_gates`, #1214 stage
+/// 6d.2).
+/// # Safety
+/// `world` is live and its boundary input holds `count` gate rows.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_gates_load(world: *mut world::World, count: usize) {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).load_gates(count) }
 }
 /// The ground store's input buffer, resized for `count` records (`ground::Ground`, #1214 stage 6d.1).
 /// # Safety

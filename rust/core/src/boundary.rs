@@ -432,7 +432,9 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
         let key_of = |row: usize| row_keys[(row - actor_base) / ACTOR_STRIDE];
         // The actors that are no longer active leave, in ID order.
         let wanted: Vec<Key> = rows.iter().map(|&row| key_of(row)).collect();
-        let mut live = keys(&input[known_base..known_base + known]);
+        // The actor bodies the world holds (#1214 stage 6d.2): the runtime's `actors` until then.
+        let _ = (known_base, known);
+        let mut live = world.keys_with_prefix("actor:");
         live.sort_by(|&a, &b| world.id_order(a, b));
         for key in live.clone() {
             if wanted.contains(&key) {
@@ -528,21 +530,27 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
             log.mark(world, MARK_PLACED, key)?;
             admitted.push(row);
         }
-        // The gates whose state the world has not seen, in the runtime's gate order.
-        for g in 0..gate_count {
-            let at = gate_base + g * GATE_STRIDE;
-            let (index, open, pushed) = (input[at], input[at + 1] != 0.0, input[at + 2]);
-            let key = input[at + 7] as Key;
-            if !open
-                && world.overlaps_dynamic_box(
-                    input[at + 3],
-                    input[at + 4],
-                    input[at + 5],
-                    input[at + 6],
-                )
+        // The gates whose state the world has not seen, in the legacy gate order. Their keys, closed rows and what the
+        // world last saw of each are the world's own (#1214 stage 6d.2); the door state is the gate set's (6a).
+        let _ = (gate_base, gate_count);
+        for g in 0..world.gate_bodies.order.len() {
+            let i = world.gate_bodies.order[g];
+            let (index, open, pushed) = (
+                i as f64,
+                gates.open[i] != 0,
+                f64::from(world.gate_bodies.seen[i]),
+            );
+            if pushed == if open { 1.0 } else { 2.0 } {
+                continue;
+            }
+            let key = world.gate_bodies.keys[i];
+            let [bx, by, bw, bh] = gates.boxes[i];
+            // `overlapsDynamicBox`'s box, as it centres `gateShape`.
+            if !open && world.overlaps_dynamic_box(bw / 2.0, bh / 2.0, bx + bw / 2.0, by + bh / 2.0)
             {
                 // Closing is refused while an actor or a solid prop is in the way; the gate stays open.
-                gates.open[index as usize] = 1;
+                gates.open[i] = 1;
+                world.gate_bodies.seen[i] = 1;
                 log.entry(Entry::Gate {
                     index,
                     pushed: 1.0,
@@ -554,16 +562,17 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
                 log.remove(world, key)?;
             }
             if !open {
-                let row = &input[at + 8..at + 8 + BODY_ROW];
+                let row = world.gate_bodies.rows[i].clone();
                 log.queue(
                     world,
-                    row,
+                    &row,
                     TEMPLATE_GATE,
                     key,
                     index,
                     [row[6], row[7], 0.0, 0.0],
                 )?;
             }
+            world.gate_bodies.seen[i] = if open { 1 } else { 2 };
             log.entry(Entry::Gate {
                 index,
                 pushed: if open { 1.0 } else { 2.0 },
@@ -572,11 +581,12 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
             log.commit(world)?;
         }
         // The item bodies whose items are no longer on the ground leave, in ID order.
-        let mut items: Vec<(Key, bool)> = (0..held)
-            .map(|i| {
-                let at = held_base + i * HELD_STRIDE;
-                (input[at] as Key, input[at + 1] != 0.0)
-            })
+        // The item bodies the world holds whose records the ground store no longer has (#1214 stage 6d.2).
+        let _ = (held_base, held);
+        let mut items: Vec<(Key, bool)> = world
+            .keys_with_prefix("item:")
+            .into_iter()
+            .map(|key| (key, world.ground.holds(u64::from(key))))
             .collect();
         items.sort_by(|a, b| world.id_order(a.0, b.0));
         for (key, on_ground) in items {
