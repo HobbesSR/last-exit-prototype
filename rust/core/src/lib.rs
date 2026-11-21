@@ -34,7 +34,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 21;
+pub const ADAPTER_VERSION: u32 = 22;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]

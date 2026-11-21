@@ -1,4 +1,4 @@
-import { AMMO_FAMILIES, EFFECT_KINDS, ITEM_KINDS, PLAYER_STATUSES, WEAPONS } from '../enum-tables.ts';
+import { AMMO_FAMILIES, EFFECT_KINDS, ITEM_KINDS, WEAPONS } from '../enum-tables.ts';
 import { observeGate } from '../discovery.ts';
 import { itemIdForLabel, itemLabel } from '../item-instances.ts';
 import { physicsRefusal } from '../physics/world.ts';
@@ -11,6 +11,7 @@ import { addItems, draftItem, groundItem, itemsNear, removeItem, replaceItem, se
 import { appendItem, configure, ground, putItem } from './phase-three.ts';
 import type { ActionsCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
+import { playersStale, uploadPlayers } from './player-store.ts';
 import { playerIndex } from './relations.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import { PICKUP_REACH } from './rules.ts';
@@ -169,8 +170,10 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
     const outgoing = swap ? p.inventory![p.selectedSlot ?? 0] : undefined;
     const groundId = outgoing?.instanceId && groundItem(s, outgoing.instanceId) ? outgoing.instanceId : undefined;
     const charging = !p.charging ? -1 : s.map.chargers.findIndex(c => c.id === p.charging);
-    w.put(playerIndex(s, p)); w.put(p.role === 'contestant' ? 0 : 1); w.put(PLAYER_STATUSES.indexOf(p.status)); w.put(p.bot ? 1 : 0);
-    w.put(p.x); w.put(p.y); w.put(p.railCd); w.put(p.keys); w.put(p.cloak); w.put(charging === -1 && p.charging ? -2 : charging);
+    // Role, status, pose, `railCd` and `cloak` come from the core's player store (`player-store.ts`, #1214 stage 6c.3b);
+    // their words stay 0.
+    w.put(playerIndex(s, p)); w.put(0); w.put(0); w.put(p.bot ? 1 : 0);
+    w.put(0); w.put(0); w.put(0); w.put(p.keys); w.put(0); w.put(charging === -1 && p.charging ? -2 : charging);
     w.put(n(p.selectedSlot)); w.put(p.weapon); w.put(moved ? 1 : 0); w.put(p.discovery ? 1 : 0); w.put(steps);
     w.put(choice === undefined ? NaN : s.map.stations.findIndex(st => st.id === choice)); w.put(sneak ? 1 : 0); w.put(p.reserves ? 1 : 0);
     w.put(inventory ? inventory.length : -1); w.put(candidates.length); w.put(taken.length); w.put(groundId === undefined ? 0 : 1);
@@ -188,7 +191,8 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
     // Only a swap's pickup releases a body; the near records' bodies are not read.
     for (const item of list) putGround(w, s, null, p, item, 0);
   }
-  for (const p of s.players) { w.put(PLAYER_STATUSES.indexOf(p.status)); w.put(p.x); w.put(p.y); w.put(actorRadius(s, p)); }
+  // Each player's status and pose come from the store too; only the radius crosses.
+  for (const p of s.players) { w.put(0); w.put(0); w.put(0); w.put(actorRadius(s, p)); }
   for (const list of [s.map.stations, s.map.chargers, s.map.sensors]) for (const at of list) { w.put(at.x); w.put(at.y); }
   // Registry membership, not a scan of the ground, supplies the free legacy label phases (D6).
   let phases = 0, phase = s.scatterSerial ?? 0;
@@ -204,6 +208,8 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
     w.buf[28] = s.map.gates.length;
     for (const gate of s.map.gates) { w.put(gate.x); w.put(gate.y); w.put(gate.kind === 'door' ? 1 : 0); }
   }
+  // Between ticks the store is uploaded first (`player-store.ts`); inside one it is current.
+  if (playersStale(r)) uploadPlayers(s, r, core, world);
   const ptr = core.interactions_input(world, w.len) >>> 0;
   new Float64Array(core.memory.buffer, ptr, w.len).set(w.buf.subarray(0, w.len));
   if (tickMode) profileStart('sim.pickups.core');

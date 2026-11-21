@@ -490,6 +490,14 @@ impl PhaseThree {
                 heard: (0..n).map(|_| r.row()).collect(),
             });
         }
+        // The store's fields come from the core's player store (#1214 stage 6c.3b); the adapter leaves those words 0.
+        for p in &mut players {
+            world.players.fill_action(p);
+        }
+        for a in &mut actors {
+            let s = &world.players.rows[a.roster];
+            (a.role, a.status, a.x, a.y) = (s.role, s.status, s.x, s.y);
+        }
         let phases = r.vec(h[11] as usize);
         let registered = r.vec(h[12] as usize);
         let taken: Vec<[f64; 2]> = (0..h[13] as usize).map(|_| r.row()).collect();
