@@ -23,6 +23,7 @@ pub mod phase_six;
 pub mod phase_three;
 pub mod physics;
 pub mod placement;
+pub mod players;
 pub mod scatter;
 pub mod sight;
 pub mod swept;
@@ -33,7 +34,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 18;
+pub const ADAPTER_VERSION: u32 = 19;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -879,6 +880,7 @@ pub unsafe extern "C" fn combat_run(
         let w = &mut *world;
         let rules = w.actions.rules();
         w.combat.run(
+            &mut w.players,
             rules,
             &w.phase_seven.rewind,
             &*index,
@@ -938,6 +940,22 @@ pub unsafe extern "C" fn interactions_run(
         w.interactions.output.as_ptr()
     }
 }
+/// The player store's upload buffer, resized for `count` players (`players::Players`, #1214 stage 6c).
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn players_input(world: *mut world::World, count: usize) -> *mut f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).players.input(count).as_mut_ptr() }
+}
+/// Replace the player store with its upload buffer.
+/// # Safety
+/// `world` is live and its upload buffer holds `count` players.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn players_load(world: *mut world::World, count: usize) {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).players.load(count) }
+}
 /// Phase 6's environment and traps input (27, step 5e.2; `hazards::Hazards`).
 /// # Safety
 /// `world` is a live world handle; the returned view expires on the next growing core call.
@@ -963,7 +981,8 @@ pub unsafe extern "C" fn hazards_run(
     unsafe {
         let w = &mut *world;
         let hz = w.actions.rules().hz;
-        w.hazards.run(&mut *map, &*index, &mut *gates, hz);
+        w.hazards
+            .run(&mut w.players, &mut *map, &*index, &mut *gates, hz);
         w.hazards.output.as_ptr()
     }
 }

@@ -4,8 +4,8 @@
 //!
 //! **The traps are the core's** (#1214 stage 6b): `Hazards` keeps them between calls. Their rows cross only when
 //! the adapter uploads a trap list, which it does for a list it has not uploaded, and after a between-tick command
-//! (`setTrap`). Each call packs the roster as phase 5's rows (`combat::PLAYER_ROW`) with each actor's
-//! `movedThisTick`, the hazard areas and the trap content, which JavaScript still owns, and writes back the
+//! (`setTrap`). The players come from the core's store (`players.rs`, step 6c), phase 5's rows with each actor's
+//! `movedThisTick`. Each call packs the hazard areas and the trap content, which JavaScript still owns, and writes back the
 //! players' changed fields, a log (effects, aggression and the turret's spawns, in the order the TypeScript made
 //! them) and each trap's writes with a mask. Node applies those to its trap records, the mirror, in the
 //! TypeScript's order, so a trap's keys keep theirs.
@@ -16,9 +16,10 @@
 //! (`enqueueExplosionImpulses`), which synchronize the world and fill the pending-impulse queue that Node owns
 //! until the flip (#1214). Everything is repacked on a resume; only the cursor is kept here.
 use crate::collision::{CollisionMap, can_occupy, line_clear};
-use crate::combat::{OUT_ROW, PLAYER_ROW, Row, Run};
+use crate::combat::{OUT_ROW, Run};
 use crate::math::{atan2, cos, hypot, js_max, sin};
 use crate::phase_seven::Rewind;
+use crate::players::Players;
 use crate::sight::{GateSet, SightIndex};
 
 /// Input header: resume (nonzero continues the kept cursor), tick, serial, player count, trap count, hazard area
@@ -29,8 +30,6 @@ pub const HEADER: usize = 10;
 /// flame cycle, warnAt, fireAt, interval, range, cone, damage; spider leash, acquire, step, grapple, cooldown, stun,
 /// damage.
 pub const CONTENT: usize = 22;
-/// Per player: phase 5's row, then `movedThisTick` (0 when unset).
-pub const ACTOR_ROW: usize = PLAYER_ROW + 1;
 /// Per hazard area: x, y, w, h.
 pub const AREA_ROW: usize = 4;
 /// Per trap uploaded: kind (`TRAP_KINDS`, -1 unknown), x, y, homeX, homeY, heading, offset, `cooldown || 0`, spent,
@@ -124,6 +123,7 @@ fn distance(a: (f64, f64), b: (f64, f64)) -> f64 {
 impl Hazards {
     pub fn run(
         &mut self,
+        store: &mut Players,
         map: &mut CollisionMap,
         index: &SightIndex,
         gates: &mut GateSet,
@@ -144,13 +144,9 @@ impl Hazards {
             spider: [c[15], c[16], c[17], c[18], c[19], c[20], c[21]],
         };
         at += CONTENT;
-        let mut rows = Vec::with_capacity(players);
-        let mut moved = Vec::with_capacity(players);
-        for _ in 0..players {
-            rows.push(Row::read(&input[at..at + PLAYER_ROW]));
-            moved.push(input[at + PLAYER_ROW]);
-            at += ACTOR_ROW;
-        }
+        // The players come from the core's store (`players.rs`), uploaded for this call.
+        let rows = store.take(players);
+        let moved = store.moved.clone();
         let boxes = &input[at..at + areas * AREA_ROW];
         at += areas * AREA_ROW;
         if upload {
@@ -482,6 +478,7 @@ impl Hazards {
         self.output = out;
         self.input = input;
         self.traps = traps;
+        store.restore(run.rows);
     }
 }
 

@@ -17,6 +17,7 @@ use crate::action_types::{Player, Rules};
 use crate::collision::line_clear;
 use crate::math::{hypot, js_max, js_min};
 use crate::phase_seven::{MAX_REWIND_TICKS, Rewind};
+use crate::players::Players;
 use crate::sight::{GateSet, SightIndex};
 use crate::swept::{SweptMap, hit_radius, impact};
 
@@ -27,9 +28,10 @@ pub const MODE_DAMAGE: usize = 2;
 /// count, caster count, then a damage call's target, amount and source (-1 none). The rewind frames are
 /// the core's own (`phase_seven::Rewind`, 27 step 5e.2).
 pub const HEADER: usize = 10;
-/// Per player: role (0 contestant), status (0 active), kit, x, y, heading, hp, maxHp, shield, level,
-/// cooldown, attackCd, stun, rank in ID order, view lag (0 when unset). Projectile calls follow each row
-/// with a path flag and five substep points.
+/// A player's fields (`Row`): role (0 contestant), status (0 active), kit, x, y, heading, hp, maxHp, shield, level,
+/// cooldown, attackCd, stun, rank in ID order, view lag (0 when unset). The run reads them from the core's player
+/// store (`players.rs`, #1214 stage 6c), not the input. A fresh projectile call's input holds, per player after the
+/// bullets' header, a path flag and five substep points (`PATH_ROW`).
 pub const PLAYER_ROW: usize = 15;
 pub const PATH_ROW: usize = 11;
 /// Per bullet: id, owner's roster index (-1 when absent), x, y, dx, dy, life, damage.
@@ -360,6 +362,7 @@ impl Combat {
     /// Run a call. `swept` is needed only by a fresh projectile call; `rewind` is phase 7's frames.
     pub fn run(
         &mut self,
+        players: &mut Players,
         rules: &Rules,
         rewind: &Rewind,
         index: &SightIndex,
@@ -370,13 +373,11 @@ impl Combat {
         let h = &input[..HEADER];
         let mode = h[0] as usize;
         let resume = h[1] != 0.0;
-        let players = h[4] as usize;
+        let (store, players) = (players, h[4] as usize);
         let mut at = HEADER;
-        let mut rows = Vec::with_capacity(players);
+        let rows = store.take(players);
         let mut paths = Vec::new();
         for _ in 0..players {
-            rows.push(Row::read(&input[at..at + PLAYER_ROW]));
-            at += PLAYER_ROW;
             if mode == MODE_PROJECTILES && !resume {
                 let a = &input[at..at + PATH_ROW];
                 at += PATH_ROW;
@@ -572,6 +573,7 @@ impl Combat {
         out[0] = out.len() as f64;
         self.output = out;
         self.input = input;
+        store.restore(run.rows);
     }
 }
 
