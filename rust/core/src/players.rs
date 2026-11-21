@@ -6,6 +6,7 @@
 //! so until the last of them converts the adapter uploads the store from those records before each converted call
 //! (`shared/simulation/player-store.ts`). A converted run leaves its writes in the store, and reports them to the
 //! records, the mirror, as before.
+use crate::action_types::Item;
 use crate::combat::{PLAYER_ROW, Row};
 use crate::math::hypot;
 use crate::physics::SUBSTEPS;
@@ -16,6 +17,57 @@ use crate::world::STEP_HEADER;
 pub const EXTRA_ROW: usize = 8;
 /// Words per player uploaded: `combat::Row` (`PLAYER_ROW` words), `movedThisTick` (0 when unset), then `Extra`.
 pub const STORE_ROW: usize = PLAYER_ROW + 1 + EXTRA_ROW;
+
+/// Words of a player's equipment header in the upload, after every player's fixed row: `selectedSlot` (NaN absent),
+/// `weapon`, `keys`, `charging` (the charger's index, -1 none, -2 an unknown charger), the inventory's length (-1 none),
+/// whether reserves follow and their three families, whether a reload follows and its slot, instance and until. The
+/// inventory's items follow, ten words each (`action_types::Item`; -1 first for an empty slot).
+pub const EQUIP_HEAD: usize = 13;
+/// Words per carried item (`action_types::Item::row`).
+pub const ITEM_ROW: usize = 10;
+
+/// A player's equipment (#1214 stage 6c.3c.1). Items keep their absence mask, so the records' key order survives. Their
+/// tokens are the uploading call's and mean nothing to the store yet.
+#[derive(Clone, Default)]
+pub(crate) struct Equip {
+    pub(crate) selected: f64,
+    pub(crate) weapon: f64,
+    pub(crate) keys: f64,
+    pub(crate) charging: f64,
+    pub(crate) inventory: Option<Vec<Option<Item>>>,
+    pub(crate) reserves: Option<[f64; 3]>,
+    pub(crate) reload: Option<[f64; 3]>,
+}
+
+/// An empty slot's row, as `appendItem` writes it.
+const EMPTY_ROW: [f64; ITEM_ROW] = [
+    -1.0,
+    f64::NAN,
+    f64::NAN,
+    f64::NAN,
+    f64::NAN,
+    f64::NAN,
+    f64::NAN,
+    f64::NAN,
+    f64::NAN,
+    63.0,
+];
+
+/// One inventory row as the adapters write it: `None` for an empty slot.
+fn item(row: &[f64]) -> Option<Item> {
+    (row[0] != -1.0).then(|| Item::read(row))
+}
+
+/// Write `count` inventory rows from `rows` into slots `0..count`, as `putInventory` and phase 3's loop write them.
+fn put_items(q: &mut Equip, rows: &[f64], count: usize) {
+    let inventory = q.inventory.get_or_insert_with(Vec::new);
+    if inventory.len() < count {
+        inventory.resize(count, None);
+    }
+    for (k, slot) in inventory.iter_mut().take(count).enumerate() {
+        *slot = item(&rows[k * ITEM_ROW..(k + 1) * ITEM_ROW]);
+    }
+}
 
 /// The fields phase 1 reads beyond `combat::Row`.
 #[derive(Clone, Copy, Default)]
@@ -38,27 +90,55 @@ pub struct Players {
     pub(crate) moved: Vec<f64>,
     /// Each player's further fields, in roster order.
     pub(crate) extra: Vec<Extra>,
+    /// Each player's equipment, in roster order.
+    pub(crate) equip: Vec<Equip>,
     input: Vec<f64>,
 }
 
 impl Players {
-    /// The upload buffer, resized for `count` players.
-    pub fn input(&mut self, count: usize) -> &mut [f64] {
-        self.input.resize(count * STORE_ROW, 0.0);
+    /// The upload buffer, resized to `words`: every player's fixed row, then each one's equipment.
+    pub fn input(&mut self, words: usize) -> &mut [f64] {
+        self.input.resize(words, 0.0);
         &mut self.input
     }
 
     /// Replace the store with the uploaded rows.
     pub fn load(&mut self, count: usize) {
-        assert_eq!(
-            self.input.len(),
-            count * STORE_ROW,
+        assert!(
+            self.input.len() >= count * STORE_ROW,
             "the upload holds every player"
         );
         self.rows.clear();
         self.moved.clear();
         self.extra.clear();
-        for row in self.input.as_chunks::<STORE_ROW>().0 {
+        self.equip.clear();
+        let mut at = count * STORE_ROW;
+        for _ in 0..count {
+            let h = &self.input[at..at + EQUIP_HEAD];
+            at += EQUIP_HEAD;
+            let inventory = (h[4] >= 0.0).then(|| {
+                let items = (0..h[4] as usize)
+                    .map(|k| item(&self.input[at + k * ITEM_ROW..at + (k + 1) * ITEM_ROW]))
+                    .collect();
+                at += h[4] as usize * ITEM_ROW;
+                items
+            });
+            self.equip.push(Equip {
+                selected: h[0],
+                weapon: h[1],
+                keys: h[2],
+                charging: h[3],
+                inventory,
+                reserves: (h[5] != 0.0).then_some([h[6], h[7], h[8]]),
+                reload: (h[9] != 0.0).then_some([h[10], h[11], h[12]]),
+            });
+        }
+        assert_eq!(
+            at,
+            self.input.len(),
+            "the upload ends with the last equipment"
+        );
+        for row in self.input[..count * STORE_ROW].as_chunks::<STORE_ROW>().0 {
             self.rows.push(Row::read(&row[..PLAYER_ROW]));
             self.moved.push(row[PLAYER_ROW]);
             let e = &row[PLAYER_ROW + 1..];
@@ -106,6 +186,30 @@ impl Players {
                 e.boost,
                 e.key,
             ]);
+        }
+        for q in &self.equip {
+            let (res, rel) = (q.reserves.unwrap_or([0.0; 3]), q.reload.unwrap_or([0.0; 3]));
+            words.extend_from_slice(&[
+                q.selected,
+                q.weapon,
+                q.keys,
+                q.charging,
+                q.inventory.as_ref().map_or(-1.0, |i| i.len() as f64),
+                if q.reserves.is_some() { 1.0 } else { 0.0 },
+                res[0],
+                res[1],
+                res[2],
+                if q.reload.is_some() { 1.0 } else { 0.0 },
+                rel[0],
+                rel[1],
+                rel[2],
+            ]);
+            for slot in q.inventory.iter().flatten() {
+                // Tokens are the uploading call's; the dump writes 0, as the drift check's pack does.
+                let mut row = slot.as_ref().map_or(EMPTY_ROW, Item::row);
+                row[8] = 0.0;
+                words.extend_from_slice(&row);
+            }
         }
         self.input = words;
         &self.input
@@ -182,13 +286,61 @@ impl Players {
             let (op, len) = (out[at], out[at + 1] as usize);
             let p = &out[at + 2..at + 2 + len];
             let i = p.first().map_or(usize::MAX, |&i| i as usize);
-            if let (Some(r), Some(e)) = (self.rows.get_mut(i), self.extra.get_mut(i)) {
+            if let (Some(r), Some(e), Some(q)) = (
+                self.rows.get_mut(i),
+                self.extra.get_mut(i),
+                self.equip.get_mut(i),
+            ) {
                 match op as u32 {
-                    2 => r.status = 3.0,
+                    2 => {
+                        if let Some(slot) =
+                            q.inventory.as_mut().and_then(|v| v.get_mut(p[1] as usize))
+                        {
+                            *slot = None;
+                        }
+                        q.weapon = p[2];
+                        q.charging = -1.0;
+                        r.status = 3.0;
+                    }
+                    5 => q.charging = if p[1] < 0.0 { -1.0 } else { p[1] },
                     6 => {
+                        q.charging = -1.0;
                         r.status = 5.0;
                         e.destination = p[1];
                         e.arrive_at = p[2];
+                    }
+                    8 => {
+                        if p[2] != 0.0 && p[3] != 0.0 {
+                            q.keys -= 1.0;
+                        }
+                    }
+                    10 => {
+                        if let Some(Some(item)) =
+                            q.inventory.as_mut().and_then(|v| v.get_mut(p[1] as usize))
+                        {
+                            item.charge = p[2];
+                        }
+                    }
+                    11 => q.keys = p[1],
+                    12 => {
+                        q.selected = p[1];
+                        q.weapon = p[2];
+                        if p[3] != 0.0 && q.reserves.is_some() {
+                            q.reserves = Some([p[4], p[5], p[6]]);
+                        }
+                        put_items(q, &p[8..], p[7] as usize);
+                    }
+                    15 => {
+                        // A committed swap replaces the inventory whole.
+                        let count = p[8] as usize;
+                        q.inventory = Some(vec![None; count]);
+                        put_items(q, &p[9..], count);
+                        q.selected = p[2];
+                        if p[4] != 0.0 && q.reserves.is_some() {
+                            q.reserves = Some([p[5], p[6], p[7]]);
+                        }
+                        q.charging = -1.0;
+                        q.weapon = p[3];
                     }
                     7 => {
                         r.x = p[1];
@@ -209,7 +361,6 @@ impl Players {
     pub(crate) fn apply_actions(&mut self, mode: f64, out: &[f64]) {
         const OUT_HEADER: usize = 13;
         const ROW: usize = 24;
-        const ITEM_ROW: usize = 10;
         let writes = mode < 2.0 || mode == 4.0;
         let mut at = OUT_HEADER;
         for _ in 0..out[7] as usize {
@@ -227,13 +378,30 @@ impl Players {
                 }
             }
             at += ROW;
+            // The equipment, as `phase-three.ts` writes it: selection and weapon, then reserves, reload and inventory.
+            let mut q = self.equip.get_mut(row[0] as usize).filter(|_| writes);
+            if let Some(q) = q.as_mut() {
+                q.selected = row[11];
+                q.weapon = row[12];
+            }
             if reserves != 0.0 {
+                if let Some(q) = q.as_mut() {
+                    q.reserves = Some([out[at], out[at + 1], out[at + 2]]);
+                }
                 at += 3;
             }
             if reload != 0.0 {
+                if let Some(q) = q.as_mut() {
+                    q.reload = Some([out[at], out[at + 1], out[at + 2]]);
+                }
                 at += 3;
+            } else if let Some(q) = q.as_mut() {
+                q.reload = None;
             }
             if inventory >= 0.0 {
+                if let Some(q) = q.as_mut() {
+                    put_items(q, &out[at..], inventory as usize);
+                }
                 at += inventory as usize * ITEM_ROW;
             }
             at += retired as usize * ITEM_ROW;
@@ -245,12 +413,25 @@ impl Players {
             let p = &out[at + 2..at + 2 + len];
             let i = p.first().map_or(usize::MAX, |&i| i as usize);
             match op as u32 {
+                10 => {
+                    if let Some(q) = self.equip.get_mut(i) {
+                        q.charging = -1.0;
+                    }
+                }
                 11 => {
                     if let Some(e) = self.extra.get_mut(i) {
                         e.revealed = p[1];
                     }
                 }
+                14 => {
+                    if let Some(q) = self.equip.get_mut(i) {
+                        q.reload = None;
+                    }
+                }
                 12 => {
+                    if let Some(q) = self.equip.get_mut(i) {
+                        q.charging = -1.0;
+                    }
                     if let (Some(r), Some(e)) = (self.rows.get_mut(i), self.extra.get_mut(i)) {
                         r.status = if p[3].is_nan() { 1.0 } else { 2.0 };
                         if !p[3].is_nan() {
@@ -280,10 +461,46 @@ mod tests {
     #[test]
     fn an_upload_replaces_the_store_in_roster_order() {
         let mut players = Players::default();
-        let input = players.input(2);
-        for (i, word) in input.iter_mut().enumerate() {
+        // Two fixed rows, then the first player's equipment with one weapon and an empty slot, the second's with none.
+        let words = 2 * STORE_ROW + EQUIP_HEAD + 2 * ITEM_ROW + EQUIP_HEAD;
+        let input = players.input(words);
+        for (i, word) in input[..2 * STORE_ROW].iter_mut().enumerate() {
             *word = i as f64;
         }
+        let first = 2 * STORE_ROW;
+        input[first..first + EQUIP_HEAD].copy_from_slice(&[
+            1.0, 2.0, 3.0, -1.0, 2.0, 1.0, 4.0, 5.0, 6.0, 0.0, 0.0, 0.0, 0.0,
+        ]);
+        let items = first + EQUIP_HEAD;
+        input[items..items + ITEM_ROW].copy_from_slice(&[
+            0.0,
+            1.0,
+            7.0,
+            f64::NAN,
+            f64::NAN,
+            9.0,
+            9.0,
+            1.0,
+            0.0,
+            6.0,
+        ]);
+        input[items + ITEM_ROW..items + 2 * ITEM_ROW].copy_from_slice(&EMPTY_ROW);
+        let second = items + 2 * ITEM_ROW;
+        input[second..second + EQUIP_HEAD].copy_from_slice(&[
+            f64::NAN,
+            0.0,
+            0.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ]);
         players.load(2);
         assert_eq!(players.len(), 2);
         assert_eq!(players.rows[1].role, STORE_ROW as f64);
@@ -293,6 +510,27 @@ mod tests {
         );
         assert_eq!(players.extra[0].respawn_at, (PLAYER_ROW + 1) as f64);
         assert_eq!(players.extra[1].key, (2 * STORE_ROW - 1) as f64);
+        let q = &players.equip[0];
+        assert_eq!(
+            (q.selected, q.weapon, q.keys, q.charging),
+            (1.0, 2.0, 3.0, -1.0)
+        );
+        assert_eq!(q.reserves, Some([4.0, 5.0, 6.0]));
+        assert!(q.reload.is_none());
+        let inventory = q.inventory.as_ref().expect("an inventory");
+        assert_eq!(
+            (
+                inventory.len(),
+                inventory[0].as_ref().map(|i| i.ammo),
+                inventory[1].is_none()
+            ),
+            (2, Some(7.0), true)
+        );
+        assert!(players.equip[1].inventory.is_none());
+        // The dump gives the upload back, tokens written 0.
+        let dumped = players.dump().to_vec();
+        assert_eq!(dumped.len(), words);
+        assert_eq!(dumped[items + 2], 7.0);
         let rows = players.take(2);
         assert!(players.rows.is_empty());
         players.restore(rows);

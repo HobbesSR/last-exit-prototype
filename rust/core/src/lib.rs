@@ -34,7 +34,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 22;
+pub const ADAPTER_VERSION: u32 = 23;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -973,13 +973,13 @@ pub unsafe extern "C" fn players_count(world: *const world::World) -> usize {
     // SAFETY: the caller's contract.
     unsafe { (*world).players.len() }
 }
-/// The player store's upload buffer, resized for `count` players (`players::Players`, #1214 stage 6c).
+/// The player store's upload buffer, resized to `words`: every fixed row, then each equipment (`players::Players`, #1214 stage 6c).
 /// # Safety
 /// `world` is live.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn players_input(world: *mut world::World, count: usize) -> *mut f64 {
+pub unsafe extern "C" fn players_input(world: *mut world::World, words: usize) -> *mut f64 {
     // SAFETY: the caller's contract.
-    unsafe { (*world).players.input(count).as_mut_ptr() }
+    unsafe { (*world).players.input(words).as_mut_ptr() }
 }
 /// Replace the player store with its upload buffer.
 /// # Safety

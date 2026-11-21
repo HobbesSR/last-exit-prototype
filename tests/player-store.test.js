@@ -7,7 +7,7 @@ import { storeDrift } from '../shared/simulation/player-store.ts';
 import { generatedMap } from './helpers/room-harness.js';
 
 // The core's player store (#1214 stage 6c.2) is uploaded once a tick, by phase 1, so every write to its fields inside a
-// tick must reach it as well as the records. A bot match on the default arena, with traps and hazard areas so the
+// tick must reach it as well as the records, its equipment included (6c.3c.1). A bot match on the default arena, with traps and hazard areas so the
 // environment, eliminations and respawns run too, holds the store equal to a fresh upload of the records after every
 // tick. A writer that misses the store shows here as the field and player it left behind.
 const KINDS = ['mine', 'turret', 'flame', 'spider'];
