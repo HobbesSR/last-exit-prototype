@@ -17,6 +17,7 @@ pub mod hooks;
 pub mod item_allocation;
 pub mod math;
 pub mod phase_one;
+pub mod phase_six;
 pub mod phase_three;
 pub mod physics;
 pub mod placement;
@@ -30,7 +31,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 15;
+pub const ADAPTER_VERSION: u32 = 16;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -876,6 +877,57 @@ pub unsafe extern "C" fn combat_run(
         let rules = w.actions.rules();
         w.combat.run(rules, &*index, &mut *gates, swept.as_ref());
         w.combat.output.as_ptr()
+    }
+}
+
+/// How many gates' positions and kinds phase 6's adapter has sent to this gate set (`GateSet::details`).
+/// # Safety
+/// `gates` is a live gate set.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gate_set_details(gates: *const sight::GateSet) -> usize {
+    // SAFETY: the caller's contract.
+    unsafe { (*gates).details.len() }
+}
+/// The lock mask, one byte per gate (`GateSet::locked`). Phase 6's adapter writes it before a call where an actor
+/// interacts.
+/// # Safety
+/// `gates` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gate_set_locked(gates: *mut sight::GateSet) -> *mut u8 {
+    // SAFETY: the caller's contract.
+    unsafe { (*gates).locked.as_mut_ptr() }
+}
+/// Phase 6's per-actor loop input (27, step 5e.1; `phase_six::PhaseSix`).
+/// # Safety
+/// `world` is a live world handle; the returned view expires on the next growing core call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn interactions_input(world: *mut world::World, len: usize) -> *mut f64 {
+    // SAFETY: the caller owns the live world.
+    let interactions = unsafe { &mut (*world).interactions };
+    interactions.input.resize(len, 0.0);
+    interactions.input.as_mut_ptr()
+}
+/// Run phase 6's per-actor loop (`phase_six::PhaseSix::run`) after phase 3's rules were configured
+/// (`actions_configure`).
+/// # Safety
+/// All handles are live, disjoint, and the input and gate mask are complete.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn interactions_run(
+    world: *mut world::World,
+    map: *mut collision::CollisionMap,
+    index: *const sight::SightIndex,
+    gates: *mut sight::GateSet,
+) -> *const f64 {
+    // SAFETY: these handles are owned by the calling game. The buffers and the rules move out so the
+    // run can use the world's bodies without aliasing them.
+    unsafe {
+        let w = &mut *world;
+        let mut interactions = std::mem::take(&mut w.interactions);
+        let actions = std::mem::take(&mut w.actions);
+        interactions.run(actions.rules(), w, &mut *map, &*index, &mut *gates);
+        w.actions = actions;
+        w.interactions = interactions;
+        w.interactions.output.as_ptr()
     }
 }
 

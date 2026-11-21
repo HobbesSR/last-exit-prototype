@@ -117,8 +117,9 @@ test('an unchanged ground is shared between frames, frozen, and never cloned', (
   assert.deepEqual(labels(s, first.items), ['a', 'b']);
 });
 
-test('a partial pickup replaces only its own record; published frames keep what they showed', () => {
-  const s = createGameRecord(17, arena([pile('near', 120), pile('far', 500)]), content('content-ammo-1'));
+test('a partial pickup replaces only its own record; published frames keep what they showed', async () => {
+  // Pickups run in the core (`phase_six.rs`, #1230), which needs the game's physics world.
+  const s = await createGame(17, arena([pile('near', 120), pile('far', 500)]), content('content-ammo-1'));
   const p = s.players[0];
   for (const q of s.players) q.bot = false;
   p.x = 120; p.y = 300; p.reserves.pistol = 72;
@@ -133,8 +134,9 @@ test('a partial pickup replaces only its own record; published frames keep what 
   assert.notEqual(after.items, before.items);
   assert.equal(after.items[1], far, 'an untouched record is the same object');
   assert.deepEqual([after.items[0].count, near.count, p.reserves.pistol], [8, 20, 72]);
-  assert.equal(groundItem(s, itemId(s, 'near')), after.items[0], 'numeric bodyless records share their immutable value');
-  assert.equal(groundItem(s, itemId(s, 'near')).id, after.items[0].id);
+  // A record with a body projects its pose apart from the runtime record, so only the value is compared here.
+  assert.deepEqual([groundItem(s, itemId(s, 'near')).id, groundItem(s, itemId(s, 'near')).count], [after.items[0].id, 8]);
+  disposePhysics(s);
 });
 
 test('adding to a published ground copies the list once and leaves the frame alone', () => {

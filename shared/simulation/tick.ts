@@ -10,9 +10,8 @@ import { damage } from './combat.ts';
 import { castersInCore, solvePhysicsProjectiles } from './phase-five.ts';
 import type { Caster } from './phase-five.ts';
 import { prepareHooks, finishHooks } from './hook.ts';
-import { interact, advanceCharging } from './interactions.ts';
-import { transit } from './transit.ts';
-import { automaticPickups } from './loot.ts';
+import { phaseSix, STEP_CHARGING, STEP_INTERACT, STEP_PICKUPS, STEP_TRANSIT } from './phase-six.ts';
+import type { Turn } from './phase-six.ts';
 import { effect } from './event-records.ts';
 import { stepTraps } from '../traps.ts';
 import { applyEnvironment, advanceDiscovery } from './tick-rules.ts';
@@ -92,16 +91,17 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   stop('sim.projectiles');
   // 6: interactions/pickups, environment, traps; trap spawns wait for next tick.
   start('sim.pickups');
+  // The per-actor loop runs in the core (`phase_six.rs`, 27 step 5e.1): interact, the chosen transit, then, while
+  // still active, charging and pickups. Movement below the reviewed resting-contact tolerance is jitter, not a move.
+  const turns: Turn[] = [];
   for (const p of ordered(s)) {
     const input = intents[playerIndex(s, p)]?.input;
     if (p.status !== 'active' || !input) continue;
-    if (input.interact) interact(s, p);
-    if (input.transit && s.content.transit === 'selectable') transit(s, p, input.transit);
-    if (p.status !== 'active') continue;
-    // Ignore contact recovery jitter within the reviewed resting-contact tolerance.
-    advanceCharging(s, p, (p.movedThisTick ?? 0) > 0.05 ? { x: 1 } : {});
-    automaticPickups(s, p, input);
+    const transit = !!input.transit && s.content.transit === 'selectable';
+    turns.push({ player: p, steps: (input.interact ? STEP_INTERACT : 0) | (transit ? STEP_TRANSIT : 0) | STEP_CHARGING | STEP_PICKUPS,
+      choice: transit ? input.transit : undefined, sneak: !!input.sneak, moved: (p.movedThisTick ?? 0) > 0.05 });
   }
+  phaseSix(s, turns, true);
   stop('sim.pickups');
   start('sim.environment');
   for (const p of ordered(s)) if (p.status === 'active') {

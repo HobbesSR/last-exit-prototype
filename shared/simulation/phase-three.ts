@@ -56,7 +56,7 @@ export function configure(s: Game, r: PhysicsRuntime, core: Core, world: number)
   core.actions_configure(world); configured.set(r.world, s.content);
 }
 
-function appendItem(data: number[], item: InventoryItem | null, token: number): void {
+export function appendItem(data: number[], item: InventoryItem | null, token: number): void {
   if (!item) { data.push(-1, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 63); return; }
   const absent = ('ammo' in item && item.ammo !== undefined ? 0 : 1) | ('charge' in item && item.charge !== undefined ? 0 : 2)
     | (item.instanceId === undefined ? 4 : 0) | (item.lineageId === undefined ? 8 : 0) | (item.quality === undefined ? 16 : 0)
@@ -67,7 +67,7 @@ function appendItem(data: number[], item: InventoryItem | null, token: number): 
 }
 
 /** Apply only writes, keeping the original carried objects through moves and stack merges. */
-function putItem(item: InventoryItem, row: Float64Array, at: number): void {
+export function putItem(item: InventoryItem, row: Float64Array, at: number): void {
   const put = (key: 'instanceId' | 'lineageId' | 'quality', value: number): void => {
     if (!Object.is(n(item[key]), value)) item[key] = value as ItemId;
   };
@@ -78,7 +78,7 @@ function putItem(item: InventoryItem, row: Float64Array, at: number): void {
 }
 
 /** New ground records keep the field insertion order of planDrop/planAmmoDrop (the frozen frames hash JSON). */
-function ground(row: Float64Array, at: number, p: Player, tick: number): GroundItem {
+export function ground(row: Float64Array, at: number, p: Player, tick: number): GroundItem {
   const kind = ITEM_KINDS[row[at]!]!, id = row[at + 10]! as ItemId, lineageId = row[at + 6]! as ItemId;
   const x = row[at + 11]!, y = row[at + 12]!;
   if (kind === 'ammo') return { kind, id, lineageId, family: AMMO_FAMILIES[row[at + 13]!]!, count: row[at + 3]!, x, y, droppedBy: p.id, pickupAfter: tick + HZ };
