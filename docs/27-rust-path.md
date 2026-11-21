@@ -664,8 +664,10 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
   - **6c.1 (#1214):** the store, with phase 5's combat and phase 6's environment and traps as its first readers. Below.
   - **6c.2 (#1214):** phase 1 reads the store, and every write to its fields inside a tick reaches it, so it is
     uploaded once a tick. Below.
-  - **6c.3:** the remaining readers stop packing players from the records: phase 3 with the elimination, phase 6's
-    per-actor loop, the body sync, the hooks and phase 7. The store takes the inventories.
+  - **6c.3:** the remaining readers stop packing players from the records, in three PRs:
+    - **6c.3a (#1214):** the readers of scalar fields only: phase 7, the hooks and the body sync. Below.
+    - **6c.3b:** phase 3's and phase 6's player rows.
+    - **6c.3c:** the inventories, with the carried items' identity, which Node tracks by object today.
 
   Replacing the uploads between ticks with between-tick commands is 6e's.
 - **6d: the pending queues, the hooks, the ground and the ID counters,** with the explosion port. They depend on each
@@ -749,6 +751,20 @@ key), and it is uploaded once a tick, by phase 1, and before a converted call be
   writes cost too little to separate from run spread: `sim.actions`, which now includes walking phase 3's output into the store,
   read 49.1–56.7 µs against 48.2 µs, and `sim.poses` 23.9–26.7 µs against 27.0 µs. The whole tick moved within spread (4.87–4.91 ms
   against 5.06 ms). The larger saving comes at 6c.3, when the other readers stop packing.
+
+**Step 6c.3a, the scalar readers (#1214, adapter version 21).** Phase 7, the hooks and the body sync read the
+players from the store, and their adapters no longer pack them.
+- **Phase 7.** `finishMatch` reads role and status, and `recordRewind` reads the poses. `phase_seven_run` fills both from
+  the store, and the adapter sends the header alone.
+- **The hooks.** Each player's key, activity, hook kit, role and pose, and `ordered(s)` (the rows' rank), come from the
+  store. The hooks' own records and the actors' substep paths still cross.
+- **The body sync.** The core builds the active actors' rows (key, roster index, role, pose, in ID order) from the store
+  and places them where the adapter used to write them, so the rest of the sync is unchanged.
+- **Between ticks** these calls upload first (`playersStale`), as phase 5's do. That covers `createGame`'s first sync,
+  a teleport's, a scenario's hook call, and `recordRewind` called from a test.
+- **Cost.** Measured as 6c.2 was (base `78df3853`): `sim.sync`, which times every body sync of the tick, fell from 53.1 µs to
+  44.0–44.9 µs, and `sim.rewind` from 1.6 µs to 1.1 µs. The other labels and the whole tick (4.54–4.56 ms against 4.57 ms) moved
+  within run spread. The hooks' saving does not show on this map, which has few hooks in flight.
 
 
 ## One math library on both sides

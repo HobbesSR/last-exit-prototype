@@ -179,7 +179,8 @@ const A_GATES: usize = 8;
 const A_HELD: usize = 9;
 const A_MARKERS: usize = 10;
 pub const A_HEADER: usize = 11;
-/// Per active player, in ID order: `key, player, gladiator, x, y`.
+/// Per active player, in ID order: `key, player, gladiator, x, y`. The core builds these rows from its player store
+/// (`players.rs`, #1214 stage 6c.3a) and places them after the body rows; the adapter sends none.
 pub const ACTOR_STRIDE: usize = 5;
 /// Per gate to reconcile, in the runtime's gate order: `gate, open, pushed, hx, hy, cx, cy, key`,
 /// then the body's row when it is closed.
@@ -382,6 +383,27 @@ fn run(
 /// ground. The input, after the header: the contestant's and the gladiator's body rows, the actors,
 /// the runtime's actor keys, the gates to reconcile, the held item bodies, then the markers' keys.
 pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut GateSet) {
+    let players = &world.players;
+    let mut active: Vec<usize> = (0..players.len())
+        .filter(|&i| players.rows[i].status == 0.0)
+        .collect();
+    active.sort_by(|&a, &b| players.rows[a].rank.total_cmp(&players.rows[b].rank));
+    let rows: Vec<f64> = active
+        .iter()
+        .flat_map(|&i| {
+            let (r, e) = (&players.rows[i], &players.extra[i]);
+            [
+                e.key,
+                i as f64,
+                if r.role != 0.0 { 1.0 } else { 0.0 },
+                r.x,
+                r.y,
+            ]
+        })
+        .collect();
+    let at = A_HEADER + 2 * BODY_ROW;
+    world.boundary_input[A_ACTORS] = active.len() as f64;
+    world.boundary_input.splice(at..at, rows);
     run(world, |world, input, log, header| {
         let count = |i: usize| input[i] as usize;
         let (actors, known, gate_count, held, markers) = (

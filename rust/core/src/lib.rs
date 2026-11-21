@@ -34,7 +34,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 20;
+pub const ADAPTER_VERSION: u32 = 21;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -1037,6 +1037,18 @@ pub unsafe extern "C" fn phase_seven_run(world: *mut world::World) -> *const f64
     // SAFETY: the caller's contract.
     unsafe {
         let w = &mut *world;
+        // The rows come from the player store (#1214 stage 6c.3a): role and status to finish, the pose to rewind.
+        let p7 = &mut w.phase_seven.input;
+        let (mode, players) = (p7[0] as usize, p7[3] as usize);
+        assert_eq!(w.players.len(), players, "the store holds the roster");
+        p7.truncate(phase_seven::HEADER);
+        for r in &w.players.rows {
+            p7.extend_from_slice(&if mode == phase_seven::MODE_FINISH {
+                [r.role, r.status]
+            } else {
+                [r.x, r.y]
+            });
+        }
         w.phase_seven.run();
         // A finished match strands its active contestants, in the player store too (#1214 stage 6c.2).
         let (input, out) = (&w.phase_seven.input, &w.phase_seven.output);
