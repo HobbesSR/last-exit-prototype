@@ -60,7 +60,7 @@ const OBSERVED_RECORD = typed('Observed', ['playerIdx', ...OBSERVED, 'x', 'y'], 
 
 const GATE = typed('Gate', words(GATE_FIELDS), { gateIdx: 'uint', open: 'bool', locked: 'bool' });
 // Copied when present: authored traps carry only the fields their kind uses, and `spent` is set only once a
-// mine fires (shared/traps.ts). No production map places traps yet (24.3).
+// mine fires (rust/core/src/hazards.rs). No production map places traps yet (24.3).
 const TRAP = typed('Trap', words(TRAP_FIELDS), {
   id: 'str', kind: oneOf(TRAP_KINDS), x: 'exact', y: 'exact', homeX: 'exact', homeY: 'exact', heading: 'f64', offset: 'exact',
   cooldown: 'exact', spent: 'bool', aiming: 'bool', firing: 'bool', warning: 'bool',

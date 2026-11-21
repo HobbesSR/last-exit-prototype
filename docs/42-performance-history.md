@@ -37,6 +37,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.70](42.70-hook-core.md) | The hook's later rules and the swept query in the Rust core (#1229): 2–5 µs a call, cheaper than the TypeScript for a pulling hook. A flying hook adds about 0.1% of the tick, under the state-flip exception |
 | [42.71](42.71-phase-five-core.md) | The rest of tick phase 5 in the Rust core (#1242): the phase about 17 µs a tick cheaper than the TypeScript; crossing about 9.9 µs, 0.21% of the tick, under the state-flip exception |
 | [42.72](42.72-phase-six-core.md) | Tick phase 6's per-actor loop in the Rust core (#1230): crossing about 28–30 µs a tick, 0.6% of the tick, under the state-flip exception, after the core took over the gate query and the input was written in place (the first version was 1.0–1.1%) |
+| [42.73](42.73-phase-six-seven-core.md) | The rest of tick phase 6 and phase 7 in the Rust core (#1245): the environment's crossing about 14–16 µs, 0.3% of the tick, under the state-flip exception; with traps the phase is about half the TypeScript's cost |
 
 ### Navigation
 

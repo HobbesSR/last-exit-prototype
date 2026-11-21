@@ -9,10 +9,10 @@ import { start as profileStart, stop as profileStop } from '../profiler.ts';
 
 // Phase 5's combat runs in the core (`rust/core/src/combat.rs`, #1242, docs/27 "The state flip", step 5d.2): projectile
 // flight, the end-of-tick casters (the warden skill, then the gladiator attack) and `damage`, with the rewind reads
-// (`asSeenBy`) the casters resolve against. The records stay here (D1): each call packs the roster as compact rows and
-// writes back only what the rules wrote. A kill stops the run before anything of the elimination is written; the
-// elimination runs in the core too (`eliminateInCore`), each mandatory drop at its own sync boundary (5c.2), and the run
-// then resumes where it stopped, from what the core kept.
+// (`asSeenBy`) the casters resolve against, from the frames phase 7 keeps in the core (`phase_seven.rs`). The records
+// stay here (D1): each call packs the roster as compact rows and writes back only what the rules wrote. A kill stops
+// the run before anything of the elimination is written; the elimination runs in the core too (`eliminateInCore`), each
+// mandatory drop at its own sync boundary (5c.2), and the run then resumes where it stopped, from what the core kept.
 interface CombatExports {
   combat_input(world: number, words: number): number;
   combat_run(world: number, index: number, gates: number, swept: number): number;
@@ -34,6 +34,58 @@ interface Call {
   damage?: { target: Player; amount: number; source: Player | null };
 }
 
+/** Each player's rank in ID order, which is `ordered(s)`'s. */
+export function idRanks(s: Game): number[] {
+  const players = s.players, ranks = new Array<number>(players.length);
+  players.map((_, i) => i).sort((a, b) => players[a]!.id < players[b]!.id ? -1 : players[a]!.id > players[b]!.id ? 1 : 0)
+    .forEach((idx, rank) => { ranks[idx] = rank; });
+  return ranks;
+}
+
+/** Words in a player's row (`combat::PLAYER_ROW`). */
+export const PLAYER_ROW = 15;
+/**
+ * Write a player's row (`combat::PLAYER_ROW`) at `at`, into an array or straight into the core's input; returns where it
+ * ends. Phase 6's environment and traps (`hazards.ts`) pack the same rows.
+ */
+export function putPlayerRow(data: { [i: number]: number }, at: number, p: Player, rank: number): number {
+  data[at] = p.role === 'contestant' ? 0 : 1; data[at + 1] = PLAYER_STATUSES.indexOf(p.status); data[at + 2] = KITS.indexOf(p.kit);
+  data[at + 3] = p.x; data[at + 4] = p.y; data[at + 5] = p.heading; data[at + 6] = p.hp; data[at + 7] = p.maxHp; data[at + 8] = p.shield;
+  data[at + 9] = p.level; data[at + 10] = p.cooldown; data[at + 11] = p.attackCd; data[at + 12] = p.stun; data[at + 13] = rank;
+  data[at + 14] = p.viewLagTicks ?? 0;
+  return at + PLAYER_ROW;
+}
+
+/** Write back what a run changed of each player (`combat::OUT_ROW`); returns where the rows end. */
+export function applyPlayerRows(s: Game, out: Float64Array, at: number): number {
+  for (const p of s.players) {
+    if (!Object.is(p.hp, out[at])) p.hp = out[at]!;
+    if (!Object.is(p.shield, out[at + 1])) p.shield = out[at + 1]!;
+    if (!Object.is(p.cooldown, out[at + 2])) p.cooldown = out[at + 2]!;
+    if (!Object.is(p.attackCd, out[at + 3])) p.attackCd = out[at + 3]!;
+    if (!Object.is(p.stun, out[at + 4])) p.stun = out[at + 4]!;
+    at += OUT_ROW;
+  }
+  return at;
+}
+
+/**
+ * Apply a run's log of `length` words from `at`, in order: effects and aggression, and `other` for an op this module
+ * does not own (phase 6's turret spawns). Returns where the log ends.
+ */
+export function applyLog(s: Game, out: Float64Array, at: number, length: number, other?: (op: number, at: number) => void): number {
+  const players = s.players, end = at + length;
+  while (at < end) {
+    const op = out[at]!, len = out[at + 1]!; at += 2;
+    if (op === OP_EFFECT) s.effects.push({ id: out[at]!, x: out[at + 1]!, y: out[at + 2]!, kind: EFFECT_KINDS[out[at + 3]!]!, radius: out[at + 4]!, life: 12 });
+    else if (op === OP_AGGRESSION) { const t = players[out[at]!]!; t.aggressor = players[out[at + 1]!]!.id; t.aggressionUntil = out[at + 2]!; }
+    else if (other) other(op, at);
+    else throw new Error(`unknown combat fact ${op}`);
+    at += len;
+  }
+  return end;
+}
+
 /** One call; returns the elimination it stopped at, if any. */
 function call(s: Game, c: Call): { target: Player; source: Player | null } | null {
   const r = physicsRuntime(s);
@@ -41,18 +93,14 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
   const native = r.world.boundaryCall(), core = native.core as Core, world = native.world;
   configure(s, r, core, world);
   const players = s.players, bullets = c.resume ? [] : c.bullets ?? [], casters = c.resume ? [] : c.casters ?? [];
-  // Rewind frames cross only when a caster's view lags, which bots' and local players' never do.
-  const frames = c.mode === MODE_CASTERS && s.rewind?.length && c.casters!.some(k => (k.player.viewLagTicks ?? 0) > 0) ? s.rewind : [];
+  // The rewind frames are the core's own (phase 7, `phase_seven.rs`), so none cross here.
   const damage = c.damage;
-  const data: number[] = [c.mode, c.resume ? 1 : 0, s.tick, s.serial, players.length, bullets.length, casters.length, frames.length,
+  const data: number[] = [c.mode, c.resume ? 1 : 0, s.tick, s.serial, players.length, bullets.length, casters.length,
     damage ? playerIndex(s, damage.target) : NaN, damage?.amount ?? NaN, damage?.source ? playerIndex(s, damage.source) : -1];
-  const ranks = new Array<number>(players.length);
-  players.map((_, i) => i).sort((a, b) => players[a]!.id < players[b]!.id ? -1 : players[a]!.id > players[b]!.id ? 1 : 0)
-    .forEach((idx, rank) => { ranks[idx] = rank; });
+  const ranks = idRanks(s);
   const paths = c.mode === MODE_PROJECTILES && !c.resume ? c.paths ?? {} : undefined;
   players.forEach((p, i) => {
-    data.push(p.role === 'contestant' ? 0 : 1, PLAYER_STATUSES.indexOf(p.status), KITS.indexOf(p.kit), p.x, p.y, p.heading, p.hp, p.maxHp,
-      p.shield, p.level, p.cooldown, p.attackCd, p.stun, ranks[i]!, p.viewLagTicks ?? 0);
+    putPlayerRow(data, data.length, p, ranks[i]!);
     if (!paths) return;
     const path = paths[`actor:${p.id}`];
     if (!path) { data.push(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0); return; }
@@ -64,7 +112,6 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
     data.push(b.id, owner ? playerIndex(s, owner) : -1, b.x, b.y, b.dx, b.dy, b.life, b.damage);
   }
   for (const k of casters) data.push(playerIndex(s, k.player), k.skill ? 1 : 0, k.attack ? 1 : 0);
-  for (const frame of frames) { data.push(frame.at.length); for (const at of frame.at) data.push(at.x, at.y); }
   // Map preparation can grow memory; view the input only after it.
   const sight = sightOf(s), map = sight.queryHandles(s.map, true);
   const swept = c.mode === MODE_PROJECTILES && !c.resume ? sight.sweptHandle(s.map) : 0;
@@ -77,23 +124,8 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
   const outPtr = core.combat_run(world, map.index, map.gates, swept) >>> 0;
   if (timed) profileStop('sim.projectiles.core');
   const out = new Float64Array(core.memory.buffer, outPtr, new Float64Array(core.memory.buffer, outPtr, 1)[0]!).slice();
-  let at = OUT_HEADER;
-  for (const p of players) {
-    if (!Object.is(p.hp, out[at])) p.hp = out[at]!;
-    if (!Object.is(p.shield, out[at + 1])) p.shield = out[at + 1]!;
-    if (!Object.is(p.cooldown, out[at + 2])) p.cooldown = out[at + 2]!;
-    if (!Object.is(p.attackCd, out[at + 3])) p.attackCd = out[at + 3]!;
-    if (!Object.is(p.stun, out[at + 4])) p.stun = out[at + 4]!;
-    at += OUT_ROW;
-  }
-  const logEnd = at + out[6]!;
-  while (at < logEnd) {
-    const op = out[at]!, len = out[at + 1]!; at += 2;
-    if (op === OP_EFFECT) s.effects.push({ id: out[at]!, x: out[at + 1]!, y: out[at + 2]!, kind: EFFECT_KINDS[out[at + 3]!]!, radius: out[at + 4]!, life: 12 });
-    else if (op === OP_AGGRESSION) { const t = players[out[at]!]!; t.aggressor = players[out[at + 1]!]!.id; t.aggressionUntil = out[at + 2]!; }
-    else throw new Error(`unknown phase 5 fact ${op}`);
-    at += len;
-  }
+  let at = applyPlayerRows(s, out, OUT_HEADER);
+  at = applyLog(s, out, at, out[6]!);
   s.serial = out[1]!;
   // Each live bullet's life, then its position; an expired one keeps its position.
   c.bullets?.slice(0, out[7]!).forEach(b => {

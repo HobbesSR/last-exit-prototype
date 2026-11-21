@@ -229,8 +229,9 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
   #1066's single command queue drained at the start of the step is not part of the flip: it would change what
   a between-tick snapshot shows, and nothing needs it. It stays an option.
 - **IDs (D6).** `serial`, `itemSerial` and `scatterSerial` move into the core with the same allocation points and
-  order. There are no unified generational IDs; that would be a rules change of its own. Randomness in the tick
-  is stateless (`itemRoll` hashes seed and label) and is ported bit for bit.
+  order. There are no unified generational IDs; that would be a rules change of its own. The tick draws no
+  randomness. The one stateless hash, `itemRoll` (seed and label), is match setup's, so it moves with setup, bit for
+  bit (step 5e.2).
 - **The state's layout (D7).** Plain Rust structs in ordered `Vec`s (players in roster order, lists in their
   current order), with no ECS library. The export layout is the versioned contract, under `ADAPTER_VERSION`; the
   internal layout is free.
@@ -547,16 +548,16 @@ adapter; `combat.ts`'s `damage` and `lifecycle.ts`'s `eliminate` are now entry p
   `charging`, then a gladiator's `respawnAt` and the cleared `input`, D4's table), the `reload = null` that
   `dropReserves` wrote even where `reload` was absent, and the kill credit. Damage reports `aggressor` and
   `aggressionUntil` as a fact, in that order. Fields that always exist are written back where they changed.
-- **Rewind's frames are read in the core.** `recordRewind` still writes `s.rewind` in Node. A caster run packs the
-  frames only when a caster's view lags, which bots' and local players' never do.
+- **Rewind's frames are read in the core.** Until 5e.2 `recordRewind` wrote `s.rewind` in Node, and a caster run
+  packed the frames when a caster's view lagged. Since 5e.2 phase 7 records them in the core, so none cross.
 - **Event and effect records** (`event`, `effect`, `participant`) moved from `loot.ts` to the leaf
   `event-records.ts`, so the adapters build the records the core's facts name without importing their callers.
 - **No TypeScript copy.** `damage`, `eliminate`, the warden skill, the gladiator attack and the projectile sweep have
   no record-level copy: their only bare-record callers were tests, which now build real games
   (`tests/physics-projectiles.test.js`, the mine case in `tests/physics-explosion.test.js`), and `action-parity` no
   longer compares melee. Scenario `attack` and `skill` calls for a gladiator or warden run the caster run, which skips
-  a caster that is not active, as the tick did. `damage` from phase 6 (traps, the hazard wall) calls the core until
-  5e.2 (#1245) moves those phases.
+  a caster that is not active, as the tick did. Phase 6's environment and traps call the core's damage directly
+  since 5e.2 (#1245).
 - **Cost:** [42.71](42.71-phase-five-core.md).
 
 **Step 5e.1, phase 6's per-actor loop (#1230, adapter version 16).** `rust/core/src/phase_six.rs` runs, in `ordered(s)`
@@ -602,6 +603,51 @@ keys, a gladiator's transit and the sensors' reveal. `shared/simulation/phase-si
 - **Two copies on purpose.** The pickup transfer and the transit rules keep TypeScript callers; see the ledger rows
   above.
 - **Cost:** [42.72](42.72-phase-six-core.md).
+
+**Step 5e.2, the rest of phase 6 and phase 7 (#1245, adapter version 17).** `rust/core/src/hazards.rs` runs
+`applyEnvironment` (the hazard wall, then the hazard areas) for each active actor in `ordered(s)` order, then `stepTraps`
+(mine, turret, flame and spider) in map order, in one call. `rust/core/src/phase_seven.rs` runs `finishMatch` and keeps
+the rewind frames. `shared/simulation/hazards.ts` and `phase-seven.ts` are their adapters. `shared/traps.ts` and the
+TypeScript `applyEnvironment`, `finishMatch`, `recordRewind` and `asSeenBy` are gone.
+- **Damage is the core's, called directly** (`combat::Run::damage`). The hazards run packs the roster as phase 5's rows,
+  plus each actor's `movedThisTick`, so the two phases share one row format and one write-back (`phase-five.ts`).
+- **Two stops, both at a sync boundary.**
+  - **A kill.** The run returns before anything of the elimination is written. Node runs it (`eliminateInCore`, 5d.2),
+    whose mandatory drops each return at 5c.2's sync boundary. The run then resumes from the core's cursor with
+    everything repacked, so the next actor or trap reads the live records, as the TypeScript did. A spider's grapple
+    effect is placed after the elimination, where it left the target.
+  - **A mine's explosion.** Its impulses (`enqueueExplosionImpulses`) are **kept in Node, at a stop.** They synchronize
+    the world, read its body snapshot, and fill the pending-impulse queue. That queue is Node's until the flip (#1214),
+    and phase 1's admission reads it there (5b.3). Porting them now would mean moving that queue into the core ahead of
+    the flip, or adding a second admission protocol. A mine explodes at most once a match, so the stop costs nothing
+    measurable. The impulses move with the queue at #1214.
+- **Trap records keep their key order.** Authored traps carry only their kind's fields, and `stepTraps` creates keys:
+  `cooldown` on every live trap each tick, `spent` when a mine fires, and `aiming`, `heading`, `targetId`, `firing`
+  and `warning` where absent. The core returns each written trap with a mask of its writes, and Node writes them in
+  one order that every kind's own order agrees with: `cooldown`, `spent`, `aiming`, `targetId`, `heading`, the
+  position, `firing`, `warning`.
+- **The turret's spawns go straight to `pendingSpawns`.** Each comes back in the log as a fact with the core's ID, and
+  is admitted at the next tick's phase 1 as before. The tick no longer splices them off `s.projectiles`.
+- **`finishMatch` reports, Node writes.** The match's phase, the stranded statuses and the `match_finished` event stay
+  Node's records until the flip. The call reports whether the match finished, the event's ID and who is stranded.
+  It runs after discovery and before the last sync, as before.
+- **The rewind frames are the core's own.** `recordRewind` packs each player's position after the last sync, and the
+  caster run reads the frames in place. `s.rewind` is gone from the game record; it never reached a snapshot or a
+  recording. The window, `MAX_REWIND_TICKS`, is one constant in the core. `rewind.ts` keeps its own copy for
+  `viewLagFrom`, which bounds a view's lag in Node.
+- **`itemRoll` is not ported (D6).** No tick calls it. Its only caller is match setup (`assignWeaponQualities` in
+  `createGameRecord`), which stays in TypeScript and hands the core finished qualities. A port now would be a second
+  copy whose only caller is its parity test. It moves with setup, with a parity test then. #1214 holds the pickup.
+- **No TypeScript copy.** `tests/physics-explosion.test.js` and `tests/traps.test.js` run real games. The bare-record
+  mine case and `tests/player-relations.test.js`'s rewind case are gone: the core keeps frames by roster slot and never
+  reads an ID, and `tests/rewind.test.js` covers lagged reads through the core.
+- **Continuity.** The frozen fixture clears traps, and its maps place none, so it does not witness this stage's
+  traps. An ad hoc trace did: bot matches on the fixture's two arenas with about 300 traps of all four kinds, about 85
+  hazard areas and lagging gladiators. It hashed every tick's snapshot and projections, the trap records as JSON (so key
+  order counts), the pending spawns and the pending impulses. Every hash matched between a pristine export of `main`
+  and this change ([42.73](42.73-phase-six-seven-core.md)).
+- **Cost:** [42.73](42.73-phase-six-seven-core.md).
+
 
 ## One math library on both sides
 

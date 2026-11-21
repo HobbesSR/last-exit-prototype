@@ -91,7 +91,7 @@ test('families a short bot match never sends round-trip exactly', async () => {
   state.tethers = [physicsTetherFields({ id: 5, a: 7, b: 8 })];
   state.hookFlights = [physicsHookFlightFields({ id: 5, a: 7, casterIdx: 2, x: 10.123456789, y: -4 })];
   state.predictionTethered = true; state.hookActive = true;
-  // Traps as authored carry only their kind's fields; `spent` appears only once a mine has fired (shared/traps.ts).
+  // Traps as authored carry only their kind's fields; `spent` appears only once a mine has fired (rust/core/src/hazards.rs).
   state.traps = [
     { id: 'trap-1', kind: 'turret', x: 3, y: 4.5, homeX: 3, homeY: 4, heading: Math.PI / 3, offset: 2, cooldown: 7.5, aiming: true, firing: false, warning: true, targetId: 'c0' },
     { id: 'trap-mine', kind: 'mine', x: 580, y: 525, heading: 0 }, { id: 'trap-spent', kind: 'mine', x: 1, y: 2, heading: 0, cooldown: 0, offset: 0, spent: true },

@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makePlayer, joinGame, changeSeat } from '../shared/simulation/state.ts';
 import { gateAt, indexRoster, playerById, playerIndex } from '../shared/simulation/relations.ts';
-import { asSeenBy, recordRewind } from '../shared/simulation/rewind.ts';
 
 const roster = () => ({ phase: 'live', players: [
   makePlayer('c0', 'C0', 'contestant', 'runner', 0),
@@ -106,17 +105,4 @@ test('dense player slots survive joins, role changes, and metadata renames', () 
   assert.equal(playerIndex(s, joined), 0);
   assert.equal(playerIndex(s, contestant), 0);
   assert.equal(playerIndex(s, gladiator), 1);
-});
-
-test('rewind poses remain aligned to player slots when an ID label changes', () => {
-  const s = roster(), [target, viewer] = s.players;
-  Object.assign(target, { x: 123, y: 456 });
-  Object.assign(viewer, { x: 789, y: 234, viewLagTicks: 1 });
-  s.tick = 7;
-  recordRewind(s);
-
-  assert.deepEqual(s.rewind[0].at[0], { x: 123, y: 456 });
-  target.id = 'new-label';
-  Object.assign(target, { x: 900, y: 901 });
-  assert.deepEqual(asSeenBy(s, viewer)(target), { x: 123, y: 456 });
 });

@@ -116,16 +116,12 @@ test('travel-time projectiles are deliberately not compensated', duel(({ s, shoo
 
 test('the rewind history never reaches a snapshot or a recording', duel(({ s }) => {
   settle(s);
-  assert.ok(s.rewind.length > 0, 'history is being kept');
+  // The frames are the core's own since #1245 (27 step 5e.2); the bounded window is `phase_seven.rs`'s test.
+  assert.equal(Object.hasOwn(s, 'rewind'), false, 'history is kept in the core, not on the record');
   const frame = snapshot(s);
   assert.equal(Object.hasOwn(frame, 'rewind'), false, 'and stays out of the recorded frame');
   // It is derivable from the frames a recording already holds, so carrying it would store twice.
   assert.equal(JSON.stringify(frame).includes('rewind'), false);
-}));
-
-test('history is bounded rather than growing with the match', duel(({ s }) => {
-  settle(s, MAX_REWIND_TICKS * 4);
-  assert.equal(s.rewind.length, MAX_REWIND_TICKS);
 }));
 
 test('a player who leaves stops being compensated', async () => {
