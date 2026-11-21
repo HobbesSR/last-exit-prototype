@@ -100,6 +100,29 @@ their mirror, read back after every change (`mirrorPendingQueues`) for the gamep
   the pending impulses every tick, compared this change with a pristine export of 6d.4.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6d.6a, one sync in the core (#1214, adapter version 30).** Node's `synchronize` is one core call
+(`physics_sync`, `boundary::synchronize`) where it was four: the body sync, the item admission, the pending queues'
+generation filter (6d.5) and the hooks' reconcile (6d.4). This is the routine the drops, pickups, swaps and a mine's
+explosion will run inside their own core runs (6d.6b on).
+- **One log.** The steps run in the old order and write one log. The hooks' reconcile adds its commits (the boundary's
+  `OP_COMMIT`) and its removals (`OP_HOOK_REMOVED`, a hook's index as the sync began). The reconcile never changes a kept
+  hook's fields, so no hook states follow. A refusal stops the sync where it is, as each call's throw stopped Node's, and
+  is thrown after the log is applied and the queues' mirror is read back.
+- **What crosses** is the tick, whether items are admitted, the markers' capacity, the roster's size and the markers.
+  Node's tick trims the markers (`tick.ts`), so they still cross. The rest is the world's:
+  - the body templates, the drop reserve and the hook tuning, uploaded once per world (`physics_sync_configure`,
+    `World::sync_config`);
+  - the item admission's actor disks, from the player store in roster order, after the body step's poses and retries
+    reach it;
+  - the launches, which Node's `itemLaunches` buffer hands over at the sync's start. The core keeps them until an
+    admission takes them, so whether one is waiting is the core's to know.
+- **`sim.itemSync`** no longer has its own label: the admission is timed inside `sim.sync`.
+- **`reconcileHooks` is gone** from `hook.ts`. The core's hook call keeps its reconcile mode, which the sync calls
+  directly (`hooks::reconcile_into`).
+- **Continuity.** The fixture and its bots variant pass. `tools/trap-continuity.mjs` matched a pristine export of
+  `0909b83f` hash for hash. Its mines fill the pending queues and its hooks are reconciled by every sync.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -790,7 +813,11 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
     - **6d.4 (#1214):** the hooks. Below.
     - **6d.5 (#1214):** the pending queues, and the discontinuity markers each sync leaves. Below.
     - **6d.6:** the sync inside a run: the drops, pickups, swaps and a mine's explosion stop syncing in Node, and the
-      explosion's impulses are enqueued in the core.
+      explosion's impulses are enqueued in the core. Staged by the stops it removes:
+      - **6d.6a (#1214):** the whole sync is one core routine, which Node's `synchronize` calls once. Below.
+      - **6d.6b:** phase 3's drops sync inside their run, and the ground's write direction flips for them.
+      - **6d.6c:** phase 6's pickups and swaps, with the core's ground grid for the resume list.
+      - **6d.6d:** a mine's explosion syncs and enqueues its impulses in `hazards.rs`, retiring `STOP_EXPLOSION`.
 - **The direction (Corey, 2026-11-21, on #1214):** "now the way this should work eventually is that essentially the core
   should just be receiving tick timed input events or roughly that at the interface betweeen it and JS". So from 6d.2
   the remaining work is ordered by the stops it removes, each a crossing gone for good, rather than reader by reader.

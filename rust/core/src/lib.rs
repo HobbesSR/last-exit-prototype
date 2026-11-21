@@ -35,7 +35,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 29;
+pub const ADAPTER_VERSION: u32 = 30;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -710,32 +710,29 @@ world_export!(
     physics_boundary_output() -> *const f64 = |w| w.boundary_output.as_ptr()
 );
 
-/// The sync's first call (`boundary::synchronize_bodies`).
+/// The whole body sync (`boundary::synchronize`, #1214 stage 6d.6).
 ///
 /// # Safety
-/// `world`, `map` and `gates` are live, and `gates` is the map's gate set with its open mask written.
+/// `world`, `map`, `gates` and `swept` are live, and `gates` is the map's gate set with its open mask written.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn physics_sync_bodies(
+pub unsafe extern "C" fn physics_sync(
     world: *mut world::World,
     map: *mut collision::CollisionMap,
     gates: *mut sight::GateSet,
+    swept: *const swept::SweptMap,
 ) {
     // SAFETY: the caller's contract.
-    unsafe { boundary::synchronize_bodies(&mut *world, &mut *map, &mut *gates) }
+    unsafe { boundary::synchronize(&mut *world, &mut *map, &mut *gates, &*swept) }
 }
 
-/// The sync's second call (`boundary::synchronize_items`).
+/// The sync's match-pinned settings from the boundary input (`World::configure_sync`, #1214 stage 6d.6).
 ///
 /// # Safety
-/// As `physics_sync_bodies`.
+/// `world` is live and its boundary input holds the settings.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn physics_sync_items(
-    world: *mut world::World,
-    map: *mut collision::CollisionMap,
-    gates: *mut sight::GateSet,
-) {
+pub unsafe extern "C" fn physics_sync_configure(world: *mut world::World) {
     // SAFETY: the caller's contract.
-    unsafe { boundary::synchronize_items(&mut *world, &mut *map, &mut *gates) }
+    unsafe { (*world).configure_sync() }
 }
 
 /// Phase 1's pending admission (`boundary::admit_pending`).
@@ -755,7 +752,7 @@ pub unsafe extern "C" fn physics_admit_pending(
 /// The placement search (`boundary::place`).
 ///
 /// # Safety
-/// As `physics_sync_bodies`.
+/// As `physics_sync`, without the swept map.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn physics_place(
     world: *mut world::World,

@@ -456,35 +456,29 @@ impl Run<'_> {
     }
 }
 
-/// One hook call over the world's boundary input; the header, log and states go to its boundary
-/// output.
-pub fn run(world: &mut World, swept: &SweptMap, gates: &GateSet) {
-    let input = std::mem::take(&mut world.boundary_input);
-    let v = |i: usize| input[i];
-    let mode = v(0);
-    let player_count = v(2) as usize;
-    let hook_count = v(3) as usize;
-    let with_paths = v(4) != 0.0;
-    let tuning = Tuning {
-        range: v(5),
-        break_distance: v(6),
-        duration: v(7),
-        standoff: v(8),
-        target_distance: v(9),
-        pull_speed: v(10),
-        hz: v(11),
-        stiffness: v(12),
-        damping: v(13),
-        max_force: v(14),
-        speed: v(15),
-    };
-    let mut at = IN_HEADER;
-    assert_eq!(
-        world.players.len(),
-        player_count,
-        "the store holds the roster"
-    );
-    let players: Vec<Player> = world
+/// The hook tuning from the input's words 5 to 15 (`content.hook` and `HZ`), as `hook.ts` packs them and the sync's
+/// settings keep them (`world::SyncConfig`).
+pub(crate) const TUNING_WORDS: usize = 11;
+
+fn tuning(v: &[f64]) -> Tuning {
+    Tuning {
+        range: v[0],
+        break_distance: v[1],
+        duration: v[2],
+        standoff: v[3],
+        target_distance: v[4],
+        pull_speed: v[5],
+        hz: v[6],
+        stiffness: v[7],
+        damping: v[8],
+        max_force: v[9],
+        speed: v[10],
+    }
+}
+
+/// The rules' view of the players, from the core's player store (`players.rs`, #1214 stage 6c.3a), in roster order.
+fn players_of(world: &World) -> Vec<Player> {
+    world
         .players
         .rows
         .iter()
@@ -497,33 +491,14 @@ pub fn run(world: &mut World, swept: &SweptMap, gates: &GateSet) {
             x: r.x,
             y: r.y,
         })
-        .collect();
-    // `ordered(s)`: the roster by ID, which is each row's rank.
-    let mut order: Vec<usize> = (0..player_count).collect();
-    order.sort_by(|&a, &b| {
-        world.players.rows[a]
-            .rank
-            .total_cmp(&world.players.rows[b].rank)
-    });
-    let mut paths: Vec<Option<[[f64; 2]; STEPS + 1]>> = vec![None; player_count];
-    if with_paths {
-        for path in paths.iter_mut() {
-            let r = &input[at..at + PATH_STRIDE];
-            if r[0] != 0.0 {
-                let mut points = [[0.0; 2]; STEPS + 1];
-                for (k, point) in points.iter_mut().enumerate() {
-                    *point = [r[1 + 2 * k], r[2 + 2 * k]];
-                }
-                *path = Some(points);
-            }
-            at += PATH_STRIDE;
-        }
-    }
-    // The hooks are the world's own (#1214 stage 6d.4); the adapter sends none. Whether a hook still names its caster,
-    // and its target the actor it hit, is read from the player store's keys, as the adapter compared the IDs.
-    let _ = (hook_count, HOOK_STRIDE);
+        .collect()
+}
+
+/// The world's own hooks (#1214 stage 6d.4), as the rules read them. Whether a hook still names its caster, and its
+/// target the actor it hit, is read from the player store's keys, as the adapter compared the IDs.
+fn hooks_of(world: &World) -> Vec<Hook> {
     let store = &world.players;
-    let mut hooks: Vec<Hook> = world
+    world
         .hooks
         .iter()
         .map(|h| {
@@ -548,7 +523,107 @@ pub fn run(world: &mut World, swept: &SweptMap, gates: &GateSet) {
                 removed: false,
             }
         })
+        .collect()
+}
+
+/// The world keeps what the rules left, as JavaScript's mirror applies it: a hit's target takes the target's current
+/// actor key.
+fn keep(world: &mut World, hooks: &[Hook]) {
+    let kept: Vec<HookRecord> = world
+        .hooks
+        .iter()
+        .zip(hooks)
+        .filter(|(_, h)| !h.removed)
+        .map(|(old, h)| HookRecord {
+            x: h.x,
+            y: h.y,
+            travelled: h.travelled,
+            phase: h.phase,
+            target: h.target,
+            target_key: if h.target.is_nan() {
+                old.target_key
+            } else {
+                world.players.extra[h.target as usize].key
+            },
+            generation_b: h.generation_b,
+            hit_tick: h.hit_tick,
+            desired: h.desired,
+            ..*old
+        })
         .collect();
+    world.hooks = kept;
+}
+
+/// `reconcileHooks` as the last step of a sync the core runs itself (`boundary::synchronize`, #1214 stage 6d.6). Its
+/// log (`OP_COMMIT`, `OP_REMOVED`) is appended to `log`; the reconcile changes no hook's fields, so no states follow.
+/// The refusal names a key only, as the reconcile never queues a constraint.
+pub(crate) fn reconcile_into(
+    world: &mut World,
+    swept: &SweptMap,
+    gates: &GateSet,
+    tick: f64,
+    words: &[f64],
+    log: &mut Vec<f64>,
+) -> Result<(), (i32, f64)> {
+    let players = players_of(world);
+    let mut hooks = hooks_of(world);
+    let mut run = Run {
+        world,
+        swept,
+        gates,
+        tick,
+        tuning: tuning(words),
+        players,
+        props: None,
+        log: Vec::new(),
+    };
+    let result = run.reconcile(&mut hooks);
+    log.extend_from_slice(&run.log);
+    keep(run.world, &hooks);
+    result.map_err(|(code, key, _, _)| (code, key))
+}
+
+/// One hook call over the world's boundary input; the header, log and states go to its boundary
+/// output.
+pub fn run(world: &mut World, swept: &SweptMap, gates: &GateSet) {
+    let input = std::mem::take(&mut world.boundary_input);
+    let v = |i: usize| input[i];
+    let mode = v(0);
+    let player_count = v(2) as usize;
+    let hook_count = v(3) as usize;
+    let with_paths = v(4) != 0.0;
+    let tuning = tuning(&input[5..5 + TUNING_WORDS]);
+    let mut at = IN_HEADER;
+    assert_eq!(
+        world.players.len(),
+        player_count,
+        "the store holds the roster"
+    );
+    let players = players_of(world);
+    // `ordered(s)`: the roster by ID, which is each row's rank.
+    let mut order: Vec<usize> = (0..player_count).collect();
+    order.sort_by(|&a, &b| {
+        world.players.rows[a]
+            .rank
+            .total_cmp(&world.players.rows[b].rank)
+    });
+    let mut paths: Vec<Option<[[f64; 2]; STEPS + 1]>> = vec![None; player_count];
+    if with_paths {
+        for path in paths.iter_mut() {
+            let r = &input[at..at + PATH_STRIDE];
+            if r[0] != 0.0 {
+                let mut points = [[0.0; 2]; STEPS + 1];
+                for (k, point) in points.iter_mut().enumerate() {
+                    *point = [r[1 + 2 * k], r[2 + 2 * k]];
+                }
+                *path = Some(points);
+            }
+            at += PATH_STRIDE;
+        }
+    }
+    // The hooks are the world's own (6d.4); the adapter sends none.
+    let _ = (hook_count, HOOK_STRIDE);
+    let mut hooks = hooks_of(world);
     let mut run = Run {
         world,
         swept,
@@ -589,31 +664,7 @@ pub fn run(world: &mut World, swept: &SweptMap, gates: &GateSet) {
     out[OUT_HEADER - 1] = out.len() as f64;
     world.boundary_output = out;
     world.boundary_input = input;
-    // The world keeps what the rules left, as JavaScript's mirror applies it: a hit's target takes the target's current
-    // actor key.
-    let kept: Vec<HookRecord> = world
-        .hooks
-        .iter()
-        .zip(&hooks)
-        .filter(|(_, h)| !h.removed)
-        .map(|(old, h)| HookRecord {
-            x: h.x,
-            y: h.y,
-            travelled: h.travelled,
-            phase: h.phase,
-            target: h.target,
-            target_key: if h.target.is_nan() {
-                old.target_key
-            } else {
-                world.players.extra[h.target as usize].key
-            },
-            generation_b: h.generation_b,
-            hit_tick: h.hit_tick,
-            desired: h.desired,
-            ..*old
-        })
-        .collect();
-    world.hooks = kept;
+    keep(world, &hooks);
 }
 
 #[cfg(test)]

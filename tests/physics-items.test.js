@@ -9,7 +9,7 @@ import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.t
 import { interact } from '../shared/simulation/interactions.ts';
 import { eliminate } from '../shared/simulation/lifecycle.ts';
 import { addItems, removeItem, unadmittedItems } from '../shared/simulation/ground-items.ts';
-import { synchronizeBodies, synchronizeItems } from '../shared/simulation/boundary.ts';
+import { synchronize } from '../shared/simulation/game.ts';
 import { openArea } from './helpers/arena.js';
 import { identifyItems, itemId, itemLabel } from './helpers/item-identity.js';
 
@@ -63,8 +63,8 @@ test('admission prioritizes launched ids, preserves reserve, and retries ordinar
     const originalHas = r.items.has.bind(r.items);
     let ownershipChecks = 0;
     r.items.has = id => { ownershipChecks++; return originalHas(id); };
-    // The item sync alone, as the body sync's item steps run it (`rust/core/src/boundary.rs`).
-    const synchronizePhysicalItems = (markTick) => { if (synchronizeBodies(s, r, markTick, true)) synchronizeItems(s, r, markTick); };
+    // The body sync, whose item steps admit the items (`rust/core/src/boundary.rs`, one call since #1214 stage 6d.6).
+    const synchronizePhysicalItems = (markTick) => synchronize(s, r, markTick);
     // Only the admission's reads count: setup's addItems reads each record once to write it through to the core's
     // ground store (#1214 stage 6d.1).
     blockedChecks = 0;
@@ -76,7 +76,7 @@ test('admission prioritizes launched ids, preserves reserve, and retries ordinar
     assert.equal(r.world.canAddBodies(1), true, 'ordinary admission leaves the drop reserve free');
     assert.equal(r.itemLaunches.size, 0);
     // Node reads no record during the admission: the core takes positions from its ground store and skips a launched
-    // record in its ordinary walk (#1214 stage 6d.3, `synchronize_items`). The blocked launch is not placed (above).
+    // record in its ordinary walk (#1214 stage 6d.3, the sync's `items` step in `boundary.rs`). The blocked launch is not placed (above).
     assert.equal(blockedChecks, 0, 'the admission reads no record in JavaScript');
     assert.ok(ownershipChecks < 20, `only visited candidates check ownership (${ownershipChecks})`);
     const generation = r.world.getGeneration('item:a');
