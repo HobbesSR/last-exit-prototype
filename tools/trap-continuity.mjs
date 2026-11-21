@@ -59,8 +59,10 @@ if (args.includes('--out')) {
   console.log(JSON.stringify(Object.fromEntries(Object.entries(result).map(([seed, r]) => [seed, { ticks: r.ticks, ...r.counts }]))));
 } else {
   const expected = JSON.parse(readFileSync(at('--compare'), 'utf8'));
-  const differ = Object.keys(expected).flatMap(seed => expected[seed].chunks
-    .filter((chunk, i) => chunk.hash !== result[seed]?.chunks[i]?.hash).map(chunk => `seed ${seed} by tick ${chunk.tick}`));
+  // Chunk for chunk, and the same count, so a trace that ran longer or shorter differs too (review 987).
+  const differ = Object.keys(expected).flatMap(seed => [
+    ...expected[seed].chunks.filter((chunk, i) => chunk.hash !== result[seed]?.chunks[i]?.hash).map(chunk => `seed ${seed} by tick ${chunk.tick}`),
+    ...(expected[seed].chunks.length === result[seed]?.chunks.length ? [] : [`seed ${seed}'s chunk count`])]);
   console.log(differ.length ? `differs: ${differ.join(', ')}` : 'every hash matches');
   if (differ.length) process.exitCode = 1;
 }
