@@ -4,19 +4,16 @@ import { collectBotIntent } from './bots.ts';
 import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
 import type { BotIntent } from './bots.ts';
 import { consumeInput } from './input.ts';
-import { finishMatch } from './lifecycle.ts';
 import { beginTick } from './phase-one.ts';
-import { damage } from './combat.ts';
 import { castersInCore, solvePhysicsProjectiles } from './phase-five.ts';
 import type { Caster } from './phase-five.ts';
 import { prepareHooks, finishHooks } from './hook.ts';
 import { phaseSix, STEP_CHARGING, STEP_INTERACT, STEP_PICKUPS, STEP_TRANSIT } from './phase-six.ts';
 import type { Turn } from './phase-six.ts';
-import { effect } from './event-records.ts';
-import { stepTraps } from '../traps.ts';
-import { applyEnvironment, advanceDiscovery } from './tick-rules.ts';
+import { environmentAndTraps } from './hazards.ts';
+import { advanceDiscovery } from './tick-rules.ts';
 import { playerIndex } from './relations.ts';
-import { recordRewind } from './rewind.ts';
+import { finishMatch, recordRewind } from './phase-seven.ts';
 import { actorId, ordered, synchronize } from './game.ts';
 import { admitPending } from './boundary.ts';
 import { physicsRuntime } from './physics-runtime.ts';
@@ -103,16 +100,13 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   }
   phaseSix(s, turns, true);
   stop('sim.pickups');
+  // The environment, then the traps, in the core (`hazards.rs`, 27 step 5e.2); a turret's spawns wait in `pendingSpawns`.
   start('sim.environment');
-  for (const p of ordered(s)) if (p.status === 'active') {
-    applyEnvironment(s, p);
-  }
-  const admittedProjectiles = s.projectiles.length;
-  stepTraps(s, damage, effect);
-  r.pendingSpawns.push(...s.projectiles.splice(admittedProjectiles));
+  environmentAndTraps(s);
   stop('sim.environment');
   if (r.pendingSpawns.length > 128) throw new RangeError('pending projectile capacity');
-  // 7: next-boundary body state, discovery, terminal result, rewind and capture readiness.
+  // 7: next-boundary body state, discovery, terminal result, rewind and capture readiness. The terminal result and the
+  // rewind frame are the core's (`phase_seven.rs`, 27 step 5e.2), as the syncs and discovery are.
   start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
   advanceDiscovery(s);
   finishMatch(s);

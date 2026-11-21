@@ -183,7 +183,7 @@ const report = {
 
 try {
   const files = ['tools/physics/p5-report.mjs', 'shared/physics/world.ts', 'shared/simulation/game.ts', 'shared/simulation/tick.ts',
-    'shared/physics/types.ts', 'shared/simulation/physics-runtime.ts', 'shared/traps.ts',
+    'shared/physics/types.ts', 'shared/simulation/physics-runtime.ts', 'shared/simulation/hazards.ts', 'rust/core/src/hazards.rs',
     'shared/simulation/explosion-physics.ts', 'shared/simulation/actor-physics.ts', 'shared/simulation.ts',
     'shared/simulation/world-physics.ts', 'shared/simulation/physics-presentation.ts', 'shared/simulation/visibility.ts',
     'shared/simulation/content.ts', 'shared/simulation/loot.ts', 'shared/simulation/interactions.ts', 'shared/equipment.ts', 'shared/item-instances.ts',

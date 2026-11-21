@@ -141,7 +141,7 @@ export interface KitSpec {
  *
  * Reach, damage, cadence and projectile behaviour are balance and live here. The arithmetic that
  * makes a trap work - the epsilon that decides a player counts as moving, the radius a spider body
- * occupies - stays in `traps.ts`, because changing it is a change to the mechanism rather than to
+ * occupies - stays in the core's `hazards.rs`, because changing it is a change to the mechanism rather than to
  * the numbers the mechanism runs on.
  */
 export interface TrapContent {
@@ -881,12 +881,6 @@ export interface Game {
   /** World x of the advancing wall; anything west of it takes damage. */
   hazardX: World;
   serial: Serial;
-  /**
-   * Recent positions, for resolving a shot against what its shooter could see. Deliberately absent
-   * from `Snapshot`: it is derivable from the frames a recording already holds, so carrying it would
-   * multiply every recorded frame's position data to store what is already there.
-   */
-  rewind?: { tick: Tick; at: Vec2[] }[] | undefined;
 }
 
 export type SnapshotItem<I extends ItemKey = ItemId> = Omit<GroundItem<I>, 'x' | 'y'> & Partial<Vec2>;

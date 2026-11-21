@@ -251,7 +251,7 @@ test('a frame from before schema 16 projects without a seat and keeps the id fal
 
 test('trap balance is read from the match, not from the module it defaults in', async () => {
   // A mine set to hit harder must hit harder. Reach, damage and cadence are balance; the arithmetic
-  // that makes the trap work is not, and stays in traps.ts.
+  // that makes the trap work is not, and stays in the core's hazards.rs.
   const content = structuredClone(defaultContent());
   content.id = 'heavy-mines';
   content.traps.mine.damage = 80;

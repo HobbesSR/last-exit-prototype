@@ -16,6 +16,7 @@ use crate::action_combat::{self, Fact};
 use crate::action_types::{Player, Rules};
 use crate::collision::line_clear;
 use crate::math::{hypot, js_max, js_min};
+use crate::phase_seven::{MAX_REWIND_TICKS, Rewind};
 use crate::sight::{GateSet, SightIndex};
 use crate::swept::{SweptMap, hit_radius, impact};
 
@@ -23,8 +24,9 @@ pub const MODE_PROJECTILES: usize = 0;
 pub const MODE_CASTERS: usize = 1;
 pub const MODE_DAMAGE: usize = 2;
 /// Input header: mode, resume (nonzero continues the retained run), tick, serial, player count, bullet
-/// count, caster count, rewind frame count, then a damage call's target, amount and source (-1 none).
-pub const HEADER: usize = 11;
+/// count, caster count, then a damage call's target, amount and source (-1 none). The rewind frames are
+/// the core's own (`phase_seven::Rewind`, 27 step 5e.2).
+pub const HEADER: usize = 10;
 /// Per player: role (0 contestant), status (0 active), kit, x, y, heading, hp, maxHp, shield, level,
 /// cooldown, attackCd, stun, rank in ID order, view lag (0 when unset). Projectile calls follow each row
 /// with a path flag and five substep points.
@@ -44,7 +46,6 @@ pub const OP_AGGRESSION: f64 = 2.0;
 
 const PROJECTILE_RADIUS: f64 = 2.0;
 const STEPS: usize = 4;
-const MAX_REWIND_TICKS: f64 = 10.0;
 const WARDEN: f64 = 0.0;
 const EFFECT_SHOCK: usize = 0;
 
@@ -53,23 +54,57 @@ fn positive(n: f64) -> bool {
     n > 0.0
 }
 
+/// A player's row, as `PLAYER_ROW` packs it. Phase 6's environment and traps (`hazards.rs`) read the same rows.
 #[derive(Clone, Copy)]
-struct Row {
-    role: f64,
-    status: f64,
-    kit: f64,
-    x: f64,
-    y: f64,
-    heading: f64,
-    hp: f64,
-    max_hp: f64,
-    shield: f64,
-    level: f64,
-    cooldown: f64,
-    attack_cd: f64,
-    stun: f64,
-    rank: f64,
-    lag: f64,
+pub(crate) struct Row {
+    pub(crate) role: f64,
+    pub(crate) status: f64,
+    pub(crate) kit: f64,
+    pub(crate) x: f64,
+    pub(crate) y: f64,
+    pub(crate) heading: f64,
+    pub(crate) hp: f64,
+    pub(crate) max_hp: f64,
+    pub(crate) shield: f64,
+    pub(crate) level: f64,
+    pub(crate) cooldown: f64,
+    pub(crate) attack_cd: f64,
+    pub(crate) stun: f64,
+    pub(crate) rank: f64,
+    pub(crate) lag: f64,
+}
+
+impl Row {
+    /// One packed row (`PLAYER_ROW` words).
+    pub(crate) fn read(a: &[f64]) -> Row {
+        Row {
+            role: a[0],
+            status: a[1],
+            kit: a[2],
+            x: a[3],
+            y: a[4],
+            heading: a[5],
+            hp: a[6],
+            max_hp: a[7],
+            shield: a[8],
+            level: a[9],
+            cooldown: a[10],
+            attack_cd: a[11],
+            stun: a[12],
+            rank: a[13],
+            lag: a[14],
+        }
+    }
+    /// The fields these rules write back (`OUT_ROW` words).
+    pub(crate) fn write(&self, out: &mut Vec<f64>) {
+        out.extend_from_slice(&[
+            self.hp,
+            self.shield,
+            self.cooldown,
+            self.attack_cd,
+            self.stun,
+        ]);
+    }
 }
 
 struct Hit {
@@ -104,24 +139,25 @@ pub struct Combat {
     pending: Option<Pending>,
 }
 
-struct Run<'a> {
-    rows: Vec<Row>,
-    log: Vec<f64>,
-    serial: f64,
-    tick: f64,
-    hz: f64,
-    frames: Vec<&'a [f64]>,
+/// A run's roster and log, with `damage`, which phase 6's environment and traps (`hazards.rs`) call directly.
+pub(crate) struct Run<'a> {
+    pub(crate) rows: Vec<Row>,
+    pub(crate) log: Vec<f64>,
+    pub(crate) serial: f64,
+    pub(crate) tick: f64,
+    pub(crate) hz: f64,
+    pub(crate) frames: &'a Rewind,
 }
 
 impl Run<'_> {
-    fn effect(&mut self, x: f64, y: f64, kind: usize, radius: f64) {
+    pub(crate) fn effect(&mut self, x: f64, y: f64, kind: usize, radius: f64) {
         self.log
             .extend_from_slice(&[OP_EFFECT, 5.0, self.serial, x, y, kind as f64, radius]);
         self.serial += 1.0;
     }
 
     /// `damage` (`combat.ts`) up to the elimination: true when the target is to be eliminated.
-    fn damage(&mut self, target: usize, amount: f64, source: Option<usize>) -> bool {
+    pub(crate) fn damage(&mut self, target: usize, amount: f64, source: Option<usize>) -> bool {
         let t = &mut self.rows[target];
         if t.status != 0.0 {
             return false;
@@ -148,12 +184,14 @@ impl Run<'_> {
     /// `asSeenBy(viewer)(target)` (`rewind.ts`): the target where this viewer's view showed it.
     fn seen(&self, viewer: usize, target: usize) -> (f64, f64) {
         let t = &self.rows[target];
-        let lag = js_min(self.rows[viewer].lag, MAX_REWIND_TICKS);
+        let lag = js_min(self.rows[viewer].lag, MAX_REWIND_TICKS as f64);
         // `lag <= 0`; a NaN lag found no frame there (it threw), and reads the present here.
         if !positive(lag) || self.frames.is_empty() {
             return (t.x, t.y);
         }
-        let frame = self.frames[js_max(0.0, self.frames.len() as f64 - lag) as usize];
+        let frame = self
+            .frames
+            .frame(js_max(0.0, self.frames.len() as f64 - lag) as usize);
         if target * 2 + 1 < frame.len() {
             (frame[target * 2], frame[target * 2 + 1])
         } else {
@@ -319,10 +357,11 @@ fn gladiator_attack(
 }
 
 impl Combat {
-    /// Run a call. `swept` is needed only by a fresh projectile call.
+    /// Run a call. `swept` is needed only by a fresh projectile call; `rewind` is phase 7's frames.
     pub fn run(
         &mut self,
         rules: &Rules,
+        rewind: &Rewind,
         index: &SightIndex,
         gates: &mut GateSet,
         swept: Option<&SweptMap>,
@@ -336,25 +375,8 @@ impl Combat {
         let mut rows = Vec::with_capacity(players);
         let mut paths = Vec::new();
         for _ in 0..players {
-            let a = &input[at..at + PLAYER_ROW];
+            rows.push(Row::read(&input[at..at + PLAYER_ROW]));
             at += PLAYER_ROW;
-            rows.push(Row {
-                role: a[0],
-                status: a[1],
-                kit: a[2],
-                x: a[3],
-                y: a[4],
-                heading: a[5],
-                hp: a[6],
-                max_hp: a[7],
-                shield: a[8],
-                level: a[9],
-                cooldown: a[10],
-                attack_cd: a[11],
-                stun: a[12],
-                rank: a[13],
-                lag: a[14],
-            });
             if mode == MODE_PROJECTILES && !resume {
                 let a = &input[at..at + PATH_ROW];
                 at += PATH_ROW;
@@ -382,20 +404,13 @@ impl Combat {
                 row
             })
             .collect();
-        at += casters.len() * CASTER_ROW;
-        let mut frames = Vec::with_capacity(h[7] as usize);
-        for _ in 0..h[7] as usize {
-            let n = input[at] as usize;
-            frames.push(&input[at + 1..at + 1 + n * 2]);
-            at += 1 + n * 2;
-        }
         let mut run = Run {
             rows,
             log: Vec::new(),
             serial: h[3],
             tick: h[2],
             hz: rules.hz,
-            frames,
+            frames: rewind,
         };
         let mut stop: Option<(usize, Option<usize>)> = None;
         let mut removed = Vec::new();
@@ -520,9 +535,9 @@ impl Combat {
                 }
             }
             MODE_DAMAGE => {
-                let target = h[8] as usize;
-                let source = (h[10] >= 0.0).then_some(h[10] as usize);
-                if run.damage(target, h[9], source) {
+                let target = h[7] as usize;
+                let source = (h[9] >= 0.0).then_some(h[9] as usize);
+                if run.damage(target, h[8], source) {
                     stop = Some((target, source));
                 }
             }
@@ -547,7 +562,7 @@ impl Combat {
             removed.len() as f64,
         ]);
         for r in &run.rows {
-            out.extend_from_slice(&[r.hp, r.shield, r.cooldown, r.attack_cd, r.stun]);
+            r.write(&mut out);
         }
         out.extend_from_slice(&run.log);
         for b in bullets.iter().take(bullet_rows) {
@@ -592,7 +607,7 @@ mod tests {
             serial: 1.0,
             tick: 5.0,
             hz: 20.0,
-            frames: Vec::new(),
+            frames: &Rewind::default(),
         };
         assert!(!run.damage(0, 30.0, Some(1)));
         assert_eq!((run.rows[0].shield, run.rows[0].hp), (0.0, 80.0));
@@ -608,15 +623,16 @@ mod tests {
 
     #[test]
     fn a_lagging_viewer_reads_the_frame_it_saw() {
-        let frame = [1.0, 2.0, 3.0, 4.0];
-        let older = [5.0, 6.0];
+        let mut frames = Rewind::default();
+        frames.record(&[5.0, 6.0]);
+        frames.record(&[1.0, 2.0, 3.0, 4.0]);
         let mut run = Run {
             rows: vec![row(0.0, 10.0, 10.0), row(1.0, 20.0, 20.0)],
             log: Vec::new(),
             serial: 1.0,
             tick: 5.0,
             hz: 20.0,
-            frames: vec![&older, &frame],
+            frames: &frames,
         };
         assert_eq!(run.seen(1, 0), (10.0, 10.0), "no lag, no rewind");
         run.rows[1].lag = 1.0;

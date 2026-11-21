@@ -13,10 +13,12 @@ pub mod combat;
 pub mod discovery;
 pub mod drop_planner;
 pub mod floor_drag;
+pub mod hazards;
 pub mod hooks;
 pub mod item_allocation;
 pub mod math;
 pub mod phase_one;
+pub mod phase_seven;
 pub mod phase_six;
 pub mod phase_three;
 pub mod physics;
@@ -31,7 +33,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 16;
+pub const ADAPTER_VERSION: u32 = 17;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -875,7 +877,13 @@ pub unsafe extern "C" fn combat_run(
     unsafe {
         let w = &mut *world;
         let rules = w.actions.rules();
-        w.combat.run(rules, &*index, &mut *gates, swept.as_ref());
+        w.combat.run(
+            rules,
+            &w.phase_seven.rewind,
+            &*index,
+            &mut *gates,
+            swept.as_ref(),
+        );
         w.combat.output.as_ptr()
     }
 }
@@ -928,6 +936,57 @@ pub unsafe extern "C" fn interactions_run(
         w.actions = actions;
         w.interactions = interactions;
         w.interactions.output.as_ptr()
+    }
+}
+/// Phase 6's environment and traps input (27, step 5e.2; `hazards::Hazards`).
+/// # Safety
+/// `world` is a live world handle; the returned view expires on the next growing core call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn hazards_input(world: *mut world::World, len: usize) -> *mut f64 {
+    // SAFETY: the caller owns the live world.
+    let hazards = unsafe { &mut (*world).hazards };
+    hazards.input.resize(len, 0.0);
+    hazards.input.as_mut_ptr()
+}
+/// Run phase 6's environment and traps (`hazards::Hazards::run`) after phase 3's rules were configured
+/// (`actions_configure`).
+/// # Safety
+/// All handles are live, disjoint, and the input and gate mask are complete.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn hazards_run(
+    world: *mut world::World,
+    map: *mut collision::CollisionMap,
+    index: *const sight::SightIndex,
+    gates: *mut sight::GateSet,
+) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        let w = &mut *world;
+        let hz = w.actions.rules().hz;
+        w.hazards.run(&mut *map, &*index, &mut *gates, hz);
+        w.hazards.output.as_ptr()
+    }
+}
+/// Phase 7's input (27, step 5e.2; `phase_seven::PhaseSeven`).
+/// # Safety
+/// `world` is a live world handle; the returned view expires on the next growing core call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn phase_seven_input(world: *mut world::World, len: usize) -> *mut f64 {
+    // SAFETY: the caller owns the live world.
+    let p = unsafe { &mut (*world).phase_seven };
+    p.input.resize(len, 0.0);
+    p.input.as_mut_ptr()
+}
+/// Run phase 7's `finishMatch` or `recordRewind` (`phase_seven::PhaseSeven::run`).
+/// # Safety
+/// `world` is live and the input is complete.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn phase_seven_run(world: *mut world::World) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        let p = &mut (*world).phase_seven;
+        p.run();
+        p.output.as_ptr()
     }
 }
 
