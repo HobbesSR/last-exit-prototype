@@ -5,7 +5,7 @@ import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { storeDrift } from '../shared/simulation/player-store.ts';
 import { groundDrift } from '../shared/simulation/ground-store.ts';
-import { hookDrift } from '../shared/simulation/hook.ts';
+import { hookDrift, hookSkill } from '../shared/simulation/hook.ts';
 import { generatedMap } from './helpers/room-harness.js';
 import { openArea } from './helpers/arena.js';
 
@@ -62,11 +62,20 @@ test('the world\'s hooks follow a hook through flight, hit, pull and release (#1
     for (const p of s.players) p.bot = false;
     const r = physicsRuntime(s), phases = new Set();
     assert.ok(setInput(s, 'g0', { seq: s.tick + 1, skill: true, aim: 0 }));
+    let cancelled = false;
     for (let tick = 0; tick < 40; tick++) {
       step(s);
       for (const hook of r.hooks) phases.add(hook.phase);
       assert.deepEqual(hookDrift(r), [], `hooks at tick ${s.tick}`);
+      // A scenario's `hookSkill` cancelling the last hook between ticks: the next tick must empty the core's list too
+      // (review 1000).
+      if (!cancelled && r.hooks.some(hook => hook.phase === 'pulling')) {
+        hookSkill(s, s.players.find(p => p.id === 'g0'));
+        cancelled = true;
+        assert.equal(r.hooks.length, 0);
+      }
     }
     assert.ok(phases.has('flying') && phases.has('pulling'), `the hook flew and pulled (${[...phases]})`);
+    assert.ok(cancelled, 'the scenario cancelled a pulling hook');
   } finally { disposePhysics(s); }
 });

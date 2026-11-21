@@ -553,11 +553,15 @@ impl PhaseThree {
                 .hooks
                 .iter()
                 .map(|hook| {
-                    let caster = &world.players.extra[hook.caster as usize];
+                    // As `hooks.rs` reads it: a caster index the store does not hold matches nothing.
+                    let matches = (hook.caster >= 0.0)
+                        .then(|| world.players.extra.get(hook.caster as usize))
+                        .flatten()
+                        .is_some_and(|caster| caster.hook_key as u32 == hook.key);
                     [
                         hook.caster,
                         f64::from(hook.key),
-                        f64::from(u8::from(caster.hook_key as u32 == hook.key)),
+                        f64::from(u8::from(matches)),
                     ]
                 })
                 .collect()

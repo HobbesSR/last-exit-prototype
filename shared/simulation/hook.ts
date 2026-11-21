@@ -92,9 +92,11 @@ export function syncHooks(r: PhysicsRuntime): void {
 function runHooks(s: Game, mode: number, paths?: Record<string, Vec2[]>): void {
   const r = physicsRuntime(s);
   if (!r) return;
+  // First, so a list emptied outside the facts (a scenario's `hookSkill` cancelling the last hook) empties the core's too
+  // (review 1000); an unchanged list costs a comparison.
+  syncHooks(r);
   if (!r.hooks.length) { r.world.commitMutations(); return; }
   const world = r.world, tuning = s.content.hook, hooks = [...r.hooks], players = s.players;
-  syncHooks(r);
   // The hooks themselves are the core's (6d.4): none cross, only the paths for the tip.
   const data: number[] = [mode, s.tick, players.length, 0, paths ? 1 : 0, tuning.range, tuning.breakDistance,
     tuning.durationTicks, tuning.standoff, tuning.targetDistance, tuning.pullSpeed, HZ, tuning.stiffness, tuning.damping,
