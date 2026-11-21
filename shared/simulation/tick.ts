@@ -63,6 +63,8 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   applyFloorDrag(s, r);
   // Events are facts only; gameplay has no contact damage, so the step keeps none (its capacity still holds).
   const result = r.world.step({ discardContacts: true });
+  // The core's player store takes the poses from the step itself (#1214 stage 6c.2); the records take them below.
+  { const { core, world } = r.world.boundaryCall(); core.players_after_step(world); }
   stop('sim.solve');
   start('sim.poses');
   // Poses are the ends of the step's paths: the bodies' poses after the solve, without reading each one back.

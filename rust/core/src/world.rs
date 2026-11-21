@@ -152,7 +152,7 @@ pub struct World {
     impulses: Vec<(Key, f64, f64)>,
     /// Retained contacts: substep, key a, key b (a before b by ID), started.
     contacts: Vec<[f64; 4]>,
-    output: Vec<f64>,
+    pub(crate) output: Vec<f64>,
     /// The boundary's own buffers (`boundary.rs`), apart from the rows and facts above, which its
     /// calls into this world reuse.
     pub(crate) boundary_input: Vec<f64>,

@@ -662,12 +662,12 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
 - **6c: the players.** One store in the core (`players.rs`) that every run reads and writes. It is converted a group
   of runs at a time:
   - **6c.1 (#1214):** the store, with phase 5's combat and phase 6's environment and traps as its first readers. Below.
-  - **6c.2:** phase 1, the body sync, the hooks, and phase 4's write-back of poses.
-  - **6c.3:** phase 3 with the elimination, phase 6's per-actor loop and `finishMatch`, and the inventories.
+  - **6c.2 (#1214):** phase 1 reads the store, and every write to its fields inside a tick reaches it, so it is
+    uploaded once a tick. Below.
+  - **6c.3:** the remaining readers stop packing players from the records: phase 3 with the elimination, phase 6's
+    per-actor loop, the body sync, the hooks and phase 7. The store takes the inventories.
 
-  Until the last writer of a player's fields converts, the adapters upload the store from the records before each
-  converted call, so each step costs what the packing did. After 6c.3 the upload happens once a tick, at its start,
-  and on calls between ticks. Replacing it with between-tick commands is 6e's.
+  Replacing the uploads between ticks with between-tick commands is 6e's.
 - **6d: the pending queues, the hooks, the ground and the ID counters,** with the explosion port. They depend on each
   other: phase 1's admission reads the queues and the ground, the drop and pickup stops hand Node ground records,
   launches and admissions, and a drop plan's item counters (`itemSerial`, `scatterSerial`, D6) travel in a tentative
@@ -724,6 +724,31 @@ and `idRanks` moved there from `phase-five.ts`.
   4217, five rounds; current, base `b7433806`, current), `sim.environment` fell from 17.4 µs to 9.5–10.1 µs a tick without traps, and from
   52.4 µs to 43.9–45.0 µs with 277. The whole tick moved within run spread. The likely cause, not proven: `putPlayerRow` was fed both a
   JavaScript array (phase 5) and a typed array (the hazards), and now writes only a typed array. Phase 5 was not timed on its own.
+
+**Step 6c.2, the store kept current through the tick (#1214, adapter version 20).** The store holds `players::Extra`
+too (respawn and arrival times, the transit's destination, `railCd`, `cloak`, `revealed`, `boost`, the actor's world
+key), and it is uploaded once a tick, by phase 1, and before a converted call between ticks (`playersStale`).
+- **Phase 1 reads the store.** The core fills phase 1's player section from it and writes the results back. The adapter
+  still reads the results from that section for the records, so its writes are unchanged.
+- **Every write inside a tick reaches the store**, as each run reports it. The core applies to the store the same
+  writes the adapters apply to the records:
+  - phase 3's player rows, its reveals, its eliminations and its kill credit (`Players::apply_actions`);
+  - phase 6's extraction, transit and landing, and its reveals (`apply_interactions`);
+  - the body sync's poses and retries;
+  - `finishMatch`'s stranded statuses.
+
+  Phase 4's poses and `movedThisTick` are written from the step's own output (`players_after_step`), summed with the
+  shared `hypot` as `world.ts` sums them. Phase 2 writes none of the store's fields.
+- **Writes between ticks are the records'.** Tests, tools and the between-tick commands write the records directly.
+  Phase 1's upload, or a converted call's between ticks, takes those writes.
+- **The witness.** `tests/player-store.test.js` runs a bot match with traps, hazard areas, lagging views, kills,
+  eliminations and respawns, and after every tick holds the store equal to a fresh upload of the records
+  (`storeDrift`). With phase 4's store write disabled, it fails at tick 1.
+- **Cost:** phase 5's calls and the environment's no longer pack or upload players inside a tick. Measured as 6c.1 was (24x12, seed 4217, five rounds; current, base `ea189c8c`, current),
+  `sim.environment` fell from 10.0 µs to 5.7–5.9 µs a tick, and `sim.projectiles` read 10.7–12.8 µs against 12.3 µs. The new store
+  writes cost too little to separate from run spread: `sim.actions`, which now includes walking phase 3's output into the store,
+  read 49.1–56.7 µs against 48.2 µs, and `sim.poses` 23.9–26.7 µs against 27.0 µs. The whole tick moved within spread (4.87–4.91 ms
+  against 5.06 ms). The larger saving comes at 6c.3, when the other readers stop packing.
 
 
 ## One math library on both sides

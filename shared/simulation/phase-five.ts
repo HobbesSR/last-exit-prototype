@@ -3,7 +3,7 @@ import type { Game, Player, Projectile, Vec2 } from '../types.ts';
 import { configure, eliminateInCore } from './phase-three.ts';
 import type { ActionsCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
-import { uploadPlayers } from './player-store.ts';
+import { playersStale, uploadPlayers } from './player-store.ts';
 import { playerById, playerIndex } from './relations.ts';
 import { sightOf } from './sight-runtime.ts';
 import { start as profileStart, stop as profileStop } from '../profiler.ts';
@@ -12,7 +12,7 @@ import { start as profileStart, stop as profileStop } from '../profiler.ts';
 // flight, the end-of-tick casters (the warden skill, then the gladiator attack) and `damage`, with the rewind reads
 // (`asSeenBy`) the casters resolve against, from the frames phase 7 keeps in the core (`phase_seven.rs`). The records
 // stay here (D1), apart from the players' fields the run reads, which come from the core's player store (`player-store.ts`,
-// #1214 stage 6c), uploaded before each call; the run writes back only what the rules wrote. A kill stops
+// #1214 stage 6c), uploaded only between ticks (6c.2); the run writes back only what the rules wrote. A kill stops
 // the run before anything of the elimination is written; the elimination runs in the core too (`eliminateInCore`), each
 // mandatory drop at its own sync boundary (5c.2), and the run then resumes where it stopped, from what the core kept.
 interface CombatExports {
@@ -93,7 +93,7 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
   const sight = sightOf(s), map = sight.queryHandles(s.map);
   const swept = c.mode === MODE_PROJECTILES && !c.resume ? sight.sweptHandle(s.map) : 0;
   if (map.core !== core) throw new Error('phase 5 and sight are bound to different cores');
-  uploadPlayers(s, core, world);
+  if (playersStale(r)) uploadPlayers(s, r, core, world);
   const ptr = core.combat_input(world, data.length) >>> 0;
   new Float64Array(core.memory.buffer, ptr, data.length).set(data);
   // Only phase 5's own runs are timed (42.71); damage from phase 6 is not.

@@ -34,7 +34,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 19;
+pub const ADAPTER_VERSION: u32 = 20;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -850,6 +850,9 @@ pub unsafe extern "C" fn actions_run(
         let mut actions = std::mem::take(&mut w.actions);
         actions.run(w, &mut *map, &*index, &mut *gates);
         w.actions = actions;
+        // The player store takes phase 3's writes (#1214 stage 6c.2).
+        let mode = w.actions.input.first().copied().unwrap_or(0.0);
+        w.players.apply_actions(mode, &w.actions.output);
         w.actions.output.as_ptr()
     }
 }
@@ -937,8 +940,38 @@ pub unsafe extern "C" fn interactions_run(
         interactions.run(actions.rules(), w, &mut *map, &*index, &mut *gates);
         w.actions = actions;
         w.interactions = interactions;
+        // The player store takes phase 6's writes (#1214 stage 6c.2).
+        w.players.apply_interactions(&w.interactions.output);
         w.interactions.output.as_ptr()
     }
+}
+/// Phase 4's write-back to the player store, from the world's last step output (`players::Players::after_step`, #1214
+/// stage 6c.2). Call it right after `physics_step`, before any other call reuses the world's output.
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn players_after_step(world: *mut world::World) {
+    // SAFETY: the caller's contract.
+    unsafe {
+        let w = &mut *world;
+        w.players.after_step(&w.output);
+    }
+}
+/// The player store in the upload's layout (`players::Players::dump`), for tests; the count is `players_count`'s.
+/// # Safety
+/// `world` is live; the view expires on the next call into the store.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn players_dump(world: *mut world::World) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).players.dump().as_ptr() }
+}
+/// How many players the store holds.
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn players_count(world: *const world::World) -> usize {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).players.len() }
 }
 /// The player store's upload buffer, resized for `count` players (`players::Players`, #1214 stage 6c).
 /// # Safety
@@ -1003,9 +1036,18 @@ pub unsafe extern "C" fn phase_seven_input(world: *mut world::World, len: usize)
 pub unsafe extern "C" fn phase_seven_run(world: *mut world::World) -> *const f64 {
     // SAFETY: the caller's contract.
     unsafe {
-        let p = &mut (*world).phase_seven;
-        p.run();
-        p.output.as_ptr()
+        let w = &mut *world;
+        w.phase_seven.run();
+        // A finished match strands its active contestants, in the player store too (#1214 stage 6c.2).
+        let (input, out) = (&w.phase_seven.input, &w.phase_seven.output);
+        if input.first() == Some(&(phase_seven::MODE_FINISH as f64)) && out[1] == 1.0 {
+            for &i in &out[4..4 + out[3] as usize] {
+                if let Some(r) = w.players.rows.get_mut(i as usize) {
+                    r.status = 4.0;
+                }
+            }
+        }
+        w.phase_seven.output.as_ptr()
     }
 }
 

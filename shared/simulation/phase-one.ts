@@ -2,14 +2,16 @@ import { initCore, type CoreExports } from '../core.ts';
 import { clearRoute } from './geometry.ts';
 import { event, effect, participant } from './event-records.ts';
 import { physicsRuntime } from './physics-runtime.ts';
+import { uploadPlayers } from './player-store.ts';
 import { RESPAWN_CLEARANCE_RADIUS, RESPAWN_CONTESTANT_DISTANCE, RESPAWN_HAZARD_MARGIN } from './rules.ts';
 import { sightOf } from './sight-runtime.ts';
 import { RAIL_COOLDOWN } from './transit.ts';
 import type { Game, Player, PlayerStatus } from '../types.ts';
 
 // The adapter for tick phase 1 in the core (`rust/core/src/phase_one.rs`, #1212, docs/27 "The state
-// flip" step 4). The state stays here (D1): each tick packs what phase 1 reads, the core runs the tick,
-// timer, respawn and arrival rules over it and allocates their serial IDs, and this unpacks the result.
+// flip" step 4). Each tick packs what phase 1 reads, apart from the players, which the core fills from its player
+// store (`player-store.ts`, #1214 stage 6c.2); the core runs the tick, timer, respawn and arrival rules over it and
+// allocates their serial IDs, and this unpacks the result from the same buffer.
 // - **Facts the core reports** are applied here in allocation order: the event and the effect records,
 //   and the Node-owned input bookkeeping and route of 27's change-list table.
 // - **Both queries run in the core** (#1234): a respawn's station clearance and a transit's landing, over
@@ -26,7 +28,7 @@ interface PhaseOneExports {
 // The layout of `phase_one.rs`.
 const HEADER = 15, STATION_STRIDE = 2, PLAYER_STRIDE = 17;
 const TICK = 0, HAZARD_X = 4, SERIAL = 5;
-const ROLE = 0, STATUS = 1, RESPAWN_AT = 2, ARRIVE_AT = 3, X = 4, Y = 5, HP = 6, MAX_HP = 7, SHIELD = 8, TIMERS = 9, DESTINATION = 16;
+const STATUS = 1, X = 4, Y = 5, HP = 6, SHIELD = 8, TIMERS = 9;
 const TIMER_KEYS = ['cooldown', 'attackCd', 'railCd', 'cloak', 'revealed', 'boost', 'stun'] as const;
 const STATUS_CODES: readonly PlayerStatus[] = ['active', 'eliminated', 'respawning', 'escaped', 'stranded', 'transit'];
 const RESPAWNED = 1;
@@ -58,6 +60,7 @@ export function beginTick(s: Game): void {
   const stationBase = HEADER + effects.length, playerBase = stationBase + stations.length * STATION_STRIDE;
   const words = playerBase + players.length * PLAYER_STRIDE;
   const { world } = runtime.world.boundaryCall();
+  uploadPlayers(s, runtime, core, world);
   const map = sightOf(s).queryHandles(s.map);
   if (map.core !== core) throw new Error('phase 1 and sight are bound to different cores');
   const pointer = core.phase_one_input(phase, words) >>> 0;
@@ -68,16 +71,6 @@ export function beginTick(s: Game): void {
   for (let i = 0; i < effects.length; i++) input[HEADER + i] = effects[i]!.life;
   for (let i = 0, at = stationBase; i < stations.length; i++, at += STATION_STRIDE) {
     input[at] = stations[i]!.x; input[at + 1] = stations[i]!.y;
-  }
-  for (let i = 0, at = playerBase; i < players.length; i++, at += PLAYER_STRIDE) {
-    const p = players[i]!;
-    input[at + ROLE] = p.role === 'contestant' ? 0 : 1;
-    input[at + STATUS] = STATUS_CODES.indexOf(p.status);
-    input[at + RESPAWN_AT] = num(p.respawnAt);
-    input[at + ARRIVE_AT] = num(p.transit?.arriveAt);
-    input[at + X] = p.x; input[at + Y] = p.y; input[at + HP] = p.hp; input[at + MAX_HP] = p.maxHp; input[at + SHIELD] = p.shield;
-    for (let t = 0; t < TIMER_KEYS.length; t++) input[at + TIMERS + t] = num(p[TIMER_KEYS[t]!]);
-    input[at + DESTINATION] = p.transit ? stations.findIndex(st => st.id === p.transit!.to) : -1;
   }
   const out = core.phase_one_run(phase, world, map.collision, map.gates) >>> 0;
   input = new Float64Array(core.memory.buffer, pointer, words);
