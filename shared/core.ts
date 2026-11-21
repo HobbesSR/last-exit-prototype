@@ -8,7 +8,7 @@
  */
 
 /** The adapter contract this loader speaks: `ADAPTER_VERSION` in `rust/core/src/lib.rs`. */
-export const CORE_ADAPTER_VERSION = 19;
+export const CORE_ADAPTER_VERSION = 20;
 
 // The project's lib is ES2023 without the DOM, which is where TypeScript declares WebAssembly.
 // Both hosts have it; this names only what the loader uses.
@@ -36,6 +36,9 @@ export interface CoreExports {
   // The player store (`rust/core/src/players.rs`, #1214 stage 6c), driven by `shared/simulation/player-store.ts`.
   players_input(world: number, count: number): number;
   players_load(world: number, count: number): void;
+  players_after_step(world: number): void;
+  players_dump(world: number): number;
+  players_count(world: number): number;
   visibility_polygon(index: number, gates: number, x: number, y: number, radius: number): number;
   // Discovery (`rust/core/src/discovery.rs`), driven by `shared/discovery.ts` through `shared/sight-core.ts`.
   discovery_map_new(constants: number, inside: number, cellCount: number, landmarks: number, landmarkCount: number,

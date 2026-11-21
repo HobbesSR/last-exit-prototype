@@ -22,6 +22,7 @@
 
 use crate::collision::{CollisionMap, can_occupy, reach_clear};
 use crate::math::hypot;
+use crate::phase_one::RESPAWNING;
 use crate::placement::{Disk, loot_fits, placement};
 use crate::scatter::scatter_point;
 use crate::sight::{GateSet, SightIndex};
@@ -219,11 +220,20 @@ struct Log {
     out: Vec<f64>,
     markers: Vec<Key>,
     capacity: usize,
+    /// The players' poses and retries this call logged, in order, for the core's player store (#1214 stage 6c.2).
+    players: Vec<Entry>,
 }
 
 impl Log {
     fn entry(&mut self, entry: Entry) {
         entry.encode(&mut self.out);
+        match entry {
+            Entry::Pose { player, x, y } => self.players.push(Entry::Pose { player, x, y }),
+            Entry::Retry { player, respawn_at } => {
+                self.players.push(Entry::Retry { player, respawn_at })
+            }
+            _ => {}
+        }
     }
 
     /// A call's answer words, for the calls that return answers rather than a log.
@@ -330,12 +340,36 @@ fn run(
         out,
         markers: Vec::new(),
         capacity: 0,
+        players: Vec::new(),
     };
     let mut header = [0.0, -1.0, -1.0, 0.0, 0.0, 0.0];
     if let Err((code, key, reference)) = body(world, &mut input, &mut log, &mut header) {
         header[0] = f64::from(code);
         header[1] = key;
         header[2] = reference;
+    }
+    // The store takes the same writes JavaScript applies to its records, refusal or not. A store that does not hold
+    // the roster yet (before the first upload) is left for that upload.
+    for entry in &log.players {
+        match *entry {
+            Entry::Pose { player, x, y } => {
+                if let Some(r) = world.players.rows.get_mut(player as usize) {
+                    r.x = x;
+                    r.y = y;
+                }
+            }
+            Entry::Retry { player, respawn_at } => {
+                let i = player as usize;
+                if let (Some(r), Some(e)) = (
+                    world.players.rows.get_mut(i),
+                    world.players.extra.get_mut(i),
+                ) {
+                    r.status = RESPAWNING;
+                    e.respawn_at = respawn_at;
+                }
+            }
+            _ => {}
+        }
     }
     header[4] = world.queued_count() as f64;
     header[5] = log.out.len() as f64;

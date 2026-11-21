@@ -2,7 +2,7 @@ import { TRAP_KINDS } from '../enum-tables.ts';
 import type { Game, PlayerId, Trap } from '../types.ts';
 import { enqueueExplosionImpulses } from './explosion-physics.ts';
 import { applyLog, applyPlayerRows } from './phase-five.ts';
-import { uploadPlayers } from './player-store.ts';
+import { playersStale, uploadPlayers } from './player-store.ts';
 import { configure, eliminateInCore } from './phase-three.ts';
 import type { ActionsCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
@@ -76,7 +76,7 @@ function call(s: Game, parts: Parts, resume: boolean): { kind: number; which: nu
   if (map.core !== core) throw new Error('phase 6 and sight are bound to different cores');
   // The players come from the core's store (`player-store.ts`, stage 6c). Map preparation and the upload can grow
   // memory, so the input is viewed only after them, and written there in place.
-  uploadPlayers(s, core, world);
+  if (playersStale(r)) uploadPlayers(s, r, core, world);
   const words = HEADER + CONTENT + areas.length * AREA_ROW + (upload ? traps.length * TRAP_ROW : 0);
   const ptr = core.hazards_input(world, words) >>> 0, data = new Float64Array(core.memory.buffer, ptr, words);
   data.set([resume ? 1 : 0, s.tick, s.serial, players.length, traps.length, areas.length, s.hazardX,

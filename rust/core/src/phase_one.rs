@@ -19,6 +19,7 @@
 use crate::collision::{CollisionMap, can_occupy};
 use crate::math::{hypot, js_max, js_round};
 use crate::placement::{Disk, placement};
+use crate::players::Players;
 use crate::sight::GateSet;
 use crate::world::World;
 
@@ -116,6 +117,8 @@ impl PhaseOne {
         let stations = input[STATIONS] as usize;
         let station_base = HEADER + effects;
         let player_base = station_base + stations * STATION_STRIDE;
+        // The players come from the world's store (`players.rs`, #1214 stage 6c.2), not from the adapter.
+        fill_players(input, player_base, &world.players, players);
         input[TICK] += 1.0;
         let (tick, grace, duration) = (input[TICK], input[GRACE], input[DURATION]);
         input[HAZARD_X] = js_round(
@@ -206,9 +209,69 @@ impl PhaseOne {
                 }
             }
         }
+        store_players(input, player_base, &mut world.players, players);
         out[0] = ((out.len() - 1) / 3) as f64;
         self.output = out;
         &self.output
+    }
+}
+
+/// Write each player's `PLAYER_STRIDE` words from the store, as the adapter packed them before stage 6c.2.
+fn fill_players(input: &mut [f64], base: usize, store: &Players, players: usize) {
+    assert_eq!(store.len(), players, "the store holds the roster");
+    for (i, (r, e)) in store.rows.iter().zip(&store.extra).enumerate() {
+        let p = &mut input[base + i * PLAYER_STRIDE..base + (i + 1) * PLAYER_STRIDE];
+        p[ROLE] = r.role;
+        p[STATUS] = r.status;
+        p[RESPAWN_AT] = e.respawn_at;
+        p[ARRIVE_AT] = e.arrive_at;
+        p[X] = r.x;
+        p[Y] = r.y;
+        p[HP] = r.hp;
+        p[MAX_HP] = r.max_hp;
+        p[SHIELD] = r.shield;
+        p[TIMERS..TIMERS + TIMER_COUNT].copy_from_slice(&[
+            r.cooldown,
+            r.attack_cd,
+            e.rail_cd,
+            e.cloak,
+            e.revealed,
+            e.boost,
+            r.stun,
+        ]);
+        p[DESTINATION] = e.destination;
+    }
+}
+
+/// Write phase 1's results back into the store; every player's `movedThisTick` starts the tick at 0.
+fn store_players(input: &[f64], base: usize, store: &mut Players, players: usize) {
+    for i in 0..players {
+        let p = &input[base + i * PLAYER_STRIDE..base + (i + 1) * PLAYER_STRIDE];
+        let (r, e) = (&mut store.rows[i], &mut store.extra[i]);
+        r.status = p[STATUS];
+        e.respawn_at = p[RESPAWN_AT];
+        e.arrive_at = p[ARRIVE_AT];
+        // An arrival deletes the record's `transit`, and with it the destination.
+        if e.arrive_at.is_nan() {
+            e.destination = -1.0;
+        }
+        r.x = p[X];
+        r.y = p[Y];
+        r.hp = p[HP];
+        r.shield = p[SHIELD];
+        let timers = &p[TIMERS..TIMERS + TIMER_COUNT];
+        (
+            r.cooldown,
+            r.attack_cd,
+            e.rail_cd,
+            e.cloak,
+            e.revealed,
+            e.boost,
+            r.stun,
+        ) = (
+            timers[0], timers[1], timers[2], timers[3], timers[4], timers[5], timers[6],
+        );
+        store.moved[i] = 0.0;
     }
 }
 
@@ -310,8 +373,48 @@ mod tests {
         p
     }
 
+    /// Load the world's player store from the players a test wrote into its input, as the adapter uploads them.
+    fn store_from(world: &mut World, words: &[f64]) {
+        let players = words[PLAYERS] as usize;
+        let base = HEADER + words[EFFECTS] as usize + words[STATIONS] as usize * STATION_STRIDE;
+        let up = world.players.input(players);
+        for i in 0..players {
+            let p = &words[base + i * PLAYER_STRIDE..base + (i + 1) * PLAYER_STRIDE];
+            let u = &mut up[i * crate::players::STORE_ROW..(i + 1) * crate::players::STORE_ROW];
+            u[..15].copy_from_slice(&[
+                p[ROLE],
+                p[STATUS],
+                0.0,
+                p[X],
+                p[Y],
+                0.0,
+                p[HP],
+                p[MAX_HP],
+                p[SHIELD],
+                0.0,
+                p[COOLDOWN],
+                p[ATTACK_CD],
+                p[STUN],
+                0.0,
+                0.0,
+            ]);
+            u[16..24].copy_from_slice(&[
+                p[RESPAWN_AT],
+                p[ARRIVE_AT],
+                p[DESTINATION],
+                p[RAIL_CD],
+                p[TIMERS + 3],
+                p[TIMERS + 4],
+                p[BOOST],
+                0.0,
+            ]);
+        }
+        world.players.load(players);
+    }
+
     fn run(phase: &mut PhaseOne, words: Vec<f64>) -> Vec<f64> {
         let (mut world, mut map, mut gates) = map();
+        store_from(&mut world, &words);
         phase.input(words.len()).copy_from_slice(&words);
         phase.run(&mut world, &mut map, &mut gates).to_vec()
     }
