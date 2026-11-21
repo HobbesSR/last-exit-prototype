@@ -13,6 +13,7 @@ pub mod combat;
 pub mod discovery;
 pub mod drop_planner;
 pub mod floor_drag;
+pub mod ground;
 pub mod hazards;
 pub mod hooks;
 pub mod item_allocation;
@@ -34,7 +35,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 24;
+pub const ADAPTER_VERSION: u32 = 25;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -944,6 +945,46 @@ pub unsafe extern "C" fn interactions_run(
         w.players.apply_interactions(&w.interactions.output);
         w.interactions.output.as_ptr()
     }
+}
+/// The ground store's input buffer, resized for `count` records (`ground::Ground`, #1214 stage 6d.1).
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ground_input(world: *mut world::World, count: usize) -> *mut f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).ground.input(count).as_mut_ptr() }
+}
+/// The ground store's write: 0 replaces the store with the input, 1 appends the input, 2 removes the record at `at`,
+/// 3 puts the input's one record at `at` (`ground::Ground`).
+/// # Safety
+/// `world` is live and the input holds what the write reads.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ground_write(world: *mut world::World, op: u32, at: usize) {
+    // SAFETY: the caller's contract.
+    let g = unsafe { &mut (*world).ground };
+    match op {
+        0 => g.load(),
+        1 => g.add(),
+        2 => g.remove(at),
+        3 => g.replace(at),
+        _ => panic!("unknown ground write {op}"),
+    }
+}
+/// The ground store in the upload's layout (`ground::Ground::dump`), for tests; the count is `ground_count`'s.
+/// # Safety
+/// `world` is live; the view expires on the next call into the store.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ground_dump(world: *mut world::World) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).ground.dump().as_ptr() }
+}
+/// How many records the ground store holds.
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ground_count(world: *const world::World) -> usize {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).ground.len() }
 }
 /// Phase 4's write-back to the player store, from the world's last step output (`players::Players::after_step`, #1214
 /// stage 6c.2). Call it right after `physics_step`, before any other call reuses the world's output.

@@ -13,6 +13,21 @@ const records = new WeakMap<readonly GroundItem[], Map<ItemId, GroundItem>>();
 /** Lists a frame holds. Marked, not frozen: V8 walks a frozen array more slowly in `filter` and `JSON.stringify`. */
 const published = new WeakSet<readonly object[]>();
 
+/**
+ * Who follows the live list's changes: the core's ground store (`ground-store.ts`, #1214 stage 6d.1). Each helper reports
+ * its change with the list and length it started from, so the follower can tell whether it had seen that list.
+ * `groundList` reports that raw edits may follow.
+ */
+export interface GroundSink {
+  add(before: readonly GroundItem[], length: number, items: readonly GroundItem[]): void;
+  remove(before: readonly GroundItem[], length: number, at: number): void;
+  replace(before: readonly GroundItem[], length: number, at: number, next: GroundItem): void;
+  edited(): void;
+}
+const sinks = new WeakMap<Game, GroundSink>();
+/** Follow `s`'s ground changes; `createGame` attaches the core's store (`ownGround`). */
+export function attachGroundSink(s: Game, sink: GroundSink): void { sinks.set(s, sink); }
+
 /** Only logical items awaiting a body, ordered by id; carried across the live list's copies. */
 interface Admission { admitted: ReadonlySet<string>; items: GroundItem[]; size: number }
 const admissions = new WeakMap<readonly GroundItem[], Admission>();
@@ -174,6 +189,7 @@ function writable(s: Game): GroundItem[] {
  * otherwise leave the ID-to-record cache stale.
  */
 export function groundList(s: Game): GroundItem[] {
+  sinks.get(s)?.edited();
   const list = writable(s);
   indexes.delete(list); grids.delete(list); admissions.delete(list); records.delete(list);
   return list;
@@ -181,6 +197,7 @@ export function groundList(s: Game): GroundItem[] {
 
 /** Put records on the ground, after everything already there. */
 export function addItems(s: Game, ...items: GroundItem[]): void {
+  const before = s.items, length = before.length;
   const list = writable(s), grid = grids.get(list), index = indexes.get(list), pending = admissions.get(list);
   if (index) for (let i = 0; i < items.length; i++) index.set(items[i]!.id, list.length + i);
   list.push(...items);
@@ -192,10 +209,12 @@ export function addItems(s: Game, ...items: GroundItem[]): void {
       pending.items.splice(admissionPosition(s, pending.items, item.id), 0, item);
     pending.size = list.length;
   }
+  sinks.get(s)?.add(before, length, items);
 }
 
 /** Take a record off the ground; later records keep their order. Returns where it was, which is now where the next one is. */
 export function removeItem(s: Game, item: GroundItem): number {
+  const before = s.items, length = before.length;
   const list = writable(s), hinted = indexes.get(list)?.get(item.id);
   const at = hinted !== undefined && list[hinted] === item ? hinted : list.indexOf(item);
   if (at < 0) throw new Error(`ground item ${item.id} is not on the ground`);
@@ -206,6 +225,7 @@ export function removeItem(s: Game, item: GroundItem): number {
   admitItem(s, item);
   const pending = admissions.get(list);
   if (pending) pending.size = list.length;
+  sinks.get(s)?.remove(before, length, at);
   return at;
 }
 
@@ -286,6 +306,7 @@ export function groundItem(s: Game, id: ItemId): GroundItem | undefined {
 /** Put `next` where `item` is on the ground. The id stays: the position index is carried across. */
 export function replaceItem(s: Game, item: GroundItem, next: GroundItem): void {
   if (next.id !== item.id) throw new Error(`replacing ground item ${item.id} with ${next.id}`);
+  const before = s.items, length = before.length;
   const list = writable(s), hinted = indexes.get(list)?.get(item.id);
   const at = hinted !== undefined && list[hinted] === item ? hinted : list.indexOf(item);
   if (at < 0) throw new Error(`ground item ${item.id} is not on the ground`);
@@ -298,6 +319,7 @@ export function replaceItem(s: Game, item: GroundItem, next: GroundItem): void {
   }
   const order = leave(list, item);
   if (order !== undefined) enter(grids.get(list)!, next, order);
+  sinks.get(s)?.replace(before, length, at, next);
 }
 
 /** A record's writable copy, for rules that change a ground item as they inspect it. */

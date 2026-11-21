@@ -4,6 +4,7 @@ import { createGame, disposePhysics, step } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { storeDrift } from '../shared/simulation/player-store.ts';
+import { groundDrift } from '../shared/simulation/ground-store.ts';
 import { generatedMap } from './helpers/room-harness.js';
 
 // The core's player store (#1214 stage 6c.2) is uploaded once a tick, by phase 1, so every write to its fields inside a
@@ -36,8 +37,9 @@ test('every write inside a tick reaches the core\'s player store (#1214 stage 6c
     for (; ticks < 600 && s.phase === 'live'; ticks++) {
       step(s);
       for (const p of s.players) seen.add(p.status);
-      const drift = storeDrift(s, r);
-      assert.deepEqual(drift, [], `tick ${s.tick}`);
+      assert.deepEqual(storeDrift(s, r), [], `players at tick ${s.tick}`);
+      // The ground store follows the ground helpers' writes (6d.1): drops, pickups, swaps and phase 4's poses.
+      assert.deepEqual(groundDrift(s, r), [], `ground at tick ${s.tick}`);
     }
     assert.ok(ticks >= 300, `the match ran (${ticks} ticks)`);
     assert.ok(seen.has('respawning') && seen.has('eliminated'), `eliminations and a respawn happened (${[...seen]})`);

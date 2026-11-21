@@ -6,6 +6,7 @@ import { initPhaseOne } from './phase-one.ts';
 import { initItemAllocation } from '../item-allocation-core.ts';
 import { attachSight } from './sight-runtime.ts';
 import { ownDoors } from './doors.ts';
+import { ownGround } from './ground-store.ts';
 import { validateActorPhysics } from './actor-physics.ts';
 import { addAuthoredProps, validateWorldPhysics } from './world-physics.ts';
 import { placeInCore, synchronizeBodies, synchronizeItems } from './boundary.ts';
@@ -132,6 +133,8 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
     }
     addAuthoredProps(s, runtime);
     attachPhysics(s, runtime);
+    // The ground helpers write through to the core's ground store from here on (#1214 stage 6d.1).
+    ownGround(s);
     Object.defineProperty(s, 'version', { value: PHYSICS_VERSION, enumerable: true, writable: false });
     synchronize(s, runtime, s.tick + 1);
     return s;
