@@ -13,8 +13,9 @@ use crate::physics::SUBSTEPS;
 use crate::world::STEP_HEADER;
 
 /// Words of `Extra` uploaded: respawnAt, transit arriveAt, the transit's destination station index (-1 none), railCd,
-/// cloak, revealed, boost, and the actor's world key (`actor:<id>`). An absent field is NaN.
-pub const EXTRA_ROW: usize = 8;
+/// cloak, revealed, boost, the actor's world key (`actor:<id>`) and its hook's (`hook:<id>`, #1214 stage 6d.4). An absent
+/// field is NaN.
+pub const EXTRA_ROW: usize = 9;
 /// Words per player uploaded: `combat::Row` (`PLAYER_ROW` words), `movedThisTick` (0 when unset), then `Extra`.
 pub const STORE_ROW: usize = PLAYER_ROW + 1 + EXTRA_ROW;
 
@@ -88,6 +89,9 @@ pub(crate) struct Extra {
     pub(crate) revealed: f64,
     pub(crate) boost: f64,
     pub(crate) key: f64,
+    /// The world key of this player's hook (`hook:<id>`), interned by JavaScript, so the core names a hook it launches
+    /// with the key JavaScript's table holds.
+    pub(crate) hook_key: f64,
 }
 
 #[derive(Default)]
@@ -167,6 +171,7 @@ impl Players {
                 revealed: e[5],
                 boost: e[6],
                 key: e[7],
+                hook_key: e[8],
             });
         }
     }
@@ -201,6 +206,7 @@ impl Players {
                 e.revealed,
                 e.boost,
                 e.key,
+                e.hook_key,
             ]);
         }
         for q in &self.equip {
@@ -532,7 +538,8 @@ mod tests {
             vec![PLAYER_ROW as f64, (STORE_ROW + PLAYER_ROW) as f64]
         );
         assert_eq!(players.extra[0].respawn_at, (PLAYER_ROW + 1) as f64);
-        assert_eq!(players.extra[1].key, (2 * STORE_ROW - 1) as f64);
+        assert_eq!(players.extra[1].key, (2 * STORE_ROW - 2) as f64);
+        assert_eq!(players.extra[1].hook_key, (2 * STORE_ROW - 1) as f64);
         let q = &players.equip[0];
         assert_eq!(
             (q.selected, q.weapon, q.keys, q.charging),

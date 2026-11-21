@@ -1,5 +1,6 @@
 import { playerIndex } from './relations.ts';
 import { physicsRuntime } from './physics-runtime.ts';
+import type { PhysicsRuntime } from './physics-runtime.ts';
 import { playersStale, uploadPlayers } from './player-store.ts';
 import { sightOf } from './sight-runtime.ts';
 import { HZ } from './rules.ts';
@@ -47,13 +48,55 @@ export function hookSkill(s: Game, p: Player): void {
 const MODE_PREPARE = 0, MODE_FINISH = 1, MODE_RECONCILE = 2;
 const OUT_HEADER = 6, OP_COMMIT = 2, OP_REMOVED = 20, OP_ROPE = 21, STATE_STRIDE = 9;
 const PHASES = ['flying', 'pending', 'pulling'] as const;
+/** Words per hook uploaded (`world::HOOK_RECORD`). */
+const HOOK_RECORD = 15;
+
+/**
+ * The hooks are the core's (#1214 stage 6d.4): the world keeps them, the rules and phase 3's launch and cancel change
+ * them there, and `r.hooks` is their mirror, applied from the same facts. The list is uploaded whole only when it changed
+ * without those facts: a scenario's `hookSkill`, or a test's edit. Each list the core matches is remembered.
+ */
+const seenHooks = new WeakMap<PhysicsRuntime, { list: readonly HookState[]; length: number }>();
+/** The mirror now matches the core's hooks. */
+export function sawHooks(r: PhysicsRuntime): void { seenHooks.set(r, { list: r.hooks, length: r.hooks.length }); }
+/** The mirror's hooks in the upload's layout. */
+function hookRows(r: PhysicsRuntime): number[] {
+  const world = r.world, rows: number[] = [];
+  for (const hook of r.hooks) rows.push(world.key(hook.id), hook.casterIdx, hook.x, hook.y, hook.dx, hook.dy, hook.travelled, hook.startedTick,
+    PHASES.indexOf(hook.phase), hook.generationA, hook.targetIdx ?? NaN, hook.targetActorKey === undefined ? NaN : world.key(hook.targetActorKey),
+    hook.generationB ?? NaN, hook.hitTick ?? NaN, hook.desiredLength ?? NaN);
+  return rows;
+}
+
+/** Where the core's hooks differ from the mirror, as `hook.word: core != mirror` lines; empty when they agree. For tests. */
+export function hookDrift(r: PhysicsRuntime): string[] {
+  const rows = hookRows(r), { core, world: native } = r.world.boundaryCall();
+  const at = core.physics_hooks_dump(native) >>> 0, count = new Float64Array(core.memory.buffer, at, 1)[0]!;
+  if (count !== r.hooks.length) return [`the core holds ${count} hooks, the mirror ${r.hooks.length}`];
+  const kept = new Float64Array(core.memory.buffer, at + 8, rows.length), out: string[] = [];
+  rows.forEach((v, k) => { if (!Object.is(kept[k], v)) out.push(`${Math.floor(k / HOOK_RECORD)}.${k % HOOK_RECORD}: ${kept[k]} != ${v}`); });
+  return out;
+}
+
+/** Upload the hooks when the mirror changed without the core's facts. */
+export function syncHooks(r: PhysicsRuntime): void {
+  const seen = seenHooks.get(r);
+  if (seen && seen.list === r.hooks && seen.length === r.hooks.length) return;
+  const rows = hookRows(r), { core, world: native } = r.world.boundaryCall();
+  const pointer = core.physics_boundary_input(native, rows.length) >>> 0;
+  new Float64Array(core.memory.buffer, pointer, rows.length).set(rows);
+  core.physics_hooks_load(native, r.hooks.length);
+  sawHooks(r);
+}
 
 function runHooks(s: Game, mode: number, paths?: Record<string, Vec2[]>): void {
   const r = physicsRuntime(s);
   if (!r) return;
   if (!r.hooks.length) { r.world.commitMutations(); return; }
   const world = r.world, tuning = s.content.hook, hooks = [...r.hooks], players = s.players;
-  const data: number[] = [mode, s.tick, players.length, hooks.length, paths ? 1 : 0, tuning.range, tuning.breakDistance,
+  syncHooks(r);
+  // The hooks themselves are the core's (6d.4): none cross, only the paths for the tip.
+  const data: number[] = [mode, s.tick, players.length, 0, paths ? 1 : 0, tuning.range, tuning.breakDistance,
     tuning.durationTicks, tuning.standoff, tuning.targetDistance, tuning.pullSpeed, HZ, tuning.stiffness, tuning.damping,
     tuning.maxForce, tuning.speed];
   if (paths) for (const p of players) {
@@ -61,12 +104,6 @@ function runHooks(s: Game, mode: number, paths?: Record<string, Vec2[]>): void {
     if (!path) { data.push(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0); continue; }
     data.push(1);
     for (let k = 0; k <= STEPS; k++) data.push(path[k]!.x, path[k]!.y);
-  }
-  for (const hook of hooks) {
-    const caster = players[hook.casterIdx], target = hook.targetIdx === undefined ? undefined : players[hook.targetIdx];
-    data.push(world.key(hook.id), hook.casterIdx, caster && hook.id === `hook:${caster.id}` ? 1 : 0, hook.x, hook.y, hook.dx, hook.dy,
-      hook.travelled, hook.startedTick, PHASES.indexOf(hook.phase), hook.generationA, hook.targetIdx ?? NaN,
-      target && hook.targetActorKey === actor(target.id) ? 1 : 0, hook.generationB ?? NaN, hook.hitTick ?? NaN, hook.desiredLength ?? NaN);
   }
   // Interning and the handles' preparation can grow memory; view the input only after them.
   const { core, world: native } = world.boundaryCall();
@@ -107,6 +144,7 @@ function runHooks(s: Game, mode: number, paths?: Record<string, Vec2[]>): void {
     put('phase', out[at + 4]!, PHASES[out[at + 4]!]!); put('desiredLength', out[at + 8]!, out[at + 8]!);
   });
   if (removed.size) r.hooks = r.hooks.filter(hook => !removed.has(hook));
+  sawHooks(r);
   world.adoptQueue(out[4]!);
   if (out[0]! < 0) throw physicsRefusal(out[0]!, ...[out[1]!, out[2]!, out[3]!].filter(key => key >= 0).map(key => world.idOf(key)));
 }

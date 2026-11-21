@@ -125,6 +125,38 @@ impl PhaseThree {
         });
     }
 }
+/// The output's log facts in order, as `phase-three.ts` walks them: each fact's code and payload (owned, so the caller may
+/// change the world while it walks).
+pub fn log_facts(out: &[f64]) -> Vec<(u32, Vec<f64>)> {
+    const OUT_HEADER: usize = 13;
+    const ROW: usize = 24;
+    const ITEM_ROW: usize = 10;
+    let mut at = OUT_HEADER;
+    for _ in 0..out[7] as usize {
+        let row = &out[at..at + ROW];
+        at += ROW;
+        if row[21] != 0.0 {
+            at += 3;
+        }
+        if row[22] != 0.0 {
+            at += 3;
+        }
+        if row[20] >= 0.0 {
+            at += row[20] as usize * ITEM_ROW;
+        }
+        at += row[23] as usize * ITEM_ROW;
+    }
+    at += out[8] as usize * 2;
+    let end = at + out[9] as usize;
+    let mut facts = Vec::new();
+    while at < end {
+        let (op, len) = (out[at] as u32, out[at + 1] as usize);
+        facts.push((op, out[at + 2..at + 2 + len].to_vec()));
+        at += 2 + len;
+    }
+    facts
+}
+
 /// The inventory length an adapter writes for an inventory the core takes from its player store (#1214 stage 6c.3c.2).
 pub const FROM_STORE: f64 = -2.0;
 
@@ -514,8 +546,24 @@ impl PhaseThree {
         let taken: Vec<[f64; 2]> = (0..h[13] as usize).map(|_| r.row()).collect();
         let ground_ids = r.vec(h[14] as usize);
         let carried: Vec<[f64; 2]> = (0..h[15] as usize).map(|_| r.row()).collect();
-        // Hooks: caster, interned constraint key, exact caster/id match.
-        let mut hooks: Vec<[f64; 3]> = (0..h[16] as usize).map(|_| r.row()).collect();
+        // Hooks: caster, interned constraint key, exact caster/id match. They are the world's (#1214 stage 6d.4): where the
+        // adapter would have packed them it writes `FROM_STORE` for their count.
+        let mut hooks: Vec<[f64; 3]> = if h[16] == FROM_STORE {
+            world
+                .hooks
+                .iter()
+                .map(|hook| {
+                    let caster = &world.players.extra[hook.caster as usize];
+                    [
+                        hook.caster,
+                        f64::from(hook.key),
+                        f64::from(u8::from(caster.hook_key as u32 == hook.key)),
+                    ]
+                })
+                .collect()
+        } else {
+            (0..h[16] as usize).map(|_| r.row()).collect()
+        };
         // An elimination's source: -1 none, 0 the target itself, 1 the second player; its kills; the
         // gladiator respawn delay.
         let elimination: [f64; 3] = if mode == MODE_ELIMINATE {

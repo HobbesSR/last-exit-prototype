@@ -82,7 +82,7 @@ export function idRanks(s: Game): number[] {
 /** Words in a player's fields (`combat::PLAYER_ROW`). */
 export const PLAYER_ROW = 15;
 /** Words per player uploaded (`players::STORE_ROW`): the fields, `movedThisTick`, then `players::Extra`. */
-const STORE_ROW = PLAYER_ROW + 1 + 8;
+const STORE_ROW = PLAYER_ROW + 1 + 9;
 /** Words of a player's equipment header (`players::EQUIP_HEAD`), and per carried item (`players::ITEM_ROW`). */
 const EQUIP_HEAD = 13, ITEM_ROW = 10;
 const num = (value: number | null | undefined): number => value ?? NaN;
@@ -100,7 +100,7 @@ function putPlayerRow(data: Float64Array, at: number, p: Player, rank: number): 
 export const playersStale = (r: PhysicsRuntime): boolean => !r.stepping;
 
 /** Pack every player in the upload's layout into `data`, in roster order. */
-function packPlayers(s: Game, keys: readonly number[], data: Float64Array): void {
+function packPlayers(s: Game, keys: readonly (readonly [number, number])[], data: Float64Array): void {
   const players = s.players, ranks = idRanks(s), stations = s.map.stations;
   for (let i = 0, at = 0; i < players.length; i++) {
     const p = players[i]!;
@@ -110,7 +110,7 @@ function packPlayers(s: Game, keys: readonly number[], data: Float64Array): void
     data[at++] = num(p.respawnAt); data[at++] = num(p.transit?.arriveAt);
     data[at++] = p.transit ? stations.findIndex(st => st.id === p.transit!.to) : -1;
     data[at++] = num(p.railCd); data[at++] = num(p.cloak); data[at++] = num(p.revealed); data[at++] = num(p.boost);
-    data[at++] = keys[i]!;
+    data[at++] = keys[i]![0]; data[at++] = keys[i]![1];
   }
 }
 
@@ -121,7 +121,7 @@ function packPlayers(s: Game, keys: readonly number[], data: Float64Array): void
 export function storeDrift(s: Game, r: PhysicsRuntime): string[] {
   const { core, world } = r.world.boundaryCall();
   // The tokens are the table's, so a store item that names another record than the one in the slot shows as drift.
-  const keys = s.players.map(p => r.world.key(`actor:${p.id}`)), equipment = packEquipment(s, item => carriedToken(r, item));
+  const keys = s.players.map(p => [r.world.key(`actor:${p.id}`), r.world.key(`hook:${p.id}`)] as const), equipment = packEquipment(s, item => carriedToken(r, item));
   const fixed = s.players.length * STORE_ROW;
   const fresh = new Float64Array(fixed + equipment.length);
   packPlayers(s, keys, fresh);
@@ -142,7 +142,7 @@ export function storeDrift(s: Game, r: PhysicsRuntime): string[] {
   return out;
 }
 const FIELDS = ['role', 'status', 'kit', 'x', 'y', 'heading', 'hp', 'maxHp', 'shield', 'level', 'cooldown', 'attackCd', 'stun', 'rank',
-  'viewLagTicks', 'movedThisTick', 'respawnAt', 'arriveAt', 'destination', 'railCd', 'cloak', 'revealed', 'boost', 'key'];
+  'viewLagTicks', 'movedThisTick', 'respawnAt', 'arriveAt', 'destination', 'railCd', 'cloak', 'revealed', 'boost', 'key', 'hookKey'];
 
 /**
  * Upload every player to the world's store, in roster order. Call it before any other input of the call is viewed: the
@@ -153,7 +153,7 @@ export function uploadPlayers(s: Game, r: PhysicsRuntime, core: StoreExports, wo
   // The upload numbers the carried records afresh, in roster and slot order.
   table.items.length = 0; table.tokens.clear();
   for (const p of players) for (const item of p.inventory ?? []) if (item) adoptCarried(r, item as InventoryItem);
-  const keys = players.map(p => r.world.key(`actor:${p.id}`)), equipment = packEquipment(s, item => carriedToken(r, item));
+  const keys = players.map(p => [r.world.key(`actor:${p.id}`), r.world.key(`hook:${p.id}`)] as const), equipment = packEquipment(s, item => carriedToken(r, item));
   const fixed = players.length * STORE_ROW;
   // Resizing the upload can grow the memory, so the view is made from the buffer after the call.
   const pointer = core.players_input(world, fixed + equipment.length) >>> 0;
