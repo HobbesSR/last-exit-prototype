@@ -338,6 +338,7 @@ export function coreSight(core: CoreExports): CoreSight {
     readGate(map, index) {
       const set = gateSetFor(map);
       if (!set.owned) throw new Error('readGate needs a gate set a game owns');
+      if (!(index >= 0 && index < map.gates.length)) throw new RangeError(`no gate ${index}`);
       return { open: maskOf(set.open, map.gates.length)[index] !== 0, locked: maskOf(set.locked, map.gates.length)[index] as 0 | 1 | 2 };
     },
     sweptHandle(map) {

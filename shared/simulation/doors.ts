@@ -36,7 +36,8 @@ export function writeDoor<K extends typeof DOOR_FIELDS[number]>(gate: Gate, key:
 export function setDoor(s: Game, index: number, state: { open?: boolean; locked?: boolean }): void {
   const gate = s.gates[index];
   if (!gate) throw new RangeError(`no gate ${index}`);
-  const open = state.open ?? gate.open, locked = 'locked' in state ? state.locked : gate.locked;
+  // An absent or undefined field leaves that field as it stands, on both sides.
+  const open = state.open ?? gate.open, locked = state.locked ?? gate.locked;
   sightOf(s).writeGate(s.map, index, open, locked == null ? 0 : locked ? 1 : 2);
   if (state.open !== undefined) writeDoor(gate, 'open', state.open);
   if (state.locked !== undefined) writeDoor(gate, 'locked', state.locked);

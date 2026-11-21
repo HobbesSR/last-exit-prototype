@@ -90,6 +90,15 @@ test('the core keeps the doors\' state, and the gate records mirror it (#1214 st
     setDoor(s, 1, { open: true, locked: true });
     assert.deepEqual(core(), mirror(), 'a between-tick command reaches both');
     assert.deepEqual([gates[1].open, gates[1].locked], [true, true]);
+    setDoor(s, 1, { open: false, locked: undefined });
+    assert.deepEqual(core(), mirror(), 'an undefined field leaves that field on both sides');
+    assert.equal(gates[1].locked, true);
+    // lineClear ignoring a closed door holds it open for that query only.
+    const west = { x: 3070, y }, east = { x: 3130, y };
+    assert.equal(sight.lineClear(s.map, west, east), false, 'the closed door blocks the line');
+    assert.equal(sight.lineClear(s.map, west, east, gates[1].id), true, 'ignored, it does not');
+    assert.deepEqual(core(), mirror(), 'and the core keeps it closed afterwards');
+    assert.equal(sight.lineClear(s.map, west, east), false);
   });
 });
 
