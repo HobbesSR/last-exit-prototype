@@ -11,7 +11,7 @@ import { validateActorPhysics } from './actor-physics.ts';
 import { addAuthoredProps, validateWorldPhysics } from './world-physics.ts';
 import { placeInCore, synchronizeBodies, synchronizeItems, uploadGateBodies } from './boundary.ts';
 import { reconcileHooks } from './hook.ts';
-import { attachPhysics, physicsRuntime, PHYSICS_VERSION } from './physics-runtime.ts';
+import { attachPhysics, mirrorPendingQueues, physicsRuntime, PHYSICS_VERSION } from './physics-runtime.ts';
 import { buildPhysicsGeometry } from './physics-geometry.ts';
 import { prepareBotGates } from './bot-routes.ts';
 import { prepareSweptGeometry, prepareSweptGates } from './swept.ts';
@@ -162,9 +162,12 @@ export function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferI
   if (synchronizeBodies(s, r, markTick, !deferItemAdmission)) {
     start('sim.itemSync'); synchronizeItems(s, r, markTick); stop('sim.itemSync');
   }
-  r.pendingImpulses = r.pendingImpulses.filter(entry => r.world.getGeneration(entry.id) === entry.generation);
-  r.pendingAttachments = r.pendingAttachments.filter(entry => r.world.getGeneration(entry.a) === entry.generationA
-    && r.world.getGeneration(entry.b) === entry.generationB);
+  // The pending queues are the core's (#1214 stage 6d.5): it drops what changed generation, and the mirror follows.
+  if (r.pendingImpulses.length || r.pendingAttachments.length) {
+    const { core, world } = r.world.boundaryCall();
+    core.physics_filter_pending(world);
+    mirrorPendingQueues(r);
+  }
   reconcileHooks(s);
 }
 

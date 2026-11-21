@@ -5,8 +5,8 @@ import type { BodySpec } from '../physics/types.ts';
 import type { CoreExports } from '../core.ts';
 import { actorRadius } from './actor-physics.ts';
 import { admitItem, groundItem, itemsNear } from './ground-items.ts';
-import { markPhysicsDiscontinuity } from './physics-runtime.ts';
-import type { PhysicsRuntime, PendingAttachment } from './physics-runtime.ts';
+import { markPhysicsDiscontinuity, mirrorPendingQueues } from './physics-runtime.ts';
+import type { PhysicsRuntime } from './physics-runtime.ts';
 import { physicsGate } from './physics-geometry.ts';
 import { sightOf } from './sight-runtime.ts';
 import { playersStale, uploadPlayers } from './player-store.ts';
@@ -33,12 +33,11 @@ type Core = CoreExports & PhysicsExports;
 const OUT_HEADER = 6, BODY_ROW = 22;
 const A_HEADER = 11;
 const B_HEADER = 8;
-const OP_QUEUED = 1, OP_COMMIT = 2, OP_TRANSFORM = 3, OP_MARK = 4, OP_ACTOR = 5, OP_POSE = 6, OP_RETRY = 7, OP_GATE = 8, OP_ITEM = 9;
+const OP_QUEUED = 1, OP_COMMIT = 2, OP_TRANSFORM = 3, OP_MARK = 4, OP_ACTOR = 5, OP_POSE = 6, OP_RETRY = 7, OP_GATE = 8, OP_ITEM = 9, OP_ATTACHMENT = 10;
 const MARK_PLACED = 0;
 const TEMPLATE_CONTESTANT = 0, TEMPLATE_GLADIATOR = 1, TEMPLATE_LOOT = 2;
 const E_NO_PLACEMENT = -17, E_DISCONTINUITY_CAPACITY = -18, E_UNREPRESENTABLE = -19, E_INITIAL_SPEED = -20;
 
-const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const ITEM_PREFIX = 'item:';
 
 /** The specs a game's queued bodies are built from, and their rows: fixed by the match's pinned content. */
@@ -127,6 +126,11 @@ function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number):
       // A refused close: the core has kept the gate open in its set, and the mirror follows.
       if (out[at + 3]) writeDoor(s.gates[index]!, 'open', true);
       r.gates[index] = out[at + 2]!; at += 4;
+    } else if (op === OP_ATTACHMENT) {
+      // An attachment the admission queued: its spec, as `validateConstraint` gave it, for the world's records.
+      const key = out[at + 1]!;
+      world.adoptQueuedConstraint(key, { id: world.idOf(key), a: world.idOf(out[at + 2]!), b: world.idOf(out[at + 3]!), maxDistance: out[at + 4]! });
+      at += 5;
     } else if (op === OP_ITEM) {
       const id = world.idOf(out[at + 1]!);
       // An admitted item names its record by ID (6d.3).
@@ -217,32 +221,15 @@ export function synchronizeItems(s: Game, r: PhysicsRuntime, markTick: number): 
 }
 
 /**
- * Phase 1's admission of the pending impulses and attachments, decided in the core: an impulse whose body keeps
- * its generation, an attachment whose actors keep theirs, within reach and in the clear. The admitted are queued
- * here, in order, so the world's records take their specs as before.
+ * Phase 1's admission of the pending impulses and attachments, in the core from its own queues (#1214 stage 6d.5): the
+ * admitted are queued there, and each queued attachment's spec is adopted here, as `queueAddConstraint` made it. The
+ * mirror follows the queues, refusal or not.
  */
 export function admitPending(s: Game, r: PhysicsRuntime): void {
-  const impulses = r.pendingImpulses.splice(0);
-  // Read, not drained: as before, the attachment queue empties only once every admitted impulse has queued, so an
-  // impulse the world refuses leaves the attachments pending (review 975).
-  const attachments = [...r.pendingAttachments].sort((a, b) => compare(a.id, b.id));
-  if (!impulses.length && !attachments.length) return;
-  const world = r.world;
-  const keyOf = (id: string) => world.hasBody(id) ? world.key(id) : -1;
-  const impulseKeys = impulses.map(impulse => keyOf(impulse.id));
-  const ends = attachments.map(a => [keyOf(a.a), keyOf(a.b)] as const);
+  if (!r.pendingImpulses.length && !r.pendingAttachments.length) return;
   const { core, world: native, index, gates } = handles(s, r);
-  const view = input(core, native, 2 + impulses.length * 2 + attachments.length * 7);
-  view[0] = impulses.length; view[1] = attachments.length;
-  impulses.forEach((impulse, i) => { view[2 + 2 * i] = impulseKeys[i]!; view[3 + 2 * i] = impulse.generation; });
-  const base = 2 + impulses.length * 2;
-  attachments.forEach((a, i) => view.set([ends[i]![0], ends[i]![1], r.actors.has(a.a) ? 1 : 0, r.actors.has(a.b) ? 1 : 0,
-    a.generationA, a.generationB, a.maxDistance], base + 7 * i));
   core.physics_admit_pending(native, index, gates);
-  const pass = Array.from(output(core, native).subarray(OUT_HEADER), flag => flag === 1);
-  impulses.forEach((impulse, i) => { if (pass[i]) world.queueImpulse(impulse.id, impulse.value); });
-  r.pendingAttachments.splice(0);
-  attachments.forEach((attachment: PendingAttachment, i) => { if (pass[impulses.length + i]) world.queueAddConstraint(attachment); });
+  try { apply(s, r, output(core, native), s.tick); } finally { mirrorPendingQueues(r); }
 }
 
 /** The placement search in the core, for `p` nearest `origin`, clear of the `admitted` actors as they stand. */

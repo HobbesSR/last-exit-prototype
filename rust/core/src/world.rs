@@ -171,6 +171,13 @@ pub struct World {
     pub(crate) launches: Vec<(Key, f64, f64)>,
     /// The hooks, in ID order (#1214 stage 6d.4): JavaScript's `r.hooks` is their mirror.
     pub(crate) hooks: Vec<HookRecord>,
+    /// The impulses awaiting phase 1's admission, in the order they were first queued: key, x, y and the body's
+    /// generation when queued (#1214 stage 6d.5). JavaScript's `pendingImpulses` is their mirror.
+    pub(crate) pending_impulses: Vec<(Key, f64, f64, f64)>,
+    /// The attachments awaiting admission: id, a, b, max distance and the endpoints' generations (6d.5).
+    pub(crate) pending_attachments: Vec<PendingAttachment>,
+    /// The discontinuity markers' keys as the last body sync left them (6d.5), for a sync the core runs itself.
+    pub(crate) markers: Vec<Key>,
     pub(crate) phase_seven: crate::phase_seven::PhaseSeven,
     /// By key: a solid prop's shape as its spec gave it (`shape, a, b, vertices`), for the swept
     /// queries' `solidProps` (`hooks.rs`). Loot and every other kind keep none.
@@ -210,6 +217,26 @@ pub(crate) struct HookRecord {
     pub(crate) hit_tick: f64,
     pub(crate) desired: f64,
 }
+
+/// An attachment awaiting admission (`PendingAttachment` with its generations, #1214 stage 6d.5).
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct PendingAttachment {
+    pub(crate) key: Key,
+    pub(crate) a: Key,
+    pub(crate) b: Key,
+    pub(crate) max_distance: f64,
+    pub(crate) generation_a: f64,
+    pub(crate) generation_b: f64,
+}
+
+/// `enqueuePhysicsImpulse`'s and `enqueuePhysicsAttachment`'s refusals, as the adapter throws them.
+pub const E_UNKNOWN_IMPULSE_ACTOR: i32 = -40;
+pub const E_IMPULSE_CAPACITY: i32 = -41;
+pub const E_UNKNOWN_ATTACHMENT_ACTOR: i32 = -42;
+pub const E_ATTACHMENT_CAPACITY: i32 = -43;
+/// The pending queues' bounds (29.2, "Bounds").
+const MAX_PENDING_IMPULSES: usize = 128;
+const MAX_PENDING_ATTACHMENTS: usize = 8;
 
 /// Words per hook uploaded (`HookRecord`, in its field order).
 pub const HOOK_RECORD: usize = 15;
@@ -262,6 +289,9 @@ impl World {
             waiting: Vec::new(),
             launches: Vec::new(),
             hooks: Vec::new(),
+            pending_impulses: Vec::new(),
+            pending_attachments: Vec::new(),
+            markers: Vec::new(),
             phase_seven: crate::phase_seven::PhaseSeven::default(),
             prop_shapes: Vec::new(),
         }
@@ -274,6 +304,14 @@ impl World {
 
     pub fn output(&self) -> &[f64] {
         &self.output
+    }
+
+    /// Whether the ID of `key` starts with `prefix`.
+    pub(crate) fn id_starts_with(&self, key: Key, prefix: &str) -> bool {
+        let prefix: Vec<u16> = prefix.encode_utf16().collect();
+        self.ids
+            .get(key as usize)
+            .is_some_and(|id| id.starts_with(&prefix))
     }
 
     /// The keys of the live bodies whose IDs start with `prefix` (`actor:`, `item:`), in key order.
@@ -317,6 +355,74 @@ impl World {
         waiting.sort_by(|&a, &b| self.order(a, b));
         waiting.dedup();
         self.waiting = waiting;
+    }
+
+    /// `enqueuePhysicsImpulse` after its validation and sync: the impulse scaled to `limit`, merged into an earlier one
+    /// for the same body and generation (the sum clamped to `limit`), else queued after the others.
+    pub fn enqueue_impulse(&mut self, key: Key, x: f64, y: f64, limit: f64) -> i32 {
+        if self.body(key).is_none() {
+            return E_UNKNOWN_IMPULSE_ACTOR;
+        }
+        let generation = self.generation(key);
+        let magnitude = crate::math::hypot(x, y);
+        let scale = if magnitude > limit {
+            limit / magnitude
+        } else {
+            1.0
+        };
+        if let Some(p) = self
+            .pending_impulses
+            .iter_mut()
+            .find(|p| p.0 == key && p.3 == generation)
+        {
+            let (sx, sy) = (p.1 + x * scale, p.2 + y * scale);
+            let total = crate::math::hypot(sx, sy);
+            let factor = if total > limit { limit / total } else { 1.0 };
+            (p.1, p.2) = (sx * factor, sy * factor);
+            return 0;
+        }
+        if self.pending_impulses.len() >= MAX_PENDING_IMPULSES {
+            return E_IMPULSE_CAPACITY;
+        }
+        self.pending_impulses
+            .push((key, x * scale, y * scale, generation));
+        0
+    }
+
+    /// `enqueuePhysicsAttachment` after its validation and sync: queued with both endpoints' generations.
+    pub fn enqueue_attachment(&mut self, key: Key, a: Key, b: Key, max_distance: f64) -> i32 {
+        if self.pending_attachments.len() >= MAX_PENDING_ATTACHMENTS {
+            return E_ATTACHMENT_CAPACITY;
+        }
+        if self.body(a).is_none() || self.body(b).is_none() {
+            return E_UNKNOWN_ATTACHMENT_ACTOR;
+        }
+        let (generation_a, generation_b) = (self.generation(a), self.generation(b));
+        self.pending_attachments.push(PendingAttachment {
+            key,
+            a,
+            b,
+            max_distance,
+            generation_a,
+            generation_b,
+        });
+        0
+    }
+
+    /// The sync's last step: an impulse or attachment whose body changed generation since it was queued is dropped.
+    pub fn filter_pending(&mut self) {
+        let impulses = std::mem::take(&mut self.pending_impulses);
+        self.pending_impulses = impulses
+            .into_iter()
+            .filter(|p| self.generation(p.0) == p.3)
+            .collect();
+        let attachments = std::mem::take(&mut self.pending_attachments);
+        self.pending_attachments = attachments
+            .into_iter()
+            .filter(|p| {
+                self.generation(p.a) == p.generation_a && self.generation(p.b) == p.generation_b
+            })
+            .collect();
     }
 
     /// Phase 3's hook launch (`hookSkill`): a flying hook from the caster's pose, kept in ID order.
