@@ -62,6 +62,8 @@ pub const OP_RETRY: f64 = 7.0;
 pub const OP_GATE: f64 = 8.0;
 /// `key, added, reference`: the runtime's item set; an added item leaves the admission order.
 pub const OP_ITEM: f64 = 9.0;
+/// `key, a, b, max distance`: an attachment the admission queued (6d.5), whose spec JavaScript adopts.
+pub const OP_ATTACHMENT: f64 = 10.0;
 
 /// A log entry, encoded by `Entry::encode` alone, so each kind's words and their count live in one
 /// place. The codes and layouts are the `OP_*` constants above, which `shared/simulation/boundary.ts`
@@ -106,6 +108,13 @@ enum Entry {
         key: Key,
         added: bool,
         reference: f64,
+    },
+    /// An attachment the admission queued (6d.5), for JavaScript's spec table.
+    Attachment {
+        key: Key,
+        a: Key,
+        b: Key,
+        max_distance: f64,
     },
 }
 
@@ -153,6 +162,18 @@ impl Entry {
                 added,
                 reference,
             } => out.extend_from_slice(&[OP_ITEM, f64::from(key), flag(added), reference]),
+            Entry::Attachment {
+                key,
+                a,
+                b,
+                max_distance,
+            } => out.extend_from_slice(&[
+                OP_ATTACHMENT,
+                f64::from(key),
+                f64::from(a),
+                f64::from(b),
+                max_distance,
+            ]),
         }
     }
 }
@@ -607,6 +628,8 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
         let reserve = players.saturating_sub(live.len()) + drop_reserve;
         let room = input[A_LAUNCHES] != 0.0 || world.can_add_bodies(1 + reserve);
         header[3] = f64::from(u8::from(input[A_ADMIT] != 0.0 && room));
+        // The markers as this sync leaves them, for a sync the core runs itself (#1214 stage 6d.5).
+        world.markers = log.markers.clone();
         Ok(())
     });
 }
@@ -715,47 +738,81 @@ pub fn synchronize_items(world: &mut World, map: &mut CollisionMap, gates: &mut 
             }
         }
         header[3] = 0.0;
-        log.commit(world)
+        let done = log.commit(world);
+        world.markers = log.markers.clone();
+        done
     });
 }
 
-/// Phase 1's admission of the pending impulses and attachments: which may be queued. The input:
-/// the counts, then `key, generation` per impulse (key -1 when it was never interned), then per
-/// attachment in ID order `a, b, a is an actor, b is an actor, generation a, generation b, max
-/// distance`. The output, after the header, is one flag per impulse, then per attachment.
+/// Phase 1's admission of the pending impulses and attachments, from the world's own queues (#1214 stage 6d.5): an
+/// impulse whose body keeps its generation, an attachment whose actors keep theirs, within reach and in the clear. The
+/// impulse queue empties; the admitted impulses are queued in order. Only once every one has queued does the attachment
+/// queue empty and the admitted attachments queue, each reported for JavaScript's spec table, so an impulse the world
+/// refuses leaves the attachments pending (review 975).
 pub fn admit_pending(world: &mut World, index: &SightIndex, gates: &GateSet) {
-    run(world, |world, input, log, _| {
-        let (impulses, attachments) = (input[0] as usize, input[1] as usize);
-        for i in 0..impulses {
-            let (key, generation) = (input[2 + 2 * i], input[3 + 2 * i]);
-            let pass = key >= 0.0
-                && world.has_body(key as Key)
-                && world.generation(key as Key) == generation;
-            log.answer(&[f64::from(u8::from(pass))]);
-        }
-        let base = 2 + 2 * impulses;
-        for i in 0..attachments {
-            let r = &input[base + 7 * i..base + 7 * i + 7];
-            let position = |world: &mut World, key: f64| {
-                if key < 0.0 {
-                    None
-                } else {
-                    world.position(key as Key)
-                }
-            };
-            let (a, b) = (position(world, r[0]), position(world, r[1]));
-            let pass = match (a, b) {
+    run(world, |world, _input, log, _| {
+        let impulses = std::mem::take(&mut world.pending_impulses);
+        let mut attachments = world.pending_attachments.clone();
+        attachments.sort_by(|x, y| world.id_order(x.key, y.key));
+        let pass_impulse: Vec<bool> = impulses
+            .iter()
+            .map(|p| world.has_body(p.0) && world.generation(p.0) == p.3)
+            .collect();
+        let actor =
+            |world: &World, key: Key| world.has_body(key) && world.id_starts_with(key, "actor:");
+        let pass_attachment: Vec<bool> = attachments
+            .iter()
+            .map(|p| match (world.position(p.a), world.position(p.b)) {
                 (Some(a), Some(b)) => {
-                    r[2] != 0.0
-                        && r[3] != 0.0
-                        && world.generation(r[0] as Key) == r[4]
-                        && world.generation(r[1] as Key) == r[5]
-                        && hypot(a.0 - b.0, a.1 - b.1) <= r[6]
+                    actor(world, p.a)
+                        && actor(world, p.b)
+                        && world.generation(p.a) == p.generation_a
+                        && world.generation(p.b) == p.generation_b
+                        && hypot(a.0 - b.0, a.1 - b.1) <= p.max_distance
                         && reach_clear(index, gates, a, b).0
                 }
                 _ => false,
-            };
-            log.answer(&[f64::from(u8::from(pass))]);
+            })
+            .collect();
+        for (p, pass) in impulses.iter().zip(&pass_impulse) {
+            if *pass {
+                let code = world.queue_push(true, p.0, p.1, p.2);
+                if code < 0 {
+                    return Err((code, f64::from(p.0), -1.0));
+                }
+            }
+        }
+        world.pending_attachments.clear();
+        for (p, pass) in attachments.iter().zip(&pass_attachment) {
+            if *pass {
+                // The legacy form `validateConstraint` gives an attachment: no kind, only a maximum distance.
+                let row = [
+                    f64::from(p.key),
+                    f64::from(p.a),
+                    f64::from(p.b),
+                    f64::NAN,
+                    p.max_distance,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    f64::NAN,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                ];
+                let code = world.queue_constraint_row(&row);
+                if code < 0 {
+                    return Err((code, f64::from(p.key), -1.0));
+                }
+                log.entry(Entry::Attachment {
+                    key: p.key,
+                    a: p.a,
+                    b: p.b,
+                    max_distance: p.max_distance,
+                });
+            }
         }
         Ok(())
     });

@@ -1,7 +1,6 @@
 import type { PhysicsWorld } from '../physics/world.ts';
 import type { PhysicsGameplayState, HookState } from '../physics/types.ts';
 import type { Game, GateIdx, ItemId, Player, Projectile, Vec2 } from '../types.ts';
-import { hypot } from '../math.ts';
 import type { PhysicsIdentities } from './physics-identities.ts';
 
 /** The one physics rules version. Which features a match has is stated by its content, never by this string (26). */
@@ -66,6 +65,25 @@ export function physicsState(s: Game): PhysicsGameplayState | undefined {
     pendingSpawns: structuredClone(r.pendingSpawns), pendingImpulses: structuredClone(r.pendingImpulses),
     pendingAttachments: structuredClone(r.pendingAttachments) };
 }
+/**
+ * The pending queues are the core's (#1214 stage 6d.5): the world keeps them, merges, clamps and bounds them, admits
+ * them in phase 1 and filters them by generation after each sync. `pendingImpulses` and `pendingAttachments` are their
+ * mirror, read back after every change, for the gameplay snapshot.
+ */
+export function mirrorPendingQueues(r: PhysicsRuntime): void {
+  const { core, world } = r.world.boundaryCall();
+  const at = core.physics_queues_dump(world) >>> 0, head = new Float64Array(core.memory.buffer, at, 2);
+  const impulses = head[0]!, attachments = head[1]!;
+  const rows = new Float64Array(core.memory.buffer, at + 16, impulses * 4 + attachments * 6), idOf = (key: number) => r.world.idOf(key);
+  r.pendingImpulses = Array.from({ length: impulses }, (_, i) => ({ id: idOf(rows[i * 4]!), value: { x: rows[i * 4 + 1]!, y: rows[i * 4 + 2]! },
+    generation: rows[i * 4 + 3]! }));
+  const base = impulses * 4;
+  r.pendingAttachments = Array.from({ length: attachments }, (_, i) => {
+    const k = base + i * 6;
+    return { id: idOf(rows[k]!), a: idOf(rows[k + 1]!), b: idOf(rows[k + 2]!), maxDistance: rows[k + 3]!, generationA: rows[k + 4]!, generationB: rows[k + 5]! };
+  });
+}
+
 /** Post-solve effects enter the next tick, never a partially completed solve. */
 export function enqueuePhysicsImpulse(s: Game, id: string, value: Vec2): void {
   const r = rooms.get(s);
@@ -73,20 +91,12 @@ export function enqueuePhysicsImpulse(s: Game, id: string, value: Vec2): void {
   r.synchronize();
 
   if (![value.x, value.y].every(n => Number.isFinite(n) && Math.abs(n) <= 1e9)) throw new TypeError('representable finite impulse required');
-  const generation = r.world.getGeneration(id);
-  if (generation === undefined) throw new Error('unknown impulse actor');
-  const magnitude = hypot(value.x, value.y), limit = id.startsWith('actor:')
-    ? s.content.actorPhysics.maxImpulse : s.content.worldPhysics.maxImpulse;
-  const scale = magnitude > limit ? limit / magnitude : 1;
-  const previous = r.pendingImpulses.find(entry => entry.id === id && entry.generation === generation);
-  if (previous) {
-    const x = previous.value.x + value.x * scale, y = previous.value.y + value.y * scale;
-    const total = hypot(x, y), factor = total > limit ? limit / total : 1;
-    previous.value = { x: x * factor, y: y * factor };
-  } else {
-    if (r.pendingImpulses.length >= 128) throw new RangeError('pending impulse capacity');
-    r.pendingImpulses.push({ id, value: { x: value.x * scale, y: value.y * scale }, generation });
-  }
+  const limit = id.startsWith('actor:') ? s.content.actorPhysics.maxImpulse : s.content.worldPhysics.maxImpulse;
+  const key = r.world.key(id), { core, world } = r.world.boundaryCall();
+  const code = core.physics_enqueue_impulse(world, key, value.x, value.y, limit);
+  if (code === -40) throw new Error('unknown impulse actor');
+  if (code === -41) throw new RangeError('pending impulse capacity');
+  mirrorPendingQueues(r);
 }
 export function enqueuePhysicsAttachment(s: Game, attachment: PendingAttachment): void {
   const r = rooms.get(s);
@@ -94,7 +104,9 @@ export function enqueuePhysicsAttachment(s: Game, attachment: PendingAttachment)
   r.synchronize();
   if (r.pendingAttachments.length >= 8) throw new RangeError('pending attachment capacity');
   if (!attachment.id || !attachment.a || !attachment.b || !Number.isFinite(attachment.maxDistance) || attachment.maxDistance <= 0 || attachment.maxDistance > 1e9) throw new TypeError('invalid attachment');
-  const generationA = r.world.getGeneration(attachment.a), generationB = r.world.getGeneration(attachment.b);
-  if (generationA === undefined || generationB === undefined) throw new Error('unknown attachment actor');
-  r.pendingAttachments.push({ ...attachment, generationA, generationB });
+  const keys = [attachment.id, attachment.a, attachment.b].map(id => r.world.key(id)), { core, world } = r.world.boundaryCall();
+  const code = core.physics_enqueue_attachment(world, keys[0]!, keys[1]!, keys[2]!, attachment.maxDistance);
+  if (code === -43) throw new RangeError('pending attachment capacity');
+  if (code === -42) throw new Error('unknown attachment actor');
+  mirrorPendingQueues(r);
 }

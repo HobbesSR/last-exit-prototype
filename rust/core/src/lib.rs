@@ -35,7 +35,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 28;
+pub const ADAPTER_VERSION: u32 = 29;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -1023,6 +1023,73 @@ pub unsafe extern "C" fn physics_hooks_dump(world: *mut world::World) -> *const 
             h.generation_b,
             h.hit_tick,
             h.desired,
+        ]);
+    }
+    w.boundary_output = out;
+    w.boundary_output.as_ptr()
+}
+/// `enqueuePhysicsImpulse` in the core, after JavaScript's validation and sync (`World::enqueue_impulse`, #1214 stage
+/// 6d.5); a refusal code, or 0.
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_enqueue_impulse(
+    world: *mut world::World,
+    key: u32,
+    x: f64,
+    y: f64,
+    limit: f64,
+) -> i32 {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).enqueue_impulse(key, x, y, limit) }
+}
+/// `enqueuePhysicsAttachment` in the core (`World::enqueue_attachment`); a refusal code, or 0.
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_enqueue_attachment(
+    world: *mut world::World,
+    key: u32,
+    a: u32,
+    b: u32,
+    max: f64,
+) -> i32 {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).enqueue_attachment(key, a, b, max) }
+}
+/// The sync's last step: drop pending entries whose bodies changed generation (`World::filter_pending`).
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_filter_pending(world: *mut world::World) {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).filter_pending() }
+}
+/// The pending queues, for JavaScript's mirror, written into the boundary output: the impulse and attachment counts,
+/// then `key, x, y, generation` per impulse and `key, a, b, max distance, generation a, generation b` per attachment.
+/// # Safety
+/// `world` is live; the view expires on the next call into the world.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_queues_dump(world: *mut world::World) -> *const f64 {
+    // SAFETY: the caller's contract.
+    let w = unsafe { &mut *world };
+    let mut out = std::mem::take(&mut w.boundary_output);
+    out.clear();
+    out.extend_from_slice(&[
+        w.pending_impulses.len() as f64,
+        w.pending_attachments.len() as f64,
+    ]);
+    for p in &w.pending_impulses {
+        out.extend_from_slice(&[f64::from(p.0), p.1, p.2, p.3]);
+    }
+    for p in &w.pending_attachments {
+        out.extend_from_slice(&[
+            f64::from(p.key),
+            f64::from(p.a),
+            f64::from(p.b),
+            p.max_distance,
+            p.generation_a,
+            p.generation_b,
         ]);
     }
     w.boundary_output = out;

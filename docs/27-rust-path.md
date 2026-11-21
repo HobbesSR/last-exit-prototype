@@ -82,6 +82,24 @@ order, and `r.hooks` is their mirror.
   a hook's flight, hit, pull and release. With phase 3's launch disabled in the core, it fails.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6d.5, the pending queues (#1214, adapter version 29).** The world keeps the impulses and the attachments awaiting
+phase 1's admission (`World::pending_impulses`, `pending_attachments`). `pendingImpulses` and `pendingAttachments` are
+their mirror, read back after every change (`mirrorPendingQueues`) for the gameplay snapshot, which the fixture hashes.
+- **Enqueueing is the core's.** `enqueuePhysicsImpulse` and `enqueuePhysicsAttachment` keep their validation and their
+  sync in Node, then hand the entry over (`physics_enqueue_impulse`, `physics_enqueue_attachment`). The core scales an
+  impulse to its limit, merges it into an earlier one for the same body and generation (the sum clamped), and bounds
+  both queues (128 and 8), with the same refusals.
+- **Phase 1's admission reads the world's queues** (`admit_pending`). It empties the impulse queue, queues the admitted
+  impulses, and only then empties the attachment queue and queues the admitted attachments, so an impulse the world
+  refuses leaves the attachments pending (review 975). Each queued attachment is reported (`OP_ATTACHMENT`) for the spec
+  table world.ts keeps.
+- **The sync's generation filter runs in the core** (`physics_filter_pending`).
+- **The markers each body sync leaves** are kept (`World::markers`) for a sync the core will run itself (6d.6). Node still
+  sends its list with every sync it starts, so a test that resets `r.discontinuities` behaves as before.
+- **Continuity.** A mine's explosion is what fills the impulse queue in play, so `tools/trap-continuity.mjs`, which hashes
+  the pending impulses every tick, compared this change with a pristine export of 6d.4.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -770,8 +788,9 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
     also filters the pending queues by generation and reconciles the hooks, so no run can sync inside itself until
     those are the core's too:
     - **6d.4 (#1214):** the hooks. Below.
-    - **6d.5:** the pending queues and the discontinuity markers, with a mine's explosion impulses enqueued in the core.
-    - **6d.6:** the sync inside a run: the drops, pickups, swaps and the explosion stop syncing in Node.
+    - **6d.5 (#1214):** the pending queues, and the discontinuity markers each sync leaves. Below.
+    - **6d.6:** the sync inside a run: the drops, pickups, swaps and a mine's explosion stop syncing in Node, and the
+      explosion's impulses are enqueued in the core.
 - **The direction (Corey, 2026-11-21, on #1214):** "now the way this should work eventually is that essentially the core
   should just be receiving tick timed input events or roughly that at the interface betweeen it and JS". So from 6d.2
   the remaining work is ordered by the stops it removes, each a crossing gone for good, rather than reader by reader.
