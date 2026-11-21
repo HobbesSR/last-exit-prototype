@@ -161,6 +161,7 @@ pub struct World {
     pub(crate) combat: crate::combat::Combat,
     pub(crate) interactions: crate::phase_six::PhaseSix,
     pub(crate) hazards: crate::hazards::Hazards,
+    pub(crate) players: crate::players::Players,
     pub(crate) phase_seven: crate::phase_seven::PhaseSeven,
     /// By key: a solid prop's shape as its spec gave it (`shape, a, b, vertices`), for the swept
     /// queries' `solidProps` (`hooks.rs`). Loot and every other kind keep none.
@@ -209,6 +210,7 @@ impl World {
             combat: crate::combat::Combat::default(),
             interactions: crate::phase_six::PhaseSix::default(),
             hazards: crate::hazards::Hazards::default(),
+            players: crate::players::Players::default(),
             phase_seven: crate::phase_seven::PhaseSeven::default(),
             prop_shapes: Vec::new(),
         }

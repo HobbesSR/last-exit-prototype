@@ -655,14 +655,26 @@ between-tick command (D5). After 6a the six stages planned there were merged int
 other, and each is a PR in sequence. That was claudecode's proposal, which Corey agreed to in the session that made 6a and 6b (2026-11-21):
 - **6a (#1214): door state.** Below.
 - **6b (#1214): the traps.** Below.
-- **6c: the pending queues, the hooks, the ground and the ID counters.** They move together because each reads the
-  others. Phase 1's admission reads the pending queues and the ground. The drop and pickup stops hand Node ground
-  records, launches and admissions. A drop plan's item counters (`itemSerial`, `scatterSerial`, D6) travel in a
-  tentative allocation that crosses those stops. A mine's explosion impulses (`enqueueExplosionImpulses`) port with
-  the impulse queue, which retires `hazards.rs`'s `STOP_EXPLOSION`. `serial` goes with the item counters: every live
-  allocation is already the core's, and Node only round-trips it.
-- **6d: the players, effects, events and projectiles, and the two calls** (`tick_begin`, `tick_finish`, D4), with bot
-  side tables keyed by ID. The remaining packing goes, and the steps that used 42.58's exception are measured again.
+- **The players go next, before the queues and the ground** (claudecode's reassessment at 6c, which Corey accepted,
+  2026-11-21). A mine's explosion impulses synchronize every body against the players, which Node packs, so moving the
+  impulse queue alone could not retire `STOP_EXPLOSION`. The queues and the hooks gain nothing measurable on their
+  own, and most of the remaining packing and stops come from the players.
+- **6c: the players.** One store in the core (`players.rs`) that every run reads and writes. It is converted a group
+  of runs at a time:
+  - **6c.1 (#1214):** the store, with phase 5's combat and phase 6's environment and traps as its first readers. Below.
+  - **6c.2:** phase 1, the body sync, the hooks, and phase 4's write-back of poses.
+  - **6c.3:** phase 3 with the elimination, phase 6's per-actor loop and `finishMatch`, and the inventories.
+
+  Until the last writer of a player's fields converts, the adapters upload the store from the records before each
+  converted call, so each step costs what the packing did. After 6c.3 the upload happens once a tick, at its start,
+  and on calls between ticks. Replacing it with between-tick commands is 6e's.
+- **6d: the pending queues, the hooks, the ground and the ID counters,** with the explosion port. They depend on each
+  other: phase 1's admission reads the queues and the ground, the drop and pickup stops hand Node ground records,
+  launches and admissions, and a drop plan's item counters (`itemSerial`, `scatterSerial`, D6) travel in a tentative
+  allocation across those stops. `serial` goes with the item counters.
+- **6e: the effects, events and projectiles, and the two calls** (`tick_begin`, `tick_finish`, D4), with bot side
+  tables keyed by ID. The remaining packing goes, between-tick writes become commands, and the steps that used 42.58's
+  exception are measured again.
 
 **Step 6a, door state (#1214).** A game's doors' `open` and `locked` live in the core, in its gate set's masks
 (`GateSet::open` and `::locked` in `sight.rs`), and the gate records are their mirror (`shared/simulation/doors.ts`).
@@ -697,6 +709,21 @@ and `s.traps` is their mirror. The rules did not change: they already reported e
   1.3 µs for assignment. A direct write to a trap record therefore no longer reaches the rules. `traps.test.js`'s two
   writes showed this at once, and they now use `setTrap`.
 - **Cost:** [42.75](42.75-trap-state-core.md).
+
+**Step 6c.1, the player store (#1214, adapter version 19).** `rust/core/src/players.rs` keeps each world's players in
+roster order, as phase 5's rows (`combat::Row`: role, status, kit, pose, heading, health, level, cooldowns, stun, rank in
+ID order, view lag) with each one's `movedThisTick`. `shared/simulation/player-store.ts` uploads it, with `putPlayerRow`
+and `idRanks` moved there from `phase-five.ts`.
+- **Two readers.** Phase 5's combat runs (`combat.rs`) and phase 6's environment and traps (`hazards.rs`) take their rows
+  from the store and give them back with their writes. Their inputs no longer carry player rows, and their outputs and
+  the mirror's writes are unchanged.
+- **Uploaded before each of their calls.** Every other phase still writes the records directly, so the store is
+  current only right after an upload. A run's writes reach the store too, so the store is current again once the
+  last writer converts (6c.3).
+- **Cost.** One upload replaces each call's own packing, row for row, so no saving was planned. Measured as 42.75 was (24x12, seed
+  4217, five rounds; current, base `b7433806`, current), `sim.environment` fell from 17.4 µs to 9.5–10.1 µs a tick without traps, and from
+  52.4 µs to 43.9–45.0 µs with 277. The whole tick moved within run spread. The likely cause, not proven: `putPlayerRow` was fed both a
+  JavaScript array (phase 5) and a typed array (the hazards), and now writes only a typed array. Phase 5 was not timed on its own.
 
 
 ## One math library on both sides

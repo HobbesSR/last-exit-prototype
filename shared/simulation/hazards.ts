@@ -1,7 +1,8 @@
 import { TRAP_KINDS } from '../enum-tables.ts';
 import type { Game, PlayerId, Trap } from '../types.ts';
 import { enqueueExplosionImpulses } from './explosion-physics.ts';
-import { PLAYER_ROW, applyLog, applyPlayerRows, idRanks, putPlayerRow } from './phase-five.ts';
+import { applyLog, applyPlayerRows } from './phase-five.ts';
+import { uploadPlayers } from './player-store.ts';
 import { configure, eliminateInCore } from './phase-three.ts';
 import type { ActionsCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
@@ -26,7 +27,7 @@ interface HazardExports {
   hazards_run(world: number, collision: number, index: number, gates: number): number;
 }
 type Core = ActionsCore & HazardExports;
-const HEADER = 10, CONTENT = 22, ACTOR_ROW = PLAYER_ROW + 1, AREA_ROW = 4, TRAP_ROW = 10, OUT_HEADER = 8, OUT_TRAP = 11;
+const HEADER = 10, CONTENT = 22, AREA_ROW = 4, TRAP_ROW = 10, OUT_HEADER = 8, OUT_TRAP = 11;
 const STOP_ELIMINATION = 1, STOP_EXPLOSION = 2, OP_SPAWN = 3;
 const W_COOLDOWN = 1, W_SPENT = 2, W_AIMING = 4, W_HEADING = 8, W_FIRING = 16, W_WARNING = 32, W_TARGET = 64, W_POSITION = 128;
 
@@ -73,8 +74,10 @@ function call(s: Game, parts: Parts, resume: boolean): { kind: number; which: nu
   const kept = uploaded.get(r), upload = !kept || kept.list !== traps || kept.length !== traps.length;
   const map = sightOf(s).queryHandles(s.map);
   if (map.core !== core) throw new Error('phase 6 and sight are bound to different cores');
-  // Map preparation can grow memory, so the input is viewed only after it, and written there in place.
-  const words = HEADER + CONTENT + players.length * ACTOR_ROW + areas.length * AREA_ROW + (upload ? traps.length * TRAP_ROW : 0);
+  // The players come from the core's store (`player-store.ts`, stage 6c). Map preparation and the upload can grow
+  // memory, so the input is viewed only after them, and written there in place.
+  uploadPlayers(s, core, world);
+  const words = HEADER + CONTENT + areas.length * AREA_ROW + (upload ? traps.length * TRAP_ROW : 0);
   const ptr = core.hazards_input(world, words) >>> 0, data = new Float64Array(core.memory.buffer, ptr, words);
   data.set([resume ? 1 : 0, s.tick, s.serial, players.length, traps.length, areas.length, s.hazardX,
     parts.environment ? 1 : 0, parts.traps ? 1 : 0, upload ? 1 : 0,
@@ -83,12 +86,6 @@ function call(s: Game, parts: Parts, resume: boolean): { kind: number; which: nu
     t.flame.cycle, t.flame.warnAt, t.flame.fireAt, t.flame.interval, t.flame.range, t.flame.cone, t.flame.damage,
     t.spider.leash, t.spider.acquire, t.spider.step, t.spider.grapple, t.spider.cooldown, t.spider.stun, t.spider.damage]);
   let at = HEADER + CONTENT;
-  const ranks = idRanks(s);
-  for (let i = 0; i < players.length; i++) {
-    const p = players[i]!;
-    at = putPlayerRow(data, at, p, ranks[i]!);
-    data[at++] = p.movedThisTick ?? 0;
-  }
   for (const h of areas) { data[at++] = h.x; data[at++] = h.y; data[at++] = h.w; data[at++] = h.h; }
   if (upload) for (const trap of traps) {
     const target = trap.targetId == null ? undefined : playerById(s, trap.targetId as PlayerId);
