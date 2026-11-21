@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, disposePhysics, step } from '../shared/simulation.ts';
-import { defaultContent } from '../shared/simulation/content.ts';
+import { createGame, disposePhysics, setInput, step } from '../shared/simulation.ts';
+import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { storeDrift } from '../shared/simulation/player-store.ts';
 import { groundDrift } from '../shared/simulation/ground-store.ts';
+import { hookDrift, hookSkill } from '../shared/simulation/hook.ts';
 import { generatedMap } from './helpers/room-harness.js';
+import { openArea } from './helpers/arena.js';
 
 // The core's player store (#1214 stage 6c.2) is uploaded once a tick, by phase 1, so every write to its fields inside a
 // tick must reach it as well as the records, its equipment included (6c.3c.1). A bot match on the default arena, with traps and hazard areas so the
@@ -40,8 +42,40 @@ test('every write inside a tick reaches the core\'s player store (#1214 stage 6c
       assert.deepEqual(storeDrift(s, r), [], `players at tick ${s.tick}`);
       // The ground store follows the ground helpers' writes (6d.1): drops, pickups, swaps and phase 4's poses.
       assert.deepEqual(groundDrift(s, r), [], `ground at tick ${s.tick}`);
+      // The world's hooks follow the rules' and phase 3's facts (6d.4), as the mirror does.
+      assert.deepEqual(hookDrift(r), [], `hooks at tick ${s.tick}`);
     }
     assert.ok(ticks >= 300, `the match ran (${ticks} ticks)`);
     assert.ok(seen.has('respawning') && seen.has('eliminated'), `eliminations and a respawn happened (${[...seen]})`);
+  } finally { disposePhysics(s); }
+});
+
+test('the world\'s hooks follow a hook through flight, hit, pull and release (#1214 stage 6d.4)', async () => {
+  // A hook gladiator west of a contestant, as `physics-hook.test.js` stages it, firing east; the bots stand still.
+  const map = { seed: 439, width: 800, height: 800, playableArea: openArea(800, 800, 100),
+    buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [],
+    entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns: [{ x: 250, y: 400 }], hunterSpawns: [{ x: 150, y: 400 }] };
+  const content = structuredClone(contentById('content-6'));
+  content.roster = { contestants: ['C0'], gladiators: [{ name: 'G', kit: 'hook' }] };
+  const s = await createGame(439, map, content);
+  try {
+    for (const p of s.players) p.bot = false;
+    const r = physicsRuntime(s), phases = new Set();
+    assert.ok(setInput(s, 'g0', { seq: s.tick + 1, skill: true, aim: 0 }));
+    let cancelled = false;
+    for (let tick = 0; tick < 40; tick++) {
+      step(s);
+      for (const hook of r.hooks) phases.add(hook.phase);
+      assert.deepEqual(hookDrift(r), [], `hooks at tick ${s.tick}`);
+      // A scenario's `hookSkill` cancelling the last hook between ticks: the next tick must empty the core's list too
+      // (review 1000).
+      if (!cancelled && r.hooks.some(hook => hook.phase === 'pulling')) {
+        hookSkill(s, s.players.find(p => p.id === 'g0'));
+        cancelled = true;
+        assert.equal(r.hooks.length, 0);
+      }
+    }
+    assert.ok(phases.has('flying') && phases.has('pulling'), `the hook flew and pulled (${[...phases]})`);
+    assert.ok(cancelled, 'the scenario cancelled a pulling hook');
   } finally { disposePhysics(s); }
 });

@@ -169,6 +169,8 @@ pub struct World {
     pub(crate) waiting: Vec<Key>,
     /// The items launched since the last admission, by key, with their motions: `itemLaunches` (6d.3).
     pub(crate) launches: Vec<(Key, f64, f64)>,
+    /// The hooks, in ID order (#1214 stage 6d.4): JavaScript's `r.hooks` is their mirror.
+    pub(crate) hooks: Vec<HookRecord>,
     pub(crate) phase_seven: crate::phase_seven::PhaseSeven,
     /// By key: a solid prop's shape as its spec gave it (`shape, a, b, vertices`), for the swept
     /// queries' `solidProps` (`hooks.rs`). Loot and every other kind keep none.
@@ -185,6 +187,32 @@ pub(crate) struct GateBodies {
     pub(crate) order: Vec<usize>,
     pub(crate) seen: Vec<u8>,
 }
+
+/// A hook as the world keeps it (#1214 stage 6d.4), the fields `HookState` holds that the rules read: its key
+/// (`hook:<id>`), the caster's roster index, the tip and its heading, how far it has flown, when it started, its phase
+/// (0 flying, 1 pending, 2 pulling), the caster body's generation, the target's roster index and its actor key when hit
+/// (NaN none), the target body's generation, the hit's tick and the rope's desired length (NaN absent).
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct HookRecord {
+    pub(crate) key: Key,
+    pub(crate) caster: f64,
+    pub(crate) x: f64,
+    pub(crate) y: f64,
+    pub(crate) dx: f64,
+    pub(crate) dy: f64,
+    pub(crate) travelled: f64,
+    pub(crate) started: f64,
+    pub(crate) phase: f64,
+    pub(crate) generation_a: f64,
+    pub(crate) target: f64,
+    pub(crate) target_key: f64,
+    pub(crate) generation_b: f64,
+    pub(crate) hit_tick: f64,
+    pub(crate) desired: f64,
+}
+
+/// Words per hook uploaded (`HookRecord`, in its field order).
+pub const HOOK_RECORD: usize = 15;
 
 /// A solid prop's shape: `physics::SHAPE_*`, its `a`, `b` and convex vertices, as queued.
 #[derive(Clone)]
@@ -233,6 +261,7 @@ impl World {
             gate_bodies: GateBodies::default(),
             waiting: Vec::new(),
             launches: Vec::new(),
+            hooks: Vec::new(),
             phase_seven: crate::phase_seven::PhaseSeven::default(),
             prop_shapes: Vec::new(),
         }
@@ -288,6 +317,70 @@ impl World {
         waiting.sort_by(|&a, &b| self.order(a, b));
         waiting.dedup();
         self.waiting = waiting;
+    }
+
+    /// Phase 3's hook launch (`hookSkill`): a flying hook from the caster's pose, kept in ID order.
+    pub(crate) fn launch_hook(
+        &mut self,
+        caster: usize,
+        generation: f64,
+        dx: f64,
+        dy: f64,
+        tick: f64,
+    ) {
+        let (r, e) = (&self.players.rows[caster], &self.players.extra[caster]);
+        let hook = HookRecord {
+            key: e.hook_key as Key,
+            caster: caster as f64,
+            x: r.x,
+            y: r.y,
+            dx,
+            dy,
+            travelled: 0.0,
+            started: tick,
+            phase: 0.0,
+            generation_a: generation,
+            target: f64::NAN,
+            target_key: f64::NAN,
+            generation_b: f64::NAN,
+            hit_tick: f64::NAN,
+            desired: f64::NAN,
+        };
+        let at = self
+            .hooks
+            .partition_point(|h| self.order(h.key, hook.key) == Ordering::Less);
+        self.hooks.insert(at, hook);
+    }
+
+    /// Phase 3's hook cancel: the caster's own hook leaves.
+    pub(crate) fn cancel_hook(&mut self, caster: usize) {
+        let key = self.players.extra[caster].hook_key as Key;
+        self.hooks
+            .retain(|h| !(h.caster == caster as f64 && h.key == key));
+    }
+
+    /// Replace the hooks with `count` uploaded records (`HOOK_RECORD` words each) from the boundary input.
+    pub fn load_hooks(&mut self, count: usize) {
+        self.hooks = self.boundary_input[..count * HOOK_RECORD]
+            .chunks(HOOK_RECORD)
+            .map(|r| HookRecord {
+                key: r[0] as Key,
+                caster: r[1],
+                x: r[2],
+                y: r[3],
+                dx: r[4],
+                dy: r[5],
+                travelled: r[6],
+                started: r[7],
+                phase: r[8],
+                generation_a: r[9],
+                target: r[10],
+                target_key: r[11],
+                generation_b: r[12],
+                hit_tick: r[13],
+                desired: r[14],
+            })
+            .collect();
     }
 
     /// Take the gates' keys and closed rows (`count` rows of a key then `BODY_ROW` words) from the boundary input, once

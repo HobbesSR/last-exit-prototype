@@ -8,7 +8,7 @@
  */
 
 /** The adapter contract this loader speaks: `ADAPTER_VERSION` in `rust/core/src/lib.rs`. */
-export const CORE_ADAPTER_VERSION = 27;
+export const CORE_ADAPTER_VERSION = 28;
 
 // The project's lib is ES2023 without the DOM, which is where TypeScript declares WebAssembly.
 // Both hosts have it; this names only what the loader uses.
@@ -42,6 +42,9 @@ export interface CoreExports {
   ground_write(world: number, op: number, at: number): void;
   ground_dump(world: number): number;
   ground_count(world: number): number;
+  // The world's hooks (`world::HookRecord`, #1214 stage 6d.4), uploaded by `shared/simulation/hook.ts`.
+  physics_hooks_load(world: number, count: number): void;
+  physics_hooks_dump(world: number): number;
   players_dump(world: number): number;
   players_count(world: number): number;
   visibility_polygon(index: number, gates: number, x: number, y: number, radius: number): number;

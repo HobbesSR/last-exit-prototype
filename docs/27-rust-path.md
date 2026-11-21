@@ -67,6 +67,21 @@ lists from the core, so no ground record crosses for it.
   record, and its waiting list keeps one until it is admitted or leaves the ground.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6d.4, the hooks (#1214, adapter version 28).** The world keeps the hooks (`World::hooks`, `HookRecord`), in ID
+order, and `r.hooks` is their mirror.
+- **The hook rules work on them in place.** `hooks.rs` takes the world's hooks and writes back what its rules leave; its
+  output, which the mirror applies, is unchanged. Whether a hook still names its caster, and its target the actor it hit,
+  is read from the player store's keys, as the adapter compared IDs.
+- **Phase 3 launches and cancels them in the core** (`launch_hook`, `cancel_hook`), from the same facts the mirror
+  applies. It reads the hooks from the world where its adapter would have packed them (`FROM_STORE`).
+- **Each player's hook key** (`hook:<id>`) is interned by JavaScript and carried in the player store (`Extra::hook_key`),
+  so a hook the core launches has the key JavaScript's table holds; the core does not intern strings.
+- **Uploaded only when Node changed them without the facts** (`syncHooks`): the retained scenario `hookSkill`, or a test.
+  Each list the core matches is remembered (`sawHooks`), as the ground's is.
+- **The witness.** `player-store.test.js` holds the world's hooks equal to the mirror after every tick (`hookDrift`), in
+  a hook's flight, hit, pull and release. With phase 3's launch disabled in the core, it fails.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -751,9 +766,12 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
   - **6d.2 (#1214):** the body sync's bookkeeping is the core's: the actor and item bodies the world holds, each gate's
     body, and which item bodies' records left the ground. Below.
   - **6d.3 (#1214):** the item admission takes the records awaiting a body and the launches from the core. Below.
-  - **Then, removing Node's mid-tick work stop by stop** (Corey's direction below): the discontinuity markers into the
-    core, so a run can sync inside itself and the drop and pickup stops go (6d.4); then the pending queues and the
-    hooks with the explosion port, which removes the explosion stop.
+  - **Then, removing Node's mid-tick work stop by stop** (Corey's direction below). Node's whole sync (`synchronize`)
+    also filters the pending queues by generation and reconciles the hooks, so no run can sync inside itself until
+    those are the core's too:
+    - **6d.4 (#1214):** the hooks. Below.
+    - **6d.5:** the pending queues and the discontinuity markers, with a mine's explosion impulses enqueued in the core.
+    - **6d.6:** the sync inside a run: the drops, pickups, swaps and the explosion stop syncing in Node.
 - **The direction (Corey, 2026-11-21, on #1214):** "now the way this should work eventually is that essentially the core
   should just be receiving tick timed input events or roughly that at the interface betweeen it and JS". So from 6d.2
   the remaining work is ordered by the stops it removes, each a crossing gone for good, rather than reader by reader.

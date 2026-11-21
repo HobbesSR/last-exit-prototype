@@ -19,7 +19,7 @@ use crate::math::{cos, hypot, js_max, js_min, sin};
 use crate::physics::{SHAPE_BOX, SHAPE_CIRCLE};
 use crate::sight::GateSet;
 use crate::swept::{Shape, SweptMap, hit_radius, impact};
-use crate::world::{CONSTRAINT_ROW, Key, PropShape, World};
+use crate::world::{CONSTRAINT_ROW, HookRecord, Key, PropShape, World};
 
 pub const MODE_PREPARE: f64 = 0.0;
 pub const MODE_FINISH: f64 = 1.0;
@@ -519,26 +519,32 @@ pub fn run(world: &mut World, swept: &SweptMap, gates: &GateSet) {
             at += PATH_STRIDE;
         }
     }
-    let mut hooks: Vec<Hook> = (0..hook_count)
-        .map(|i| {
-            let r = &input[at + i * HOOK_STRIDE..at + (i + 1) * HOOK_STRIDE];
+    // The hooks are the world's own (#1214 stage 6d.4); the adapter sends none. Whether a hook still names its caster,
+    // and its target the actor it hit, is read from the player store's keys, as the adapter compared the IDs.
+    let _ = (hook_count, HOOK_STRIDE);
+    let store = &world.players;
+    let mut hooks: Vec<Hook> = world
+        .hooks
+        .iter()
+        .map(|h| {
+            let extra = |i: f64| (i >= 0.0).then(|| store.extra.get(i as usize)).flatten();
             Hook {
-                key: r[0] as Key,
-                caster: r[1],
-                id_matches: r[2] != 0.0,
-                x: r[3],
-                y: r[4],
-                dx: r[5],
-                dy: r[6],
-                travelled: r[7],
-                started: r[8],
-                phase: r[9],
-                generation_a: r[10],
-                target: r[11],
-                target_matches: r[12] != 0.0,
-                generation_b: r[13],
-                hit_tick: r[14],
-                desired: r[15],
+                key: h.key,
+                caster: h.caster,
+                id_matches: extra(h.caster).is_some_and(|e| e.hook_key as Key == h.key),
+                x: h.x,
+                y: h.y,
+                dx: h.dx,
+                dy: h.dy,
+                travelled: h.travelled,
+                started: h.started,
+                phase: h.phase,
+                generation_a: h.generation_a,
+                target: h.target,
+                target_matches: extra(h.target).is_some_and(|e| e.key == h.target_key),
+                generation_b: h.generation_b,
+                hit_tick: h.hit_tick,
+                desired: h.desired,
                 removed: false,
             }
         })
@@ -583,6 +589,31 @@ pub fn run(world: &mut World, swept: &SweptMap, gates: &GateSet) {
     out[OUT_HEADER - 1] = out.len() as f64;
     world.boundary_output = out;
     world.boundary_input = input;
+    // The world keeps what the rules left, as JavaScript's mirror applies it: a hit's target takes the target's current
+    // actor key.
+    let kept: Vec<HookRecord> = world
+        .hooks
+        .iter()
+        .zip(&hooks)
+        .filter(|(_, h)| !h.removed)
+        .map(|(old, h)| HookRecord {
+            x: h.x,
+            y: h.y,
+            travelled: h.travelled,
+            phase: h.phase,
+            target: h.target,
+            target_key: if h.target.is_nan() {
+                old.target_key
+            } else {
+                world.players.extra[h.target as usize].key
+            },
+            generation_b: h.generation_b,
+            hit_tick: h.hit_tick,
+            desired: h.desired,
+            ..*old
+        })
+        .collect();
+    world.hooks = kept;
 }
 
 #[cfg(test)]

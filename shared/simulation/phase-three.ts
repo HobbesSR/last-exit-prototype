@@ -13,6 +13,7 @@ import { playerIndex } from './relations.ts';
 import { addItems, groundItem, itemsNear } from './ground-items.ts';
 import { physicsRuntime, type PhysicsRuntime } from './physics-runtime.ts';
 import { appendItem, carriedItem, carriedToken, playersStale, uploadPlayers } from './player-store.ts';
+import { sawHooks, syncHooks } from './hook.ts';
 export { appendItem };
 import { event, participant } from './event-records.ts';
 import { sightOf } from './sight-runtime.ts';
@@ -136,10 +137,12 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
     for (const p of s.players) for (const item of p.inventory ?? []) if (item?.instanceId) carried.push(token(item), item.instanceId);
   }
   const contexts = context ? s.players : [];
-  const hooks = actors.some(p => p.kit === 'hook' && intents[playerIndex(s, p)]?.input.skill) ? r.hooks : [];
+  // The hooks are the core's (6d.4): where they would have been packed, the core reads its own (`FROM_STORE`).
+  const hooksRead = actors.some(p => p.kit === 'hook' && intents[playerIndex(s, p)]?.input.skill);
+  if (hooksRead) syncHooks(r);
   const data: number[] = [mode, options.start ?? 0, options.stage ?? 0, s.tick, s.serial, source.itemSerial ?? 1, source.scatterSerial ?? 0,
     items.length, Math.max(0, s.players.length - r.actors.size), actors.length, contexts.length, phases.length, known.size,
-    near.size, groundIds.length, carried.length / 2, hooks.length, options.mandatory ? 1 : 0, code(AMMO_FAMILIES, options.family), n(options.count), 0];
+    near.size, groundIds.length, carried.length / 2, hooksRead ? FROM_STORE : 0, options.mandatory ? 1 : 0, code(AMMO_FAMILIES, options.family), n(options.count), 0];
   for (const p of actors) {
     const intent = intents[playerIndex(s, p)], input: PlayerInput = intent?.input ?? {};
     const inventory = options.item ? [options.item] : mode === MODE_ELIMINATE ? p === options.player ? p.inventory : undefined : mode === 1 || mode === 2 || !!(input.slot !== undefined || input.moveSlot || intent?.utilitySlot !== undefined
@@ -166,7 +169,6 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   data.push(...phases, ...known);
   for (const item of near) data.push(item.x, item.y);
   data.push(...groundIds, ...carried);
-  for (const hook of hooks) data.push(hook.casterIdx, r.world.key(hook.id), hook.id === `hook:${s.players[hook.casterIdx]?.id}` ? 1 : 0);
   if (mode === MODE_ELIMINATE) data.push(!killer ? -1 : killer === options.player ? 0 : 1, killer?.kills ?? 0, s.content.gladiatorRespawnTicks);
   // Interning and map preparation can grow memory; view the input only after those calls.
   const map = sightOf(s).queryHandles(s.map);
@@ -226,12 +228,13 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
       const p = s.players[out[at]!]!;
       if (!p.heard) Object.defineProperty(p, 'heard', { value: [], writable: true, configurable: true, enumerable: false });
       p.heard = Array.from({ length: out[at + 1]! }, (_, i) => ({ x: out[at + 2 + i * 4]!, y: out[at + 3 + i * 4]!, tick: out[at + 4 + i * 4]!, until: out[at + 5 + i * 4]! }));
-    } else if (op === 5) { const caster = out[at]!; r.hooks = r.hooks.filter(h => !(h.casterIdx === caster && h.id === `hook:${s.players[caster]!.id}`)); }
+    } else if (op === 5) { const caster = out[at]!; r.hooks = r.hooks.filter(h => !(h.casterIdx === caster && h.id === `hook:${s.players[caster]!.id}`)); sawHooks(r); }
     else if (op === 6) {
       const casterIdx = out[at]! as import('../types.ts').PlayerIdx, p = s.players[casterIdx]!;
       r.hooks.push({ id: `hook:${p.id}`, tetherId: r.identities.newTether(), casterIdx, x: p.x, y: p.y, dx: out[at + 2]!, dy: out[at + 3]!, travelled: 0,
         startedTick: s.tick, phase: 'flying', generationA: out[at + 1]! });
       r.hooks.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+      sawHooks(r);
     } else if (op === 7) r.world.adoptMotor(out[at]!, out[at + 1]!, out[at + 2]!, out[at + 3]!);
     else if (op === 8) { r.world.adoptCommit(out[at]!, out, at + 1); r.world.adoptQueue(out[at + len - 1]!); }
     else if (op === 9) {

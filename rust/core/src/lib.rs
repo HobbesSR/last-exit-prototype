@@ -35,7 +35,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 27;
+pub const ADAPTER_VERSION: u32 = 28;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -854,6 +854,21 @@ pub unsafe extern "C" fn actions_run(
         // The player store takes phase 3's writes (#1214 stage 6c.2).
         let mode = w.actions.input.first().copied().unwrap_or(0.0);
         w.players.apply_actions(mode, &w.actions.output);
+        // And the world's hooks its launches and cancels (6d.4), in the log's order.
+        let tick = w.actions.input.get(3).copied().unwrap_or(0.0);
+        for (op, payload) in phase_three::log_facts(&w.actions.output) {
+            match op {
+                5 => w.cancel_hook(payload[0] as usize),
+                6 => w.launch_hook(
+                    payload[0] as usize,
+                    payload[1],
+                    payload[2],
+                    payload[3],
+                    tick,
+                ),
+                _ => {}
+            }
+        }
         w.actions.output.as_ptr()
     }
 }
@@ -971,6 +986,47 @@ pub unsafe extern "C" fn physics_launch(world: *mut world::World, count: usize) 
             None => w.launches.push((key, vx, vy)),
         }
     }
+}
+/// Replace the world's hooks with `count` records from the boundary input (`World::load_hooks`, #1214 stage 6d.4).
+/// # Safety
+/// `world` is live and its boundary input holds `count` records.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_hooks_load(world: *mut world::World, count: usize) {
+    // SAFETY: the caller's contract.
+    unsafe { (*world).load_hooks(count) }
+}
+/// The world's hooks in the upload's layout, written into the boundary output, for tests; the count is the output's
+/// length over `world::HOOK_RECORD`.
+/// # Safety
+/// `world` is live; the view expires on the next call into the world.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_hooks_dump(world: *mut world::World) -> *const f64 {
+    // SAFETY: the caller's contract.
+    let w = unsafe { &mut *world };
+    let mut out = std::mem::take(&mut w.boundary_output);
+    out.clear();
+    out.push(w.hooks.len() as f64);
+    for h in &w.hooks {
+        out.extend_from_slice(&[
+            f64::from(h.key),
+            h.caster,
+            h.x,
+            h.y,
+            h.dx,
+            h.dy,
+            h.travelled,
+            h.started,
+            h.phase,
+            h.generation_a,
+            h.target,
+            h.target_key,
+            h.generation_b,
+            h.hit_tick,
+            h.desired,
+        ]);
+    }
+    w.boundary_output = out;
+    w.boundary_output.as_ptr()
 }
 /// The ground store's input buffer, resized for `count` records (`ground::Ground`, #1214 stage 6d.1).
 /// # Safety
