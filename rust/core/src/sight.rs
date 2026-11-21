@@ -236,6 +236,12 @@ pub struct GateSet {
     pub(crate) visited: Visited,
     /// Nonzero where the gate is open. The adapter writes it before each call.
     pub open: Vec<u8>,
+    /// Each gate's position and whether it is a door, for phase 6's interactions (`phase_six.rs`). Gates never move
+    /// and never change kind in a match, so phase 6's adapter sends these once per gate set; empty until then.
+    pub(crate) details: Vec<[f64; 3]>,
+    /// Each gate's lock, for phase 6: 0 absent, 1 locked, 2 unlocked. Its adapter writes it before a call where an
+    /// actor interacts, as the open mask is written.
+    pub locked: Vec<u8>,
 }
 
 impl GateSet {
@@ -255,6 +261,8 @@ impl GateSet {
             grid: Grid::from_words(grid),
             visited: Visited::new(count),
             open: vec![0; count],
+            details: Vec::new(),
+            locked: vec![0; count],
         }
     }
 }

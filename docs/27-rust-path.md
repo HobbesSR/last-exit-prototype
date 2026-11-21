@@ -193,10 +193,10 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
     | Gladiator death, entering respawning | `phase_three.rs` (`actions_run`'s elimination, mode 4), applied by `phase-three.ts` | Wherever damage lands, 5–6 | `input` cleared | `tick_finish` |
     | Respawn | `phase_one.rs`, applied by `phase-one.ts` | 1 | `input` cleared, `inputTick` set, `route` cleared | `tick_begin` |
     | Transit arrival | `phase_one.rs`, applied by `phase-one.ts` | 1 | `inputTick` set | `tick_begin` |
-    | Delayed transit departure | `transit.ts` (`transit`) | 6 | `input` and `route` cleared | `tick_finish` |
-    | Instant transit | `transit.ts` (`transit`, then `land`) | 6 | `route` cleared only | `tick_finish` |
-    | A gate opened or closed by its user | `interactions.ts` (`interact`) | 6 | that player's `route` cleared | `tick_finish` |
-    | A cell picked up | `loot.ts` (`automaticPickups`) | 6 | `route` cleared | `tick_finish` |
+    | Delayed transit departure | `phase_six.rs` (`transit`), applied by `phase-six.ts` | 6 | `input` and `route` cleared | `tick_finish` |
+    | Instant transit | `phase_six.rs` (`transit`, landing), applied by `phase-six.ts` | 6 | `route` cleared only | `tick_finish` |
+    | A gate opened or closed by its user | `phase_six.rs` (`interact`), applied by `phase-six.ts` | 6 | that player's `route` cleared | `tick_finish` |
+    | A cell picked up | `phase_six.rs` (`pickups`), applied by `phase-six.ts` | 6 | `route` cleared | `tick_finish` |
 
     `clearRoute` sets an existing route to empty and leaves an absent one absent; the fact keeps that
     distinction. A port that adds, moves or drops one of these writes updates this table in the same change.
@@ -327,7 +327,9 @@ and the effects' lives, then per player in roster order runs respawn, transit ar
   - 5d.1 (#1229): the swept queries, with the hook's rules after launch (`prepareHooks`, `finishHooks`, `reconcileHooks`),
     which share them;
   - 5d.2 (#1242): projectiles, the warden skill, damage and elimination, and rewind;
-- #1230: phases 6 and 7.
+- #1230: phases 6 and 7, in two stages:
+  - 5e.1 (#1230): phase 6's per-actor loop, which is interactions, transit, charging and pickups;
+  - 5e.2 (#1245): phase 6's environment and traps, phase 7 and `itemRoll`.
 
 The physics adapter goes before phase 3 because drops and attacks call into it (`launchPhysicalDrops`, impulses, attachments).
 
@@ -486,7 +488,9 @@ and event and effect records in the leaf `event-records.ts`, so the core adapter
   | Non-warden skill and hook launch/cancel, `phase_three.rs`/`action_combat.rs` | Direct scenario entry points in `combat.ts` and `hook.ts` | `action-parity` compares specter/striker and hook launch/cancel with the core; `phase-three-core` covers key-zero capacity and refusal ordering | #1241. The hook's later rules (5d.1) and the warden skill (5d.2) moved with no TypeScript copy |
   | Drop plans, `drop_planner.rs` | Bare setup planners in `loot.ts` | `action-parity` compares complete plans, staged allocations and NaN/fallback refusals on common empty-world geometry; 5c.1 documents the intentional physics-only loot-body test | #1241 |
   | Item allocation, `item_allocation.rs` | Explicitly unbound setup records | `item-id-allocation` checks selection before/after another game initializes, actual Rust operations and fork isolation; setup/live suites check the same allocation expectations | #1241 |
-  | Equipment access, validation and weapon selection, `action_equipment.rs` | Node pickups/swaps and bot reads in `equipment.ts`/`item-instances.ts` | `equipment`, `item-instances`, `action-parity` and frozen characterization cover the core action and retained transfer/validation paths; weapon parameters remain content-owned | #1230 moves phase-6 writers, #1215 moves bot reads, #1241 owns remaining setup callers |
+  | Equipment access, validation and weapon selection, `action_equipment.rs` | Bot reads in `equipment.ts`/`item-instances.ts` | `equipment`, `item-instances`, `action-parity` and frozen characterization cover the core action and retained validation paths; weapon parameters remain content-owned | #1215 moves bot reads, #1241 owns remaining setup callers. Phase 6's writers moved in 5e.1 (next row) |
+  | Pickup transfer, `phase_six.rs` (`collect_equipment`, `collect_ammo`) | `collectInstanceEquipment` and `collectAmmo` in `equipment.ts`, which tests and scenarios use to arrange inventories | `phase-six-core` compares each kind of pickup (new, merged, split, refilled, reserve, key, refused) on games with and without reloading: inventory as JSON, so key order counts, plus the reserves, the keys, the record left and both counters | #1241 |
+  | Transit options and time, `phase_six.rs` (`transit`) | `transitOptions` (the client's menu) and `transitTicks` (gladiator bots' hunting) in `transit.ts` | `transit` covers each refused destination, plain interact's next station and a delayed arrival's tick against `transitTicks` | #1215 moves the bots' read; the client's menu stays a presentation copy |
 
 - **Cost:** [42.69](42.69-phase-three-core.md), under 42.58's state-flip exception; remeasure at #1214.
 
@@ -552,8 +556,52 @@ adapter; `combat.ts`'s `damage` and `lifecycle.ts`'s `eliminate` are now entry p
   (`tests/physics-projectiles.test.js`, the mine case in `tests/physics-explosion.test.js`), and `action-parity` no
   longer compares melee. Scenario `attack` and `skill` calls for a gladiator or warden run the caster run, which skips
   a caster that is not active, as the tick did. `damage` from phase 6 (traps, the hazard wall) calls the core until
-  #1230 moves those phases.
+  5e.2 (#1245) moves those phases.
 - **Cost:** [42.71](42.71-phase-five-core.md).
+
+**Step 5e.1, phase 6's per-actor loop (#1230, adapter version 16).** `rust/core/src/phase_six.rs` runs, in `ordered(s)`
+order, each active actor's `interact`, its chosen `transit`, then, while it is still active, `advanceCharging` and
+`automaticPickups`. That covers extraction, the start of charging, the swap's staged pickup and drop, gates with their
+keys, a gladiator's transit and the sensors' reveal. `shared/simulation/phase-six.ts` is the adapter. `interact`,
+`transit`, `advanceCharging` and `automaticPickups` are now entry points into it.
+- **Every write is an ordered fact.** Several writes create keys where they are absent, so the call writes no rows
+  back. Each write returns as a fact, in the TypeScript's order, and Node applies the facts in turn. Those keys are a
+  player's `charging`, `selectedSlot` and `transit`, a gate's `locked` and a carried cell's `charge`. Node-owned
+  writes come back the same way (D4's table): a route cleared, and a delayed transit's `input`.
+- **Stops keep 5c.2's sync boundary.** Three events end the call:
+  - **A record taken whole.** Node removes it and synchronizes, as `automaticPickups` did.
+  - **A committed swap.** Node removes the pickup, adds the outgoing drop and launches it.
+  - **An instant transit's landing.** This actor's pickups must read the ground where it now stands.
+
+  The next call resumes at the next step of the same actor, with everything repacked. After a pickup, Node also
+  hands back the records still to visit, by the TypeScript's rule: the rest of the list or, when the sync placed the
+  actor again, a fresh query of those after it.
+- **A partial take is not a stop.** The record's draft returns as a fact, and later actors in the same call read the
+  run's change. A gate opened or closed is written into the gate set's open mask at once, so later reach and sight
+  tests see it.
+- **The swap is staged in the core.** The pickup is collected into a draft of the player on a copy of the
+  allocation. The outgoing item's drop is planned around the ground without the pickup (`drop_planner.rs`), and its
+  bodies are preflighted with the pickup's body released. Only a complete swap commits. Node packs the swap's
+  candidates, with their labels' rank, and the records within the spiral's reach.
+- **The core finds the gates.** It queries its own gate set's buckets, which are `gateIndex`'s, for the gates near an
+  interacting actor, then sorts them into map order as `gatesNear` does. A gate's position and kind never change in
+  a match, so they cross once per gate set; the adapter asks the set whether it holds them (`gate_set_details`).
+  Locks change, so each call with an interaction writes them into a mask beside the open mask (`gate_set_locked`).
+  The adapter writes both masks in one pass over the gates. Node's string-keyed bucket query cost about 15 µs a tick
+  in the bench, where bots interact on most ticks. `phase-six-core` holds the core's choice of gate equal to
+  `nearbyGate` over a cluster of doors, including ties and a door behind another.
+- **Packing follows reads.** An actor's inventory crosses only when the turn can read it: when it interacts, is
+  charging, has records in reach or can swap. A gladiator with nothing to do crosses as one row.
+  - **Near records are trimmed.** Of the records the grid offers, only those within a box one unit wider than the
+    pickup reach cross. A record with a NaN coordinate always crosses, since the distance test does not refuse it. The
+    core makes the exact test.
+  - **Free label phases are counted.** Only as many cross as the call can allocate: one per carried item without an
+    identity, one per record in reach, and ten for a swap.
+  - **The open mask is written only when needed.** Only a call that tests reach, sight or a gate writes it.
+  - **The input is written in place.** It goes into a reusable typed buffer, then into the core's buffer in one copy.
+- **Two copies on purpose.** The pickup transfer and the transit rules keep TypeScript callers; see the ledger rows
+  above.
+- **Cost:** [42.72](42.72-phase-six-core.md).
 
 ## One math library on both sides
 

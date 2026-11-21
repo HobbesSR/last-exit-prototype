@@ -1,16 +1,16 @@
 import { canOccupy } from '../movement.ts';
 import { reachClear } from '../sight.ts';
-import { carriedCell, collectAmmo, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
+import { syncWeapon } from '../equipment.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload, forkItemAllocation, commitItemAllocation } from '../item-instances.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
 import { scatterInCore } from './boundary.ts';
 import { planDropInCore, planAmmoInCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
-import { addItems, draftItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
+import { addItems, itemsNear } from './ground-items.ts';
 import { HZ } from './rules.ts';
-import { clearRoute, distance } from './geometry.ts';
+import { distance } from './geometry.ts';
 import type { AmmoFamily, Game, GroundItem, InventoryItem, Player, PlayerInput, Vec2 } from '../types.ts';
-import { effect } from './event-records.ts';
+import { phaseSix, STEP_PICKUPS } from './phase-six.ts';
 import type { DropPlan } from './action-records.ts';
 import { cos, sin } from '../math.ts';
 
@@ -105,34 +105,10 @@ export function dropInventorySlot(s: Game, p: Player, slot: number, mandatory = 
   if (plan.records.length) launchPhysicalDrops(s, plan.records, p);
   return true;
 }
+/**
+ * A contestant's automatic pickups within reach, then the sensors' reveal. It runs in the core (`rust/core/src/phase_six.rs`,
+ * #1230), each record taken whole at 5c.2's sync boundary; this is its entry for scenarios.
+ */
 export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
-  if (p.role === 'contestant') {
-    // What stays on the ground: the item itself, its partly taken record, or null once wholly taken.
-    const remains = (item: GroundItem): GroundItem | null => {
-      if (distance(p, item) > 38 || !reachClear(s.map, p, item) || item.droppedBy === p.id && item.pickupAfter! > s.tick || p.bot && item.kind === 'cell' && carriedCell(p)) return item;
-      const draft = draftItem(item);
-      if (item.kind === 'access') p.keys++;
-      if (item.kind === 'ammo' && !(s.content.reloading && collectAmmo(s, p, draft, item))) return settledItem(item, draft);
-      if (['weapon', 'med', 'shield', 'cell'].includes(item.kind)
-        && !collectInstanceEquipment(s, p, draft, item)) return settledItem(item, draft);
-      if (item.kind === 'cell') clearRoute(p);
-      effect(s, p, 'loot', 30); return null;
-    };
-    // Only records near enough to pass the reach test, in list order: pickups are taken in that order, and each
-    // commits before the next inspects ownership, inventory room or allocates IDs. An untouched ground stays shared.
-    let near = itemsNear(s, p, 38);
-    for (let k = 0; k < near.length; k++) {
-      const item = near[k]!, next = remains(item);
-      if (next === item) continue;
-      if (next) { replaceItem(s, item, next); continue; }
-      const at = removeItem(s, item), { x, y } = p;
-      physicsRuntime(s)?.synchronize();
-      // Synchronizing can place the player again; the records still to visit are then those after `at` near where it stands.
-      if (!Object.is(p.x, x) || !Object.is(p.y, y)) {
-        const later = new Set(s.items.slice(at));
-        near = itemsNear(s, p, 38).filter(other => later.has(other)); k = -1;
-      }
-    }
-    if (!input.sneak && !p.cloak && s.map.sensors.some(sensor => distance(p, sensor) < 180)) p.revealed = 65;
-  }
+  phaseSix(s, [{ player: p, steps: STEP_PICKUPS, sneak: !!input.sneak }], false);
 }

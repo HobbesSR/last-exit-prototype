@@ -1,87 +1,14 @@
-import { forkItemAllocation, commitItemAllocation, itemLabel } from '../item-instances.ts';
-import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
-import { lineClear, reachClear } from '../sight.ts';
-import { gateShape } from '../gate-index.ts';
-import { carriedCell, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
-import { nearbyGate } from '../gate-query.ts';
-import { observeGate } from '../discovery.ts';
-import { clearRoute, distance } from './geometry.ts';
-import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH } from './rules.ts';
-import { transit } from './transit.ts';
-import { planDrop } from './loot.ts';
-import { event, participant, effect } from './event-records.ts';
-import { physicsRuntime } from './physics-runtime.ts';
-import { addItems, itemsNear, removeItem } from './ground-items.ts';
-import { actorRadius } from './actor-physics.ts';
-import type { CellItem, Game, GroundItem, Player, PlayerInput } from '../types.ts';
-import { hypot } from '../math.ts';
+import { phaseSix, STEP_CHARGING, STEP_INTERACT } from './phase-six.ts';
+import type { Game, Player, PlayerInput } from '../types.ts';
 
-/**
- * Stage only the inventory and the pickup, so partial refills or rejected drops cannot leak value.
- * The outgoing drop is planned against the real map, keeping its geometry caches warm.
- */
-function swapInstanceEquipment(s: Game, p: Player, pickup: GroundItem): void {
-  const index = p.selectedSlot ?? 0, outgoing = p.inventory?.[index];
-  if (!outgoing) return;
-  const draft = { ...p, inventory: structuredClone(p.inventory), reserves: p.reserves && { ...p.reserves } }, incoming = structuredClone(pickup);
-  draft.inventory![index] = null;
-  // Collection reads only the ground list and carried identities, never map geometry.
-  const pickupStage: Game = { ...forkItemAllocation(s), players: s.players.map(other => other === p ? draft : other), items: s.items.map(item => item === pickup ? incoming : item) };
-  if (!collectInstanceEquipment(pickupStage, draft, incoming)) return;
-  const remaining = s.items.filter(item => item !== pickup);
-  const drop = planDrop(s, p, outgoing, false, remaining, pickupStage);
-  if (!drop || !canRepresentPhysicalDrop(s, drop.records.length, [pickup])) return;
-  commitItemAllocation(s, drop.allocation);
-  p.inventory = draft.inventory; p.selectedSlot = draft.selectedSlot; p.reserves = draft.reserves; p.charging = null;
-  removeItem(s, pickup); addItems(s, ...drop.records);
-  launchPhysicalDrops(s, drop.records, p);
-  syncWeapon(p, s.content.weapons);
-}
+// `interact` and `advanceCharging` run in the core (`rust/core/src/phase_six.rs`, #1230, docs/27 "The state flip",
+// step 5e.1), with the swap's staged pickup and drop: extraction, charging, the swap, gates and a gladiator's transit.
+// The tick runs them in phase 6's loop (`phaseSix`); these are their entries for scenarios, and need the game's
+// physics world.
 
 export function interact(s: Game, p: Player): void {
-  const cell = carriedCell(p);
-  const charged = p.inventory?.find((item): item is CellItem => item?.kind === 'cell' && item.charge >= s.content.cellChargeTicks);
-  if (p.role === 'contestant' && distance(p, s.map.exit) < EXTRACTION_REACH && s.slots > 0 && charged && lineClear(s.map, p, s.map.exit)) {
-    s.slots--; p.inventory![p.inventory!.indexOf(charged)] = null; syncWeapon(p, s.content.weapons); p.charging = null; p.status = 'escaped';
-    event(s, { kind: 'pod_powered', actor: participant(s, p), slotsRemaining: s.slots }); return;
-  }
-  if (cell && cell.charge < s.content.cellChargeTicks) {
-    const station = s.map.chargers.find(st => distance(p, st) < CHARGE_REACH && lineClear(s.map, p, st));
-    if (station) { p.charging = station.id; return; }
-  }
-  const pickup = p.inventory && itemsNear(s, p, PICKUP_REACH).filter(i => ['weapon', 'med', 'shield', 'cell'].includes(i.kind) && distance(p, i) < PICKUP_REACH && reachClear(s.map, p, i)
-    && (i.droppedBy !== p.id || !(i.pickupAfter! > s.tick)))
-    .sort((a, b) => distance(p, a) - distance(p, b) || (itemLabel(s, a.id) < itemLabel(s, b.id) ? -1 : itemLabel(s, a.id) > itemLabel(s, b.id) ? 1 : 0))[0];
-  if (!p.bot && pickup && p.inventory!.every(Boolean)) {
-    swapInstanceEquipment(s, p, pickup);
-    return;
-  }
-  // The nearest gate takes the interaction even when it cannot be used; it never falls through to transit.
-  const gate = nearbyGate(s.map, p, { accepts: g => !p.bot || !g.open, order: 'nearest' });
-  if (gate) {
-    const locked = gate.locked ?? gate.kind !== 'door';
-    if (!gate.open && (!locked || p.keys > 0)) {
-      gate.open = true; if (locked) { p.keys--; gate.locked = false; } clearRoute(p);
-    } else if (gate.open && gate.kind === 'door' && !p.bot) {
-      const box = gateShape(gate);
-      const runtime = physicsRuntime(s);
-      // Players are tested directly as well as bodies: a transit earlier this phase has moved
-      // its player but not yet its body, and synchronize would refuse the close only after discovery saw it.
-      const occupied = s.players.some(other => other.status === 'active' && hypot(other.x - Math.max(box.x, Math.min(box.x + box.w, other.x)), other.y - Math.max(box.y, Math.min(box.y + box.h, other.y))) < actorRadius(s, other))
-        || !!runtime?.world.overlapsDynamicBox(box);
-      if (!occupied) { gate.open = false; clearRoute(p); }
-    }
-    // Trying a door shows how it stands, locked or not, whatever sight showed before (22.6, "Doors").
-    if (p.discovery) observeGate(p.discovery, gate);
-    return;
-  }
-  if (p.role === 'gladiator') transit(s, p);
+  phaseSix(s, [{ player: p, steps: STEP_INTERACT }], false);
 }
 export function advanceCharging(s: Game, p: Player, input: PlayerInput): void {
-  if (p.charging) {
-    const cell = carriedCell(p);
-    const station = s.map.chargers.find(st => st.id === p.charging);
-    if (!cell || cell.charge >= s.content.cellChargeTicks || input.x || input.y || !station || distance(p, station) >= CHARGE_REACH || !lineClear(s.map, p, station)) p.charging = null;
-    else if (++cell.charge >= s.content.cellChargeTicks) { p.charging = null; event(s, { kind: 'cell_charged', actor: participant(s, p) }); effect(s, p, 'charge', 70); }
-  }
+  phaseSix(s, [{ player: p, steps: STEP_CHARGING, moved: !!(input.x || input.y) }], false);
 }

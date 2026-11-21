@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { disposePhysics, setInput, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { queueInput, consumeInput } from '../shared/simulation/input.ts';
-import { transitOptions } from '../shared/simulation/transit.ts';
+import { transitOptions, transitTicks } from '../shared/simulation/transit.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { openField } from './helpers/arena.js';
 import { stagePhysics } from './helpers/scenario.js';
@@ -82,9 +82,12 @@ test('with a travel time the gladiator is out of the world until it lands, and t
   // 20 ticks plus one per 100 units: 45 more for the 4,500-unit trip.
   const { s, g, send } = await scene({ ...SELECTABLE, transitTime: { base: 20, perUnit: 0.01 } });
   try {
+    const options = transitOptions(s, g), from = { x: g.x, y: g.y };
     send({ transit: 'st3' });
     const left = s.tick;
     assert.deepEqual([g.status, g.transit, g.railCd, rails(s)], ['transit', { to: 'st3', arriveAt: left + 65 }, 0, 1]);
+    // The core's transit (`phase_six.rs`, #1230) keeps the rule the client and the bots read in TypeScript.
+    assert.equal(left + transitTicks(s, from, options.ahead.find(st => st.id === 'st3')), g.transit.arriveAt);
     for (let i = 0; i < 100 && g.status === 'transit'; i++) { send({ transit: 'st2', interact: true }); assert.ok(s.tick <= left + 65, 'lands on time'); }
     assert.deepEqual([s.tick, g.x, Math.round(g.y), g.railCd, g.transit], [left + 65, 5000, 576, 179, undefined]);
     assert.ok(s.effects.some(e => e.kind === 'rail' && e.x === 5000), 'the rail effect marks the landing');
