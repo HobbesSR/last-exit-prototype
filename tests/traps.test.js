@@ -4,6 +4,7 @@ import { disposePhysics, setInput, step, snapshot, playerView } from '../shared/
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openField } from './helpers/arena.js';
 import { stagePhysics } from './helpers/scenario.js';
+import { setTrap } from '../shared/simulation/hazards.ts';
 
 // Traps on the shipped content and its engine (#920): a contestant beside one trap on open ground, a
 // gladiator far off, all played by the test. A second contestant stands far off too, so the match goes on
@@ -44,7 +45,7 @@ test('turrets fire at either role and walls block acquisition', async () => {
   try {
     for (let i = 0; i < 3; i++) step(s);
     assert.ok(p.hp < 100, 'the contestant is shot');
-    p.status = 'eliminated'; g.x = trap.x - 45; g.y = trap.y; trap.cooldown = 0;
+    p.status = 'eliminated'; g.x = trap.x - 45; g.y = trap.y; setTrap(s, 0, { cooldown: 0 });
     const before = g.hp;
     for (let i = 0; i < 3; i++) step(s);
     assert.ok(g.hp < before, 'so is a gladiator');
@@ -71,7 +72,7 @@ test('spiders grapple either role, release targets beyond the leash, and keep ta
     const view = playerView(s, snapshot(s), p.id); assert.equal(Object.hasOwn(view.traps[0], 'targetId'), false);
     p.x = trap.homeX - 500; step(s); assert.equal(trap.targetId, null);
     assert.ok(Math.hypot(trap.x - trap.homeX, trap.y - trap.homeY) <= 360);
-    g.x = trap.homeX + 50; g.y = trap.homeY; trap.cooldown = 0;
+    g.x = trap.homeX + 50; g.y = trap.homeY; setTrap(s, 0, { cooldown: 0 });
     const before = g.hp;
     step(s); assert.ok(g.stun > 0); assert.ok(g.hp < before);
   } finally { disposePhysics(s); }

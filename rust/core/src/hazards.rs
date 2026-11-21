@@ -2,10 +2,13 @@
 //! hazard wall and the hazard areas) for each active actor in `ordered(s)` order, then `stepTraps` (mine, turret,
 //! flame and spider) in map order. `shared/simulation/hazards.ts` is the adapter.
 //!
-//! The records stay in JavaScript (D1). Each call packs the roster as phase 5's rows (`combat::PLAYER_ROW`) with
-//! each actor's `movedThisTick`, the hazard areas, the traps and the trap content, and writes back the players'
-//! changed fields, a log (effects, aggression and the turret's spawns, in the order the TypeScript made them) and
-//! each trap's writes with a mask, which Node applies in the TypeScript's order so a trap's keys keep theirs.
+//! **The traps are the core's** (#1214 stage 6b): `Hazards` keeps them between calls. Their rows cross only when
+//! the adapter uploads a trap list, which it does for a list it has not uploaded, and after a between-tick command
+//! (`setTrap`). Each call packs the roster as phase 5's rows (`combat::PLAYER_ROW`) with each actor's
+//! `movedThisTick`, the hazard areas and the trap content, which JavaScript still owns, and writes back the
+//! players' changed fields, a log (effects, aggression and the turret's spawns, in the order the TypeScript made
+//! them) and each trap's writes with a mask. Node applies those to its trap records, the mirror, in the
+//! TypeScript's order, so a trap's keys keep theirs.
 //!
 //! **Damage is the core's** (`combat::Run::damage`), and a kill is a stop, as in phase 5: the run returns before
 //! anything of the elimination is written, Node runs it (`actions_run`'s mode 4), whose mandatory drops each
@@ -19,8 +22,9 @@ use crate::phase_seven::Rewind;
 use crate::sight::{GateSet, SightIndex};
 
 /// Input header: resume (nonzero continues the kept cursor), tick, serial, player count, trap count, hazard area
-/// count, the hazard wall's x, whether to run the environment, whether to run the traps.
-pub const HEADER: usize = 9;
+/// count, the hazard wall's x, whether to run the environment, whether to run the traps, and whether the trap rows
+/// follow (an upload, which replaces the kept traps). Without an upload the trap count is the kept traps'.
+pub const HEADER: usize = 10;
 /// The trap content, after the header: mine trigger, blast, damage; turret range, cooldown, speed, damage, life;
 /// flame cycle, warnAt, fireAt, interval, range, cone, damage; spider leash, acquire, step, grapple, cooldown, stun,
 /// damage.
@@ -29,8 +33,8 @@ pub const CONTENT: usize = 22;
 pub const ACTOR_ROW: usize = PLAYER_ROW + 1;
 /// Per hazard area: x, y, w, h.
 pub const AREA_ROW: usize = 4;
-/// Per trap: kind (`TRAP_KINDS`, -1 unknown), x, y, homeX, homeY, heading, offset, `cooldown || 0`, spent, the
-/// roster index of its `targetId` (-1 none).
+/// Per trap uploaded: kind (`TRAP_KINDS`, -1 unknown), x, y, homeX, homeY, heading, offset, `cooldown || 0`, spent,
+/// the roster index of its `targetId` (-1 none).
 pub const TRAP_ROW: usize = 10;
 /// Output header: length, serial, stopped (0 no, 1 an elimination, 2 a mine's explosion), its target or trap
 /// index, the elimination's source (-1 none), the player count, the log length, the trap rows written.
@@ -109,6 +113,8 @@ pub struct Hazards {
     pub input: Vec<f64>,
     pub output: Vec<f64>,
     cursor: Option<Cursor>,
+    /// The game's traps, in map order, kept between calls since the last upload.
+    traps: Vec<Trap>,
 }
 
 fn distance(a: (f64, f64), b: (f64, f64)) -> f64 {
@@ -128,7 +134,7 @@ impl Hazards {
         let resume = h[0] != 0.0;
         let (tick, players, trap_count, areas) =
             (h[1], h[3] as usize, h[4] as usize, h[5] as usize);
-        let (wall_x, environment, traps_on) = (h[6], h[7] != 0.0, h[8] != 0.0);
+        let (wall_x, environment, traps_on, upload) = (h[6], h[7] != 0.0, h[8] != 0.0, h[9] != 0.0);
         let mut at = HEADER;
         let c = &input[at..at + CONTENT];
         let content = Content {
@@ -147,26 +153,38 @@ impl Hazards {
         }
         let boxes = &input[at..at + areas * AREA_ROW];
         at += areas * AREA_ROW;
-        let mut traps: Vec<Trap> = (0..trap_count)
-            .map(|i| {
-                let a = &input[at + i * TRAP_ROW..at + (i + 1) * TRAP_ROW];
-                Trap {
-                    kind: a[0],
-                    x: a[1],
-                    y: a[2],
-                    home: (a[3], a[4]),
-                    heading: a[5],
-                    offset: a[6],
-                    cooldown: a[7],
-                    spent: a[8] != 0.0,
-                    aiming: false,
-                    firing: false,
-                    warning: false,
-                    target: (a[9] >= 0.0).then_some(a[9] as usize),
-                    written: 0,
-                }
-            })
-            .collect();
+        if upload {
+            self.traps = (0..trap_count)
+                .map(|i| {
+                    let a = &input[at + i * TRAP_ROW..at + (i + 1) * TRAP_ROW];
+                    Trap {
+                        kind: a[0],
+                        x: a[1],
+                        y: a[2],
+                        home: (a[3], a[4]),
+                        heading: a[5],
+                        offset: a[6],
+                        cooldown: a[7],
+                        spent: a[8] != 0.0,
+                        aiming: false,
+                        firing: false,
+                        warning: false,
+                        target: (a[9] >= 0.0).then_some(a[9] as usize),
+                        written: 0,
+                    }
+                })
+                .collect();
+        }
+        assert_eq!(
+            trap_count,
+            self.traps.len(),
+            "the trap count is the kept traps'"
+        );
+        let mut traps = std::mem::take(&mut self.traps);
+        // Each call reports only its own writes.
+        for trap in &mut traps {
+            trap.written = 0;
+        }
         let empty = Rewind::default();
         let mut run = Run {
             rows,
@@ -463,6 +481,7 @@ impl Hazards {
         out[0] = out.len() as f64;
         self.output = out;
         self.input = input;
+        self.traps = traps;
     }
 }
 

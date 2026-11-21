@@ -651,16 +651,17 @@ TypeScript `applyEnvironment`, `finishMatch`, `recordRewind` and `asSeenBy` are 
 **Step 6 is staged** under #1214, store by store, each stage passing the fixture unchanged.
 Every writing phase runs in the core, so a store can move on its own: the core keeps it, the adapters stop packing
 it, the facts they already apply become the mirror's only writes, and a write from outside the tick becomes a
-between-tick command (D5). The order below is the plan at 6a; each stage reassesses the next.
+between-tick command (D5). After 6a the six stages planned there were merged into three where stores depend on each
+other, and each is a PR in sequence. That was claudecode's proposal, which Corey agreed to in the session that made 6a and 6b (2026-11-21):
 - **6a (#1214): door state.** Below.
-- **6b: the traps.** A fixed list whose state only `hazards.rs` writes, with masked facts already; the hazards call
-  stops packing every trap.
-- **6c: the ID counters** (`serial`, `itemSerial`, `scatterSerial`, D6). Every adapter packs and unpacks them, and Node
-  allocates `serial` for its own events (`event-records.ts`), so those allocations become core calls.
-- **6d: the pending queues and the hooks.** The spawns, the impulses, with a mine's explosion impulses
-  (`enqueueExplosionImpulses`), which retires `hazards.rs`'s `STOP_EXPLOSION`, and the attachments.
-- **6e: the ground.** The drop and pickup stops' Node half (records, launches, the admission) moves in.
-- **6f: the players, effects, events and projectiles, and the two calls** (`tick_begin`, `tick_finish`, D4), with bot
+- **6b (#1214): the traps.** Below.
+- **6c: the pending queues, the hooks, the ground and the ID counters.** They move together because each reads the
+  others. Phase 1's admission reads the pending queues and the ground. The drop and pickup stops hand Node ground
+  records, launches and admissions. A drop plan's item counters (`itemSerial`, `scatterSerial`, D6) travel in a
+  tentative allocation that crosses those stops. A mine's explosion impulses (`enqueueExplosionImpulses`) port with
+  the impulse queue, which retires `hazards.rs`'s `STOP_EXPLOSION`. `serial` goes with the item counters: every live
+  allocation is already the core's, and Node only round-trips it.
+- **6d: the players, effects, events and projectiles, and the two calls** (`tick_begin`, `tick_finish`, D4), with bot
   side tables keyed by ID. The remaining packing goes, and the steps that used 42.58's exception are measured again.
 
 **Step 6a, door state (#1214).** A game's doors' `open` and `locked` live in the core, in its gate set's masks
@@ -682,6 +683,20 @@ between-tick command (D5). The order below is the plan at 6a; each stage reasses
   from its records, as before. The gate records still hold shape and state together: they are the mirror, which
   frames and the wire read. The shapes cross once per map, as they did.
 - **Cost:** [42.74](42.74-door-state-core.md).
+
+**Step 6b, the traps (#1214, adapter version 18).** `Hazards` (`hazards.rs`) keeps the game's traps between calls,
+and `s.traps` is their mirror. The rules did not change: they already reported each trap's writes with a mask.
+- **Rows cross only on an upload.** A call uploads the trap list (a header flag, then the rows as before) when this
+  runtime has not uploaded it: the first call, a replaced `s.traps` or a changed length, and after `setTrap`. Otherwise
+  the call packs the roster and the hazard areas only, and the core runs on the traps it kept, writes included.
+- **`setTrap` is the between-tick command.** Tests and tools use it, or replace `s.traps`, as scenarios do; play
+  never calls it. It writes the mirror and marks the list for upload, so the core takes it at the next call, before
+  any rule reads a trap.
+- **The mirror is not pinned,** unlike the doors' (6a). Every live trap writes `cooldown` each tick, and a
+  read-only field can be written only by `Object.defineProperty`, which cost about 37 µs a tick on 277 traps against
+  1.3 µs for assignment. A direct write to a trap record therefore no longer reaches the rules. `traps.test.js`'s two
+  writes showed this at once, and they now use `setTrap`.
+- **Cost:** [42.75](42.75-trap-state-core.md).
 
 
 ## One math library on both sides
