@@ -4,7 +4,7 @@ import type { PhysicsExports, PhysicsWorld } from '../physics/world.ts';
 import type { BodySpec } from '../physics/types.ts';
 import type { CoreExports } from '../core.ts';
 import { actorRadius } from './actor-physics.ts';
-import { admitItem, groundItem, itemsNear, unadmittedItems } from './ground-items.ts';
+import { admitItem, groundItem, itemsNear } from './ground-items.ts';
 import { markPhysicsDiscontinuity } from './physics-runtime.ts';
 import type { PhysicsRuntime, PendingAttachment } from './physics-runtime.ts';
 import { physicsGate } from './physics-geometry.ts';
@@ -12,7 +12,7 @@ import { sightOf } from './sight-runtime.ts';
 import { playersStale, uploadPlayers } from './player-store.ts';
 import { ensureGround } from './ground-store.ts';
 import { writeDoor } from './doors.ts';
-import type { Game, GroundItem, ItemId, Player, Vec2 } from '../types.ts';
+import type { Game, ItemId, Player, Vec2 } from '../types.ts';
 
 // The adapter for the tick boundary's body work in the core (`rust/core/src/boundary.rs`, #1234, docs/27 "The
 // state flip", step 5b.3): the body sync, phase 1's pending admission and the placement search, and the drop
@@ -32,7 +32,7 @@ type Core = CoreExports & PhysicsExports;
 // The layout of `boundary.rs`.
 const OUT_HEADER = 6, BODY_ROW = 22;
 const A_HEADER = 11;
-const B_HEADER = 8, LAUNCH_STRIDE = 6, WAITING_STRIDE = 4;
+const B_HEADER = 8;
 const OP_QUEUED = 1, OP_COMMIT = 2, OP_TRANSFORM = 3, OP_MARK = 4, OP_ACTOR = 5, OP_POSE = 6, OP_RETRY = 7, OP_GATE = 8, OP_ITEM = 9;
 const MARK_PLACED = 0;
 const TEMPLATE_CONTESTANT = 0, TEMPLATE_GLADIATOR = 1, TEMPLATE_LOOT = 2;
@@ -91,7 +91,7 @@ function output(core: Core, world: number): Float64Array {
 }
 
 /** Applies a sync call's log in order, then throws its refusal, if any, with the message the TypeScript threw. */
-function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number, items: readonly GroundItem[] = []): void {
+function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number): void {
   const world = r.world, t = templatesOf(s);
   for (let at = OUT_HEADER; at < out.length;) {
     const op = out[at]!;
@@ -129,7 +129,8 @@ function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number, 
       r.gates[index] = out[at + 2]!; at += 4;
     } else if (op === OP_ITEM) {
       const id = world.idOf(out[at + 1]!);
-      if (out[at + 2]) { r.items.add(id); admitItem(s, items[out[at + 3]!]!); } else r.items.delete(id);
+      // An admitted item names its record by ID (6d.3).
+      if (out[at + 2]) { r.items.add(id); admitItem(s, groundItem(s, out[at + 3]! as ItemId)!); } else r.items.delete(id);
       at += 4;
     } else throw new Error(`unknown boundary log entry ${op}`);
   }
@@ -184,67 +185,35 @@ export function uploadGateBodies(s: Game, r: PhysicsRuntime): void {
   core.physics_gates_load(native, s.gates.length);
 }
 
-/** The first chunk of items awaiting a body that the admission packs; each further chunk is twice the last. */
-const FIRST_CHUNK = 32;
-
 /**
- * The sync's item admission, when the first call found room: launched items, then those awaiting a body, in ID
- * order. Those are packed in chunks, the next only while the last ran out with room left, so a world with room for
- * one more item packs a few of the thousands a large map may hold, as the TypeScript visited only those.
+ * The sync's item admission, when the first call found room: launched items, then those awaiting a body, in ID order.
+ * The core keeps both lists and the item bodies (#1214 stage 6d.3): this hands it the launches made since, then calls
+ * once. The core walks its awaiting list until the world has no room, as the chunks it replaces stopped there.
  */
 export function synchronizeItems(s: Game, r: PhysicsRuntime, markTick: number): void {
-  const launches: GroundItem[] = [];
-  for (const id of [...r.itemLaunches.keys()].sort((a, b) => compare(itemLabel(s, a), itemLabel(s, b)))) {
-    const item = groundItem(s, id);
-    if (item) launches.push(item);
-  }
-  // The items already offered: still awaiting a body, they lead the admission order, so a chunk skips them.
-  const offered = new Set<ItemId>();
-  for (let size = FIRST_CHUNK, first = true; ; size *= 2, first = false) {
-    const chunk: GroundItem[] = [];
-    let more = false;
-    for (const item of unadmittedItems(s, r.items)) {
-      if (offered.has(item.id)) continue;
-      if (chunk.length === size) { more = true; break; }
-      offered.add(item.id);
-      // A launched item is the launches' to place; the loop would skip it.
-      if (!r.itemLaunches.has(item.id)) chunk.push(item);
-    }
-    const room = admitChunk(s, r, markTick, first ? launches : [], chunk);
-    if (!room || !more) break;
-  }
-  r.itemLaunches.clear();
-}
-
-/** One call of the admission: the launches, then one chunk of the items awaiting a body. Returns whether the chunk ran out with room left. */
-function admitChunk(s: Game, r: PhysicsRuntime, markTick: number, launches: readonly GroundItem[], waiting: readonly GroundItem[]): boolean {
   const world = r.world, t = templatesOf(s);
+  ensureGround(s, r);
+  // Each launch's key and motion; the core takes those still on the ground, in ID order.
+  const launches = [...r.itemLaunches].map(([id, motion]) => [itemKey(s, world, id), motion.x, motion.y] as const);
+  r.itemLaunches.clear();
   const active = s.players.filter(p => p.status === 'active');
-  const items = [...launches, ...waiting];
-  const keys = items.map(item => itemKey(s, world, item.id)), held = [...r.items].map(id => world.key(id));
   const markerKeys = r.discontinuities.map(entry => world.key(entry.id));
-  const words = B_HEADER + BODY_ROW + active.length * 3 + held.length + launches.length * LAUNCH_STRIDE + waiting.length * WAITING_STRIDE + markerKeys.length;
   const { core, world: native, collision, gates } = handles(s, r);
+  if (launches.length) {
+    const view = input(core, native, launches.length * 3);
+    launches.forEach((row, i) => view.set(row, i * 3));
+    (core as Core & { physics_launch(world: number, count: number): void }).physics_launch(native, launches.length);
+  }
+  const words = B_HEADER + BODY_ROW + active.length * 3 + markerKeys.length;
   const view = input(core, native, words);
   view.set([Math.max(0, s.players.length - r.actors.size), s.content.worldPhysics.dropReserve ?? 0, r.discontinuityCapacity,
-    launches.length, waiting.length, active.length, held.length, markerKeys.length]);
+    0, 0, active.length, 0, markerKeys.length]);
   view.set(t.rows[2]!, B_HEADER);
   let at = B_HEADER + BODY_ROW;
   for (const p of active) { view[at++] = p.x; view[at++] = p.y; view[at++] = actorRadius(s, p); }
-  view.set(held, at); at += held.length;
-  for (let i = 0; i < launches.length; i++, at += LAUNCH_STRIDE) {
-    const item = launches[i]!, motion = r.itemLaunches.get(item.id)!;
-    view.set([keys[i]!, i, item.x, item.y, motion.x, motion.y], at);
-  }
-  for (let i = launches.length; i < items.length; i++, at += WAITING_STRIDE) {
-    const item = items[i]!;
-    view.set([keys[i]!, i, item.x, item.y], at);
-  }
   view.set(markerKeys, at);
   core.physics_sync_items(native, collision, gates);
-  const out = output(core, native), room = out[3] === 1;
-  apply(s, r, out, markTick, items);
-  return room;
+  apply(s, r, output(core, native), markTick);
 }
 
 /**

@@ -165,6 +165,10 @@ pub struct World {
     pub(crate) ground: crate::ground::Ground,
     /// The gates' bodies as the body sync keeps them (#1214 stage 6d.2).
     pub(crate) gate_bodies: GateBodies,
+    /// The ground records awaiting a body, by key in ID order (#1214 stage 6d.3): `unadmittedItems`' order.
+    pub(crate) waiting: Vec<Key>,
+    /// The items launched since the last admission, by key, with their motions: `itemLaunches` (6d.3).
+    pub(crate) launches: Vec<(Key, f64, f64)>,
     pub(crate) phase_seven: crate::phase_seven::PhaseSeven,
     /// By key: a solid prop's shape as its spec gave it (`shape, a, b, vertices`), for the swept
     /// queries' `solidProps` (`hooks.rs`). Loot and every other kind keep none.
@@ -227,6 +231,8 @@ impl World {
             players: crate::players::Players::default(),
             ground: crate::ground::Ground::default(),
             gate_bodies: GateBodies::default(),
+            waiting: Vec::new(),
+            launches: Vec::new(),
             phase_seven: crate::phase_seven::PhaseSeven::default(),
             prop_shapes: Vec::new(),
         }
@@ -248,6 +254,40 @@ impl World {
             .filter(|&k| self.bodies[k].is_some() && self.ids[k].starts_with(&prefix))
             .map(|k| k as Key)
             .collect()
+    }
+
+    /// Put a ground record's key among those awaiting a body, in ID order, unless it has one.
+    pub(crate) fn await_body(&mut self, key: Key) {
+        if self.body(key).is_some() {
+            return;
+        }
+        let at = self
+            .waiting
+            .binary_search_by(|&k| self.order(k, key))
+            .unwrap_or_else(|at| at);
+        if self.waiting.get(at) != Some(&key) {
+            self.waiting.insert(at, key);
+        }
+    }
+
+    /// Take a key out of those awaiting a body: its record left the ground, or its body was admitted.
+    pub(crate) fn stop_awaiting(&mut self, key: Key) {
+        if let Ok(at) = self.waiting.binary_search_by(|&k| self.order(k, key)) {
+            self.waiting.remove(at);
+        }
+    }
+
+    /// Rebuild the keys awaiting a body from the ground store, after a whole upload.
+    pub(crate) fn rebuild_waiting(&mut self) {
+        let mut waiting: Vec<Key> = self
+            .ground
+            .keys()
+            .map(|k| k as Key)
+            .filter(|&k| self.body(k).is_none())
+            .collect();
+        waiting.sort_by(|&a, &b| self.order(a, b));
+        waiting.dedup();
+        self.waiting = waiting;
     }
 
     /// Take the gates' keys and closed rows (`count` rows of a key then `BODY_ROW` words) from the boundary input, once

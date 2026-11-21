@@ -21,6 +21,7 @@
 //! room packs none, as the TypeScript skipped ordering them.
 
 use crate::collision::{CollisionMap, can_occupy, reach_clear};
+use crate::ground;
 use crate::math::hypot;
 use crate::phase_one::RESPAWNING;
 use crate::placement::{Disk, loot_fits, placement};
@@ -639,7 +640,18 @@ pub fn synchronize_items(world: &mut World, map: &mut CollisionMap, gates: &mut 
         let template = input[template_at..template_at + BODY_ROW].to_vec();
         let radius = template[4];
         let disks: Vec<Disk> = input[active_base..held_base].as_chunks::<3>().0.to_vec();
-        let mut items = keys(&input[held_base..launch_base]);
+        // The item bodies, the launches and the records awaiting a body are the core's own (#1214 stage 6d.3); the
+        // adapter sends none of them.
+        let _ = (
+            held,
+            launch_base,
+            launches,
+            waiting_base,
+            waiting,
+            WAITING_STRIDE,
+            LAUNCH_STRIDE,
+        );
+        let mut items = world.keys_with_prefix("item:");
         let reserve_actors = count(B_RESERVE_ACTORS);
         let drop_reserve = count(B_DROP_RESERVE);
         let mut place = |world: &mut World, log: &mut Log, row: &[f64], reserve: usize| {
@@ -659,6 +671,7 @@ pub fn synchronize_items(world: &mut World, map: &mut CollisionMap, gates: &mut 
             };
             log.queue(world, &template, TEMPLATE_LOOT, key, row[1], [x, y, vx, vy])?;
             items.push(key);
+            world.stop_awaiting(key);
             log.entry(Entry::Item {
                 key,
                 added: true,
@@ -667,24 +680,41 @@ pub fn synchronize_items(world: &mut World, map: &mut CollisionMap, gates: &mut 
             log.commit(world)?;
             log.mark(world, MARK_PLACED, key)
         };
-        // A preflighted transfer owns its released slots first.
-        for i in 0..launches {
-            let at = launch_base + i * LAUNCH_STRIDE;
-            place(world, log, &input[at..at + LAUNCH_STRIDE], 0)?;
+        // Each row: key, the record's id (the reference JavaScript finds it by), x, y, then a launch's motion.
+        let row_of = |world: &World, key: Key| {
+            world.ground.by_key(u64::from(key)).map(|r| {
+                vec![
+                    f64::from(key),
+                    r.words[0],
+                    r.words[ground::X],
+                    r.words[ground::Y],
+                ]
+            })
+        };
+        // A preflighted transfer owns its released slots first: the launches in ID order, those still on the ground.
+        let mut launched = std::mem::take(&mut world.launches);
+        launched.sort_by(|a, b| world.id_order(a.0, b.0));
+        for &(key, vx, vy) in &launched {
+            if let Some(mut row) = row_of(world, key) {
+                row.extend_from_slice(&[vx, vy]);
+                place(world, log, &row, 0)?;
+            }
         }
-        // The TypeScript checked for room before the loop and before each item; with no change between
-        // them, the loop's first check is the same test.
-        let mut exhausted = true;
-        for i in 0..waiting {
-            // No later item can free room.
+        // Then the records awaiting a body, in ID order, a launched one excepted. No item frees room, so the walk
+        // stops at the first that finds none, where the TypeScript stopped packing chunks.
+        let awaiting = world.waiting.clone();
+        for key in awaiting {
+            if launched.iter().any(|l| l.0 == key) {
+                continue;
+            }
             if !world.can_add_bodies(1 + reserve_actors + drop_reserve) {
-                exhausted = false;
                 break;
             }
-            let at = waiting_base + i * WAITING_STRIDE;
-            place(world, log, &input[at..at + WAITING_STRIDE], drop_reserve)?;
+            if let Some(row) = row_of(world, key) {
+                place(world, log, &row, drop_reserve)?;
+            }
         }
-        header[3] = f64::from(u8::from(exhausted && waiting > 0));
+        header[3] = 0.0;
         log.commit(world)
     });
 }

@@ -35,7 +35,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 26;
+pub const ADAPTER_VERSION: u32 = 27;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -955,6 +955,23 @@ pub unsafe extern "C" fn physics_gates_load(world: *mut world::World, count: usi
     // SAFETY: the caller's contract.
     unsafe { (*world).load_gates(count) }
 }
+/// Items launched since the last admission (`world::World::launches`, #1214 stage 6d.3): `count` rows of key, vx, vy
+/// from the boundary input. A key launched again takes the later motion.
+/// # Safety
+/// `world` is live and its boundary input holds `count` rows.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn physics_launch(world: *mut world::World, count: usize) {
+    // SAFETY: the caller's contract.
+    let w = unsafe { &mut *world };
+    for k in 0..count {
+        let r = &w.boundary_input[k * 3..k * 3 + 3];
+        let (key, vx, vy) = (r[0] as world::Key, r[1], r[2]);
+        match w.launches.iter_mut().find(|l| l.0 == key) {
+            Some(l) => (l.1, l.2) = (vx, vy),
+            None => w.launches.push((key, vx, vy)),
+        }
+    }
+}
 /// The ground store's input buffer, resized for `count` records (`ground::Ground`, #1214 stage 6d.1).
 /// # Safety
 /// `world` is live.
@@ -970,12 +987,28 @@ pub unsafe extern "C" fn ground_input(world: *mut world::World, count: usize) ->
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn ground_write(world: *mut world::World, op: u32, at: usize) {
     // SAFETY: the caller's contract.
-    let g = unsafe { &mut (*world).ground };
+    let w = unsafe { &mut *world };
+    // The keys awaiting a body follow the ground (#1214 stage 6d.3).
     match op {
-        0 => g.load(),
-        1 => g.add(),
-        2 => g.remove(at),
-        3 => g.replace(at),
+        0 => {
+            w.ground.load();
+            w.rebuild_waiting();
+        }
+        1 => {
+            let before = w.ground.len();
+            w.ground.add();
+            let added: Vec<u64> = w.ground.keys_from(before).collect();
+            for key in added {
+                w.await_body(key as world::Key);
+            }
+        }
+        2 => {
+            if let Some(key) = w.ground.key_at(at) {
+                w.stop_awaiting(key as world::Key);
+            }
+            w.ground.remove(at);
+        }
+        3 => w.ground.replace(at),
         _ => panic!("unknown ground write {op}"),
     }
 }
