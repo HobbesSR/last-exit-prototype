@@ -2,7 +2,7 @@
 //! A successful drop returns at the sync boundary; the adapter admits bounded item chunks,
 //! then repacks the changed poses and resumes at the next operation of that same player.
 //!
-//! Input header: mode (loop, shared attack, carried plan, ammo plan), resume player and
+//! Input header: mode (loop, a contestant's scenario attack, carried plan, ammo plan, elimination), resume player and
 //! operation, tick, serial, item/scatter serials, ground count, reserved actor bodies,
 //! counts of action players, context actors, free label phases, known item IDs, near
 //! ground positions, ground IDs, carried identities and hooks; mandatory, ammo family/count,
@@ -259,11 +259,9 @@ fn combat_facts(
                 life,
                 damage,
             } => op(log, 2.0, &[id, owner as f64, x, y, dx, dy, life, damage]),
-            Fact::Damage {
-                target,
-                amount,
-                source,
-            } => op(log, 4.0, &[target as f64, amount, source as f64]),
+            // Only a gladiator's attack damages, and it runs in phase 5's combat run (`combat.rs`, 27
+            // step 5d.2); phase 3 and the scenario attack (mode 1) serve contestants.
+            Fact::Damage { .. } => unreachable!("a gladiator attacks in phase 5"),
             Fact::Shot { shooter, weapon } => {
                 let Some(p) = actors.iter().find(|p| p.roster == shooter) else {
                     continue;
@@ -609,10 +607,8 @@ impl PhaseThree {
                 let stage = if i == h[1] as usize { h[2] as usize } else { 0 };
                 let mut facts = Vec::new();
                 if mode == 1 {
-                    let targets: Vec<_> = actors
-                        .iter()
-                        .map(|t| (t.roster, t.role, t.status, t.x, t.y))
-                        .collect();
+                    // A contestant's attack reads no targets; a gladiator's is phase 5's.
+                    let targets = [];
                     action_combat::attack(
                         &mut p,
                         rules,
