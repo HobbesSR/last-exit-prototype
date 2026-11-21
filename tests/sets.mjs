@@ -35,7 +35,8 @@ export const SETS = {
     fast: ['shape', 'shape-clipping', 'shape-construction', 'math', 'sight-core', 'collision-core', 'swept-core', 'core-wasm-audit', 'free-space', 'swept-index', 'map-cell-primitives'],
     browser: ['sight-core'],
     sources: ['shared/shape*.ts', 'shared/math.ts', 'shared/core.ts', 'shared/sight-core.ts', 'shared/sight.ts', 'tests/helpers/float-digest.js', 'tests/helpers/sight-cases.js', 'tools/build-core.mjs', 'rust/core/**',
-      // The core's collision queries are held equal to these (#1233).
+      // The core's collision queries are held equal to these (#1233), and its swept query to `swept.ts` (#1229).
+      'shared/simulation/swept.ts',
       'shared/movement.ts', 'shared/playable-area.ts', 'shared/gate-index.ts', 'shared/free-space.ts', 'shared/vector.ts', 'shared/numbers.ts', 'shared/buckets.ts', 'shared/index-heap.ts'],
   },
   client: {

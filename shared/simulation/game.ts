@@ -118,6 +118,9 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
       await prepareSweptGates(s.gates, yieldControl);
       if (before !== undefined) observe('prepare.sweptGates', performance.now() - before);
     }
+    // The core's swept upload for the hook's rules, read from the swept caches just built while yielding (#1229).
+    sight.prepareSwept(s.map);
+    if (yieldControl) await yieldControl();
     if (yieldControl) {
       const before = profiling() ? performance.now() : undefined;
       await prepareBotGates(s.map, yieldControl);

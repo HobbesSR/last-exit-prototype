@@ -71,11 +71,11 @@ function runHooks(s: Game, mode: number, paths?: Record<string, Vec2[]>): void {
   }
   // Interning and the handles' preparation can grow memory; view the input only after them.
   const { core, world: native } = world.boundaryCall();
-  const map = sightOf(s).queryHandles(s.map, true);
+  const sight = sightOf(s), map = sight.queryHandles(s.map, true), swept = sight.sweptHandle(s.map);
   if (map.core !== core) throw new Error('the physics world and sight are bound to different cores');
   const pointer = core.physics_boundary_input(native, data.length) >>> 0;
   new Float64Array(core.memory.buffer, pointer, data.length).set(data);
-  core.physics_hooks(native, map.swept, map.gates);
+  core.physics_hooks(native, swept, map.gates);
   const outPointer = core.physics_boundary_output(native) >>> 0;
   const out = new Float64Array(core.memory.buffer, outPointer, new Float64Array(core.memory.buffer, outPointer, OUT_HEADER)[5]!).slice();
   const removed = new Set<HookState>(), states = out.length - hooks.length * STATE_STRIDE;
@@ -99,7 +99,7 @@ function runHooks(s: Game, mode: number, paths?: Record<string, Vec2[]>): void {
     };
     put('x', out[at + 1]!, out[at + 1]!); put('y', out[at + 2]!, out[at + 2]!); put('travelled', out[at + 3]!, out[at + 3]!);
     const target = out[at + 5]!;
-    if (!Number.isNaN(target) && hook.targetIdx !== target) {
+    if (!Number.isNaN(target) && (hook.targetIdx !== target || hook.targetActorKey !== actor(players[target]!.id))) {
       hook.targetIdx = target as PlayerIdx; hook.targetActorKey = actor(players[target]!.id);
     }
     put('generationB', out[at + 6]!, out[at + 6]!); put('hitTick', out[at + 7]!, out[at + 7]!);

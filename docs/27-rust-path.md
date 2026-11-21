@@ -498,8 +498,10 @@ Launch and cancel are phase 3's, as before.
 - **Uploaded once per map.** A swept map holds the solid static shapes in `buildPhysicsGeometry`'s order, which the
   bisection's last bits depend on, each with whether shots also meet it (a see-through obstacle does not), and every
   gate's closed shape. It is uploaded from `swept.ts`'s own caches (`sweptUpload`), so the core sweeps the very shapes
-  the TypeScript does. It is a fourth query handle beside the collision map, sight index and gate set (`queryHandles`),
-  built with them at `prepareCollision`. Gates are read live from the gate set's open mask.
+  the TypeScript does. It is its own handle (`sweptHandle`), not one of `queryHandles`, so calls that never sweep do not
+  build it. `createGame` builds it (`prepareSwept`) after `prepareSweptGeometry` and `prepareSweptGates`, from the caches they
+  built while yielding (review 982). It is rebuilt when the map's size, playable area or gate list differs, as the
+  collision map is. Gates are read live from the gate set's open mask.
 - **Solid props are read from the world.** `world.rs` keeps each solid prop's shape as queued, and the core builds
   `bodyShape` at the prop's current pose, reading again after every commit.
 - **The hooks stay in JavaScript (D1).** Each call packs the hooks, the roster's keys, status, kit, role and pose and,

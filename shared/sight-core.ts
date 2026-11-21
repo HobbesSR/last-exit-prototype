@@ -66,11 +66,21 @@ export interface CoreSight extends SightCaster {
    * (`shared/simulation/boundary.ts`, #1234). `openMask` writes the gates as they stand now, once for the call;
    * without it the mask is as the last call left it, for a call that makes no gate-reading query.
    */
-  queryHandles(map: CollisionMap, openMask: boolean): { core: CoreExports; collision: Handle; index: Handle; gates: Handle; swept: Handle };
+  queryHandles(map: CollisionMap, openMask: boolean): { core: CoreExports; collision: Handle; index: Handle; gates: Handle };
+  /**
+   * The map's swept upload (`rust/core/src/swept.rs`, #1229), for the hook's rules (`shared/simulation/hook.ts`), which pair
+   * it with `queryHandles`' gate set. Built only when first asked or by `prepareSwept`, so no call that never sweeps builds it.
+   */
+  sweptHandle(map: CollisionMap): Handle;
   /** `geometryContact` (`shared/simulation/swept.ts`) in the core, with the gates as they stand now: for the parity check and later callers. */
   sweptContact(map: CollisionMap, passSeeThrough: boolean, a: Vec2, b: Vec2, radius: World, extra?: readonly Shape[]): number;
   /** Builds the map's collision upload, sight index and gate set now, so no tick builds them (42.66). */
   prepareCollision(map: CollisionMap): void;
+  /**
+   * Builds the map's swept upload now. `createGame` calls it after `prepareSweptGeometry` and `prepareSweptGates`, so the
+   * upload reads the caches they built while yielding, rather than building them again without yielding.
+   */
+  prepareSwept(map: CollisionMap): void;
 }
 
 let processSight: Promise<CoreSight> | undefined;
@@ -90,8 +100,10 @@ export function coreSight(core: CoreExports): CoreSight {
   // Keyed on the obstacle list, as movement's colliders are; rebuilt when the list grows or the map's
   // size or playable area differs.
   const collisionMaps = new WeakMap<readonly Obstacle[], { count: number; width: World; height: World; area: PlayableArea | undefined; handle: Handle }>();
-  // Keyed on the obstacle list as the collision map is; rebuilt when the list or the gate list changes length.
-  const sweptMaps = new WeakMap<readonly Obstacle[], { count: number; gates: number; handle: Handle }>();
+  // Keyed on the obstacle list as the collision map is; rebuilt when that list grows, the map's size or playable area
+  // differs (the boundary walls and voids come from them), or the gate list is another list or grew.
+  const sweptMaps = new WeakMap<readonly Obstacle[], { count: number; width: World; height: World; area: PlayableArea | undefined;
+    gateList: readonly Gate[]; gates: number; handle: Handle }>();
   const release = new FinalizationRegistry<() => void>(free => free());
   /** Free a handle a grown list superseded now, rather than when the list is collected. */
   const supersede = (entry: { handle: Handle } | undefined, free: (handle: Handle) => void) => {
@@ -184,13 +196,15 @@ export function coreSight(core: CoreExports): CoreSight {
 
   function sweptFor(map: CollisionMap): Handle {
     const cached = sweptMaps.get(map.obstacles);
-    if (cached && cached.count === map.obstacles.length && cached.gates === map.gates.length) return cached.handle;
+    if (cached && cached.count === map.obstacles.length && cached.width === map.width && cached.height === map.height
+      && cached.area === map.playableArea && cached.gateList === map.gates && cached.gates === map.gates.length) return cached.handle;
     const { statics, shots, gates } = sweptUpload(map);
     supersede(cached, handle => core.swept_map_free(handle));
     const staticRows = shapeRows(statics), gateRows = shapeRows(gates), shotBytes = Uint8Array.from(shots, shot => shot ? 1 : 0);
     const handle = withBuffers([staticRows, shotBytes, gateRows], ([s, t, g]) =>
       core.swept_map_new(s, staticRows.length, t, shotBytes.length, g, gateRows.length) >>> 0);
-    const entry = { count: map.obstacles.length, gates: map.gates.length, handle };
+    const entry = { count: map.obstacles.length, width: map.width, height: map.height, area: map.playableArea,
+      gateList: map.gates, gates: map.gates.length, handle };
     sweptMaps.set(map.obstacles, entry);
     release.register(map.obstacles, () => core.swept_map_free(handle), entry);
     return handle;
@@ -272,11 +286,17 @@ export function coreSight(core: CoreExports): CoreSight {
       return withBuffers([rows], ([e]) => core.swept_contact(handle, gates, passSeeThrough ? 1 : 0, a.x, a.y, b.x, b.y, radius, e, rows.length));
     },
     queryHandles(map, openMask) {
-      const collision = collisionFor(map), index = indexFor(map), swept = sweptFor(map);
-      return { core, collision, index, gates: openMask ? openGates(map) : gateSetFor(map).handle, swept };
+      const collision = collisionFor(map), index = indexFor(map);
+      return { core, collision, index, gates: openMask ? openGates(map) : gateSetFor(map).handle };
+    },
+    sweptHandle(map) {
+      return sweptFor(map);
     },
     prepareCollision(map) {
-      collisionFor(map); indexFor(map); gateSetFor(map); sweptFor(map);
+      collisionFor(map); indexFor(map); gateSetFor(map);
+    },
+    prepareSwept(map) {
+      sweptFor(map);
     },
   };
 }

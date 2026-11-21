@@ -167,12 +167,37 @@ test('the core reads the world\'s solid props as solidContact does, rotated and 
     const { core, world: native } = world.boundaryCall(), misses = [];
     let found = 0, clear = 0;
     for (const [a, b, radius] of sweeps) {
-      const handles = sightOf(s).queryHandles(s.map, true);
-      const want = solidContact(s, a, b, radius), got = core.physics_solid_contact(native, handles.swept, handles.gates, a.x, a.y, b.x, b.y, radius);
+      const handles = sightOf(s).queryHandles(s.map, true), swept = sightOf(s).sweptHandle(s.map);
+      const want = solidContact(s, a, b, radius), got = core.physics_solid_contact(native, swept, handles.gates, a.x, a.y, b.x, b.y, radius);
       if (want === Infinity) clear++; else found++;
       if (!Object.is(want, got) && misses.push({ a, b, radius, want, got }) >= 5) break;
     }
     assert.deepEqual(misses, [], 'core and TypeScript differ on the world\'s props');
     assert.ok(found > 50 && clear > 50, `both sides exercised (found ${found}, clear ${clear})`);
   } finally { disposePhysics(s); }
+});
+
+test('a map spread over the same obstacles gets its own upload when its extent, playable area or gates differ', () => {
+  const map = generatedMap(), next = random(1243);
+  const box = bounds(staticShapes(map, false)[0]);
+  // Each variant keeps `map.obstacles`, the upload's cache key, and changes something the upload reads.
+  const cells = map.playableArea.rows.slice(0, Math.floor(map.playableArea.rows.length / 2));
+  const variants = [
+    { ...map },
+    { ...map, width: map.width + 400, height: map.height + 400 },
+    { ...map, playableArea: { ...map.playableArea, rows: cells } },
+    { ...map, gates: map.gates.map(g => ({ ...g, x: g.x + 7 })) },
+    { ...map, gates: map.gates.slice(1).concat(map.gates.slice(0, 1)) },
+  ];
+  const sweeps = [];
+  for (let i = 0; i < 300; i++) {
+    const a = { x: next() * map.width, y: next() * map.height }, angle = next() * Math.PI * 2, reach = 50 + next() * 900;
+    sweeps.push([a, { x: a.x + Math.cos(angle) * reach, y: a.y + Math.sin(angle) * reach }, RADII[i % RADII.length]]);
+  }
+  sweeps.push([{ x: box.x - 50, y: box.y + box.h / 2 }, { x: box.x + box.w + 50, y: box.y + box.h / 2 }, 0]);
+  // Interleaved, so a stale handle from the variant before would answer.
+  for (let round = 0; round < 2; round++) for (const [k, variant] of variants.entries()) {
+    const { found } = check(`variant ${k}, round ${round}`, variant, sweeps);
+    assert.ok(found > 0, `variant ${k} meets geometry`);
+  }
 });
