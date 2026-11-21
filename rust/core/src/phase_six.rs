@@ -1191,13 +1191,22 @@ impl PhaseSix {
         let mut actors: Vec<Actor> = (0..h[ACTORS] as usize)
             .map(|_| read_actor(&mut r))
             .collect();
+        // The store's fields come from the core's player store (#1214 stage 6c.3b): only those the adapter packed before,
+        // so the fields phase 6 never read stay as they were. The adapter leaves those words 0.
+        let store = &world.players;
+        for a in &mut actors {
+            let (s, e) = (&store.rows[a.p.roster], &store.extra[a.p.roster]);
+            (a.p.role, a.p.status, a.p.x, a.p.y, a.p.cloak, a.rail_cd) =
+                (s.role, s.status, s.x, s.y, e.cloak, e.rail_cd);
+        }
         let players = (0..h[PLAYERS] as usize)
-            .map(|_| {
+            .map(|i| {
                 let a: [f64; PLAYER_ROW] = r.row();
+                let s = &store.rows[i];
                 Other {
-                    status: a[0],
-                    x: a[1],
-                    y: a[2],
+                    status: s.status,
+                    x: s.x,
+                    y: s.y,
                     radius: a[3],
                 }
             })

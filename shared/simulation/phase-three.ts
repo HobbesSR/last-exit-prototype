@@ -1,5 +1,5 @@
 import type { CoreExports } from '../core.ts';
-import { AMMO_FAMILIES, EFFECT_KINDS, ITEM_KINDS, KITS, PLAYER_STATUSES, WEAPONS } from '../enum-tables.ts';
+import { AMMO_FAMILIES, EFFECT_KINDS, ITEM_KINDS, KITS, WEAPONS } from '../enum-tables.ts';
 import { DISCOVERY_CELL_SIZE } from '../discovery.ts';
 import { forkItemAllocation, itemIdForLabel, itemLabel } from '../item-instances.ts';
 import type { PhysicsExports, PhysicsWorld } from '../physics/world.ts';
@@ -12,6 +12,7 @@ import { HZ } from './rules.ts';
 import { playerIndex } from './relations.ts';
 import { addItems, groundItem, itemsNear } from './ground-items.ts';
 import { physicsRuntime, type PhysicsRuntime } from './physics-runtime.ts';
+import { playersStale, uploadPlayers } from './player-store.ts';
 import { event, participant } from './event-records.ts';
 import { sightOf } from './sight-runtime.ts';
 import { launchPhysicalDrops } from './world-physics.ts';
@@ -146,8 +147,9 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
     const intent = intents[playerIndex(s, p)], input: PlayerInput = intent?.input ?? {};
     const inventory = options.item ? [options.item] : mode === MODE_ELIMINATE ? p === options.player ? p.inventory : undefined : mode === 1 || mode === 2 || !!(input.slot !== undefined || input.moveSlot || intent?.utilitySlot !== undefined
       || input.drop || intent?.discardSlot !== undefined || input.reload || p.reload || input.attack && p.role === 'contestant' && p.attackCd <= 0) ? p.inventory : undefined;
-    data.push(playerIndex(s, p), r.world.key(`actor:${p.id}`), p.role === 'contestant' ? 0 : 1, PLAYER_STATUSES.indexOf(p.status), KITS.indexOf(p.kit),
-      p.x, p.y, p.heading, p.hp, p.maxHp, p.shield, n(p.selectedSlot), p.weapon, p.attackCd, p.cooldown, p.cloak, p.revealed, p.boost, p.stun, p.level,
+    // The store's fields (role, status, kit, pose, heading, health, cooldowns, cloak, reveal, boost, stun, level and the actor's
+    // key) come from the core's player store (`player-store.ts`, #1214 stage 6c.3b); their words stay 0.
+    data.push(playerIndex(s, p), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, n(p.selectedSlot), p.weapon, 0, 0, 0, 0, 0, 0, 0,
       inventory?.length ?? -1, p.reserves ? 1 : 0, p.reload ? 1 : 0, 0);
     if (p.reserves) data.push(p.reserves.pistol, p.reserves.rifle, p.reserves.shell);
     if (p.reload) data.push(p.reload.slot, p.reload.instanceId, p.reload.until);
@@ -158,7 +160,8 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   }
   for (const p of contexts) {
     const cues = hearing ? p.heard ?? [] : [];
-    data.push(playerIndex(s, p), p.role === 'contestant' ? 0 : 1, PLAYER_STATUSES.indexOf(p.status), p.x, p.y,
+    // Role, status and pose come from the core's player store (stage 6c.3b); their words stay 0.
+    data.push(playerIndex(s, p), 0, 0, 0, 0,
       s.content.actorPhysics.geometry[p.role].bodyRadius, r.world.key(`actor:${p.id}`), cues.length);
     for (const cue of cues) data.push(cue.x, cue.y, cue.tick, cue.until);
   }
@@ -170,6 +173,8 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   // Interning and map preparation can grow memory; view the input only after those calls.
   const map = sightOf(s).queryHandles(s.map);
   if (map.core !== core) throw new Error('phase 3 and sight are bound to different cores');
+  // Between ticks the store is uploaded first (`player-store.ts`); inside one it is current.
+  if (playersStale(r)) uploadPlayers(s, r, core, world);
   const ptr = core.actions_input(world, data.length) >>> 0;
   new Float64Array(core.memory.buffer, ptr, data.length).set(data);
   if (mode === 0) profileStart('sim.actions.core');

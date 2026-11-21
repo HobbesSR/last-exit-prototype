@@ -111,6 +111,17 @@ impl Players {
         &self.input
     }
 
+    /// Phase 3's action player (`action_types::Player`) takes the store's fields, by its roster index.
+    pub(crate) fn fill_action(&self, p: &mut crate::action_types::Player) {
+        let (s, e) = (&self.rows[p.roster], &self.extra[p.roster]);
+        p.key = e.key as u32;
+        (p.role, p.status, p.kit) = (s.role, s.status, s.kit as usize);
+        (p.x, p.y, p.heading) = (s.x, s.y, s.heading);
+        (p.hp, p.max_hp, p.shield) = (s.hp, s.max_hp, s.shield);
+        (p.attack_cd, p.cooldown, p.stun, p.level) = (s.attack_cd, s.cooldown, s.stun, s.level);
+        (p.cloak, p.revealed, p.boost) = (e.cloak, e.revealed, e.boost);
+    }
+
     /// How many players the store holds.
     pub fn len(&self) -> usize {
         self.extra.len()

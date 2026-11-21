@@ -666,7 +666,7 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
     uploaded once a tick. Below.
   - **6c.3:** the remaining readers stop packing players from the records, in three PRs:
     - **6c.3a (#1214):** the readers of scalar fields only: phase 7, the hooks and the body sync. Below.
-    - **6c.3b:** phase 3's and phase 6's player rows.
+    - **6c.3b (#1214):** phase 3's and phase 6's player rows. Below.
     - **6c.3c:** the inventories, with the carried items' identity, which Node tracks by object today.
 
   Replacing the uploads between ticks with between-tick commands is 6e's.
@@ -765,6 +765,18 @@ players from the store, and their adapters no longer pack them.
 - **Cost.** Measured as 6c.2 was (base `78df3853`): `sim.sync`, which times every body sync of the tick, fell from 53.1 µs to
   44.0–44.9 µs, and `sim.rewind` from 1.6 µs to 1.1 µs. The other labels and the whole tick (4.54–4.56 ms against 4.57 ms) moved
   within run spread. The hooks' saving does not show on this map, which has few hooks in flight.
+
+**Step 6c.3b, phase 3's and phase 6's player rows (#1214, adapter version 22).** Their rows keep their layout. The
+adapters write 0 in the store's words, and the core fills those words from the store by roster index after reading each row.
+- **Phase 3** takes all the store's fields for an action player (`Players::fill_action`: key, role, status, kit, pose,
+  heading, health, cooldowns, stun, level, cloak, reveal, boost), and role, status and pose for a context actor. Selection,
+  weapon, inventory, reserves, reload and the intent still cross: they are 6c.3c's.
+- **Phase 6** takes only the fields its adapter packed before: an actor's role, status, pose, `railCd` and `cloak`, and
+  each roster player's status and pose. Its rows leave the rest at 0, which its rules expect, so filling more could
+  change behaviour.
+- **Between ticks** both upload first (`playersStale`), since scenarios call them directly.
+- **Cost:** measured once for stage 6c as a whole, at its end, against the `main` before 6c.1 (Corey, 2026-11-21: one bench at
+  the end rather than per PR).
 
 
 ## One math library on both sides
