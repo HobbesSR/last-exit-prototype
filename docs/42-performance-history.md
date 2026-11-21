@@ -34,6 +34,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.67](42.67-boundary-core.md) | The tick boundary's body work in the Rust core (the body sync, phase 1's queries, the pending admission, the placement search): the tick unchanged within noise once the sync packed only what it removes; the first version cost about 25 µs a tick more (#1234) |
 | [42.68](42.68-drop-scatter-core.md) | The drop planner's spiral search in the Rust core: about 2.2 µs more per search than the TypeScript, under the state-flip exception, with 7 searches in a whole bot match, so the tick is unchanged (#1228) |
 | [42.69](42.69-phase-three-core.md) | Tick phase 3 in the Rust core (#1238): conservative crossing 36–41 µs per tick, 0.771–0.874% of the whole tick under the state-flip exception; Node-only 24x12 comparison and raw results |
+| [42.70](42.70-hook-core.md) | The hook's later rules and the swept query in the Rust core (#1229): 2–5 µs a call, cheaper than the TypeScript for a pulling hook. A flying hook adds about 0.1% of the tick, under the state-flip exception |
 
 ### Navigation
 

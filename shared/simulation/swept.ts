@@ -9,8 +9,10 @@ import { bodyShape } from '../physics/presentation-geometry.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { Box, CollisionMap, Game, Gate, Role, Vec2 } from '../types.ts';
 
-// The one owner of swept queries against actors and geometry: physical projectiles and the hook
-// tip/tether both ask the same questions, differing only in radius and which geometry blocks them.
+// Swept queries against actors and geometry: physical projectiles and the hook tip/tether ask the same questions,
+// differing only in radius and which geometry blocks them. The hook asks the core's port (`rust/core/src/swept.rs`,
+// #1229), uploaded from these caches (`sweptUpload`); projectiles ask here until #1242. `tests/swept-core.test.js`
+// holds the two equal to the bit.
 
 const BISECTION_STEPS = 26;
 
@@ -113,6 +115,18 @@ function gateIndex(gates: readonly Gate[]): ShapeIndex {
   return cached.index;
 }
 
+/**
+ * What the Rust core's sweep map is uploaded from (`rust/core/src/swept.rs`, #1229): the solid static shapes in
+ * order, borrowed from this module's cache so the core sweeps the very shapes `geometryContact` does, each with
+ * whether shots also see it (false for a see-through obstacle), and every gate's closed shape in list order.
+ * Read-only. `buildPhysicsGeometry` lists the obstacles first, in list order, so shape `i` below the obstacle count is
+ * obstacle `i`; the boundary walls and voids after them block shots too.
+ */
+export function sweptUpload(map: CollisionMap): { statics: readonly Shape[]; shots: boolean[]; gates: readonly Shape[] } {
+  const statics = staticIndex(map, false).shapes, obstacles = map.obstacles;
+  return { statics, shots: statics.map((_, i) => i >= obstacles.length || !seeThrough(obstacles[i]!.kind)), gates: gateIndex(map.gates).shapes };
+}
+
 /** Build complete gate sweep buckets while the match is private. */
 export async function prepareSweptGates(gates: readonly Gate[], yieldControl: () => Promise<void>): Promise<void> {
   const index: ShapeIndex = { shapes: [], boxes: [], buckets: new Map() };
@@ -155,15 +169,16 @@ function solidProps(game: Game): Shape[] {
 }
 
 /**
- * The whole solid query geometry as one list, for diagnostic casts and tests; the hook asks `solidContact`,
- * which reads the same geometry through the indexes. Static descriptors are borrowed from the map cache;
+ * The whole solid query geometry as one list, for diagnostic casts and tests; `solidContact` reads the
+ * same geometry through the indexes. Static descriptors are borrowed from the map cache;
  * callers must treat all returned shapes as read-only.
  */
 export function solidBlockers(game: Game): Shape[] {
   return [...staticShapes(game.map, false), ...closedGateShapes(game.map.gates), ...solidProps(game)];
 }
 
-/** First contact of a sweep with `solidBlockers`, read through the indexes. */
+/** First contact of a sweep with `solidBlockers`, read through the indexes. The hook asks the core's (`hooks.rs`); this
+ * is the parity test's reference (`tests/swept-core.test.js`). */
 export function solidContact(game: Game, a: Vec2, b: Vec2, radius: number): number {
   return geometryContact(game.map, false, a, b, radius, solidProps(game));
 }

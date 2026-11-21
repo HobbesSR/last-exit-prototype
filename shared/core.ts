@@ -8,7 +8,7 @@
  */
 
 /** The adapter contract this loader speaks: `ADAPTER_VERSION` in `rust/core/src/lib.rs`. */
-export const CORE_ADAPTER_VERSION = 13;
+export const CORE_ADAPTER_VERSION = 14;
 
 // The project's lib is ES2023 without the DOM, which is where TypeScript declares WebAssembly.
 // Both hosts have it; this names only what the loader uses.
@@ -53,6 +53,12 @@ export interface CoreExports {
   /** For the parity check with `shared/playable-area.ts` and `shared/shape-queries.ts` only. */
   collision_inside(map: number, x: number, y: number, radius: number): number;
   collision_depth(map: number, collider: number, x: number, y: number, radius: number): number;
+  // Swept contact (`rust/core/src/swept.rs`, #1229): shape rows are `kind, x, y, a, b, n`, then `n` point pairs.
+  swept_map_new(statics: number, staticsLength: number, shots: number, staticCount: number, gates: number, gatesLength: number): number;
+  swept_map_free(map: number): void;
+  /** `geometryContact`: the first contact, Infinity when clear; `passSeeThrough` nonzero is the shot policy. */
+  swept_contact(map: number, gates: number, passSeeThrough: number, ax: number, ay: number, bx: number, by: number, radius: number,
+    extra: number, extraLength: number): number;
 }
 
 /**

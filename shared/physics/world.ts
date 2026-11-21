@@ -80,6 +80,9 @@ export interface PhysicsExports {
   physics_place(world: number, collision: number, gates: number): void;
   // The drop planner's spiral search (`rust/core/src/scatter.rs`, #1228), driven by `scatterInCore` in boundary.ts.
   physics_scatter(world: number, collision: number, index: number, gates: number): void;
+  physics_hooks(world: number, swept: number, gates: number): void;
+  // `solidContact` with the world's solid props, for the parity check (tests/swept-core.test.js).
+  physics_solid_contact(world: number, swept: number, gates: number, ax: number, ay: number, bx: number, by: number, radius: number): number;
 }
 
 // The process's one core, bound once, as sight binds it (`shared/sight-core.ts`). Worlds are made
@@ -419,6 +422,11 @@ export class PhysicsWorld {
   /** A body the core queued: its spec, validated and frozen as `queueAddBody` makes it. */
   adoptQueued(key: number, input: BodySpec): void {
     this.pendingSpecs.set(key, frozen(validateBody(input)));
+    this.dirty = true;
+  }
+  /** A constraint the core queued (`rust/core/src/hooks.rs`): its spec, validated and frozen as `queueAddConstraint` makes it. */
+  adoptQueuedConstraint(key: number, input: ConstraintSpec): void {
+    this.pendingConstraintSpecs.set(key, frozen(validateConstraint(input)));
     this.dirty = true;
   }
   /** A commit the core made, logged as its code, then its facts at `at`. */
