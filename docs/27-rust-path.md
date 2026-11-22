@@ -358,6 +358,31 @@ that refuses ends the call, and its later sections are empty, as Node's throw en
 `sim.begin` with the rest of the call; `sim.sync` now times phase 7's syncs only.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6e.5b, `tick_finish(intents)` for phases 3–5 (#1214, adapter version 41).** D4's second call, in part. Phases 3
+to 5 are one core call (`tick_finish` in `lib.rs`, `tick-finish.ts`), where they were eleven. The core builds each
+phase's input from the intents and its stores:
+- **The intents cross,** one row per player in roster order (`phase_three::INTENT_ROW`): whether it has one, phase 3's
+  fifteen intent words, then `interact` and the transit choice for phase 6.
+- **Phase 3** (`phase_three::loop_input`) takes, as `phase-three.ts` did:
+  - the players with an intent, in ID order, and the inventory each may read;
+  - the droppers, and whether any context is read;
+  - the ground near the droppers, their carried identities on the ground, and every carried identity;
+  - the hooks, and the drops' in-run words.
+- **Phase 4:** the floor drag (the floors are handed over once, `ensureFloor`), the commit of what is queued, the step,
+  and the players' and ground's poses in the stores.
+- **Phase 5:** the projectiles from the store with each player's path from the step's own output (`paths_of`), the
+  hook's tip over the same paths, then the casters from the intents in ID order. `actions_run`'s and `combat_run`'s
+  bodies are now functions both the exports and `tick_finish` call (`actions_call`, `combat_call`).
+
+**Node's part.** It applies each step's section with that step's applier: `applyLoop`, `adoptFloorDrag`, the commit's
+facts, `parseStep` and the players' poses, `applyItemPoses`, `applyCombat`, `applyHookOutput`, then `applyCombat` again.
+The header carries the serial and the item serials the call left. Phases 3 to 5 are timed as `sim.finish`, where
+`sim.actions`, `sim.solve`, `sim.poses` and `sim.projectiles` timed them.
+
+**Removed:** `setInRunDrops` and 6d.6b's A/B test. The tick no longer runs `phaseThree`, so the switch no longer
+reached the path that test compared.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.

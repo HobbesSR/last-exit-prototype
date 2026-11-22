@@ -87,12 +87,6 @@ export function ground(row: Float64Array, at: number, p: Player, tick: number): 
 }
 
 const MODE_ELIMINATE = 4;
-/**
- * Whether the loop's drops sync inside the core's run (6d.6b). Only `tests/phase-three-core.test.js` turns it off, to
- * hold the run's continuation equal to the stop and resume it replaced.
- */
-let inRunDrops = true;
-export function setInRunDrops(on: boolean): void { inRunDrops = on; }
 interface Options { mode?: number; player?: Player; item?: InventoryItem; family?: AmmoFamily; count?: number;
   mandatory?: boolean; items?: readonly GroundItem[]; source?: Game; start?: number; stage?: number; killer?: Player | null }
 
@@ -158,7 +152,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   // The loop's drops sync inside its run (#1214 stage 6d.6b): the core adds their records, launches them and syncs where
   // this adapter stopped it. The bodies' keys are the core's registry's (6e.1). An elimination's drops do too (6e.2);
   // the standalone plans still stop at a drop.
-  const inRun = (mode === 0 || mode === MODE_ELIMINATE) && droppers.length > 0 && inRunDrops;
+  const inRun = (mode === 0 || mode === MODE_ELIMINATE) && droppers.length > 0;
   const inRunWords: number[] = [];
   if (inRun) {
     prepareInRunSync(s, r);
@@ -316,6 +310,13 @@ function applyOutput(s: Game, r: PhysicsRuntime, out: Float64Array, { mode, opti
  * An elimination the core carried out inside phase 5's or the hazards' run (#1214 stage 6e.2): phase 3's output for it,
  * applied as `eliminateInCore` applied its call's. The core registered its allocations and synced its drops itself.
  */
+/** Phase 3's loop as `tick_finish` ran it in the core from the intents (#1214 stage 6e.5b), applied as `phaseThree`'s. */
+export function applyLoop(s: Game, out: Float64Array): void {
+  const r = physicsRuntime(s);
+  if (!r) throw new Error('phase 3 needs the game\'s physics world');
+  applyOutput(s, r, out, { mode: 0, options: {}, source: s, itemOf: token => carriedItem(r, token)!, live: true });
+}
+
 export function applyElimination(s: Game, out: Float64Array, target: Player, killer: Player | null): void {
   const r = physicsRuntime(s);
   if (!r) throw new Error("phase 3 needs the game's physics world");
