@@ -567,6 +567,27 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
 **Decided 2026-11-19** (#1066). These were agent recommendations in brief 16852; Corey approved all nine
 (D1–D9) in comment 16861. The sequence is tracked under #1173.
 
+**After the flip: a governing tick architecture, and no mirror (Corey, 2026-11-22, tracker #1279).** The mirror below
+was the flip's designed end state. It is now to be removed, before the next Foundation Pass and before new features:
+"the core simulation architecture is important to me, as much as getting the prototype mechanics implemented and
+tuned, so now is the time."
+- **Why.** The tick's phases grew one mechanic at a time, with no design for what they share. The flip exposed the
+  special paths that followed: the stops and resumes, the "removed earlier this tick" checks, and the
+  fact-ordering rules.
+- **What follows.**
+  1. A playtest checkpoint (#1280).
+  2. A mechanic inventory (#1281).
+  3. A governing design document (#1282): a state model, a shared effect vocabulary, and stages over a frozen
+     pre-state with one resolver (#1276) and one apply.
+  4. The tick built to that design (#1283).
+  5. Phase 2 and discovery into the core (#1215).
+  6. Projection and recording from the core, a test API with on-demand snapshots, and then the mirror's removal
+     (#1284).
+- **Its cost in the meantime.** The flip's measured cost (42.76) is accepted until then, and 42.76 is the
+  tracker's baseline.
+- **Behaviour.** It may change where the design's conflict rules say so. The fixtures are re-baselined
+  deliberately, once.
+
 - **The route (D1).** Port the tick phase by phase while the state stays in JavaScript. Each port is a pure
   function in the core: the adapter packs what the phase reads, runs it, and unpacks what it wrote, each tick.
   The frozen fixture checks every step unchanged. Packing follows the actors and the entities a phase touches,
@@ -582,7 +603,8 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
   2. Node runs phase 2 against its mirror.
   3. `tick_finish(intents)` runs phases 3–7 and returns a second change list.
   - **The mirror.** Node keeps a read-only copy built from the change lists. Projection, recording, the
-    private snapshot and the bots read it. Unchanged records keep their identity (#655).
+    private snapshot and the bots read it. Unchanged records keep their identity (#655). It is to be removed
+    (#1279, above).
   - **Phase 2's state is Node-owned** while phase 2 is in Node (reviews 957 and 958 on PR #1216). It lives in
     Node, outside the core's state, and the mirror's player record overlays it on the core's fields, so the
     private snapshot, recording and projection read one record. The intents carry everything phases 3–7 read, so
