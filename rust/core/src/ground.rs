@@ -16,6 +16,18 @@ pub const RECORD: usize = 16;
 /// A record's position words.
 pub const X: usize = 2;
 pub const Y: usize = 3;
+/// The grid's cell size, in world units: `ground-items.ts`'s fine cells.
+const CELL: f64 = 64.0;
+/// Cells this far from the origin, or farther, are not kept: such a record is offered to every query, as the
+/// JavaScript grid keeps it loose.
+const SPAN: f64 = 32768.0;
+
+type Cell = (i64, i64);
+
+fn cell_of(x: f64, y: f64) -> Option<Cell> {
+    let (cx, cy) = ((x / CELL).floor(), (y / CELL).floor());
+    (cx.abs() < SPAN && cy.abs() < SPAN).then_some((cx as i64, cy as i64))
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(crate) struct Record {
@@ -28,6 +40,16 @@ pub struct Ground {
     pub(crate) records: Vec<Record>,
     /// The records by body key: which item bodies left the ground (6d.2), and where a waiting item lies (6d.3).
     by_key: BTreeMap<u64, Record>,
+    /// How many records hold each id, by its bits: `groundItem`'s question (6d.6c).
+    ids: BTreeMap<u64, u32>,
+    /// The grid (#1214 stage 6d.6c), as `ground-items.ts` keeps its own: each record's sequence number, in the list's
+    /// order, so a query returns records in list order; a replacement keeps its record's number.
+    seqs: Vec<u64>,
+    by_seq: BTreeMap<u64, Record>,
+    cells: BTreeMap<Cell, Vec<u64>>,
+    /// Records outside every cell (a position not finite, or far off the map), offered to every query.
+    loose: Vec<u64>,
+    next: u64,
     input: Vec<f64>,
 }
 
@@ -38,6 +60,77 @@ fn key_of(r: &Record) -> Option<u64> {
 }
 
 impl Ground {
+    fn enter(&mut self, seq: u64, record: Record) {
+        match cell_of(record.words[X], record.words[Y]) {
+            Some(cell) => self.cells.entry(cell).or_default().push(seq),
+            None => self.loose.push(seq),
+        }
+        self.by_seq.insert(seq, record);
+        *self.ids.entry(record.words[0].to_bits()).or_default() += 1;
+        if let Some(key) = key_of(&record) {
+            self.by_key.insert(key, record);
+        }
+    }
+
+    fn leave(&mut self, seq: u64) {
+        let record = self.by_seq.remove(&seq).expect("a held record");
+        let bucket = match cell_of(record.words[X], record.words[Y]) {
+            Some(cell) => self.cells.get_mut(&cell).expect("its cell"),
+            None => &mut self.loose,
+        };
+        let at = bucket
+            .iter()
+            .position(|&s| s == seq)
+            .expect("in its bucket");
+        bucket.swap_remove(at);
+        let id = record.words[0].to_bits();
+        if let Some(n) = self.ids.get_mut(&id) {
+            *n -= 1;
+            if *n == 0 {
+                self.ids.remove(&id);
+            }
+        }
+        if let Some(key) = key_of(&record) {
+            self.by_key.remove(&key);
+        }
+    }
+
+    fn push(&mut self, record: Record) {
+        let seq = self.next;
+        self.next += 1;
+        self.seqs.push(seq);
+        self.records.push(record);
+        self.enter(seq, record);
+    }
+
+    /// Every record that could be within `reach` of `(x, y)`, in the list's order: a superset, never a ruling, as
+    /// `itemsNear` gives it. A point that is not finite is offered the whole list.
+    pub(crate) fn near(&self, x: f64, y: f64, reach: f64) -> Vec<Record> {
+        if !x.is_finite() || !y.is_finite() {
+            return self.records.clone();
+        }
+        let mut seqs: Vec<u64> = self.loose.clone();
+        match (cell_of(x - reach, y - reach), cell_of(x + reach, y + reach)) {
+            (Some((x0, y0)), Some((x1, y1))) => {
+                for cx in x0..=x1 {
+                    for (_, bucket) in self.cells.range((cx, y0)..=(cx, y1)) {
+                        seqs.extend_from_slice(bucket);
+                    }
+                }
+            }
+            // A reach that leaves the cells' span reads every cell.
+            _ => seqs.extend(self.cells.values().flatten()),
+        }
+        seqs.sort_unstable();
+        seqs.dedup();
+        seqs.into_iter().map(|s| self.by_seq[&s]).collect()
+    }
+
+    /// Whether a record with this id is on the ground (`groundItem`).
+    pub(crate) fn holds_id(&self, id: f64) -> bool {
+        self.ids.contains_key(&id.to_bits())
+    }
+
     /// The input buffer, resized for `count` records.
     pub fn input(&mut self, count: usize) -> &mut [f64] {
         self.input.resize(count * RECORD, 0.0);
@@ -59,12 +152,17 @@ impl Ground {
 
     /// Replace the store with the input's records.
     pub fn load(&mut self) {
-        self.records = self.rows().collect();
-        self.by_key = self
-            .records
-            .iter()
-            .filter_map(|r| key_of(r).map(|k| (k, *r)))
-            .collect();
+        let rows: Vec<Record> = self.rows().collect();
+        self.records.clear();
+        self.by_key.clear();
+        self.ids.clear();
+        self.seqs.clear();
+        self.by_seq.clear();
+        self.cells.clear();
+        self.loose.clear();
+        for record in rows {
+            self.push(record);
+        }
     }
 
     /// Whether a record with this body key is on the ground.
@@ -95,30 +193,26 @@ impl Ground {
     /// Append the input's records, as `addItems` appends them.
     pub fn add(&mut self) {
         let added: Vec<Record> = self.rows().collect();
-        self.by_key
-            .extend(added.iter().filter_map(|r| key_of(r).map(|k| (k, *r))));
-        self.records.extend(added);
+        for record in added {
+            self.push(record);
+        }
     }
 
     /// Take the record at `at` off, as `removeItem` does; later records keep their order.
     pub fn remove(&mut self, at: usize) {
         assert!(at < self.records.len(), "no ground record {at}");
-        let gone = self.records.remove(at);
-        if let Some(key) = key_of(&gone) {
-            self.by_key.remove(&key);
-        }
+        self.records.remove(at);
+        let seq = self.seqs.remove(at);
+        self.leave(seq);
     }
 
     /// Put the input's one record where the record at `at` is, as `replaceItem` does.
     pub fn replace(&mut self, at: usize) {
         assert!(at < self.records.len(), "no ground record {at}");
         let record = self.rows().next().expect("one record");
-        if let Some(key) = key_of(&self.records[at]) {
-            self.by_key.remove(&key);
-        }
-        if let Some(key) = key_of(&record) {
-            self.by_key.insert(key, record);
-        }
+        let seq = self.seqs[at];
+        self.leave(seq);
+        self.enter(seq, record);
         self.records[at] = record;
     }
 
@@ -168,5 +262,57 @@ mod tests {
         let ids: Vec<f64> = ground.records.iter().map(|r| r.words[0]).collect();
         assert_eq!(ids, vec![9.0, 3.0, 4.0]);
         assert_eq!(ground.dump().len(), 3 * RECORD);
+    }
+
+    fn put(ground: &mut Ground, rows: &[(f64, f64, f64)]) {
+        let input = ground.input(rows.len());
+        for (k, &(id, x, y)) in rows.iter().enumerate() {
+            input[k * RECORD] = id;
+            input[k * RECORD + 1] = f64::NAN;
+            input[k * RECORD + X] = x;
+            input[k * RECORD + Y] = y;
+        }
+    }
+
+    fn ids(records: &[Record]) -> Vec<f64> {
+        records.iter().map(|r| r.words[0]).collect()
+    }
+
+    #[test]
+    fn the_grid_answers_in_list_order_and_offers_loose_records_to_every_query() {
+        let mut ground = Ground::default();
+        put(
+            &mut ground,
+            &[
+                (1.0, 500.0, 500.0),
+                (2.0, 10.0, 10.0),
+                (3.0, f64::NAN, 0.0),
+                (4.0, 40.0, 5.0),
+            ],
+        );
+        ground.load();
+        // The far record is not offered; the NaN one is.
+        assert_eq!(ids(&ground.near(20.0, 20.0, 30.0)), vec![2.0, 3.0, 4.0]);
+        // A replacement keeps its place in the list.
+        put(&mut ground, &[(1.0, 15.0, 15.0)]);
+        ground.replace(0);
+        assert_eq!(
+            ids(&ground.near(20.0, 20.0, 30.0)),
+            vec![1.0, 2.0, 3.0, 4.0]
+        );
+        assert_eq!(
+            ids(&ground.near(f64::NAN, 0.0, 1.0)),
+            vec![1.0, 2.0, 3.0, 4.0]
+        );
+        // A record far in another row of the same columns is not offered.
+        put(&mut ground, &[(5.0, 20.0, 900.0)]);
+        ground.add();
+        assert_eq!(
+            ids(&ground.near(20.0, 20.0, 30.0)),
+            vec![1.0, 2.0, 3.0, 4.0]
+        );
+        ground.remove(1);
+        assert_eq!(ids(&ground.near(20.0, 20.0, 30.0)), vec![1.0, 3.0, 4.0]);
+        assert!(ground.holds_id(5.0) && !ground.holds_id(2.0));
     }
 }

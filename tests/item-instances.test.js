@@ -250,6 +250,19 @@ test('failed E preview leaves a partially refillable pistol and the outgoing sta
   assert.equal(s.items[0].ammo, 7);
 });
 
+test('an E swap between equidistant pickups takes the first label, not the first in the list (#1214 6d.6c.1)', async t => {
+  // The core ranks the candidates its ground store offers by their keys' ID order (`read_ground`), as the adapter ranked
+  // the labels of those it packed; a record beyond reach changes no ruling.
+  const { s, p } = await fixture(t);
+  for (let i = 0; i < 6; i++) p.inventory[i] = { kind: 'cell', charge: i + 1, instanceId: `owned-${i}`, lineageId: `owned-${i}` };
+  s.items.push(ground('z-left', 'cell', { charge: 5, x: p.x - 20, y: p.y }), ground('far', 'cell', { charge: 7, x: p.x + 300, y: p.y }),
+    ground('a-right', 'cell', { charge: 6, x: p.x + 20, y: p.y }));
+  identifyItems(s);
+  interact(s, p);
+  assert.equal(p.inventory[0].instanceId, itemId(s, 'a-right'));
+  assert.equal(p.inventory[0].charge, 6);
+});
+
 test('a successful E swap stages only the pickup: the map and other ground entries are untouched', async t => {
   const { s, p } = await fixture(t);
   for (let i = 0; i < 6; i++) p.inventory[i] = { kind: 'cell', charge: i + 1, instanceId: `owned-${i}`, lineageId: `owned-${i}` };
