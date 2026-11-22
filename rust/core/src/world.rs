@@ -484,6 +484,20 @@ impl World {
         }
     }
 
+    /// Take the ground record at `at` off, as `removeItem` writes it through: its key stops awaiting a body (6d.3).
+    pub(crate) fn remove_ground(&mut self, at: usize) {
+        if let Some(key) = self.ground.key_at(at) {
+            self.stop_awaiting(key as Key);
+        }
+        self.ground.remove(at);
+    }
+
+    /// Put `words` where the ground record at `at` is, as `replaceItem` writes it through.
+    pub(crate) fn replace_ground(&mut self, at: usize, words: &[f64]) {
+        self.ground.input(1).copy_from_slice(words);
+        self.ground.replace(at);
+    }
+
     /// Append records to the ground store, as `addItems` writes them through: each awaits a body (#1214 stage 6d.3).
     pub(crate) fn add_ground(&mut self, words: &[f64]) {
         let before = self.ground.len();

@@ -161,7 +161,7 @@ impl InRun<'_> {
         by_phase.or_else(by_token).map_or(f64::NAN, |k| k.1)
     }
 
-    /// The body sync, as `r.synchronize()` ran it at the stop: admitting items, from the world's markers.
+    /// The body sync, as `r.synchronize()` ran it at the stop.
     fn synchronize(
         &self,
         world: &mut World,
@@ -169,18 +169,15 @@ impl InRun<'_> {
         gates: &mut GateSet,
         tick: f64,
     ) -> Vec<f64> {
-        let markers: Vec<f64> = world.markers.iter().map(|&k| f64::from(k)).collect();
-        world.boundary_input.clear();
-        world.boundary_input.extend_from_slice(&[
+        crate::boundary::synchronize_in_run(
+            world,
+            map,
+            gates,
+            self.swept,
             tick,
-            1.0,
             self.capacity,
             self.roster,
-            markers.len() as f64,
-        ]);
-        world.boundary_input.extend_from_slice(&markers);
-        crate::boundary::synchronize(world, map, gates, self.swept);
-        world.boundary_output.clone()
+        )
     }
 
     /// The carried identities as Node packs them: every roster player's carried items with an identity, the action
@@ -244,7 +241,7 @@ fn apply_hook_facts(world: &mut World, log: &[f64], cursor: &mut usize, tick: f6
 
 /// A drop's ground record in the store's words (`ground::RECORD`), as `ground-store.ts` packs the record `ground` in
 /// `phase-three.ts` builds from the same row: the fields that record has, and the absence mask of those it lacks.
-fn ground_words(
+pub(crate) fn ground_words(
     rules: &Rules,
     record: &drop_planner::Record,
     key: f64,
@@ -303,7 +300,7 @@ fn ground_words(
 }
 
 /// `launchPhysicalDrops`: each record leaves its dropper at the drop speed, along the line from the dropper.
-fn launch(
+pub(crate) fn launch(
     world: &mut World,
     key: f64,
     record: &drop_planner::Record,

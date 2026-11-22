@@ -9,13 +9,13 @@
 //! TypeScript made it, because several create keys (`charging`, `selectedSlot`, a gladiator's `transit`)
 //! whose position the frozen fixture hashes, and some are Node-owned (D4's table: `route`, `input`).
 //!
-//! **Stops keep 5c.2's sync boundary.** A pickup that takes a ground record whole, a swap that commits,
-//! and an instant transit's landing each end the call. Node removes, adds and launches the ground records
-//! and synchronizes the bodies, as the TypeScript did at that point; the next call resumes at the next
-//! step of the same actor, with everything repacked. After a pickup Node also hands back the records
-//! still to visit, by the TypeScript's rule (the rest of the list, or a fresh query after the sync
-//! placed the actor again). A partial take changes a record without a stop; later actors in the call
-//! read the change from this run.
+//! **Stops sync inside the run** (#1214 stage 6d.6c.2). A pickup that takes a ground record whole, a swap that
+//! commits and an instant transit's landing change the ground and sync where Node used to: the core writes its ground
+//! store (`write_partial` for a partial take too), runs the body sync (`OP_SYNC`), applies the facts so far to the
+//! player store, and reads the actors still to run as the call resuming there would (`prepare`; after a pickup, the
+//! records still to visit by the TypeScript's rule). Where the run does not hold what that call would be given (an
+//! identity it would register, or its label budget), the stop stays a stop, carried out, and Node resumes (`OP_REST`).
+//! A call the adapter does not mark (`IN_RUN`) stops at each as before.
 use crate::action_equipment::{equipped, sync_weapon, valid_payload};
 use crate::action_types::{
     ABSENT_AMMO, ABSENT_CHARGE, ABSENT_INSTANCE, ABSENT_LINEAGE, ABSENT_QUALITY, ABSENT_WEAPON,
@@ -27,6 +27,7 @@ use crate::ground;
 use crate::math::{hypot, js_max, js_min, js_round};
 use crate::placement::{Disk, placement};
 use crate::sight::{GateSet, SightIndex};
+use crate::swept::SweptMap;
 use crate::world::World;
 
 /// A ground record's count was absent (`item.count ?? 1`), not NaN.
@@ -180,6 +181,10 @@ struct Actor {
     /// The swap's lists and the near records come from the ground store (6d.6c.1).
     swap_from_store: bool,
     near_from_store: bool,
+    /// The near records crossed: a resumed pickup's rest.
+    rested: bool,
+    /// The near records are the rest a pickup carried out inside the run left (6d.6c.2).
+    rested_after_stop: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -283,6 +288,8 @@ fn read_actor(r: &mut Reader<'_>) -> Actor {
         near,
         swap_from_store,
         near_from_store,
+        rested: a[22] >= 0.0,
+        rested_after_stop: false,
     }
 }
 
@@ -323,20 +330,73 @@ fn ground_of(w: &[f64; ground::RECORD], roster: usize, rank: f64, body: bool) ->
 ///
 /// The grid offers a superset; the rules' own distance tests decide, so a superset differing from JavaScript's changes no
 /// ruling, and ranks keep their relative order.
+/// `inReach`'s box: one unit past `automaticPickups`' reach; a NaN coordinate passes.
+fn in_reach(r: &ground::Record, x: f64, y: f64) -> bool {
+    let box_reach = AUTOMATIC_REACH + 1.0;
+    !((r.words[ground::X] - x).abs() > box_reach || (r.words[ground::Y] - y).abs() > box_reach)
+}
+
+/// An actor's near records from the store, as `inReach(itemsNear(s, p, AUTOMATIC_REACH), p)` gives them.
+fn near_list(world: &World, x: f64, y: f64, roster: usize) -> Vec<Ground> {
+    world
+        .ground
+        .near(x, y, AUTOMATIC_REACH + 1.0)
+        .iter()
+        .filter(|r| in_reach(r, x, y))
+        .map(|r| ground_of(&r.words, roster, 0.0, false))
+        .collect()
+}
+
+/// An actor as a call reads it from the stores, deciding as the adapter decides (#1214 stage 6d.6c.2): the store's
+/// fields and equipment; its near records (or `rest`, a pickup's records still to visit); whether it can swap; and its
+/// inventory only where a rule can read it (`readable` in `phase-six.ts`). A run that syncs inside itself reads the
+/// actors this way at its start and again after each stop, as the call that resumed there would.
+fn prepare(a: &mut Actor, world: &World, rest: Option<Vec<Ground>>) {
+    let roster = a.p.roster;
+    let (s, e, q) = (
+        &world.players.rows[roster],
+        &world.players.extra[roster],
+        &world.players.equip[roster],
+    );
+    (a.p.role, a.p.status, a.p.x, a.p.y, a.p.cloak, a.rail_cd) =
+        (s.role, s.status, s.x, s.y, e.cloak, e.rail_cd);
+    (a.p.selected, a.p.weapon, a.p.reserves, a.keys, a.charging) =
+        (q.selected, q.weapon, q.reserves, q.keys, q.charging);
+    let interact = a.steps & STEP_INTERACT != 0;
+    let pickups = a.steps & STEP_PICKUPS != 0 && a.p.role == 0.0;
+    let list = match rest {
+        Some(rest) => rest,
+        None if pickups => near_list(world, a.p.x, a.p.y, roster),
+        None => Vec::new(),
+    };
+    let inventory = &q.inventory;
+    let swap = interact
+        && !a.bot
+        && inventory
+            .as_ref()
+            .is_some_and(|v| v.iter().all(Option::is_some));
+    let readable = !list.is_empty()
+        || swap
+        || a.charging != -1.0
+        || interact
+            && inventory
+                .iter()
+                .flatten()
+                .flatten()
+                .any(|i| i.kind == KIND_CELL);
+    a.p.inventory = if readable { inventory.clone() } else { None };
+    a.near = list;
+    a.near_from_store = false;
+    (a.swap, a.swap_taken, a.swap_ground) = (Vec::new(), Vec::new(), Vec::new());
+    a.swap_from_store = swap;
+    read_ground(a, world);
+}
+
 fn read_ground(a: &mut Actor, world: &World) {
     let (x, y, roster) = (a.p.x, a.p.y, a.p.roster);
     let ground = &world.ground;
     if a.near_from_store {
-        let box_reach = AUTOMATIC_REACH + 1.0;
-        a.near = ground
-            .near(x, y, box_reach)
-            .iter()
-            .filter(|r| {
-                !((r.words[ground::X] - x).abs() > box_reach
-                    || (r.words[ground::Y] - y).abs() > box_reach)
-            })
-            .map(|r| ground_of(&r.words, roster, 0.0, false))
-            .collect();
+        a.near = near_list(world, x, y, roster);
     }
     if a.swap_from_store {
         let candidates = ground.near(x, y, PICKUP_REACH);
@@ -715,12 +775,293 @@ struct Run<'a> {
     /// Ground records this run changed without taking: id, the draft's item words.
     item_writes: Vec<(f64, Item)>,
     h: [f64; HEADER],
+    /// What the run needs to sync its stops inside itself (#1214 stage 6d.6c.2), when the adapter sent it.
+    in_run: Option<InRun<'a>>,
+    /// The stop the last step made, for the run to carry out inside itself.
+    stop: Option<StopKind>,
 }
+
+/// What a run needs to sync inside itself (#1214 stage 6d.6c.2), packed after the gates' details when header word
+/// `IN_RUN` is set: the markers' capacity, the roster's size, the loot's drop speed, whether any actor may swap, the
+/// markers' count and keys; then, when one may swap, each free label phase's body key (parallel to the phases) and each
+/// carried identity's (parallel to the carried pairs), which Node interns, since the core interns no strings.
+struct InRun<'s> {
+    swept: &'s SweptMap,
+    capacity: f64,
+    roster: f64,
+    drop_speed: f64,
+    swaps: bool,
+    phase_keys: Vec<(f64, f64)>,
+    carried_keys: Vec<(f64, f64)>,
+}
+
+/// How a stop carried out inside the run ended.
+enum Carried {
+    /// The run goes on at the same actor's next step.
+    Continued,
+    /// The run stops there, as before 6d.6c.2, with the stop carried out (`OP_REST` gives Node the rest).
+    Stopped,
+    /// The sync refused: the run ends, as Node's throw did.
+    Refused,
+}
+
+/// The records a pickup's actor had still to visit, by id, when a stop carried out inside the run stays a stop.
+pub const OP_REST: f64 = 18.0;
+
+/// A stop the run carries out inside itself.
+enum StopKind {
+    /// A record taken whole, and the records the actor had still to visit.
+    Pickup { id: f64, listed: Vec<Ground> },
+    /// A committed swap: the pickup's id and the drop's records.
+    Swap {
+        pickup: f64,
+        records: Vec<drop_planner::Record>,
+    },
+    /// An instant transit's landing.
+    Land,
+}
+
+/// The sync's log a stop leaves in the output, applied by Node as its own sync's (`boundary::synchronize`).
+pub const OP_SYNC: f64 = 17.0;
+/// Header word: the call syncs its stops inside the run (6d.6c.2).
+const IN_RUN: usize = 29;
 
 /// Where the call stopped, and the step of the same actor it resumes at.
 type Stop = Option<u32>;
 
 impl Run<'_> {
+    /// A partial take's write to the ground store, as Node's `replaceItem` of `settledItem(current, draft)` writes it
+    /// through: the field takes its value and is present; an unchanged record is not written.
+    fn write_partial(&mut self, id: f64, (field, value): (f64, f64)) {
+        let Some((at, _)) = self.world.ground.find_id(id) else {
+            return;
+        };
+        let mut words = self.world.ground.records[at].words;
+        let (word, bit) = if field == 0.0 {
+            (6, ABSENT_AMMO)
+        } else {
+            (7, ABSENT_COUNT)
+        };
+        let absent = words[15] as u32;
+        if absent & bit == 0 && words[word].to_bits() == value.to_bits() {
+            return;
+        }
+        words[word] = value;
+        words[15] = f64::from(absent & !bit);
+        self.world.replace_ground(at, &words);
+    }
+
+    /// A drop record's body key: a newly allocated identity's from its label phase, else the outgoing item's own.
+    fn record_key(&self, record: &drop_planner::Record) -> f64 {
+        let Some(sync) = self.in_run.as_ref() else {
+            return f64::NAN;
+        };
+        let phase = self
+            .allocation
+            .facts
+            .iter()
+            .find(|f| f[0] == record.id)
+            .map(|f| f[1]);
+        let by_phase = phase.and_then(|phase| sync.phase_keys.iter().find(|k| k.0 == phase));
+        let by_token = || sync.carried_keys.iter().find(|k| k.0 == record.item.token);
+        by_phase.or_else(by_token).map_or(f64::NAN, |k| k.1)
+    }
+
+    /// Carry out a stop inside the run, as Node did between calls, then read the actors from `at` on as the call that
+    /// resumed there would (#1214 stage 6d.6c.2). The facts so far reach the player store first, as Node applied them
+    /// before its sync.
+    ///
+    /// The run goes on only where it holds what that call would: every identity it would register, and the label
+    /// phases it would be given (its budget, to which the run's are cut). Otherwise the stop stays a stop
+    /// (`Carried::Stopped`): the ground and the sync are done, and Node resumes with the rest (`OP_REST`).
+    fn carry_out(
+        &mut self,
+        kind: StopKind,
+        actors: &mut [Actor],
+        at: usize,
+        cursor: &mut usize,
+    ) -> Carried {
+        self.world
+            .players
+            .apply_interaction_log(&self.log[*cursor..]);
+        *cursor = self.log.len();
+        let roster = actors[at].p.roster;
+        let sync = self
+            .in_run
+            .as_ref()
+            .expect("a run that syncs inside itself");
+        let (swept, capacity, size, speed, swaps) = (
+            sync.swept,
+            sync.capacity,
+            sync.roster,
+            sync.drop_speed,
+            sync.swaps,
+        );
+        let mut rest = None;
+        let synced = match kind {
+            StopKind::Pickup { id, listed } => {
+                // `removeItem`, then the sync; the records still to visit are the rest of the list, or, when the sync
+                // placed the actor again, those after the taken one near where it now stands.
+                let pose = |w: &World| (w.players.rows[roster].x, w.players.rows[roster].y);
+                let before = pose(self.world);
+                let (found, seq) = self.world.ground.find_id(id).expect("the taken record");
+                self.world.remove_ground(found);
+                let out = crate::boundary::synchronize_in_run(
+                    self.world, self.map, self.gates, swept, self.tick, capacity, size,
+                );
+                let after = pose(self.world);
+                let moved = before.0.to_bits() != after.0.to_bits()
+                    || before.1.to_bits() != after.1.to_bits();
+                let ground = &self.world.ground;
+                rest = Some(if moved {
+                    ground
+                        .near_after(after.0, after.1, AUTOMATIC_REACH + 1.0, seq)
+                        .iter()
+                        .filter(|r| in_reach(r, after.0, after.1))
+                        .map(|r| ground_of(&r.words, roster, 0.0, false))
+                        .collect()
+                } else {
+                    // `groundItem(s, item.id) ?? item`.
+                    listed
+                        .into_iter()
+                        .map(|g| {
+                            ground
+                                .by_id(g.id)
+                                .map_or(g, |r| ground_of(&r.words, roster, 0.0, false))
+                        })
+                        .collect()
+                });
+                Some(out)
+            }
+            StopKind::Swap { pickup, records } => {
+                // `removeItem(pickup)`, `addItems(records)`, then `launchPhysicalDrops` and its sync.
+                let (found, _) = self
+                    .world
+                    .ground
+                    .find_id(pickup)
+                    .expect("the swap's pickup");
+                self.world.remove_ground(found);
+                let from = (
+                    self.world.players.rows[roster].x,
+                    self.world.players.rows[roster].y,
+                );
+                let keys: Vec<f64> = records.iter().map(|r| self.record_key(r)).collect();
+                let words: Vec<f64> = records
+                    .iter()
+                    .zip(&keys)
+                    .flat_map(|(r, &key)| {
+                        crate::phase_three::ground_words(
+                            self.rules,
+                            r,
+                            key,
+                            roster as f64,
+                            self.tick,
+                        )
+                    })
+                    .collect();
+                self.world.add_ground(&words);
+                for (r, &key) in records.iter().zip(&keys) {
+                    crate::phase_three::launch(self.world, key, r, from, speed);
+                }
+                Some(crate::boundary::synchronize_in_run(
+                    self.world, self.map, self.gates, swept, self.tick, capacity, size,
+                ))
+            }
+            StopKind::Land => None,
+        };
+        if let Some(out) = synced {
+            let refused = out[0] < 0.0;
+            op(&mut self.log, OP_SYNC, &out);
+            *cursor = self.log.len();
+            if refused {
+                return Carried::Refused;
+            }
+            self.h[RESERVE_ACTORS] = (size as usize).saturating_sub(self.world.sync_actors) as f64;
+        }
+        // What the next call repacked: the actors from here on, the players, the ground's count and, where a swap may
+        // happen, the carried identities. The partial takes' overlay is the store's now.
+        let rested = rest.is_some();
+        for (j, a) in actors.iter_mut().enumerate().skip(at) {
+            prepare(a, self.world, if j == at { rest.take() } else { None });
+            a.rested_after_stop = j == at && rested;
+        }
+        for (k, o) in self.players.iter_mut().enumerate() {
+            let s = &self.world.players.rows[k];
+            (o.status, o.x, o.y) = (s.status, s.x, s.y);
+        }
+        self.h[GROUND_COUNT] = self.world.ground.len() as f64;
+        if swaps {
+            self.carried = self
+                .world
+                .players
+                .equip
+                .iter()
+                .flat_map(|q| q.inventory.iter().flatten().flatten())
+                .filter(|i| !i.missing(ABSENT_INSTANCE) && truthy(i.instance))
+                .map(|i| [i.token, i.instance])
+                .collect();
+        }
+        self.item_writes.clear();
+        if self.holds_resumed_call(&actors[at..]) {
+            return Carried::Continued;
+        }
+        // A pickup's actor resumes at its rest; after a swap or a landing the resumed call reads a fresh list.
+        if actors[at].rested_after_stop {
+            let mut row = vec![actors[at].near.len() as f64];
+            row.extend(actors[at].near.iter().map(|g| g.id));
+            op(&mut self.log, OP_REST, &row);
+        }
+        Carried::Stopped
+    }
+
+    /// Whether the run holds what the call resuming at these actors would be given: the registered identities of each
+    /// actor's carried items where it has near records or may swap (`known` in `phase-six.ts`), and at least the label
+    /// phases of that call's budget as it was before the run synced inside itself (the near records, ten a swap and one
+    /// an unidentified carried item), which the run's are then cut to.
+    fn holds_resumed_call(&mut self, actors: &[Actor]) -> bool {
+        let mut budget = 0usize;
+        let mut swaps = false;
+        for a in actors {
+            let (list, swap) = (a.near.len(), a.swap_from_store);
+            swaps |= swap;
+            if list == 0 && !swap {
+                continue;
+            }
+            budget += list + if swap { 10 } else { 0 };
+            for item in a.p.inventory.iter().flatten().flatten() {
+                if item.missing(ABSENT_INSTANCE) {
+                    budget += 1;
+                } else if !self.allocation.registered.contains(&item.instance) {
+                    return false;
+                }
+                if !item.missing(ABSENT_LINEAGE)
+                    && !self.allocation.registered.contains(&item.lineage)
+                {
+                    return false;
+                }
+            }
+        }
+        // The budget is the call's before 6d.6c.2 (`phase-six.ts` adds more where a swap may happen, so the run can hold it).
+        let _ = swaps;
+        let serial = self.allocation.scatter_serial;
+        if budget == 0 || !(safe(serial) && serial >= 0.0) {
+            self.allocation.phases.clear();
+            return true;
+        }
+        let left: Vec<f64> = self
+            .allocation
+            .phases
+            .iter()
+            .copied()
+            .filter(|&p| p >= serial)
+            .collect();
+        if left.len() < budget {
+            return false;
+        }
+        self.allocation.phases = left[..budget].to_vec();
+        true
+    }
+
     fn effect(&mut self, x: f64, y: f64, kind: f64, radius: f64) {
         op(&mut self.log, OP_EFFECT, &[self.serial, x, y, kind, radius]);
         self.serial += 1.0;
@@ -1046,6 +1387,10 @@ impl Run<'_> {
             row.extend_from_slice(&[r.id, r.x, r.y, r.family]);
         }
         op(&mut self.log, OP_SWAP, &row);
+        self.stop = Some(StopKind::Swap {
+            pickup: pickup.id,
+            records: plan.records,
+        });
         Ok(Some(STEP_TRANSIT))
     }
 
@@ -1116,6 +1461,7 @@ impl Run<'_> {
             &[a.p.roster as f64, landing.0, landing.1, RAIL_COOLDOWN],
         );
         self.effect(landing.0, landing.1, EFFECT_RAIL, 60.0);
+        self.stop = Some(StopKind::Land);
         Some(resume)
     }
 
@@ -1180,7 +1526,7 @@ impl Run<'_> {
         ];
         let at = (a.p.x, a.p.y);
         let near = std::mem::take(&mut a.near);
-        for listed in &near {
+        for (index, listed) in near.iter().enumerate() {
             let item = self.current(listed);
             if distance(at, (item.x, item.y)) > AUTOMATIC_REACH
                 || !reach_clear(self.index, self.gates, at, (item.x, item.y)).0
@@ -1234,6 +1580,9 @@ impl Run<'_> {
                         (1.0, draft.item.count)
                     };
                     op(&mut self.log, OP_ITEM, &[item.id, field.0, field.1]);
+                    if self.in_run.is_some() {
+                        self.write_partial(item.id, field);
+                    }
                 }
                 continue;
             }
@@ -1242,6 +1591,10 @@ impl Run<'_> {
             }
             self.effect(a.p.x, a.p.y, EFFECT_LOOT, 30.0);
             op(&mut self.log, OP_REMOVE, &[a.p.roster as f64, item.id]);
+            self.stop = Some(StopKind::Pickup {
+                id: item.id,
+                listed: near[index + 1..].to_vec(),
+            });
             return Ok(Some(STEP_PICKUPS));
         }
         if !a.sneak
@@ -1290,6 +1643,7 @@ impl PhaseSix {
         map: &mut CollisionMap,
         index: &SightIndex,
         gates: &mut GateSet,
+        swept: Option<&SweptMap>,
     ) {
         let input = std::mem::take(&mut self.input);
         let mut h = [0.0; HEADER];
@@ -1342,6 +1696,42 @@ impl PhaseSix {
         if h[GATE_DETAILS] > 0.0 {
             gates.details = (0..h[GATE_DETAILS] as usize).map(|_| r.row()).collect();
         }
+        let in_run = (h[IN_RUN] != 0.0).then(|| {
+            let [capacity, roster, drop_speed, swaps, markers] = r.row();
+            world.markers = r.vec(markers as usize).iter().map(|&k| k as u32).collect();
+            let swaps = swaps != 0.0;
+            let phase_keys = if swaps {
+                phases.iter().copied().zip(r.vec(phases.len())).collect()
+            } else {
+                Vec::new()
+            };
+            let carried_keys = if swaps {
+                let carried: &Vec<[f64; 2]> = &carried;
+                carried
+                    .iter()
+                    .map(|c| c[0])
+                    .zip(r.vec(carried.len()))
+                    .collect()
+            } else {
+                Vec::new()
+            };
+            InRun {
+                swept: swept.expect("a run that syncs inside itself needs the swept map"),
+                capacity,
+                roster,
+                drop_speed,
+                swaps,
+                phase_keys,
+                carried_keys,
+            }
+        });
+        // A run that syncs inside itself decides what each actor reads, as the adapter did (6d.6c.2).
+        if in_run.is_some() {
+            for a in &mut actors {
+                let rest = a.rested.then(|| std::mem::take(&mut a.near));
+                prepare(a, world, rest);
+            }
+        }
         let mut run = Run {
             rules,
             world,
@@ -1366,14 +1756,19 @@ impl PhaseSix {
             carried,
             item_writes: Vec::new(),
             h,
+            in_run,
+            stop: None,
         };
         let tick_mode = h[MODE] == 0.0;
         let mut resume = (-1.0, 0.0);
         let mut error = (0.0, 0.0);
         let first = h[RESUME_ACTOR] as usize;
-        'actors: for (i, a) in actors.iter_mut().enumerate().skip(first) {
-            let from = if i == first { h[RESUME_STEP] as u32 } else { 0 };
+        let mut cursor = 0;
+        let (mut i, mut from) = (first, h[RESUME_STEP] as u32);
+        'actors: while i < actors.len() {
+            let mut resumed = None;
             for step in [STEP_INTERACT, STEP_TRANSIT, STEP_CHARGING, STEP_PICKUPS] {
+                let a = &mut actors[i];
                 if step < from || a.steps & step == 0 {
                     continue;
                 }
@@ -1391,6 +1786,19 @@ impl PhaseSix {
                     _ => run.pickups(a),
                 };
                 match stop {
+                    Ok(Some(next)) if run.in_run.is_some() => {
+                        let kind = run.stop.take().expect("a stop's kind");
+                        match run.carry_out(kind, &mut actors, i, &mut cursor) {
+                            Carried::Continued => {}
+                            Carried::Stopped => {
+                                resume = (i as f64, f64::from(next));
+                                break 'actors;
+                            }
+                            Carried::Refused => break 'actors,
+                        }
+                        resumed = Some(next);
+                        break;
+                    }
                     Ok(Some(next)) => {
                         resume = (i as f64, f64::from(next));
                         break 'actors;
@@ -1402,7 +1810,14 @@ impl PhaseSix {
                     }
                 }
             }
+            // A stop carried out inside the run resumes the same actor at its next step; otherwise the next actor.
+            match resumed {
+                Some(next) => from = next,
+                None => (i, from) = (i + 1, 0),
+            }
         }
+        // The facts reach the player store (#1214 stage 6c.2), those a stop has not applied already.
+        run.world.players.apply_interaction_log(&run.log[cursor..]);
         let mut out = std::mem::take(&mut self.output);
         out.clear();
         out.extend_from_slice(&[

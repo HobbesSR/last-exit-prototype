@@ -304,13 +304,13 @@ impl Players {
         }
     }
 
-    /// Phase 6's per-actor loop's writes to the store's fields, read from its output (`phase_six.rs`) in the order
-    /// `shared/simulation/phase-six.ts` applies them: an extraction's status, a delayed transit's status, arrival and
-    /// destination, an instant transit's landing and rail cooldown, and a sensor's reveal.
-    pub(crate) fn apply_interactions(&mut self, out: &[f64]) {
-        const OUT_HEADER: usize = 11;
-        let mut at = OUT_HEADER + out[7] as usize * 2;
-        let end = at + out[8] as usize;
+    /// Phase 6's per-actor loop's writes to the store's fields, from its log facts (op, length, payload; `phase_six.rs`)
+    /// in the order `shared/simulation/phase-six.ts` applies them: an extraction's status, a delayed transit's status,
+    /// arrival and destination, an instant transit's landing and rail cooldown, the equipment, and a sensor's reveal.
+    /// The run applies each part as it syncs inside itself, and the rest at its end (#1214 stage 6d.6c.2).
+    pub(crate) fn apply_interaction_log(&mut self, log: &[f64]) {
+        let (mut at, end) = (0, log.len());
+        let out = log;
         while at < end {
             let (op, len) = (out[at], out[at + 1] as usize);
             let p = &out[at + 2..at + 2 + len];
