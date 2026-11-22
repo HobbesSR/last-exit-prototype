@@ -1,4 +1,5 @@
 import type { CoreExports } from '../core.ts';
+import { start, stop } from '../profiler.ts';
 import { AMMO_FAMILIES } from '../enum-tables.ts';
 import { physicsRefusal } from '../physics/world.ts';
 import type { PhysicsExports } from '../physics/world.ts';
@@ -50,6 +51,7 @@ function intentRows(s: Game, intents: readonly (BotIntent | undefined)[]): numbe
 
 /** Phases 3 to 5: what `phaseThree`, the step and its poses, and phase 5's three calls did. */
 export function tickFinish(s: Game, r: PhysicsRuntime, intents: readonly (BotIntent | undefined)[]): void {
+  start('sim.finish.pack');
   prepareInRunSync(s, r);
   syncRegistry(s, r);
   syncProjectiles(s, r);
@@ -65,7 +67,11 @@ export function tickFinish(s: Game, r: PhysicsRuntime, intents: readonly (BotInt
   const sight = sightOf(s), map = sight.queryHandles(s.map), swept = sight.sweptHandle(s.map);
   const pointer = core.physics_boundary_input(world, words.length) >>> 0;
   new Float64Array(core.memory.buffer, pointer, words.length).set(words);
+  stop('sim.finish.pack');
+  start('sim.finish.core');
   const at = core.tick_finish(world, map.collision, map.index, map.gates, swept) >>> 0;
+  stop('sim.finish.core');
+  start('sim.finish.apply');
   const out = new Float64Array(core.memory.buffer, at, new Float64Array(core.memory.buffer, at, 1)[0]!).slice();
   let k = 4;
   // A section the call did not reach (it ended at a refusal) reads as empty.
@@ -86,7 +92,7 @@ export function tickFinish(s: Game, r: PhysicsRuntime, intents: readonly (BotInt
     if (committed[0]! < 0) throw physicsRefusal(committed[0]!);
   }
   const step = next();
-  if (!step.length) return;
+  if (!step.length) { stop('sim.finish.apply'); return; }
   const result = r.world.parseStep(step);
   // Poses are the ends of the step's paths: the bodies' poses after the solve, as the store took them.
   for (const p of s.players) if (p.status === 'active') {
@@ -116,4 +122,5 @@ export function tickFinish(s: Game, r: PhysicsRuntime, intents: readonly (BotInt
   if (result7.length) applyFinish(s, result7);
   const second = next();
   if (second.length) applySyncLog(s, r, second, s.tick);
+  stop('sim.finish.apply');
 }
