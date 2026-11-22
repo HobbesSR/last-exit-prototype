@@ -484,6 +484,11 @@ impl World {
         }
     }
 
+    /// The live bodies that are not static, in ID order: the world's snapshot without its statics.
+    pub(crate) fn dynamic_keys(&self) -> Vec<Key> {
+        self.dynamic.clone()
+    }
+
     /// Take the ground record at `at` off, as `removeItem` writes it through: its key stops awaiting a body (6d.3).
     pub(crate) fn remove_ground(&mut self, at: usize) {
         if let Some(key) = self.ground.key_at(at) {

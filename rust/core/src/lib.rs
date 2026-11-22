@@ -35,7 +35,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 33;
+pub const ADAPTER_VERSION: u32 = 34;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -1195,13 +1195,16 @@ pub unsafe extern "C" fn hazards_run(
     map: *mut collision::CollisionMap,
     index: *const sight::SightIndex,
     gates: *mut sight::GateSet,
+    swept: *const swept::SweptMap,
 ) -> *const f64 {
-    // SAFETY: the caller's contract.
+    // SAFETY: the caller's contract; `swept` may be null unless a mine's explosion is carried out in the run. The
+    // hazards move out so the run can use the whole world (6d.6d).
     unsafe {
         let w = &mut *world;
         let hz = w.actions.rules().hz;
-        w.hazards
-            .run(&mut w.players, &mut *map, &*index, &mut *gates, hz);
+        let mut hazards = std::mem::take(&mut w.hazards);
+        hazards.run(w, &mut *map, &*index, &mut *gates, hz, swept.as_ref());
+        w.hazards = hazards;
         w.hazards.output.as_ptr()
     }
 }

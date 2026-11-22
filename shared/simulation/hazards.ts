@@ -1,11 +1,11 @@
 import { TRAP_KINDS } from '../enum-tables.ts';
 import type { Game, PlayerId, Trap } from '../types.ts';
-import { enqueueExplosionImpulses } from './explosion-physics.ts';
 import { applyLog, applyPlayerRows } from './phase-five.ts';
 import { playersStale, uploadPlayers } from './player-store.ts';
 import { configure, eliminateInCore } from './phase-three.ts';
 import type { ActionsCore } from './phase-three.ts';
-import { physicsRuntime } from './physics-runtime.ts';
+import { mirrorPendingQueues, physicsRuntime } from './physics-runtime.ts';
+import { applySyncLog, prepareInRunSync } from './boundary.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import { playerById, playerIndex } from './relations.ts';
 import { sightOf } from './sight-runtime.ts';
@@ -19,16 +19,18 @@ import { start as profileStart, stop as profileStop } from '../profiler.ts';
 // roster and the hazard areas, and this writes back the players' changed fields, the log (effects and the turret's
 // spawns, which wait in `pendingSpawns` for the next tick) and each trap's writes, in the TypeScript's order, so a
 // trap's keys keep theirs. A kill stops the call for the
-// elimination (`eliminateInCore`, its drops each at 5c.2's sync boundary), and a mine's explosion stops it for its
-// impulses (`enqueueExplosionImpulses`), which synchronize the world and fill the pending-impulse queue this runtime
-// owns until the flip (#1214). Each then resumes from the core's cursor, everything repacked.
+// elimination (`eliminateInCore`, its drops each at 5c.2's sync boundary), then resumes from the core's cursor,
+// everything repacked. A mine's explosion is carried out in the run (#1214 stage 6d.6d): the core syncs and queues its
+// impulses, and this applies the sync's log. A call whose traps include a mine sends what that needs.
 interface HazardExports {
   hazards_input(world: number, words: number): number;
-  hazards_run(world: number, collision: number, index: number, gates: number): number;
+  hazards_run(world: number, collision: number, index: number, gates: number, swept: number): number;
 }
 type Core = ActionsCore & HazardExports;
-const HEADER = 10, CONTENT = 22, AREA_ROW = 4, TRAP_ROW = 10, OUT_HEADER = 8, OUT_TRAP = 11;
-const STOP_ELIMINATION = 1, STOP_EXPLOSION = 2, OP_SPAWN = 3;
+const HEADER = 11, CONTENT = 22, AREA_ROW = 4, TRAP_ROW = 10, OUT_HEADER = 8, OUT_TRAP = 11;
+const STOP_ELIMINATION = 1, OP_SPAWN = 3, OP_SYNC = 5, OP_REFUSED = 6;
+/** `enqueuePhysicsImpulse`'s refusals, as the core reports them (`world::E_*`, `hazards::E_UNREPRESENTABLE_IMPULSE`). */
+const E_UNKNOWN_IMPULSE_ACTOR = -40, E_IMPULSE_CAPACITY = -41, E_UNREPRESENTABLE_IMPULSE = -44;
 const W_COOLDOWN = 1, W_SPENT = 2, W_AIMING = 4, W_HEADING = 8, W_FIRING = 16, W_WARNING = 32, W_TARGET = 64, W_POSITION = 128;
 
 /** The trap list each runtime's core keeps, as uploaded, and its length then; absent until the first call, or after `setTrap`. */
@@ -77,10 +79,21 @@ function call(s: Game, parts: Parts, resume: boolean): { kind: number; which: nu
   // The players come from the core's store (`player-store.ts`, stage 6c). Map preparation and the upload can grow
   // memory, so the input is viewed only after them, and written there in place.
   if (playersStale(r)) uploadPlayers(s, r, core, world);
-  const words = HEADER + CONTENT + areas.length * AREA_ROW + (upload ? traps.length * TRAP_ROW : 0);
+  // A mine's explosion syncs and queues its impulses inside the run (6d.6d): the sync's markers and the impulse limits
+  // cross, after the traps. Interning comes before the input is viewed.
+  const inRun = parts.traps && traps.some(trap => trap.kind === 'mine');
+  const inRunWords: number[] = [];
+  if (inRun) {
+    prepareInRunSync(s, r);
+    const markers = r.discontinuities.map(entry => r.world.key(entry.id));
+    inRunWords.push(r.discontinuityCapacity, players.length, s.content.worldPhysics.maxImpulse, s.content.actorPhysics.maxImpulse,
+      markers.length, ...markers);
+  }
+  const swept = inRun ? sightOf(s).sweptHandle(s.map) : 0;
+  const words = HEADER + CONTENT + areas.length * AREA_ROW + (upload ? traps.length * TRAP_ROW : 0) + inRunWords.length;
   const ptr = core.hazards_input(world, words) >>> 0, data = new Float64Array(core.memory.buffer, ptr, words);
   data.set([resume ? 1 : 0, s.tick, s.serial, players.length, traps.length, areas.length, s.hazardX,
-    parts.environment ? 1 : 0, parts.traps ? 1 : 0, upload ? 1 : 0,
+    parts.environment ? 1 : 0, parts.traps ? 1 : 0, upload ? 1 : 0, inRun ? 1 : 0,
     t.mine.trigger, t.mine.blast, t.mine.damage,
     t.turret.range, t.turret.cooldown, t.turret.speed, t.turret.damage, t.turret.life,
     t.flame.cycle, t.flame.warnAt, t.flame.fireAt, t.flame.interval, t.flame.range, t.flame.cone, t.flame.damage,
@@ -93,28 +106,42 @@ function call(s: Game, parts: Parts, resume: boolean): { kind: number; which: nu
     data[at++] = trap.heading; data[at++] = trap.offset; data[at++] = trap.cooldown || 0; data[at++] = trap.spent ? 1 : 0;
     data[at++] = target ? playerIndex(s, target) : -1;
   }
+  data.set(inRunWords, at);
   profileStart('sim.environment.core');
-  const outPtr = core.hazards_run(world, map.collision, map.index, map.gates) >>> 0;
+  const outPtr = core.hazards_run(world, map.collision, map.index, map.gates, swept) >>> 0;
   profileStop('sim.environment.core');
   if (upload) uploaded.set(r, { list: traps, length: traps.length });
-  // Read in place: nothing below calls into the core until the output is applied.
-  const out = new Float64Array(core.memory.buffer, outPtr, new Float64Array(core.memory.buffer, outPtr, 1)[0]!);
+  // Read in place, unless an explosion's sync is applied from the log, which calls into the core.
+  const view = new Float64Array(core.memory.buffer, outPtr, new Float64Array(core.memory.buffer, outPtr, 1)[0]!);
+  const out = inRun ? view.slice() : view;
+  let exploded = false, refused: { code: number; key: number } | undefined;
   at = applyPlayerRows(s, out, OUT_HEADER);
   at = applyLog(s, out, at, out[6]!, (op, k) => {
-    if (op !== OP_SPAWN) throw new Error(`unknown phase 6 fact ${op}`);
-    r.pendingSpawns.push({ id: out[k]!, owner: traps[out[k + 1]!]!.id, trap: true, x: out[k + 2]!, y: out[k + 3]!, dx: out[k + 4]!, dy: out[k + 5]!,
-      damage: out[k + 6]!, life: out[k + 7]! });
+    if (op === OP_SYNC) {
+      // A mine's explosion: its sync, as `enqueueExplosionImpulses` ran it; the impulses are queued in the core.
+      exploded = true;
+      applySyncLog(s, r, out.subarray(k, k + out[k - 1]!), r.stepping ? s.tick : s.tick + 1);
+    } else if (op === OP_REFUSED) refused = { code: out[k]!, key: out[k + 1]! };
+    else if (op === OP_SPAWN) r.pendingSpawns.push({ id: out[k]!, owner: traps[out[k + 1]!]!.id, trap: true, x: out[k + 2]!, y: out[k + 3]!,
+      dx: out[k + 4]!, dy: out[k + 5]!, damage: out[k + 6]!, life: out[k + 7]! });
+    else throw new Error(`unknown phase 6 fact ${op}`);
   });
   s.serial = out[1]!;
   for (let i = 0; i < out[7]!; i++, at += OUT_TRAP) applyTrap(s, traps[out[at]!]!, out, at);
+  // The impulses' mirror follows the core's queue, as each `enqueuePhysicsImpulse` read it back.
+  if (exploded) mirrorPendingQueues(r);
+  // `enqueuePhysicsImpulse`'s throws, once the call's writes are applied, as they were at the stop.
+  if (refused?.code === E_UNKNOWN_IMPULSE_ACTOR) throw new Error('unknown impulse actor');
+  if (refused?.code === E_IMPULSE_CAPACITY) throw new RangeError('pending impulse capacity');
+  if (refused?.code === E_UNREPRESENTABLE_IMPULSE) throw new TypeError('representable finite impulse required');
+  if (refused) throw new Error(`impulse refused ${refused.code} for ${r.world.idOf(refused.key)}`);
   return out[2] ? { kind: out[2]!, which: out[3]!, source: out[4]! } : null;
 }
 
-/** Run to the end, eliminating or queueing a mine's impulses at each stop, and resuming. */
+/** Run to the end, eliminating at each stop, and resuming. */
 function drive(s: Game, parts: Parts): void {
   for (let stop = call(s, parts, false); stop; stop = call(s, parts, true)) {
     if (stop.kind === STOP_ELIMINATION) eliminateInCore(s, s.players[stop.which]!, stop.source >= 0 ? s.players[stop.source]! : null);
-    else if (stop.kind === STOP_EXPLOSION) enqueueExplosionImpulses(s, s.traps[stop.which]!, s.content.traps.mine.blast);
     else throw new Error(`unknown phase 6 stop ${stop.kind}`);
   }
 }
