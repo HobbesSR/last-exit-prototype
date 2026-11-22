@@ -1,4 +1,5 @@
 import type { CoreExports } from '../core.ts';
+import { start, stop } from '../profiler.ts';
 import { physicsRefusal } from '../physics/world.ts';
 import type { PhysicsExports } from '../physics/world.ts';
 import type { Game } from '../types.ts';
@@ -20,6 +21,7 @@ interface TickBeginExports {
 
 /** Phase 1 and the boundary it ends at: what `beginTick` and the five calls after it did. */
 export function tickBegin(s: Game, r: PhysicsRuntime): void {
+  start('sim.begin.pack');
   // The core's stores follow the mirror where Node changed it between ticks.
   prepareInRunSync(s, r);
   syncRegistry(s, r);
@@ -34,7 +36,11 @@ export function tickBegin(s: Game, r: PhysicsRuntime): void {
   const words2 = 2 + markers.length;
   const pointer = core.physics_boundary_input(world, words2) >>> 0;
   new Float64Array(core.memory.buffer, pointer, words2).set([r.discontinuityCapacity, markers.length / 2, ...markers]);
+  stop('sim.begin.pack');
+  start('sim.begin.core');
   const at = core.tick_begin(phase, world, map.collision, map.index, map.gates, swept) >>> 0;
+  stop('sim.begin.core');
+  start('sim.begin.apply');
   const out = new Float64Array(core.memory.buffer, at, new Float64Array(core.memory.buffer, at, 1)[0]!).slice();
   let k = 2;
   const next = (): Float64Array => { const length = out[k]!, section = out.subarray(k + 1, k + 1 + length); k += 1 + length; return section; };
@@ -59,4 +65,5 @@ export function tickBegin(s: Game, r: PhysicsRuntime): void {
     r.world.adoptQueue(committed[0]! < 0 ? 1 : 0);
     if (committed[0]! < 0) throw physicsRefusal(committed[0]!);
   }
+  stop('sim.begin.apply');
 }

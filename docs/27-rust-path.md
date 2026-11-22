@@ -407,7 +407,7 @@ a tick is `tick_begin`, Node's phase 2, then `tick_finish(intents)`, which now a
   `applyFinish`. It reads a section the call did not reach (after a refusal) as empty. Phases 3 to 7 are timed as
   `sim.finish`.
 - **Removed:** `setInRunStops` and 6d.6c.2's A/B test. The tick no longer runs `phaseSix`.
-- **Cost:** measured once, at the end of step 6 (6e.6).
+- **Cost (6e.6):** the end-of-flip comparison found a repeatable whole-tick increase and boundary costs above the requested comparisons; see [42.76](42.76-state-flip-benchmark.md) for the breakdown, limits and candidates. No optimization was made.
 
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
