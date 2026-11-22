@@ -110,12 +110,6 @@ function putInventory(inventory: (InventoryItem | null)[], r: PhysicsRuntime, ou
   return at;
 }
 
-/**
- * Whether a call syncs its stops inside the core's run (#1214 stage 6d.6c.2). Only `tests/phase-six-core.test.js` turns
- * it off, to hold the run's continuation equal to the stop and resume it replaced.
- */
-let inRunStops = true;
-export function setInRunStops(on: boolean): void { inRunStops = on; }
 
 /** Runs once with the given start; returns where it stopped, if it did, and the records still to visit then. */
 function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly GroundItem[] | undefined, step: number):
@@ -145,7 +139,7 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
   }
   // A call that can stop syncs inside the core's run instead (#1214 stage 6d.6c.2): a pickup, a swap or a gladiator's
   // landing. Its own stops are carried out there, so it reads the ground, the players and the hooks as they then stand.
-  const inRun = inRunStops && (swaps || near.some(list => list.length > 0)
+  const inRun = (swaps || near.some(list => list.length > 0)
     || turns.some(t => (t.steps & STEP_TRANSIT) !== 0 && t.player.role === 'gladiator'));
   if (inRun) prepareInRunSync(s, r);
   const map = sightOf(s).queryHandles(s.map);
@@ -212,6 +206,15 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
   // Applying a stop synchronizes and can grow memory: then this call's facts are kept.
   const view = new Float64Array(core.memory.buffer, outPtr, new Float64Array(core.memory.buffer, outPtr, 1)[0]!);
   const out = view[4]! >= 0 || inRun ? view.slice() : view;
+  return applyInteractions(s, r, out, inRun, near);
+}
+
+/**
+ * Apply a phase 6 call's output (`phase_six.rs`): the registrations, then the log in order. `inRun` says the call
+ * carried out its stops itself; otherwise `near` is each actor's list, for the rest a pickup's stop hands back.
+ */
+export function applyInteractions(s: Game, r: PhysicsRuntime, out: Float64Array, inRun: boolean, near: readonly GroundItem[][]):
+  { resume: number; step: number; rest?: GroundItem[] } {
   s.serial = out[1]!;
   s.itemSerial = out[2]!; s.scatterSerial = out[3]!;
   s.itemIdentities ??= { ids: new Map(), labels: new Map() };
@@ -323,6 +326,26 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
   if (out[9] === -104) throw new Error(`Unregistered item identity ${out[10]}`);
   if (out[9]! < 0) throw physicsRefusal(out[9]!, r.world.idOf(out[10]!));
   return restAfter ? { resume, step: resumeStep, rest: restAfter } : { resume, step: resumeStep };
+}
+
+/**
+ * Phase 6's block for `tick_finish` (#1214 stage 6e.5c): the content and map the call needs that the stores do not hold,
+ * as `phase_six.rs`'s header and lists take them: the charge and transit settings, the exit, the reserves' capacity,
+ * whether transit is chosen, the stations', chargers' and sensors' positions, then the gates' details where the gate
+ * set lacks them.
+ */
+export function sixBlock(s: Game, r: PhysicsRuntime): number[] {
+  const c = s.content, m = s.map;
+  const data = [c.cellChargeTicks, c.transitTime ? 1 : 0, n(c.transitTime?.base), n(c.transitTime?.perUnit), m.exit.x, m.exit.y,
+    ...AMMO_FAMILIES.map(f => n(c.reloading?.reserves[f])), c.transit === 'selectable' ? 1 : 0,
+    m.stations.length, m.chargers.length, m.sensors.length];
+  for (const list of [m.stations, m.chargers, m.sensors]) for (const at of list) data.push(at.x, at.y);
+  const { core } = r.world.boundaryCall(), gates = sightOf(s).queryHandles(m).gates;
+  if ((core as unknown as SixExports).gate_set_details(gates) !== m.gates.length) {
+    data.push(m.gates.length);
+    for (const gate of m.gates) data.push(gate.x, gate.y, gate.kind === 'door' ? 1 : 0);
+  } else data.push(0);
+  return data;
 }
 
 /** Phase 6's per-actor loop over `turns`, in their order; `tickMode` skips an actor's charging and pickups once it is not active. */

@@ -105,10 +105,10 @@ pub const OP_REMOVE: f64 = 14.0;
 pub const OP_SWAP: f64 = 15.0;
 pub const OP_REVEALED: f64 = 16.0;
 
-const STEP_INTERACT: u32 = 1;
-const STEP_TRANSIT: u32 = 2;
-const STEP_CHARGING: u32 = 4;
-const STEP_PICKUPS: u32 = 8;
+pub const STEP_INTERACT: u32 = 1;
+pub const STEP_TRANSIT: u32 = 2;
+pub const STEP_CHARGING: u32 = 4;
+pub const STEP_PICKUPS: u32 = 8;
 
 const KIND_WEAPON: f64 = 0.0;
 const KIND_CELL: f64 = 3.0;

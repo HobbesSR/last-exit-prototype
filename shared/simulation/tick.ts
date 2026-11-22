@@ -4,13 +4,7 @@ import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from
 import type { BotIntent } from './bots.ts';
 import { consumeInput } from './input.ts';
 import { tickBegin } from './tick-begin.ts';
-import { phaseSix, STEP_CHARGING, STEP_INTERACT, STEP_PICKUPS, STEP_TRANSIT } from './phase-six.ts';
-import type { Turn } from './phase-six.ts';
-import { environmentAndTraps } from './hazards.ts';
 import { advanceDiscovery } from './tick-rules.ts';
-import { playerIndex } from './relations.ts';
-import { finishMatch, recordRewind } from './phase-seven.ts';
-import { ordered, synchronize } from './game.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game } from '../types.ts';
@@ -43,32 +37,8 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
       if (p.status === 'active') intents[idx] = p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) };
     }
   } finally { endDynamicNavigationCollection(s); stop('sim.bots'); }
-  // 3 to 5 in one core call (D4's `tick_finish`, #1214 stage 6e.5b), built there from the intents.
+  // 3 to 7 in one core call (D4's `tick_finish`, #1214 stages 6e.5b and 6e.5c), built there from the intents.
   start('sim.finish'); tickFinish(s, r, intents); stop('sim.finish');
-  // 6: interactions/pickups, environment, traps; trap spawns wait for next tick.
-  start('sim.pickups');
-  // The per-actor loop runs in the core (`phase_six.rs`, 27 step 5e.1): interact, the chosen transit, then, while
-  // still active, charging and pickups. Movement below the reviewed resting-contact tolerance is jitter, not a move.
-  const turns: Turn[] = [];
-  for (const p of ordered(s)) {
-    const input = intents[playerIndex(s, p)]?.input;
-    if (p.status !== 'active' || !input) continue;
-    const transit = !!input.transit && s.content.transit === 'selectable';
-    turns.push({ player: p, steps: (input.interact ? STEP_INTERACT : 0) | (transit ? STEP_TRANSIT : 0) | STEP_CHARGING | STEP_PICKUPS,
-      choice: transit ? input.transit : undefined, sneak: !!input.sneak, moved: (p.movedThisTick ?? 0) > 0.05 });
-  }
-  phaseSix(s, turns, true);
-  stop('sim.pickups');
-  // The environment, then the traps, in the core (`hazards.rs`, 27 step 5e.2); a turret's spawns wait in `pendingSpawns`.
-  start('sim.environment');
-  environmentAndTraps(s);
-  stop('sim.environment');
-  if (r.pendingSpawns.length > 128) throw new RangeError('pending projectile capacity');
-  // 7: next-boundary body state, discovery, terminal result, rewind and capture readiness. The terminal result and the
-  // rewind frame are the core's (`phase_seven.rs`, 27 step 5e.2), as the syncs and discovery are.
-  start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
+  // 7's discovery is Node's, after the call: each contestant's memory, from the mirror as the call left it.
   advanceDiscovery(s);
-  finishMatch(s);
-  start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
-  start('sim.rewind'); recordRewind(s); stop('sim.rewind');
 }
