@@ -98,6 +98,12 @@ impl PhaseOne {
         &mut self.input
     }
 
+    /// The input as the last run left it: the tick, the wall, the effects' lives and the players' rows, which the
+    /// adapter reads back (`tick_begin`, #1214 stage 6e.5).
+    pub(crate) fn input_words(&self) -> &[f64] {
+        &self.input
+    }
+
     /// Runs phase 1 over the input; players and effects are written in place. `map` and `gates` are the
     /// map's collision upload and gate set, with the open mask written, and `world` the game's physics
     /// world, for the station clearance and the landing. The output: the count of facts, then the facts

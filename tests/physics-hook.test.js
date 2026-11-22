@@ -3,7 +3,7 @@ import test from 'node:test';
 import { PHYSICS_VERSION, createGame, disposePhysics, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime, physicsState } from '../shared/simulation/physics-runtime.ts';
-import { hookSkill } from '../shared/simulation/hook.ts';
+import { hookDrift, hookSkill } from '../shared/simulation/hook.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { setDoor } from '../shared/simulation/doors.ts';
 import { openArea } from './helpers/arena.js';
@@ -53,6 +53,26 @@ test('the hook is opt-in, launches once, misses at range and spends cooldown', a
     assert.equal(world(s).counts().constraints, 0);
     press(s, 'g0', { skill: true, aim: 0 }); step(s);
     assert.equal(hooks(s).length, 0, 'cooldown prevents relaunch');
+  } finally { disposePhysics(s); }
+});
+
+test('a hook the tick-start sync reconciles away leaves the revalidation of the rest aligned (review 1012 on #1273)', async () => {
+  // Two hook gladiators each fly a hook; one is eliminated between ticks, so `tick_begin`'s sync removes its hook before
+  // the hooks' revalidation runs over the one left. The revalidation's output is applied over the hooks as they then
+  // stand, so the surviving hook keeps its own fields.
+  const parts = fixture();
+  parts.content.roster.gladiators = [{ name: 'G', kit: 'hook' }, { name: 'H', kit: 'hook' }];
+  parts.map.hunterSpawns = [{ x: 150, y: 400 }, { x: 150, y: 600 }];
+  const s = await game(parts);
+  try {
+    press(s, 'g0', { skill: true, aim: Math.PI }); press(s, 'g1', { skill: true, aim: Math.PI }); step(s);
+    assert.equal(hooks(s).length, 2);
+    player(s, 'g0').status = 'eliminated';
+    step(s);
+    assert.deepEqual(hooks(s).map(hook => hook.id), ['hook:g1']);
+    assert.deepEqual(hookDrift(physicsRuntime(s)), [], 'the mirror holds the hook the core holds');
+    assert.equal(hooks(s)[0].phase, 'flying');
+    assert.ok(Number.isFinite(hooks(s)[0].travelled) && hooks(s)[0].travelled > 0);
   } finally { disposePhysics(s); }
 });
 

@@ -265,6 +265,11 @@ export function admitPending(s: Game, r: PhysicsRuntime): void {
   try { apply(s, r, output(core, native), s.tick); } finally { mirrorPendingQueues(r); }
 }
 
+/** Apply a pending admission the core ran inside another call (`tick_begin`, 6e.5); the mirror follows the queues. */
+export function applyAdmission(s: Game, r: PhysicsRuntime, out: Float64Array): void {
+  try { apply(s, r, out, s.tick); } finally { mirrorPendingQueues(r); }
+}
+
 /** The placement search in the core, for `p` nearest `origin`, clear of the `admitted` actors as they stand. */
 export function placeInCore(s: Game, r: PhysicsRuntime, p: Player, admitted: readonly Player[], origin: Vec2): Vec2 | null {
   const { core, world, collision, gates } = handles(s, r);

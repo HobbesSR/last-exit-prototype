@@ -52,6 +52,22 @@ function put<K extends 'x' | 'y' | 'hp' | 'shield' | typeof TIMER_KEYS[number]>(
  * in roster order respawn, arrive and count down an active player's timers (29.2).
  */
 export function beginTick(s: Game): void {
+  const runtime = physicsRuntime(s);
+  if (!runtime) throw new Error('phase 1 needs the game\'s physics world');
+  const { core, phase, words } = packPhaseOne(s);
+  const map = sightOf(s).queryHandles(s.map);
+  const { world } = runtime.world.boundaryCall();
+  const out = core.phase_one_run(phase, world, map.collision, map.gates) >>> 0;
+  const state = new Float64Array(core.memory.buffer, core.phase_one_input(phase, words) >>> 0, words).slice();
+  const facts = new Float64Array(core.memory.buffer, out, 1)[0]!;
+  applyPhaseOne(s, state, new Float64Array(core.memory.buffer, out + 8, facts * 3).slice());
+}
+
+/**
+ * Write phase 1's input for this tick (the players are uploaded to the store first); `tick_begin` runs it in its call
+ * (#1214 stage 6e.5). Returns the bound core, phase 1's handle and the input's length.
+ */
+export function packPhaseOne(s: Game): { core: CoreExports & PhaseOneExports; phase: number; words: number } {
   if (!bound) throw new Error('phase 1 is not bound to the core: await initPhaseOne() first');
   const runtime = physicsRuntime(s);
   if (!runtime) throw new Error('phase 1 needs the game\'s physics world');
@@ -64,7 +80,7 @@ export function beginTick(s: Game): void {
   const map = sightOf(s).queryHandles(s.map);
   if (map.core !== core) throw new Error('phase 1 and sight are bound to different cores');
   const pointer = core.phase_one_input(phase, words) >>> 0;
-  let input = new Float64Array(core.memory.buffer, pointer, words);
+  const input = new Float64Array(core.memory.buffer, pointer, words);
   input.set([s.tick, s.content.hazardGraceTicks, s.content.durationTicks, s.map.width, s.hazardX, s.serial, players.length,
     effects.length, stations.length, RESPAWN_HAZARD_MARGIN, RESPAWN_CONTESTANT_DISTANCE, RAIL_COOLDOWN,
     radii.contestant.bodyRadius, radii.gladiator.bodyRadius, RESPAWN_CLEARANCE_RADIUS]);
@@ -72,10 +88,13 @@ export function beginTick(s: Game): void {
   for (let i = 0, at = stationBase; i < stations.length; i++, at += STATION_STRIDE) {
     input[at] = stations[i]!.x; input[at + 1] = stations[i]!.y;
   }
-  const out = core.phase_one_run(phase, world, map.collision, map.gates) >>> 0;
-  input = new Float64Array(core.memory.buffer, pointer, words);
-  const facts = new Float64Array(core.memory.buffer, out, 1)[0]!;
-  const result = new Float64Array(core.memory.buffer, out + 8, facts * 3);
+  return { core, phase, words };
+}
+
+/** Apply phase 1's run: `input` as the run left its input, `result` its facts (three words each). */
+export function applyPhaseOne(s: Game, input: Float64Array, result: Float64Array): void {
+  const players = s.players, effects = s.effects, stations = s.map.stations;
+  const stationBase = HEADER + effects.length, playerBase = stationBase + stations.length * STATION_STRIDE;
   s.tick = input[TICK]!; s.hazardX = input[HAZARD_X]!;
   for (let i = 0; i < effects.length; i++) effects[i]!.life = input[HEADER + i]!;
   s.effects = effects.filter(e => e.life > 0);

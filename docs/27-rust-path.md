@@ -342,6 +342,22 @@ from Node's records between them, so they can become one call (6e.5).
 - **The witness.** `storeDrift` now compares the cues and both flags. `groundDrift` holds the poses every tick.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6e.5a, `tick_begin` (#1214, adapter version 40).** D4's first call. Phase 1 and the boundary it ends at are one
+core call (`tick_begin` in `lib.rs`, `tick-begin.ts`), where they were six:
+1. phase 1 (`phase_one_run`);
+2. the markers' trim, now the core's: the markers cross with their ticks, and the core keeps those the new tick still
+   captures, as `tick.ts` trimmed them;
+3. the body sync;
+4. the hooks' revalidation, whose input the core builds from its hooks and the sync's hook tuning;
+5. a turret's spawns entering the projectiles, then the pending admission;
+6. the commit of what is still queued.
+
+The output is each step's own, in order. Node applies each with that step's applier, split out for this:
+`applyPhaseOne`, `applySyncLog`, `applyHookOutput` and `applyAdmission`, then the commit's facts (`adoptCommit`). A step
+that refuses ends the call, and its later sections are empty, as Node's throw ended the tick. Phase 1's sync is timed as
+`sim.begin` with the rest of the call; `sim.sync` now times phase 7's syncs only.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.

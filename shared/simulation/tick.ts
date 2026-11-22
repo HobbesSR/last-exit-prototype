@@ -4,10 +4,10 @@ import { collectBotIntent } from './bots.ts';
 import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
 import type { BotIntent } from './bots.ts';
 import { consumeInput } from './input.ts';
-import { beginTick } from './phase-one.ts';
 import { castersInCore, solvePhysicsProjectiles } from './phase-five.ts';
 import type { Caster } from './phase-five.ts';
-import { prepareHooks, finishHooks } from './hook.ts';
+import { finishHooks } from './hook.ts';
+import { tickBegin } from './tick-begin.ts';
 import { phaseSix, STEP_CHARGING, STEP_INTERACT, STEP_PICKUPS, STEP_TRANSIT } from './phase-six.ts';
 import type { Turn } from './phase-six.ts';
 import { environmentAndTraps } from './hazards.ts';
@@ -15,9 +15,7 @@ import { advanceDiscovery } from './tick-rules.ts';
 import { playerIndex } from './relations.ts';
 import { finishMatch, recordRewind } from './phase-seven.ts';
 import { actorId, ordered, synchronize } from './game.ts';
-import { admitPending } from './boundary.ts';
 import { physicsRuntime } from './physics-runtime.ts';
-import { admitSpawns } from './projectile-store.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game } from '../types.ts';
 import { start, stop } from '../profiler.ts';
@@ -36,15 +34,9 @@ export function stepGame(s: Game): void {
 function advanceGame(s: Game, r: PhysicsRuntime): void {
   // 1: all timers and previous-boundary lifecycle, before anyone decides: the tick, timers, respawn and arrival
   // (phase-one.ts), then the body sync and the pending admission (boundary.ts), all in the core; the hooks here.
-  beginTick(s);
-  // Each marker reaches exactly one stepped capture: its own tick's, or the next after a between-tick change.
-  r.discontinuities = r.discontinuities.filter(entry => entry.tick >= s.tick);
-  start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
-  prepareHooks(s);
-  // Trap spawns are projectile records, which stay here; impulses and attachments are admitted in the core.
-  admitSpawns(s, r);
-  admitPending(s, r);
-  r.world.commitMutations();
+  // One core call (D4's `tick_begin`, #1214 stage 6e.5): the markers' trim, the sync, the hooks, the spawns, the
+  // pending admission and the commit follow phase 1 there, and each is applied here in that order.
+  start('sim.begin'); tickBegin(s, r); stop('sim.begin');
   // 2: roster-order collection from the same pre-movement world.
   const intents = new Array<BotIntent | undefined>(s.players.length);
   start('sim.bots');
