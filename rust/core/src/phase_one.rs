@@ -378,11 +378,13 @@ mod tests {
         let players = words[PLAYERS] as usize;
         let base = HEADER + words[EFFECTS] as usize + words[STATIONS] as usize * STATION_STRIDE;
         // Each player's fixed row, then an equipment header with no inventory (`players::EQUIP_HEAD`).
+        // Each equipment ends with an empty cue list (6e.4).
+        let per = crate::players::EQUIP_HEAD + 1;
         let up = world
             .players
-            .input(players * (crate::players::STORE_ROW + crate::players::EQUIP_HEAD));
+            .input(players * (crate::players::STORE_ROW + per));
         for i in 0..players {
-            up[players * crate::players::STORE_ROW + i * crate::players::EQUIP_HEAD + 4] = -1.0;
+            up[players * crate::players::STORE_ROW + i * per + 4] = -1.0;
         }
         for i in 0..players {
             let p = &words[base + i * PLAYER_STRIDE..base + (i + 1) * PLAYER_STRIDE];

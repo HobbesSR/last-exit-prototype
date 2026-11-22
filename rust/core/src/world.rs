@@ -505,6 +505,57 @@ impl World {
         self.dynamic.clone()
     }
 
+    /// Phase 4's ground poses (#1214 stage 6e.4), from the world's last step output (call it before anything else reuses
+    /// the output): each item body's record that the step moved takes the end of the body's path, or the body's pose
+    /// where the step reported no path, written to the ground store as `replaceItem` writes it through. Returns
+    /// `id, x, y` per moved record, in the bodies' ID order, for Node's mirror.
+    pub(crate) fn item_poses_after_step(&mut self) -> Vec<f64> {
+        let step = &self.output;
+        let ends: BTreeMap<Key, (f64, f64)> = if step.len() > STEP_HEADER && step[0] == 0.0 {
+            let n = step[2] as usize;
+            let last = STEP_HEADER + n + physics::SUBSTEPS * n * 2;
+            (0..n)
+                .map(|i| {
+                    (
+                        step[STEP_HEADER + i] as Key,
+                        (step[last + 2 * i], step[last + 2 * i + 1]),
+                    )
+                })
+                .collect()
+        } else {
+            BTreeMap::new()
+        };
+        let items: Vec<Key> = self
+            .dynamic
+            .iter()
+            .copied()
+            .filter(|&k| self.id_starts_with(k, "item:"))
+            .collect();
+        let mut moved = Vec::new();
+        for key in items {
+            let Some(record) = self.ground.by_key(u64::from(key)).copied() else {
+                continue;
+            };
+            let Some((x, y)) = ends.get(&key).copied().or_else(|| self.position(key)) else {
+                continue;
+            };
+            let w = record.words;
+            if x.to_bits() == w[crate::ground::X].to_bits()
+                && y.to_bits() == w[crate::ground::Y].to_bits()
+            {
+                continue;
+            }
+            let Some((at, _)) = self.ground.find_id(w[0]) else {
+                continue;
+            };
+            let mut words = w;
+            (words[crate::ground::X], words[crate::ground::Y]) = (x, y);
+            self.replace_ground(at, &words);
+            moved.extend_from_slice(&[w[0], x, y]);
+        }
+        moved
+    }
+
     /// Take the ground record at `at` off, as `removeItem` writes it through: its key stops awaiting a body (6d.3).
     pub(crate) fn remove_ground(&mut self, at: usize) {
         if let Some(key) = self.ground.key_at(at) {

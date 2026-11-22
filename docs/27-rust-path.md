@@ -323,6 +323,25 @@ turret's pending spawns (`World::projectiles`, `pending_spawns`, as phase 5's ro
   phase 5's write-back disabled, it fails at tick 2.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6e.4, the last inputs packed between phases (#1214, adapter version 39).** Phases 3–7 no longer read anything
+from Node's records between them, so they can become one call (6e.5).
+- **Phase 3's hearing cues** (`p.heard`) are the player store's (`Players::heard`).
+  - The upload carries each player's cues after its carried items, and phase 3's op 3 rewrites a hearer's list in the
+    store as in the mirror.
+  - Phase 3 fills each context actor's cues from the store, and the adapter sends none. It no longer asks whether the
+    call can hear: cues matter only where a shot is heard.
+  - `hearShot`, the retained TypeScript, writes the mirror between ticks, which the next upload carries.
+- **Phase 6's bot and discovery flags** are in the store (`Extra::bot`, `discovery`), uploaded with the players; nothing
+  changes them inside a tick.
+- **Phase 4's ground poses are the core's.** Right after the step, `ground_poses_after_step` (`World::item_poses_after_step`)
+  takes each item body's end pose from the step's own output, or the body's pose where the step reported no path. It
+  writes each moved record to the ground store and reports `id, x, y`. Node mirrors those records without writing them
+  through (`adoptItemPoses`), and `writePhysicalItemPoses` is gone.
+  - The records are visited in the bodies' ID order, where Node used its item set's order. Each replacement keeps its
+    record's place, so the list is the same.
+- **The witness.** `storeDrift` now compares the cues and both flags. `groundDrift` holds the poses every tick.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.

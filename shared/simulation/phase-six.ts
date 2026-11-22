@@ -175,11 +175,12 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
     const rested = i === 0 && rest !== undefined;
     // Role, status, pose, `railCd` and `cloak` come from the core's player store (`player-store.ts`, #1214 stage 6c.3b);
     // their words stay 0.
-    w.put(playerIndex(s, p)); w.put(0); w.put(0); w.put(p.bot ? 1 : 0);
+    // Whether it is a bot, and whether it holds a discovery memory, come from the store too (6e.4).
+    w.put(playerIndex(s, p)); w.put(0); w.put(0); w.put(0);
     // The equipment comes from the store too (6c.3c.2): keys, charging, selection, weapon and reserves always, and the
     // inventory where a rule can read it (`FROM_STORE`), as it was packed before.
     w.put(0); w.put(0); w.put(0); w.put(0); w.put(0); w.put(0);
-    w.put(0); w.put(0); w.put(moved ? 1 : 0); w.put(p.discovery ? 1 : 0); w.put(steps);
+    w.put(0); w.put(0); w.put(moved ? 1 : 0); w.put(0); w.put(steps);
     w.put(choice === undefined ? NaN : s.map.stations.findIndex(st => st.id === choice)); w.put(sneak ? 1 : 0); w.put(0);
     w.put(inventory ? FROM_STORE : -1); w.put(swap ? FROM_STORE : 0); w.put(0); w.put(0);
     w.put(rested ? list.length : inRun || list.length ? FROM_STORE : 0);
