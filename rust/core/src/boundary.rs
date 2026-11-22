@@ -402,6 +402,7 @@ pub fn synchronize(
         world.markers = log.markers.clone();
         apply_players(world, log);
         let live = bodies?;
+        world.sync_actors = live;
         if input[S_ADMIT] != 0.0 {
             let reserve_actors = players.saturating_sub(live);
             // With no launched item and no room beyond the reserves, nothing can be admitted.

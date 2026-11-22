@@ -22,6 +22,8 @@ export interface GroundSink {
   add(before: readonly GroundItem[], length: number, items: readonly GroundItem[]): void;
   remove(before: readonly GroundItem[], length: number, at: number): void;
   replace(before: readonly GroundItem[], length: number, at: number, next: GroundItem): void;
+  /** Records the core added to its store itself (#1214 stage 6d.6b): the store needs no write, only to follow the list. */
+  adopted(before: readonly GroundItem[], length: number): void;
   edited(): void;
 }
 const sinks = new WeakMap<Game, GroundSink>();
@@ -196,7 +198,13 @@ export function groundList(s: Game): GroundItem[] {
 }
 
 /** Put records on the ground, after everything already there. */
-export function addItems(s: Game, ...items: GroundItem[]): void {
+export function addItems(s: Game, ...items: GroundItem[]): void { add(s, items, false); }
+/**
+ * Put records the core already added to its ground store on the ground (#1214 stage 6d.6b): a drop phase 3 synced in its
+ * own run. The list and its indexes change as `addItems` changes them; nothing is written through.
+ */
+export function addItemsFromCore(s: Game, items: GroundItem[]): void { add(s, items, true); }
+function add(s: Game, items: GroundItem[], fromCore: boolean): void {
   const before = s.items, length = before.length;
   const list = writable(s), grid = grids.get(list), index = indexes.get(list), pending = admissions.get(list);
   if (index) for (let i = 0; i < items.length; i++) index.set(items[i]!.id, list.length + i);
@@ -209,7 +217,8 @@ export function addItems(s: Game, ...items: GroundItem[]): void {
       pending.items.splice(admissionPosition(s, pending.items, item.id), 0, item);
     pending.size = list.length;
   }
-  sinks.get(s)?.add(before, length, items);
+  if (fromCore) sinks.get(s)?.adopted(before, length);
+  else sinks.get(s)?.add(before, length, items);
 }
 
 /** Take a record off the ground; later records keep their order. Returns where it was, which is now where the next one is. */

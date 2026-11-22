@@ -180,6 +180,8 @@ pub struct World {
     pub(crate) markers: Vec<Key>,
     /// The sync's match-pinned settings (6d.6), once uploaded.
     pub(crate) sync_config: SyncConfig,
+    /// How many actor bodies the last body sync left: the runtime's `actors.size` (6d.6b).
+    pub(crate) sync_actors: usize,
     pub(crate) phase_seven: crate::phase_seven::PhaseSeven,
     /// By key: a solid prop's shape as its spec gave it (`shape, a, b, vertices`), for the swept
     /// queries' `solidProps` (`hooks.rs`). Loot and every other kind keep none.
@@ -305,6 +307,7 @@ impl World {
             pending_attachments: Vec::new(),
             markers: Vec::new(),
             sync_config: SyncConfig::default(),
+            sync_actors: 0,
             phase_seven: crate::phase_seven::PhaseSeven::default(),
             prop_shapes: Vec::new(),
         }
@@ -472,6 +475,28 @@ impl World {
     }
 
     /// Phase 3's hook cancel: the caster's own hook leaves.
+    /// An item launched since the last admission, by body key (`itemLaunches`, 6d.3): a key launched again takes the
+    /// later motion and keeps its place.
+    pub(crate) fn launch(&mut self, key: Key, vx: f64, vy: f64) {
+        match self.launches.iter_mut().find(|l| l.0 == key) {
+            Some(l) => (l.1, l.2) = (vx, vy),
+            None => self.launches.push((key, vx, vy)),
+        }
+    }
+
+    /// Append records to the ground store, as `addItems` writes them through: each awaits a body (#1214 stage 6d.3).
+    pub(crate) fn add_ground(&mut self, words: &[f64]) {
+        let before = self.ground.len();
+        self.ground
+            .input(words.len() / crate::ground::RECORD)
+            .copy_from_slice(words);
+        self.ground.add();
+        let added: Vec<u64> = self.ground.keys_from(before).collect();
+        for key in added {
+            self.await_body(key as Key);
+        }
+    }
+
     pub(crate) fn cancel_hook(&mut self, caster: usize) {
         let key = self.players.extra[caster].hook_key as Key;
         self.hooks

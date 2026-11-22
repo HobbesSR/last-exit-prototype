@@ -123,6 +123,38 @@ explosion will run inside their own core runs (6d.6b on).
   `0909b83f` hash for hash. Its mines fill the pending queues and its hooks are reconciled by every sync.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6d.6b, phase 3's drops sync in the run (#1214, adapter version 31).** A drop in phase 3's loop no longer stops
+the run. Before, Node added the records, launched them and synced, then called again, repacking the run's lists. Now
+the core does all of that where the loop committed the drop (`phase_three.rs`, `InRun`), and goes on.
+- **The drop's facts.** `OP_DROP_SYNCED` (16) carries the records as op 9 did. Node adds them to its list without writing
+  them through (`addItemsFromCore`; the store's sink `adopted`), since the core's store already holds them
+  (`World::add_ground`). `OP_SYNC` (15) carries the sync's log, which Node applies as its own sync's (`applySyncLog`). This
+  is where the ground's write direction flips for drops.
+- **The keys.** The core does not intern strings, so a loop with droppers carries the body keys it may queue, interned
+  by Node: each free label phase's (`item:instance-<phase>`) and each dropper's carried identity's. A record takes its
+  allocation's phase key, or else its item's own.
+- **The launches** are the core's (`World::launch`), with `launchPhysicalDrops`' motion.
+- **The hooks.** The run applies its hooks' launches and cancels to the world itself, before each sync and at its end,
+  since the sync reconciles them. `lib.rs` no longer walks the output for them.
+- **What the next call repacked** follows in the run:
+  - the new records join the taken spots and the ground's identities, and the ground's count;
+  - the actor bodies' reserve comes from the sync (`World::sync_actors`);
+  - the carried identities are rebuilt: the action players' as they stand, the others' as the call began;
+  - the hooks are reread from the world when the call reads them.
+
+  The allocation keeps its label phases and registered identities. Its phase budget covers the whole call (four per
+  dropper, one per unidentified mover), so the drop leaves enough phases for what follows. Ground and carried identities
+  that would no longer be packed answer only for duplicate identities, which these lists exist to refuse.
+- **What still stops:** an elimination's drops (mode 4, 6e), the standalone plans (modes 2 and 3), and phase 6's pickups
+  and swaps (6d.6c).
+- **Continuity.** The fixture and its bots variant pass. `tools/trap-continuity.mjs` matched a pristine export of
+  `0e174e9e` hash for hash. Those traces drop only through eliminations, and the fixture syncs one loop drop in its run,
+  so `tests/phase-three-core.test.js` holds the continuation equal to the stop and resume. Two droppers drop in one tick:
+  one rearranges unidentified items, splits a stack and drops ammo, and the other drops beside it. Over three ticks the
+  records, counters, inventories, frames, markers and body sets match a run through the old stop (`setInRunDrops(false)`,
+  the test's switch). With the taken spots left unextended, the test fails at tick 1.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -815,7 +847,7 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
     - **6d.6:** the sync inside a run: the drops, pickups, swaps and a mine's explosion stop syncing in Node, and the
       explosion's impulses are enqueued in the core. Staged by the stops it removes:
       - **6d.6a (#1214):** the whole sync is one core routine, which Node's `synchronize` calls once. Below.
-      - **6d.6b:** phase 3's drops sync inside their run, and the ground's write direction flips for them.
+      - **6d.6b (#1214):** phase 3's drops sync inside their run, and the ground's write direction flips for them. Below.
       - **6d.6c:** phase 6's pickups and swaps, with the core's ground grid for the resume list.
       - **6d.6d:** a mine's explosion syncs and enqueues its impulses in `hazards.rs`, retiring `STOP_EXPLOSION`.
 - **The direction (Corey, 2026-11-21, on #1214):** "now the way this should work eventually is that essentially the core

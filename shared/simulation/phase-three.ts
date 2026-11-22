@@ -10,7 +10,9 @@ import { UTILITY_RULES } from './action-records.ts';
 import { MOVEMENT_SPEED } from '../movement.ts';
 import { HZ } from './rules.ts';
 import { playerIndex } from './relations.ts';
-import { addItems, groundItem, itemsNear } from './ground-items.ts';
+import { addItems, addItemsFromCore, groundItem, itemsNear } from './ground-items.ts';
+import { keyOf } from './ground-store.ts';
+import { applySyncLog, prepareInRunSync } from './boundary.ts';
 import { physicsRuntime, type PhysicsRuntime } from './physics-runtime.ts';
 import { appendItem, carriedItem, carriedToken, playersStale, uploadPlayers } from './player-store.ts';
 import { sawHooks, syncHooks } from './hook.ts';
@@ -22,11 +24,12 @@ import { start as profileStart, stop as profileStop } from '../profiler.ts';
 
 // The phase's rules run in phase_three.rs. JavaScript owns records until 27's flip: this adapter
 // packs only intent-bearing actors and the inventories the rules can change. Static rules cross
-// once per world. Drops return at their synchronization boundary, keeping the admission chunked.
+// once per world. The loop's drops sync inside the core's run (#1214 stage 6d.6b); an elimination's still return at
+// their synchronization boundary.
 interface ActionsExports {
   actions_input(world: number, words: number): number;
   actions_configure(world: number): void;
-  actions_run(world: number, collision: number, index: number, gates: number): number;
+  actions_run(world: number, collision: number, index: number, gates: number, swept: number): number;
 }
 export type ActionsCore = CoreExports & PhysicsExports & ActionsExports;
 type Core = ActionsCore;
@@ -83,6 +86,12 @@ export function ground(row: Float64Array, at: number, p: Player, tick: number): 
 }
 
 const MODE_ELIMINATE = 4;
+/**
+ * Whether the loop's drops sync inside the core's run (6d.6b). Only `tests/phase-three-core.test.js` turns it off, to
+ * hold the run's continuation equal to the stop and resume it replaced.
+ */
+let inRunDrops = true;
+export function setInRunDrops(on: boolean): void { inRunDrops = on; }
 interface Options { mode?: number; player?: Player; item?: InventoryItem; family?: AmmoFamily; count?: number;
   mandatory?: boolean; items?: readonly GroundItem[]; source?: Game; start?: number; stage?: number; killer?: Player | null }
 
@@ -140,9 +149,21 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   // The hooks are the core's (6d.4): where they would have been packed, the core reads its own (`FROM_STORE`).
   const hooksRead = actors.some(p => p.kit === 'hook' && intents[playerIndex(s, p)]?.input.skill);
   if (hooksRead) syncHooks(r);
+  // The loop's drops sync inside its run (#1214 stage 6d.6b): the core adds their records, launches them and syncs where
+  // this adapter stopped it. It needs the keys of the bodies it may queue, which only JavaScript interns: each free label
+  // phase's and each dropper's carried identity's. Elimination and the standalone plans still stop at a drop.
+  const inRun = mode === 0 && droppers.length > 0 && inRunDrops;
+  const inRunWords: number[] = [];
+  if (inRun) {
+    prepareInRunSync(s, r);
+    const dropping = new Set(droppers.flatMap(p => p.inventory ?? []));
+    inRunWords.push(r.discontinuityCapacity, s.players.length, s.content.worldPhysics.loot.dropSpeed, r.discontinuities.length,
+      ...r.discontinuities.map(entry => r.world.key(entry.id)), ...phases.map(phase => r.world.key(`item:instance-${phase}`)));
+    for (const p of s.players) for (const item of p.inventory ?? []) if (item?.instanceId) inRunWords.push(dropping.has(item) ? keyOf(s, r, item.instanceId) : NaN);
+  }
   const data: number[] = [mode, options.start ?? 0, options.stage ?? 0, s.tick, s.serial, source.itemSerial ?? 1, source.scatterSerial ?? 0,
     items.length, Math.max(0, s.players.length - r.actors.size), actors.length, contexts.length, phases.length, known.size,
-    near.size, groundIds.length, carried.length / 2, hooksRead ? FROM_STORE : 0, options.mandatory ? 1 : 0, code(AMMO_FAMILIES, options.family), n(options.count), 0];
+    near.size, groundIds.length, carried.length / 2, hooksRead ? FROM_STORE : 0, options.mandatory ? 1 : 0, code(AMMO_FAMILIES, options.family), n(options.count), inRun ? 1 : 0];
   for (const p of actors) {
     const intent = intents[playerIndex(s, p)], input: PlayerInput = intent?.input ?? {};
     const inventory = options.item ? [options.item] : mode === MODE_ELIMINATE ? p === options.player ? p.inventory : undefined : mode === 1 || mode === 2 || !!(input.slot !== undefined || input.moveSlot || intent?.utilitySlot !== undefined
@@ -170,17 +191,19 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   for (const item of near) data.push(item.x, item.y);
   data.push(...groundIds, ...carried);
   if (mode === MODE_ELIMINATE) data.push(!killer ? -1 : killer === options.player ? 0 : 1, killer?.kills ?? 0, s.content.gladiatorRespawnTicks);
+  data.push(...inRunWords);
   // Interning and map preparation can grow memory; view the input only after those calls.
-  const map = sightOf(s).queryHandles(s.map);
+  const map = sightOf(s).queryHandles(s.map), swept = inRun ? sightOf(s).sweptHandle(s.map) : 0;
   if (map.core !== core) throw new Error('phase 3 and sight are bound to different cores');
   const ptr = core.actions_input(world, data.length) >>> 0;
   new Float64Array(core.memory.buffer, ptr, data.length).set(data);
   if (mode === 0) profileStart('sim.actions.core');
-  const outPtr = core.actions_run(world, map.collision, map.index, map.gates) >>> 0;
+  const outPtr = core.actions_run(world, map.collision, map.index, map.gates, swept) >>> 0;
   if (mode === 0) profileStop('sim.actions.core');
   // Applying a drop synchronizes and can grow memory. Retain this call's facts across that boundary.
   const view = new Float64Array(core.memory.buffer, outPtr, new Float64Array(core.memory.buffer, outPtr, 1)[0]!);
-  const out = mode === 1 || view[4]! >= 0 ? view.slice() : view;
+  // So does a sync applied from the log (6d.6b).
+  const out = mode === 1 || view[4]! >= 0 || inRun ? view.slice() : view;
   // Loop, attack and elimination calls write their players back; a standalone plan writes nothing.
   const writes = mode < 2 || mode === MODE_ELIMINATE;
   let at = OUT_HEADER;
@@ -240,7 +263,12 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
     else if (op === 9) {
       const p = s.players[out[at]!]!, records = Array.from({ length: out[at + 1]! }, (_, i) => ground(out, at + 2 + i * RECORD_ROW, p, s.tick));
       addItems(s, ...records); launchPhysicalDrops(s, records, p);
-    } else if (op === 10) s.players[out[at]!]!.charging = null;
+    } else if (op === 16) {
+      // A drop the core synced in the run: its store holds the records, which it launched (6d.6b).
+      const p = s.players[out[at]!]!;
+      addItemsFromCore(s, Array.from({ length: out[at + 1]! }, (_, i) => ground(out, at + 2 + i * RECORD_ROW, p, s.tick)));
+    } else if (op === 15) applySyncLog(s, r, out.subarray(at, at + len), r.stepping ? s.tick : s.tick + 1);
+    else if (op === 10) s.players[out[at]!]!.charging = null;
     else if (op === 11) s.players[out[at]!]!.revealed = out[at + 1]!;
     else if (op === 12) {
       // `eliminate`'s first writes, in its order; the event takes the core's ID.

@@ -19,7 +19,8 @@ const n = (value: unknown): number => typeof value === 'number' ? value : NaN;
 
 /** Each world's body keys for ground records, so a label is interned once. */
 const keys = new WeakMap<PhysicsRuntime, Map<ItemId, number>>();
-function keyOf(s: Game, r: PhysicsRuntime, id: ItemId): number {
+/** A record's body key (`item:<label>`), interned once; NaN when the identity has no label. */
+export function keyOf(s: Game, r: PhysicsRuntime, id: ItemId): number {
   let byId = keys.get(r);
   if (!byId) keys.set(r, byId = new Map());
   let key = byId.get(id);
@@ -108,6 +109,8 @@ export function ownGround(s: Game): void {
       const { core, world } = r.world.boundaryCall();
       core.ground_write(world, 3, at);
     }),
+    // The core added these records itself (#1214 stage 6d.6b): its store already holds them.
+    adopted: (before, length) => write(before, length, () => undefined),
     edited: () => seen.delete(r),
   });
 }
