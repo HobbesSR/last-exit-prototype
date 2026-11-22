@@ -11,6 +11,8 @@ import { physicsGate } from './physics-geometry.ts';
 import { sightOf } from './sight-runtime.ts';
 import { playersStale, uploadPlayers } from './player-store.ts';
 import { ensureGround } from './ground-store.ts';
+import { sawHooks, syncHooks } from './hook.ts';
+import { HZ } from './rules.ts';
 import { writeDoor } from './doors.ts';
 import type { Game, ItemId, Player, Vec2 } from '../types.ts';
 
@@ -31,9 +33,11 @@ type Core = CoreExports & PhysicsExports;
 
 // The layout of `boundary.rs`.
 const OUT_HEADER = 6, BODY_ROW = 22;
-const A_HEADER = 11;
-const B_HEADER = 8;
+/** The sync's input header (`boundary::S_HEADER`): tick, admit, the markers' capacity, the roster's size, the markers. */
+const S_HEADER = 5;
 const OP_QUEUED = 1, OP_COMMIT = 2, OP_TRANSFORM = 3, OP_MARK = 4, OP_ACTOR = 5, OP_POSE = 6, OP_RETRY = 7, OP_GATE = 8, OP_ITEM = 9, OP_ATTACHMENT = 10;
+/** A hook the sync's reconcile removed (`hooks::OP_REMOVED`), by its index in the hooks as the sync began. */
+const OP_HOOK_REMOVED = 20;
 const MARK_PLACED = 0;
 const TEMPLATE_CONTESTANT = 0, TEMPLATE_GLADIATOR = 1, TEMPLATE_LOOT = 2;
 const E_NO_PLACEMENT = -17, E_DISCONTINUITY_CAPACITY = -18, E_UNREPRESENTABLE = -19, E_INITIAL_SPEED = -20;
@@ -91,7 +95,7 @@ function output(core: Core, world: number): Float64Array {
 
 /** Applies a sync call's log in order, then throws its refusal, if any, with the message the TypeScript threw. */
 function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number): void {
-  const world = r.world, t = templatesOf(s);
+  const world = r.world, t = templatesOf(s), hooks = r.hooks, removed = new Set<number>();
   for (let at = OUT_HEADER; at < out.length;) {
     const op = out[at]!;
     if (op === OP_QUEUED) {
@@ -131,6 +135,8 @@ function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number):
       const key = out[at + 1]!;
       world.adoptQueuedConstraint(key, { id: world.idOf(key), a: world.idOf(out[at + 2]!), b: world.idOf(out[at + 3]!), maxDistance: out[at + 4]! });
       at += 5;
+    } else if (op === OP_HOOK_REMOVED) {
+      removed.add(out[at + 1]!); at += 2;
     } else if (op === OP_ITEM) {
       const id = world.idOf(out[at + 1]!);
       // An admitted item names its record by ID (6d.3).
@@ -138,6 +144,8 @@ function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number):
       at += 4;
     } else throw new Error(`unknown boundary log entry ${op}`);
   }
+  // The hooks the reconcile removed leave the mirror, which then matches the core's again (6d.4).
+  if (removed.size) { r.hooks = hooks.filter((_, i) => !removed.has(i)); sawHooks(r); }
   world.adoptQueue(out[4]!);
   const code = out[0]!;
   if (code === 0) return;
@@ -148,32 +156,57 @@ function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number):
   throw physicsRefusal(code, out[1]! >= 0 ? world.idOf(out[1]!) : '');
 }
 
+/** The worlds whose sync settings are uploaded, with the content they came from (pinned per match). */
+const syncConfigured = new WeakMap<PhysicsWorld, Game['content']>();
 /**
- * The body sync's first call in the core: the actors, the gates, then the item bodies whose items left the ground
- * (`synchronize`, `synchronizePhysicalItems`). Returns whether an item could be admitted, for `synchronizeItems`.
+ * The sync's match-pinned settings, once per world (#1214 stage 6d.6): the three body templates, the drop reserve and the
+ * hook tuning, in `World::configure_sync`'s layout.
  */
-export function synchronizeBodies(s: Game, r: PhysicsRuntime, markTick: number, admit: boolean): boolean {
-  const world = r.world, t = templatesOf(s);
-  // The active actors come from the core's player store (6c.3a). The actor and item bodies the world holds, each gate's
-  // body and which item bodies' records left the ground are the core's own (#1214 stage 6d.2): only the body templates,
-  // the discontinuity markers and whether anything was launched cross.
-  const markers = r.discontinuities;
-  const words = A_HEADER + 2 * BODY_ROW + markers.length;
-  // Keys are interned before the input is viewed: interning is a core call of its own.
-  const markerKeys = markers.map(entry => world.key(entry.id));
-  ensureGround(s, r);
-  const { core, world: native, collision, gates: gateSet } = handles(s, r);
-  if (playersStale(r)) uploadPlayers(s, r, core, native);
+function configureSync(s: Game, r: PhysicsRuntime, core: Core, native: number): void {
+  if (syncConfigured.get(r.world) === s.content) return;
+  const t = templatesOf(s), h = s.content.hook, words = 3 * BODY_ROW + 1 + 11;
   const view = input(core, native, words);
-  view.set([s.tick, admit ? 1 : 0, r.itemLaunches.size ? 1 : 0, s.players.length, s.content.worldPhysics.dropReserve ?? 0,
-    r.discontinuityCapacity, 0, 0, 0, 0, markers.length]);
-  view.set(t.rows[0]!, A_HEADER); view.set(t.rows[1]!, A_HEADER + BODY_ROW);
-  view.set(markerKeys, A_HEADER + 2 * BODY_ROW);
-  core.physics_sync_bodies(native, collision, gateSet);
-  const out = output(core, native);
-  const room = out[3] === 1;
-  apply(s, r, out, markTick);
-  return room;
+  t.rows.forEach((row, k) => view.set(row.subarray(0, BODY_ROW), k * BODY_ROW));
+  view.set([s.content.worldPhysics.dropReserve ?? 0, h.range, h.breakDistance, h.durationTicks, h.standoff, h.targetDistance,
+    h.pullSpeed, HZ, h.stiffness, h.damping, h.maxForce, h.speed], 3 * BODY_ROW);
+  core.physics_sync_configure(native);
+  syncConfigured.set(r.world, s.content);
+}
+
+/**
+ * The whole body sync in one core call (`boundary::synchronize`, #1214 stage 6d.6): the actors, the gates and the item
+ * bodies whose records left the ground; the item admission when `admit` and there is room; the pending queues'
+ * generation filter; and the hooks' reconcile. The players, launches, ground, queues and hooks are the core's; only the
+ * discontinuity markers cross, since Node's tick trims them (`tick.ts`). The log is applied in order, then the queues'
+ * mirror is read back, and a refusal is thrown last, as each of the four calls this replaces threw.
+ */
+export function synchronizeInCore(s: Game, r: PhysicsRuntime, markTick: number, admit: boolean): void {
+  const world = r.world;
+  ensureGround(s, r);
+  // The hooks' mirror, when Node changed it without the facts (`syncHooks`), as `reconcileHooks` uploaded it first.
+  syncHooks(r);
+  // Launches made since the last sync are handed over now; the core keeps them until an admission takes them.
+  const launches = [...r.itemLaunches].map(([id, motion]) => [itemKey(s, world, id), motion.x, motion.y] as const);
+  r.itemLaunches.clear();
+  const markerKeys = r.discontinuities.map(entry => world.key(entry.id));
+  const queued = r.pendingImpulses.length > 0 || r.pendingAttachments.length > 0;
+  const { core, world: native, collision, gates } = handles(s, r);
+  const swept = sightOf(s).sweptHandle(s.map);
+  if (playersStale(r)) uploadPlayers(s, r, core, native);
+  configureSync(s, r, core, native);
+  if (launches.length) {
+    const view = input(core, native, launches.length * 3);
+    launches.forEach((row, i) => view.set(row, i * 3));
+    (core as Core & { physics_launch(world: number, count: number): void }).physics_launch(native, launches.length);
+  }
+  const view = input(core, native, S_HEADER + markerKeys.length);
+  view.set([s.tick, admit ? 1 : 0, r.discontinuityCapacity, s.players.length, markerKeys.length]);
+  view.set(markerKeys, S_HEADER);
+  core.physics_sync(native, collision, gates, swept);
+  try { apply(s, r, output(core, native), markTick); } finally {
+    // The core drops the entries whose bodies changed generation, and the mirror follows (6d.5).
+    if (queued) mirrorPendingQueues(r);
+  }
 }
 
 /**
@@ -187,37 +220,6 @@ export function uploadGateBodies(s: Game, r: PhysicsRuntime): void {
   const words = s.gates.length * (1 + BODY_ROW), view = new Float64Array(core.memory.buffer, core.physics_boundary_input(native, words) >>> 0, words);
   s.gates.forEach((_, i) => { view[i * (1 + BODY_ROW)] = keys[i]!; view.set(rows[i]!.subarray(0, BODY_ROW), i * (1 + BODY_ROW) + 1); });
   core.physics_gates_load(native, s.gates.length);
-}
-
-/**
- * The sync's item admission, when the first call found room: launched items, then those awaiting a body, in ID order.
- * The core keeps both lists and the item bodies (#1214 stage 6d.3): this hands it the launches made since, then calls
- * once. The core walks its awaiting list until the world has no room, as the chunks it replaces stopped there.
- */
-export function synchronizeItems(s: Game, r: PhysicsRuntime, markTick: number): void {
-  const world = r.world, t = templatesOf(s);
-  ensureGround(s, r);
-  // Each launch's key and motion; the core takes those still on the ground, in ID order.
-  const launches = [...r.itemLaunches].map(([id, motion]) => [itemKey(s, world, id), motion.x, motion.y] as const);
-  r.itemLaunches.clear();
-  const active = s.players.filter(p => p.status === 'active');
-  const markerKeys = r.discontinuities.map(entry => world.key(entry.id));
-  const { core, world: native, collision, gates } = handles(s, r);
-  if (launches.length) {
-    const view = input(core, native, launches.length * 3);
-    launches.forEach((row, i) => view.set(row, i * 3));
-    (core as Core & { physics_launch(world: number, count: number): void }).physics_launch(native, launches.length);
-  }
-  const words = B_HEADER + BODY_ROW + active.length * 3 + markerKeys.length;
-  const view = input(core, native, words);
-  view.set([Math.max(0, s.players.length - r.actors.size), s.content.worldPhysics.dropReserve ?? 0, r.discontinuityCapacity,
-    0, 0, active.length, 0, markerKeys.length]);
-  view.set(t.rows[2]!, B_HEADER);
-  let at = B_HEADER + BODY_ROW;
-  for (const p of active) { view[at++] = p.x; view[at++] = p.y; view[at++] = actorRadius(s, p); }
-  view.set(markerKeys, at);
-  core.physics_sync_items(native, collision, gates);
-  apply(s, r, output(core, native), markTick);
 }
 
 /**

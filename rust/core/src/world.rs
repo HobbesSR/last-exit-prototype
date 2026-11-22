@@ -178,6 +178,8 @@ pub struct World {
     pub(crate) pending_attachments: Vec<PendingAttachment>,
     /// The discontinuity markers' keys as the last body sync left them (6d.5), for a sync the core runs itself.
     pub(crate) markers: Vec<Key>,
+    /// The sync's match-pinned settings (6d.6), once uploaded.
+    pub(crate) sync_config: SyncConfig,
     pub(crate) phase_seven: crate::phase_seven::PhaseSeven,
     /// By key: a solid prop's shape as its spec gave it (`shape, a, b, vertices`), for the swept
     /// queries' `solidProps` (`hooks.rs`). Loot and every other kind keep none.
@@ -216,6 +218,16 @@ pub(crate) struct HookRecord {
     pub(crate) generation_b: f64,
     pub(crate) hit_tick: f64,
     pub(crate) desired: f64,
+}
+
+/// The sync's match-pinned settings (#1214 stage 6d.6), uploaded once per world (`World::configure_sync`): the
+/// contestant's, gladiator's and loot's body rows (`boundary::TEMPLATE_*` order), the drop reserve, and the hook tuning
+/// (`hooks::TUNING_WORDS`), so a sync the core runs needs none of them from its caller.
+#[derive(Default)]
+pub(crate) struct SyncConfig {
+    pub(crate) templates: [Vec<f64>; 3],
+    pub(crate) drop_reserve: usize,
+    pub(crate) hook: Vec<f64>,
 }
 
 /// An attachment awaiting admission (`PendingAttachment` with its generations, #1214 stage 6d.5).
@@ -292,6 +304,7 @@ impl World {
             pending_impulses: Vec::new(),
             pending_attachments: Vec::new(),
             markers: Vec::new(),
+            sync_config: SyncConfig::default(),
             phase_seven: crate::phase_seven::PhaseSeven::default(),
             prop_shapes: Vec::new(),
         }
@@ -491,6 +504,19 @@ impl World {
 
     /// Take the gates' keys and closed rows (`count` rows of a key then `BODY_ROW` words) from the boundary input, once
     /// per world.
+    /// Takes the sync's settings from the boundary input (#1214 stage 6d.6): three body rows, the drop reserve, then the
+    /// hook tuning.
+    pub fn configure_sync(&mut self) {
+        let input = &self.boundary_input;
+        let row = |k: usize| input[k * BODY_ROW..(k + 1) * BODY_ROW].to_vec();
+        let at = 3 * BODY_ROW;
+        self.sync_config = SyncConfig {
+            templates: [row(0), row(1), row(2)],
+            drop_reserve: input[at] as usize,
+            hook: input[at + 1..at + 1 + crate::hooks::TUNING_WORDS].to_vec(),
+        };
+    }
+
     pub fn load_gates(&mut self, count: usize) {
         let rows: Vec<(Key, Vec<f64>)> = self.boundary_input[..count * (1 + BODY_ROW)]
             .chunks(1 + BODY_ROW)

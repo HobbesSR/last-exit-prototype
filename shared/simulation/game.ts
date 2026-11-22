@@ -9,15 +9,14 @@ import { ownDoors } from './doors.ts';
 import { ownGround } from './ground-store.ts';
 import { validateActorPhysics } from './actor-physics.ts';
 import { addAuthoredProps, validateWorldPhysics } from './world-physics.ts';
-import { placeInCore, synchronizeBodies, synchronizeItems, uploadGateBodies } from './boundary.ts';
-import { reconcileHooks } from './hook.ts';
-import { attachPhysics, mirrorPendingQueues, physicsRuntime, PHYSICS_VERSION } from './physics-runtime.ts';
+import { placeInCore, synchronizeInCore, uploadGateBodies } from './boundary.ts';
+import { attachPhysics, physicsRuntime, PHYSICS_VERSION } from './physics-runtime.ts';
 import { buildPhysicsGeometry } from './physics-geometry.ts';
 import { prepareBotGates } from './bot-routes.ts';
 import { prepareSweptGeometry, prepareSweptGates } from './swept.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, GateIdx, MatchContent, Player, Vec2 } from '../types.ts';
-import { start, stop, profiling, observe } from '../profiler.ts';
+import { profiling, observe } from '../profiler.ts';
 import { PhysicsIdentities } from './physics-identities.ts';
 
 export const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
@@ -155,20 +154,11 @@ function placement(s: Game, r: PhysicsRuntime, p: Player, admitted: Player[], or
  * `markTick` is the last tick whose capture carries a discontinuity marked here: the current one
  * inside a step, the next one between ticks, whose capture has already been taken.
  *
- * The actors, gates and item bodies are synchronized in the core (`rust/core/src/boundary.rs`, #1234); the
- * pending queues, which this runtime owns, are filtered here, and the hooks reconciled, as before.
+ * The whole sync runs in the core in one call (`rust/core/src/boundary.rs`, #1214 stage 6d.6): the actors, gates and
+ * item bodies, the item admission, the pending queues' filter and the hooks' reconcile.
  */
 export function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmission = false): void {
-  if (synchronizeBodies(s, r, markTick, !deferItemAdmission)) {
-    start('sim.itemSync'); synchronizeItems(s, r, markTick); stop('sim.itemSync');
-  }
-  // The pending queues are the core's (#1214 stage 6d.5): it drops what changed generation, and the mirror follows.
-  if (r.pendingImpulses.length || r.pendingAttachments.length) {
-    const { core, world } = r.world.boundaryCall();
-    core.physics_filter_pending(world);
-    mirrorPendingQueues(r);
-  }
-  reconcileHooks(s);
+  synchronizeInCore(s, r, markTick, !deferItemAdmission);
 }
 
 /** Match seat/teleport boundaries reconcile game IDs before the first recorded frame. */

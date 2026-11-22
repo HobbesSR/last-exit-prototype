@@ -5,8 +5,8 @@
 //! It also runs the drop planner's spiral search for a drop planned in JavaScript (`scatter.rs`,
 //! #1228), through the same input and output.
 //!
-//! The state stays in JavaScript (D1). `shared/simulation/boundary.ts` packs what each call reads into
-//! the world's boundary input, and this runs the rules over it, calling the world (`world.rs`) in the
+//! `shared/simulation/boundary.ts` packs what each call still reads into the world's boundary input,
+//! and this runs the rules over it, calling the world (`world.rs`) in the
 //! order the TypeScript did, so Rapier allocates the same handles and slots.
 //!
 //! **What comes back is a log.** Each write the TypeScript made to a JavaScript record is an entry, in
@@ -15,18 +15,20 @@
 //! player's pose or retry. JavaScript applies the log in order when the call returns. A refusal stops
 //! the run where the TypeScript threw: the log holds what was done before it, and the header names it.
 //!
-//! **The sync runs in two calls.** The first does the actors, the gates and the removal of item bodies
-//! whose items left the ground, then reports whether any item could be admitted. Only then does
-//! JavaScript pack the items awaiting a body, which on a large map are thousands, so a tick with no
-//! room packs none, as the TypeScript skipped ordering them.
+//! **The sync is one routine** (`synchronize`, #1214 stage 6d.6): the actors, the gates and the item bodies whose
+//! records left the ground; the item admission when there is room; the pending queues' generation filter; then the
+//! hooks' reconcile (`hooks::reconcile_into`). The players, ground, launches, queues and hooks are the world's own, so
+//! only the tick, the admission flag, the markers and their capacity cross.
 
 use crate::collision::{CollisionMap, can_occupy, reach_clear};
 use crate::ground;
+use crate::hooks;
 use crate::math::hypot;
 use crate::phase_one::RESPAWNING;
 use crate::placement::{Disk, loot_fits, placement};
 use crate::scatter::scatter_point;
 use crate::sight::{GateSet, SightIndex};
+use crate::swept::SweptMap;
 use crate::world::{BODY_ROW, Key, World};
 
 /// Refusals beside `world::E_*`.
@@ -38,7 +40,7 @@ pub const E_UNREPRESENTABLE: i32 = -19;
 pub const E_INITIAL_SPEED: i32 = -20;
 
 /// The output header: the refusal code (0 when none), the refused key and player or item reference
-/// (-1 when none), whether an item could be admitted (`synchronize_bodies` only), how many commands
+/// (-1 when none), a word no call now writes (0; the body sync reported its room there until 6d.6), how many commands
 /// stay queued, and the output's length in words.
 pub const OUT_HEADER: usize = 6;
 
@@ -187,45 +189,6 @@ pub const TEMPLATE_GLADIATOR: f64 = 1.0;
 pub const TEMPLATE_LOOT: f64 = 2.0;
 pub const TEMPLATE_GATE: f64 = 3.0;
 
-/// `synchronize_bodies`' header: the tick, whether items are admitted, whether any item was
-/// launched, the roster's size, the drop reserve, the markers' capacity, then the counts.
-const A_TICK: usize = 0;
-const A_ADMIT: usize = 1;
-const A_LAUNCHES: usize = 2;
-const A_PLAYERS: usize = 3;
-const A_DROP_RESERVE: usize = 4;
-const A_CAPACITY: usize = 5;
-const A_ACTORS: usize = 6;
-const A_KNOWN: usize = 7;
-const A_GATES: usize = 8;
-const A_HELD: usize = 9;
-const A_MARKERS: usize = 10;
-pub const A_HEADER: usize = 11;
-/// Per active player, in ID order: `key, player, gladiator, x, y`. The core builds these rows from its player store
-/// (`players.rs`, #1214 stage 6c.3a) and places them after the body rows; the adapter sends none.
-pub const ACTOR_STRIDE: usize = 5;
-/// Per gate to reconcile, in the runtime's gate order: `gate, open, pushed, hx, hy, cx, cy, key`,
-/// then the body's row when it is closed.
-pub const GATE_STRIDE: usize = 8 + BODY_ROW;
-/// Per held item body: `key, on ground`. JavaScript packs only those whose items left the ground.
-pub const HELD_STRIDE: usize = 2;
-
-/// `synchronize_items`' header: the actors' reserve (roster less actor bodies), the drop reserve,
-/// the markers' capacity, then the counts.
-const B_RESERVE_ACTORS: usize = 0;
-const B_DROP_RESERVE: usize = 1;
-const B_CAPACITY: usize = 2;
-const B_LAUNCHES: usize = 3;
-const B_WAITING: usize = 4;
-const B_ACTIVE: usize = 5;
-const B_HELD: usize = 6;
-const B_MARKERS: usize = 7;
-pub const B_HEADER: usize = 8;
-/// Per launched item, in ID order: `key, reference, x, y, vx, vy`.
-pub const LAUNCH_STRIDE: usize = 6;
-/// Per item awaiting a body, in ID order: `key, reference, x, y`.
-pub const WAITING_STRIDE: usize = 4;
-
 /// A refusal: its code, the key it names and the reference JavaScript reports it by.
 type Refusal = (i32, f64, f64);
 
@@ -371,10 +334,32 @@ fn run(
         header[1] = key;
         header[2] = reference;
     }
-    // The store takes the same writes JavaScript applies to its records, refusal or not. A store that does not hold
-    // the roster yet (before the first upload) is left for that upload.
-    for entry in &log.players {
-        match *entry {
+    apply_players(world, &mut log);
+    header[4] = world.queued_count() as f64;
+    header[5] = log.out.len() as f64;
+    log.out[..OUT_HEADER].copy_from_slice(&header);
+    world.boundary_input = input;
+    world.boundary_output = log.out;
+}
+
+/// The sync's input (#1214 stage 6d.6): the tick, whether items are admitted, the markers' capacity, the roster's size,
+/// then the markers' count and keys. Everything else is the world's: the players from its store, the body templates,
+/// drop reserve and hook tuning from its settings (`World::configure_sync`), the launches, the ground and the hooks.
+const S_TICK: usize = 0;
+const S_ADMIT: usize = 1;
+const S_CAPACITY: usize = 2;
+const S_PLAYERS: usize = 3;
+const S_MARKERS: usize = 4;
+pub const S_HEADER: usize = 5;
+/// Per active actor, in ID order: `key, player, gladiator, x, y`, built from the core's player store (6c.3a).
+const ACTOR_STRIDE: usize = 5;
+
+/// The store takes the same writes JavaScript applies to its records: the poses and retries logged so far, applied
+/// now so a later step reads them, refusal or not. A store that does not hold the roster yet (before the first upload)
+/// is left for that upload.
+fn apply_players(world: &mut World, log: &mut Log) {
+    for entry in std::mem::take(&mut log.players) {
+        match entry {
             Entry::Pose { player, x, y } => {
                 if let Some(r) = world.players.rows.get_mut(player as usize) {
                     r.x = x;
@@ -394,26 +379,66 @@ fn run(
             _ => {}
         }
     }
-    header[4] = world.queued_count() as f64;
-    header[5] = log.out.len() as f64;
-    log.out[..OUT_HEADER].copy_from_slice(&header);
-    world.boundary_input = input;
-    world.boundary_output = log.out;
 }
 
-/// The sync's first call: the actors, then the gates, then the item bodies whose items left the
-/// ground. The input, after the header: the contestant's and the gladiator's body rows, the actors,
-/// the runtime's actor keys, the gates to reconcile, the held item bodies, then the markers' keys.
-pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut GateSet) {
-    let players = &world.players;
-    let mut active: Vec<usize> = (0..players.len())
-        .filter(|&i| players.rows[i].status == 0.0)
+/// The whole body sync, as Node's `synchronize` ran it in four calls (#1214 stage 6d.6): the actors, the gates and the
+/// item bodies whose records left the ground; then, when items are admitted and there is room, the launches and the
+/// records awaiting a body; then the pending queues' generation filter; then the hooks' reconcile. One log holds them
+/// all, in that order; the hooks' entries (`hooks::OP_COMMIT`, which is `OP_COMMIT`, and `hooks::OP_REMOVED`) come
+/// last. A refusal stops the sync where it is, as each call's throw stopped Node's.
+pub fn synchronize(
+    world: &mut World,
+    map: &mut CollisionMap,
+    gates: &mut GateSet,
+    swept: &SweptMap,
+) {
+    run(world, |world, input, log, _| {
+        let markers = input[S_MARKERS] as usize;
+        log.markers = keys(&input[S_HEADER..S_HEADER + markers]);
+        log.capacity = input[S_CAPACITY] as usize;
+        let (tick, players) = (input[S_TICK], input[S_PLAYERS] as usize);
+        let bodies = bodies(world, map, gates, log, tick);
+        // The markers as each step leaves them, for a sync the core runs itself (#1214 stage 6d.5).
+        world.markers = log.markers.clone();
+        apply_players(world, log);
+        let live = bodies?;
+        if input[S_ADMIT] != 0.0 {
+            let reserve_actors = players.saturating_sub(live);
+            // With no launched item and no room beyond the reserves, nothing can be admitted.
+            let room = !world.launches.is_empty()
+                || world.can_add_bodies(1 + reserve_actors + world.sync_config.drop_reserve);
+            if room {
+                let done = items(world, map, gates, log, reserve_actors);
+                world.markers = log.markers.clone();
+                done?;
+            }
+        }
+        world.filter_pending();
+        let words = std::mem::take(&mut world.sync_config.hook);
+        let reconciled = hooks::reconcile_into(world, swept, gates, tick, &words, &mut log.out);
+        world.sync_config.hook = words;
+        reconciled.map_err(|(code, key)| (code, key, -1.0))
+    });
+}
+
+/// The sync's first step: the actors, then the gates, then the item bodies whose items left the ground. Returns how
+/// many actor bodies the world then holds (the runtime's `actors.size`).
+fn bodies(
+    world: &mut World,
+    map: &mut CollisionMap,
+    gates: &mut GateSet,
+    log: &mut Log,
+    tick: f64,
+) -> Result<usize, Refusal> {
+    let store = &world.players;
+    let mut active: Vec<usize> = (0..store.len())
+        .filter(|&i| store.rows[i].status == 0.0)
         .collect();
-    active.sort_by(|&a, &b| players.rows[a].rank.total_cmp(&players.rows[b].rank));
-    let rows: Vec<f64> = active
+    active.sort_by(|&a, &b| store.rows[a].rank.total_cmp(&store.rows[b].rank));
+    let mut rows: Vec<[f64; ACTOR_STRIDE]> = active
         .iter()
-        .flat_map(|&i| {
-            let (r, e) = (&players.rows[i], &players.extra[i]);
+        .map(|&i| {
+            let (r, e) = (&store.rows[i], &store.extra[i]);
             [
                 e.key,
                 i as f64,
@@ -423,325 +448,252 @@ pub fn synchronize_bodies(world: &mut World, map: &mut CollisionMap, gates: &mut
             ]
         })
         .collect();
-    let at = A_HEADER + 2 * BODY_ROW;
-    world.boundary_input[A_ACTORS] = active.len() as f64;
-    world.boundary_input.splice(at..at, rows);
-    run(world, |world, input, log, header| {
-        let count = |i: usize| input[i] as usize;
-        let (actors, known, gate_count, held, markers) = (
-            count(A_ACTORS),
-            count(A_KNOWN),
-            count(A_GATES),
-            count(A_HELD),
-            count(A_MARKERS),
-        );
-        let templates = A_HEADER;
-        let actor_base = templates + 2 * BODY_ROW;
-        let known_base = actor_base + actors * ACTOR_STRIDE;
-        let gate_base = known_base + known;
-        let held_base = gate_base + gate_count * GATE_STRIDE;
-        let marker_base = held_base + held * HELD_STRIDE;
-        log.markers = keys(&input[marker_base..marker_base + markers]);
-        log.capacity = count(A_CAPACITY);
-        let (tick, players, drop_reserve) =
-            (input[A_TICK], count(A_PLAYERS), count(A_DROP_RESERVE));
-        let template = |input: &[f64], gladiator: bool| {
-            let at = templates + usize::from(gladiator) * BODY_ROW;
-            input[at..at + BODY_ROW].to_vec()
-        };
-        let rows: Vec<usize> = (0..actors).map(|i| actor_base + i * ACTOR_STRIDE).collect();
-        let row_keys: Vec<Key> = rows.iter().map(|&row| input[row] as Key).collect();
-        let key_of = |row: usize| row_keys[(row - actor_base) / ACTOR_STRIDE];
-        // The actors that are no longer active leave, in ID order.
-        let wanted: Vec<Key> = rows.iter().map(|&row| key_of(row)).collect();
-        // The actor bodies the world holds (#1214 stage 6d.2): the runtime's `actors` until then.
-        let _ = (known_base, known);
-        let mut live = world.keys_with_prefix("actor:");
-        live.sort_by(|&a, &b| world.id_order(a, b));
-        for key in live.clone() {
-            if wanted.contains(&key) {
-                continue;
-            }
-            log.mark(world, MARK_REMOVED, key)?;
-            log.remove(world, key)?;
-            log.entry(Entry::Actor { key, added: false });
-            live.retain(|&k| k != key);
+    let radius = |world: &World, row: &[f64; ACTOR_STRIDE]| {
+        world.sync_config.templates[usize::from(row[2] != 0.0)][4]
+    };
+    let key_of = |row: &[f64; ACTOR_STRIDE]| row[0] as Key;
+    // The actors that are no longer active leave, in ID order.
+    let wanted: Vec<Key> = rows.iter().map(key_of).collect();
+    // The actor bodies the world holds (#1214 stage 6d.2): the runtime's `actors` until then.
+    let mut live = world.keys_with_prefix("actor:");
+    live.sort_by(|&a, &b| world.id_order(a, b));
+    for key in live.clone() {
+        if wanted.contains(&key) {
+            continue;
         }
-        log.commit(world)?;
-        // Then each active actor, in ID order, is placed where its record says, or nearest it.
-        let radius = |input: &[f64], row: usize| {
-            input[templates + usize::from(input[row + 2] != 0.0) * BODY_ROW + 4]
-        };
-        let mut admitted: Vec<usize> = Vec::new();
-        for &row in &rows {
-            let key = key_of(row);
-            let (player, gladiator) = (input[row + 1], input[row + 2] != 0.0);
-            let (x, y) = (input[row + 3], input[row + 4]);
-            let current = world.position(key);
-            if current.is_some_and(|(cx, cy)| hypot(cx - x, cy - y) < 1e-6) {
-                admitted.push(row);
-                continue;
-            }
-            let disks: Vec<Disk> = admitted
-                .iter()
-                .copied()
-                .chain(
-                    rows.iter()
-                        .copied()
-                        .filter(|&q| q != row && live.contains(&key_of(q))),
-                )
-                .map(|q| [input[q + 3], input[q + 4], radius(input, q)])
-                .collect();
-            let r = radius(input, row);
-            let Some((px, py)) = placement(world, map, gates, r, (x, y), &disks) else {
-                if let Some((cx, cy)) = current {
-                    input[row + 3] = cx;
-                    input[row + 4] = cy;
-                    log.entry(Entry::Pose {
-                        player,
-                        x: cx,
-                        y: cy,
-                    });
-                    admitted.push(row);
-                    continue;
-                }
-                // A gladiator's respawn retries at a later boundary; an initial contestant is refused.
-                if gladiator && tick > 0.0 {
-                    log.entry(Entry::Retry {
-                        player,
-                        respawn_at: tick + 1.0,
-                    });
-                    continue;
-                }
-                return Err((E_NO_PLACEMENT, f64::from(key), player));
-            };
-            input[row + 3] = px;
-            input[row + 4] = py;
-            log.entry(Entry::Pose {
-                player,
-                x: px,
-                y: py,
-            });
-            if current.is_some() {
-                if !representable(px) || !representable(py) {
-                    return Err(refused(E_UNREPRESENTABLE));
-                }
-                let code = world.set_transform(key, px, py, 0.0);
-                if code < 0 {
-                    return Err((code, f64::from(key), -1.0));
-                }
-                log.entry(Entry::Transform { key });
-            } else {
-                let kind = if gladiator {
-                    TEMPLATE_GLADIATOR
-                } else {
-                    TEMPLATE_CONTESTANT
-                };
-                log.queue(
-                    world,
-                    &template(input, gladiator),
-                    kind,
-                    key,
+        log.mark(world, MARK_REMOVED, key)?;
+        log.remove(world, key)?;
+        log.entry(Entry::Actor { key, added: false });
+        live.retain(|&k| k != key);
+    }
+    log.commit(world)?;
+    // Then each active actor, in ID order, is placed where its record says, or nearest it.
+    let mut admitted: Vec<usize> = Vec::new();
+    for at in 0..rows.len() {
+        let row = rows[at];
+        let key = key_of(&row);
+        let (player, gladiator) = (row[1], row[2] != 0.0);
+        let (x, y) = (row[3], row[4]);
+        let current = world.position(key);
+        if current.is_some_and(|(cx, cy)| hypot(cx - x, cy - y) < 1e-6) {
+            admitted.push(at);
+            continue;
+        }
+        let disks: Vec<Disk> = admitted
+            .iter()
+            .copied()
+            .chain((0..rows.len()).filter(|&q| q != at && live.contains(&key_of(&rows[q]))))
+            .map(|q| [rows[q][3], rows[q][4], radius(world, &rows[q])])
+            .collect();
+        let r = radius(world, &row);
+        let Some((px, py)) = placement(world, map, gates, r, (x, y), &disks) else {
+            if let Some((cx, cy)) = current {
+                rows[at][3] = cx;
+                rows[at][4] = cy;
+                log.entry(Entry::Pose {
                     player,
-                    [px, py, 0.0, 0.0],
-                )?;
-                log.entry(Entry::Actor { key, added: true });
-                live.push(key);
-                log.commit(world)?;
-            }
-            log.mark(world, MARK_PLACED, key)?;
-            admitted.push(row);
-        }
-        // The gates whose state the world has not seen, in the legacy gate order. Their keys, closed rows and what the
-        // world last saw of each are the world's own (#1214 stage 6d.2); the door state is the gate set's (6a).
-        let _ = (gate_base, gate_count);
-        for g in 0..world.gate_bodies.order.len() {
-            let i = world.gate_bodies.order[g];
-            let (index, open, pushed) = (
-                i as f64,
-                gates.open[i] != 0,
-                f64::from(world.gate_bodies.seen[i]),
-            );
-            if pushed == if open { 1.0 } else { 2.0 } {
+                    x: cx,
+                    y: cy,
+                });
+                admitted.push(at);
                 continue;
             }
-            let key = world.gate_bodies.keys[i];
-            let [bx, by, bw, bh] = gates.boxes[i];
-            // `overlapsDynamicBox`'s box, as it centres `gateShape`.
-            if !open && world.overlaps_dynamic_box(bw / 2.0, bh / 2.0, bx + bw / 2.0, by + bh / 2.0)
-            {
-                // Closing is refused while an actor or a solid prop is in the way; the gate stays open.
-                gates.open[i] = 1;
-                world.gate_bodies.seen[i] = 1;
-                log.entry(Entry::Gate {
-                    index,
-                    pushed: 1.0,
-                    forced: true,
+            // A gladiator's respawn retries at a later boundary; an initial contestant is refused.
+            if gladiator && tick > 0.0 {
+                log.entry(Entry::Retry {
+                    player,
+                    respawn_at: tick + 1.0,
                 });
                 continue;
             }
-            if pushed == 2.0 {
-                log.remove(world, key)?;
+            return Err((E_NO_PLACEMENT, f64::from(key), player));
+        };
+        rows[at][3] = px;
+        rows[at][4] = py;
+        log.entry(Entry::Pose {
+            player,
+            x: px,
+            y: py,
+        });
+        if current.is_some() {
+            if !representable(px) || !representable(py) {
+                return Err(refused(E_UNREPRESENTABLE));
             }
-            if !open {
-                let row = world.gate_bodies.rows[i].clone();
-                log.queue(
-                    world,
-                    &row,
-                    TEMPLATE_GATE,
-                    key,
-                    index,
-                    [row[6], row[7], 0.0, 0.0],
-                )?;
+            let code = world.set_transform(key, px, py, 0.0);
+            if code < 0 {
+                return Err((code, f64::from(key), -1.0));
             }
-            world.gate_bodies.seen[i] = if open { 1 } else { 2 };
+            log.entry(Entry::Transform { key });
+        } else {
+            let kind = if gladiator {
+                TEMPLATE_GLADIATOR
+            } else {
+                TEMPLATE_CONTESTANT
+            };
+            let template = world.sync_config.templates[usize::from(gladiator)].clone();
+            log.queue(world, &template, kind, key, player, [px, py, 0.0, 0.0])?;
+            log.entry(Entry::Actor { key, added: true });
+            live.push(key);
+            log.commit(world)?;
+        }
+        log.mark(world, MARK_PLACED, key)?;
+        admitted.push(at);
+    }
+    // The gates whose state the world has not seen, in the legacy gate order. Their keys, closed rows and what the
+    // world last saw of each are the world's own (#1214 stage 6d.2); the door state is the gate set's (6a).
+    for g in 0..world.gate_bodies.order.len() {
+        let i = world.gate_bodies.order[g];
+        let (index, open, pushed) = (
+            i as f64,
+            gates.open[i] != 0,
+            f64::from(world.gate_bodies.seen[i]),
+        );
+        if pushed == if open { 1.0 } else { 2.0 } {
+            continue;
+        }
+        let key = world.gate_bodies.keys[i];
+        let [bx, by, bw, bh] = gates.boxes[i];
+        // `overlapsDynamicBox`'s box, as it centres `gateShape`.
+        if !open && world.overlaps_dynamic_box(bw / 2.0, bh / 2.0, bx + bw / 2.0, by + bh / 2.0) {
+            // Closing is refused while an actor or a solid prop is in the way; the gate stays open.
+            gates.open[i] = 1;
+            world.gate_bodies.seen[i] = 1;
             log.entry(Entry::Gate {
                 index,
-                pushed: if open { 1.0 } else { 2.0 },
-                forced: false,
+                pushed: 1.0,
+                forced: true,
             });
-            log.commit(world)?;
+            continue;
         }
-        // The item bodies whose items are no longer on the ground leave, in ID order.
-        // The item bodies the world holds whose records the ground store no longer has (#1214 stage 6d.2).
-        let _ = (held_base, held);
-        let mut items: Vec<(Key, bool)> = world
-            .keys_with_prefix("item:")
-            .into_iter()
-            .map(|key| (key, world.ground.holds(u64::from(key))))
-            .collect();
-        items.sort_by(|a, b| world.id_order(a.0, b.0));
-        for (key, on_ground) in items {
-            if on_ground {
-                continue;
-            }
-            log.mark(world, MARK_REMOVED, key)?;
+        if pushed == 2.0 {
             log.remove(world, key)?;
-            log.entry(Entry::Item {
-                key,
-                added: false,
-                reference: -1.0,
-            });
         }
+        if !open {
+            let row = world.gate_bodies.rows[i].clone();
+            log.queue(
+                world,
+                &row,
+                TEMPLATE_GATE,
+                key,
+                index,
+                [row[6], row[7], 0.0, 0.0],
+            )?;
+        }
+        world.gate_bodies.seen[i] = if open { 1 } else { 2 };
+        log.entry(Entry::Gate {
+            index,
+            pushed: if open { 1.0 } else { 2.0 },
+            forced: false,
+        });
         log.commit(world)?;
-        // With no launched item and no room beyond the reserves, nothing can be admitted.
-        let reserve = players.saturating_sub(live.len()) + drop_reserve;
-        let room = input[A_LAUNCHES] != 0.0 || world.can_add_bodies(1 + reserve);
-        header[3] = f64::from(u8::from(input[A_ADMIT] != 0.0 && room));
-        // The markers as this sync leaves them, for a sync the core runs itself (#1214 stage 6d.5).
-        world.markers = log.markers.clone();
-        Ok(())
-    });
+    }
+    // The item bodies the world holds whose records the ground store no longer has (#1214 stage 6d.2), in ID order.
+    let mut items: Vec<(Key, bool)> = world
+        .keys_with_prefix("item:")
+        .into_iter()
+        .map(|key| (key, world.ground.holds(u64::from(key))))
+        .collect();
+    items.sort_by(|a, b| world.id_order(a.0, b.0));
+    for (key, on_ground) in items {
+        if on_ground {
+            continue;
+        }
+        log.mark(world, MARK_REMOVED, key)?;
+        log.remove(world, key)?;
+        log.entry(Entry::Item {
+            key,
+            added: false,
+            reference: -1.0,
+        });
+    }
+    log.commit(world)?;
+    Ok(live.len())
 }
 
-/// The sync's second call, when the first found room: launched items first, then the items awaiting
-/// a body, each placed where it lies if the map, the solid props and the active actors leave room.
-/// The input, after the header: the loot body's row, the active actors' disks, the held item keys,
-/// the launches, the items awaiting a body, then the markers' keys.
-///
-/// The items awaiting a body come in chunks, in ID order: the header's flag word says whether this
-/// chunk ran out with room left, so that JavaScript packs the next, which comes with no launches. On
-/// a large map most are never packed, as the TypeScript never visited them once the world was full.
-pub fn synchronize_items(world: &mut World, map: &mut CollisionMap, gates: &mut GateSet) {
-    run(world, |world, input, log, header| {
-        let count = |i: usize| input[i] as usize;
-        let (launches, waiting, active, held, markers) = (
-            count(B_LAUNCHES),
-            count(B_WAITING),
-            count(B_ACTIVE),
-            count(B_HELD),
-            count(B_MARKERS),
-        );
-        let template_at = B_HEADER;
-        let active_base = template_at + BODY_ROW;
-        let held_base = active_base + active * 3;
-        let launch_base = held_base + held;
-        let waiting_base = launch_base + launches * LAUNCH_STRIDE;
-        let marker_base = waiting_base + waiting * WAITING_STRIDE;
-        log.markers = keys(&input[marker_base..marker_base + markers]);
-        log.capacity = count(B_CAPACITY);
-        let template = input[template_at..template_at + BODY_ROW].to_vec();
-        let radius = template[4];
-        let disks: Vec<Disk> = input[active_base..held_base].as_chunks::<3>().0.to_vec();
-        // The item bodies, the launches and the records awaiting a body are the core's own (#1214 stage 6d.3); the
-        // adapter sends none of them.
-        let _ = (
-            held,
-            launch_base,
-            launches,
-            waiting_base,
-            waiting,
-            WAITING_STRIDE,
-            LAUNCH_STRIDE,
-        );
-        let mut items = world.keys_with_prefix("item:");
-        let reserve_actors = count(B_RESERVE_ACTORS);
-        let drop_reserve = count(B_DROP_RESERVE);
-        let mut place = |world: &mut World, log: &mut Log, row: &[f64], reserve: usize| {
-            let key = row[0] as Key;
-            let (x, y) = (row[2], row[3]);
-            if items.contains(&key)
-                || !world.can_add_bodies(1 + reserve_actors + reserve)
-                || !can_occupy(map, gates, x, y, radius, false, false)
-                || !loot_fits(world, x, y, radius, &disks)
-            {
-                return Ok(());
-            }
-            let (vx, vy) = if row.len() > 4 {
-                (row[4], row[5])
-            } else {
-                (0.0, 0.0)
-            };
-            log.queue(world, &template, TEMPLATE_LOOT, key, row[1], [x, y, vx, vy])?;
-            items.push(key);
-            world.stop_awaiting(key);
-            log.entry(Entry::Item {
-                key,
-                added: true,
-                reference: row[1],
-            });
-            log.commit(world)?;
-            log.mark(world, MARK_PLACED, key)
-        };
-        // Each row: key, the record's id (the reference JavaScript finds it by), x, y, then a launch's motion.
-        let row_of = |world: &World, key: Key| {
-            world.ground.by_key(u64::from(key)).map(|r| {
-                vec![
-                    f64::from(key),
-                    r.words[0],
-                    r.words[ground::X],
-                    r.words[ground::Y],
-                ]
-            })
-        };
-        // A preflighted transfer owns its released slots first: the launches in ID order, those still on the ground.
-        let mut launched = std::mem::take(&mut world.launches);
-        launched.sort_by(|a, b| world.id_order(a.0, b.0));
-        for &(key, vx, vy) in &launched {
-            if let Some(mut row) = row_of(world, key) {
-                row.extend_from_slice(&[vx, vy]);
-                place(world, log, &row, 0)?;
-            }
+/// The sync's item admission, when there is room: launched items first, then the items awaiting a body, each placed
+/// where it lies if the map, the solid props and the active actors leave room. The launches, the records awaiting a
+/// body and the item bodies are the world's own (#1214 stage 6d.3); the active actors' disks come from its player
+/// store in roster order, as the adapter packed them (6d.6).
+fn items(
+    world: &mut World,
+    map: &mut CollisionMap,
+    gates: &mut GateSet,
+    log: &mut Log,
+    reserve_actors: usize,
+) -> Result<(), Refusal> {
+    let config = &world.sync_config;
+    let template = config.templates[TEMPLATE_LOOT as usize].clone();
+    let radius = template[4];
+    let drop_reserve = config.drop_reserve;
+    let disks: Vec<Disk> = world
+        .players
+        .rows
+        .iter()
+        .filter(|r| r.status == 0.0)
+        .map(|r| [r.x, r.y, config.templates[usize::from(r.role != 0.0)][4]])
+        .collect();
+    let mut items = world.keys_with_prefix("item:");
+    let mut place = |world: &mut World, log: &mut Log, row: &[f64], reserve: usize| {
+        let key = row[0] as Key;
+        let (x, y) = (row[2], row[3]);
+        if items.contains(&key)
+            || !world.can_add_bodies(1 + reserve_actors + reserve)
+            || !can_occupy(map, gates, x, y, radius, false, false)
+            || !loot_fits(world, x, y, radius, &disks)
+        {
+            return Ok(());
         }
-        // Then the records awaiting a body, in ID order, a launched one excepted. No item frees room, so the walk
-        // stops at the first that finds none, where the TypeScript stopped packing chunks.
-        let awaiting = world.waiting.clone();
-        for key in awaiting {
-            if launched.iter().any(|l| l.0 == key) {
-                continue;
-            }
-            if !world.can_add_bodies(1 + reserve_actors + drop_reserve) {
-                break;
-            }
-            if let Some(row) = row_of(world, key) {
-                place(world, log, &row, drop_reserve)?;
-            }
+        let (vx, vy) = if row.len() > 4 {
+            (row[4], row[5])
+        } else {
+            (0.0, 0.0)
+        };
+        log.queue(world, &template, TEMPLATE_LOOT, key, row[1], [x, y, vx, vy])?;
+        items.push(key);
+        world.stop_awaiting(key);
+        log.entry(Entry::Item {
+            key,
+            added: true,
+            reference: row[1],
+        });
+        log.commit(world)?;
+        log.mark(world, MARK_PLACED, key)
+    };
+    // Each row: key, the record's id (the reference JavaScript finds it by), x, y, then a launch's motion.
+    let row_of = |world: &World, key: Key| {
+        world.ground.by_key(u64::from(key)).map(|r| {
+            vec![
+                f64::from(key),
+                r.words[0],
+                r.words[ground::X],
+                r.words[ground::Y],
+            ]
+        })
+    };
+    // A preflighted transfer owns its released slots first: the launches in ID order, those still on the ground.
+    let mut launched = std::mem::take(&mut world.launches);
+    launched.sort_by(|a, b| world.id_order(a.0, b.0));
+    for &(key, vx, vy) in &launched {
+        if let Some(mut row) = row_of(world, key) {
+            row.extend_from_slice(&[vx, vy]);
+            place(world, log, &row, 0)?;
         }
-        header[3] = 0.0;
-        let done = log.commit(world);
-        world.markers = log.markers.clone();
-        done
-    });
+    }
+    // Then the records awaiting a body, in ID order, a launched one excepted. No item frees room, so the walk stops at
+    // the first that finds none, where the TypeScript stopped packing chunks.
+    let awaiting = world.waiting.clone();
+    for key in awaiting {
+        if launched.iter().any(|l| l.0 == key) {
+            continue;
+        }
+        if !world.can_add_bodies(1 + reserve_actors + drop_reserve) {
+            break;
+        }
+        if let Some(row) = row_of(world, key) {
+            place(world, log, &row, drop_reserve)?;
+        }
+    }
+    log.commit(world)
 }
 
 /// Phase 1's admission of the pending impulses and attachments, from the world's own queues (#1214 stage 6d.5): an

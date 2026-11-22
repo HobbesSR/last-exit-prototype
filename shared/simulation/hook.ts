@@ -45,7 +45,8 @@ export function hookSkill(s: Game, p: Player): void {
 // what comes back: each rope queued (its spec built here, as `queueAddConstraint` built it), each commit's facts, each
 // hook removed, then the hooks' fields as the rules left them. With no hook there is nothing to run, only the commit
 // each of the three ended with.
-const MODE_PREPARE = 0, MODE_FINISH = 1, MODE_RECONCILE = 2;
+// The reconcile (mode 2) ends every body sync, inside the core's sync (`boundary::synchronize`, #1214 stage 6d.6).
+const MODE_PREPARE = 0, MODE_FINISH = 1;
 const OUT_HEADER = 6, OP_COMMIT = 2, OP_REMOVED = 20, OP_ROPE = 21, STATE_STRIDE = 9;
 const PHASES = ['flying', 'pending', 'pulling'] as const;
 /** Words per hook uploaded (`world::HOOK_RECORD`). */
@@ -157,5 +158,3 @@ export function prepareHooks(s: Game): void { runHooks(s, MODE_PREPARE); }
 /** Phase 5: server-authoritative tip sweep against moving actors and current geometry. */
 export function finishHooks(s: Game, paths: Record<string, Vec2[]>): void { runHooks(s, MODE_FINISH, paths); }
 
-/** Phase 7 and between-tick reconciliation after body/gate lifecycle changes. */
-export function reconcileHooks(s: Game): void { runHooks(s, MODE_RECONCILE); }

@@ -74,8 +74,9 @@ export interface PhysicsExports {
   // The tick boundary (`rust/core/src/boundary.rs`, #1234), driven by `shared/simulation/boundary.ts`.
   physics_boundary_input(world: number, length: number): number;
   physics_boundary_output(world: number): number;
-  physics_sync_bodies(world: number, collision: number, gates: number): void;
-  physics_sync_items(world: number, collision: number, gates: number): void;
+  // The whole body sync and its match-pinned settings (#1214 stage 6d.6).
+  physics_sync(world: number, collision: number, gates: number, swept: number): void;
+  physics_sync_configure(world: number): void;
   physics_admit_pending(world: number, index: number, gates: number): void;
   physics_place(world: number, collision: number, gates: number): void;
   // The drop planner's spiral search (`rust/core/src/scatter.rs`, #1228), driven by `scatterInCore` in boundary.ts.
