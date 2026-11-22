@@ -7,8 +7,6 @@
   },
   "note": "Rerun on 2026-11-22 (agent-claudecode): same source, same map cache, release WASM built at the source; two runs per configuration, run order no traps then traps, twice",
   "notraps-1": {
-    "root": "C:\\Users\\Corey\\Documents\\Projects\\astra_test.agents\\claude",
-    "cache": "C:\\Users\\Corey\\.claude\\jobs\\aa83fcfd\\tmp\\map.v8",
     "seed": 4217,
     "size": "24x12",
     "warmTicks": 300,
@@ -226,8 +224,6 @@
     }
   },
   "notraps-2": {
-    "root": "C:\\Users\\Corey\\Documents\\Projects\\astra_test.agents\\claude",
-    "cache": "C:\\Users\\Corey\\.claude\\jobs\\aa83fcfd\\tmp\\map.v8",
     "seed": 4217,
     "size": "24x12",
     "warmTicks": 300,
@@ -445,8 +441,6 @@
     }
   },
   "traps-1": {
-    "root": "C:\\Users\\Corey\\Documents\\Projects\\astra_test.agents\\claude",
-    "cache": "C:\\Users\\Corey\\.claude\\jobs\\aa83fcfd\\tmp\\map.v8",
     "seed": 4217,
     "size": "24x12",
     "warmTicks": 300,
@@ -664,8 +658,6 @@
     }
   },
   "traps-2": {
-    "root": "C:\\Users\\Corey\\Documents\\Projects\\astra_test.agents\\claude",
-    "cache": "C:\\Users\\Corey\\.claude\\jobs\\aa83fcfd\\tmp\\map.v8",
     "seed": 4217,
     "size": "24x12",
     "warmTicks": 300,
