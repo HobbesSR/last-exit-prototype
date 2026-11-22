@@ -225,6 +225,29 @@ then reads the actors still to run as the call resuming there would, and goes on
   the stopping actor rebuilt, the run fails.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6d.6d, a mine's explosion in the run (#1214, adapter version 34).** `STOP_EXPLOSION` is gone. Where a mine
+explodes, the hazards run does what `enqueueExplosionImpulses` did at the stop (`hazards::explode`):
+- **The sync.** The run gives its rows back to the player store, runs the body sync (`boundary::synchronize_in_run`)
+  and takes them again, so the rest of the run reads what the resumed call read. The sync's log goes to Node
+  (`OP_SYNC`, 5).
+- **The impulses.** Every body that is not static, in ID order (`World::dynamic_keys`), within the blast and in the
+  mine's sight (`line_clear`, the static map as cover), takes an impulse away from it, falling off with distance. Each
+  is enqueued in the world's queue (`World::enqueue_impulse`, 6d.5) with its limit, an actor's or the world's.
+  - A radius that is not positive returns before the sync, as before.
+  - Node synced again before each enqueue. Nothing those syncs read had changed, so they changed nothing.
+  - A refusal (`OP_REFUSED`, 6) ends the run, and Node throws `enqueuePhysicsImpulse`'s error once the call's writes
+    are applied, as they were at the stop.
+- **Node's part.** The adapter sends the sync's words (the markers' capacity, the roster, the impulse limits and the
+  markers) whenever the trap list holds a mine. It applies the sync's log and reads the queues' mirror back after the
+  call.
+- **`hazards_run`** takes the whole world (the hazards move out while they run) and the swept map.
+- **`enqueueExplosionImpulses`** is no longer called by play. Two tests still call it directly
+  (`physics-explosion`, `physics-items-boundaries`), and it stays as their retained copy.
+- **The witness.** `tools/trap-continuity.mjs` hashes the pending impulses every tick. Its bot matches set off 15
+  mines, all inside the run (counted with a temporary probe), and it matched a pristine export of `02e47403` hash for
+  hash. `physics-explosion`'s real games cover falloff, cover and order.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -921,7 +944,8 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
       - **6d.6c:** phase 6's pickups and swaps, in two PRs:
         - **6d.6c.1 (#1214):** phase 6 reads its ground from the core's store and grid. Below.
         - **6d.6c.2 (#1214):** pickups, swaps and an instant transit's landing sync inside the run. Below.
-      - **6d.6d:** a mine's explosion syncs and enqueues its impulses in `hazards.rs`, retiring `STOP_EXPLOSION`.
+      - **6d.6d (#1214):** a mine's explosion syncs and enqueues its impulses in `hazards.rs`, retiring `STOP_EXPLOSION`.
+        Below. With it, every stop of 6d is gone; an elimination's stops are 6e's.
 - **The direction (Corey, 2026-11-21, on #1214):** "now the way this should work eventually is that essentially the core
   should just be receiving tick timed input events or roughly that at the interface betweeen it and JS". So from 6d.2
   the remaining work is ordered by the stops it removes, each a crossing gone for good, rather than reader by reader.

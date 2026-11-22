@@ -12,20 +12,31 @@
 //!
 //! **Damage is the core's** (`combat::Run::damage`), and a kill is a stop, as in phase 5: the run returns before
 //! anything of the elimination is written, Node runs it (`actions_run`'s mode 4), whose mandatory drops each
-//! return at 5c.2's sync boundary, then resumes. A mine's explosion is a stop too: Node queues its impulses
-//! (`enqueueExplosionImpulses`), which synchronize the world and fill the pending-impulse queue that Node owns
-//! until the flip (#1214). Everything is repacked on a resume; only the cursor is kept here.
+//! return at 5c.2's sync boundary, then resumes. Everything is repacked on a resume; only the cursor is kept here.
+//! A mine's explosion is carried out in the run (#1214 stage 6d.6d, `explode`): the world syncs from the store and
+//! the impulses are queued in its own queue, as `enqueueExplosionImpulses` did at the stop this replaced.
 use crate::collision::{CollisionMap, can_occupy, line_clear};
 use crate::combat::{OUT_ROW, Run};
 use crate::math::{atan2, cos, hypot, js_max, sin};
 use crate::phase_seven::Rewind;
-use crate::players::Players;
 use crate::sight::{GateSet, SightIndex};
+use crate::swept::SweptMap;
+use crate::world::World;
 
 /// Input header: resume (nonzero continues the kept cursor), tick, serial, player count, trap count, hazard area
 /// count, the hazard wall's x, whether to run the environment, whether to run the traps, and whether the trap rows
 /// follow (an upload, which replaces the kept traps). Without an upload the trap count is the kept traps'.
-pub const HEADER: usize = 10;
+pub const HEADER: usize = 11;
+/// Header word: the run carries out a mine's explosion itself (#1214 stage 6d.6d). Its words follow the traps: the
+/// markers' capacity, the roster's size, the world's and an actor's impulse limits, the markers' count and keys.
+const IN_RUN: usize = 10;
+/// The body sync's log an explosion leaves in the output (`boundary::synchronize`), applied by Node as its own.
+pub const OP_SYNC: f64 = 5.0;
+/// An impulse the world refused: the code (`world::E_*`, or `E_UNREPRESENTABLE_IMPULSE`) and the body's key. The run
+/// ends there, and Node throws `enqueuePhysicsImpulse`'s error once the call's writes are applied.
+pub const OP_REFUSED: f64 = 6.0;
+/// `enqueuePhysicsImpulse`'s refusal of a value that is not finite or exceeds 1e9 in magnitude.
+pub const E_UNREPRESENTABLE_IMPULSE: i32 = -44;
 /// The trap content, after the header: mine trigger, blast, damage; turret range, cooldown, speed, damage, life;
 /// flame cycle, warnAt, fireAt, interval, range, cone, damage; spider leash, acquire, step, grapple, cooldown, stun,
 /// damage.
@@ -35,14 +46,12 @@ pub const AREA_ROW: usize = 4;
 /// Per trap uploaded: kind (`TRAP_KINDS`, -1 unknown), x, y, homeX, homeY, heading, offset, `cooldown || 0`, spent,
 /// the roster index of its `targetId` (-1 none).
 pub const TRAP_ROW: usize = 10;
-/// Output header: length, serial, stopped (0 no, 1 an elimination, 2 a mine's explosion), its target or trap
-/// index, the elimination's source (-1 none), the player count, the log length, the trap rows written.
+/// Output header: length, serial, stopped (0 no, 1 an elimination), its target, the elimination's source (-1 none), the player count, the log length, the trap rows written.
 pub const OUT_HEADER: usize = 8;
 /// Per trap written: its index, the mask of fields written, then cooldown, spent, aiming, heading, firing,
 /// warning, target (-1 null), x, y.
 pub const OUT_TRAP: usize = 11;
 pub const STOP_ELIMINATION: f64 = 1.0;
-pub const STOP_EXPLOSION: f64 = 2.0;
 pub const OP_SPAWN: f64 = 3.0;
 
 pub const W_COOLDOWN: u32 = 1;
@@ -103,7 +112,7 @@ enum Cursor {
     /// The environment, at the actor `pos` in `ordered(s)` order: `sub` 0 the wall, 1 the areas.
     Environment { pos: usize, sub: u8 },
     /// The trap `t`: `step` 0 begins it; 1 a mine's or flame's damage from player `j`; 2 a mine's explosion is
-    /// queued; 3 a spider's grapple effect at player `j`.
+    /// done; 3 a spider's grapple effect at player `j`.
     Trap { t: usize, step: u8, j: usize },
 }
 
@@ -123,11 +132,12 @@ fn distance(a: (f64, f64), b: (f64, f64)) -> f64 {
 impl Hazards {
     pub fn run(
         &mut self,
-        store: &mut Players,
+        world: &mut World,
         map: &mut CollisionMap,
         index: &SightIndex,
         gates: &mut GateSet,
         hz: f64,
+        swept: Option<&SweptMap>,
     ) {
         let input = std::mem::take(&mut self.input);
         let h = &input[..HEADER];
@@ -145,8 +155,8 @@ impl Hazards {
         };
         at += CONTENT;
         // The players come from the core's store (`players.rs`), uploaded for this call.
-        let rows = store.take(players);
-        let moved = store.moved.clone();
+        let rows = world.players.take(players);
+        let moved = world.players.moved.clone();
         let boxes = &input[at..at + areas * AREA_ROW];
         at += areas * AREA_ROW;
         if upload {
@@ -176,6 +186,16 @@ impl Hazards {
             self.traps.len(),
             "the trap count is the kept traps'"
         );
+        if upload {
+            at += trap_count * TRAP_ROW;
+        }
+        // A mine's explosion is carried out in the run where the adapter sent what its sync needs (6d.6d).
+        let in_run = (h[IN_RUN] != 0.0).then(|| {
+            let w = &input[at..];
+            let markers = w[4] as usize;
+            world.markers = w[5..5 + markers].iter().map(|&k| k as u32).collect();
+            (w[0], w[1], w[2], w[3])
+        });
         let mut traps = std::mem::take(&mut self.traps);
         // Each call reports only its own writes.
         for trap in &mut traps {
@@ -422,8 +442,53 @@ impl Hazards {
                             }
                             if trap.kind == MINE {
                                 cursor = Cursor::Trap { t, step: 2, j: 0 };
-                                stop = Some((STOP_EXPLOSION, t, None));
-                                break 'run;
+                                // The adapter sends the explosion's words with every list that holds a mine (6d.6d).
+                                let (capacity, roster, world_max, actor_max) =
+                                    in_run.expect("a mine's explosion needs the in-run words");
+                                // `!(radius > 0)` returns before the sync.
+                                let blast = content.mine[1];
+                                if blast.is_nan() || blast <= 0.0 {
+                                    continue;
+                                }
+                                // `enqueueExplosionImpulses`, as Node ran it at the stop: the world syncs from the
+                                // store, which takes the run's rows first and gives them back after.
+                                world.players.restore(std::mem::take(&mut run.rows));
+                                let out = crate::boundary::synchronize_in_run(
+                                    world,
+                                    map,
+                                    gates,
+                                    swept.expect("an explosion in the run needs the swept map"),
+                                    tick,
+                                    capacity,
+                                    roster,
+                                );
+                                let refused = out[0] < 0.0;
+                                run.log.extend_from_slice(&[OP_SYNC, out.len() as f64]);
+                                run.log.extend_from_slice(&out);
+                                let failed = if refused {
+                                    true
+                                } else {
+                                    explode(
+                                        world,
+                                        index,
+                                        gates,
+                                        origin,
+                                        blast,
+                                        (world_max, actor_max),
+                                        &mut run.log,
+                                    )
+                                };
+                                run.rows = world.players.take(players);
+                                if failed {
+                                    // Node throws there; nothing after it runs.
+                                    cursor = Cursor::Trap {
+                                        t: trap_count,
+                                        step: 0,
+                                        j: 0,
+                                    };
+                                    break 'run;
+                                }
+                                continue;
                             }
                             cursor = next;
                         }
@@ -478,8 +543,60 @@ impl Hazards {
         self.output = out;
         self.input = input;
         self.traps = traps;
-        store.restore(run.rows);
+        world.players.restore(run.rows);
     }
+}
+
+/// `enqueueExplosionImpulses` after its sync (#1214 stage 6d.6d): every body that is not static, in ID order, within
+/// the blast and in sight of the mine (the static map is the cover; dynamic props are inert cover), takes an impulse
+/// away from it, falling off with distance, enqueued in the world's own queue (`World::enqueue_impulse`, 6d.5). Node
+/// synced again before each enqueue; nothing those syncs read had changed, so they changed nothing. A refusal is
+/// logged (`OP_REFUSED`); returns whether one ended the run.
+fn explode(
+    world: &mut World,
+    index: &SightIndex,
+    gates: &GateSet,
+    origin: (f64, f64),
+    radius: f64,
+    (world_max, actor_max): (f64, f64),
+    log: &mut Vec<f64>,
+) -> bool {
+    for key in world.dynamic_keys() {
+        let Some(at) = world.position(key) else {
+            continue;
+        };
+        let (dx, dy) = (at.0 - origin.0, at.1 - origin.1);
+        let distance = hypot(dx, dy);
+        if distance >= radius || !line_clear(index, gates, origin, at).0 {
+            continue;
+        }
+        let magnitude = world_max * (1.0 - distance / radius);
+        // `!(magnitude > 0)`: NaN skips too.
+        if magnitude.is_nan() || magnitude <= 0.0 {
+            continue;
+        }
+        let (ux, uy) = if distance == 0.0 {
+            (1.0, 0.0)
+        } else {
+            (dx / distance, dy / distance)
+        };
+        let (x, y) = (ux * magnitude, uy * magnitude);
+        let code = if !(x.is_finite() && x.abs() <= 1e9 && y.is_finite() && y.abs() <= 1e9) {
+            E_UNREPRESENTABLE_IMPULSE
+        } else {
+            let limit = if world.id_starts_with(key, "actor:") {
+                actor_max
+            } else {
+                world_max
+            };
+            world.enqueue_impulse(key, x, y, limit)
+        };
+        if code < 0 {
+            log.extend_from_slice(&[OP_REFUSED, 2.0, f64::from(code), f64::from(key)]);
+            return true;
+        }
+    }
+    false
 }
 
 /// `filter(test).sort(by distance to origin)[0]`: the first in roster order at the least distance, as a stable sort
