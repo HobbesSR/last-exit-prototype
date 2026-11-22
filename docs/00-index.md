@@ -79,6 +79,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [25-pacing-and-rendering.md](25-pacing-and-rendering.md) | Tick pacing against real time, the receive buffer, presentation smoothing, shading |
 | [26-recording-contract.md](26-recording-contract.md) | Replay format, integrity, bounded recording, failure and recovery, playback |
 | [27-rust-path.md](27-rust-path.md) | The decided move of the backend's foundations to Rust (#1173): boundaries (edge, core, host; map generation stays in Node), the edge, the core as one WASM binary behind an adapter, the one math library both sides need, the `rust/` workspace and how its WASM loads (#1174), tests and the fixture, physics |
+| [27.1-tick-mechanic-inventory.md](27.1-tick-mechanic-inventory.md) | The post-state-flip tick census and order-dependent rules for the governing design (#1281, #1282) |
 | [28-operational-limits.md](28-operational-limits.md) | What this build deliberately does not do, and what public hosting would need |
 | [28.1-deployment-topology.md](28.1-deployment-topology.md) | Proposed direction, not decided: which server pieces could become separate processes or hosts, where client sockets terminate, rules for any topology, and an order (#1121, #907) |
 | [29-geometry-and-drawing.md](29-geometry-and-drawing.md) | Guide: shape descriptions, collision, sight edges, physics prerequisites |

@@ -576,7 +576,7 @@ tuned, so now is the time."
   fact-ordering rules.
 - **What follows.**
   1. A playtest checkpoint (#1280).
-  2. A mechanic inventory (#1281).
+  2. [27.1](27.1-tick-mechanic-inventory.md), the mechanic inventory (#1281).
   3. A governing design document (#1282): a state model, a shared effect vocabulary, and stages over a frozen
      pre-state with one resolver (#1276) and one apply.
   4. The tick built to that design (#1283).
@@ -1061,7 +1061,7 @@ TypeScript `applyEnvironment`, `finishMatch`, `recordRewind` and `asSeenBy` are 
   is admitted at the next tick's phase 1 as before. The tick no longer splices them off `s.projectiles`.
 - **`finishMatch` reports, Node writes.** The match's phase, the stranded statuses and the `match_finished` event stay
   Node's records until the flip. The call reports whether the match finished, the event's ID and who is stranded.
-  It runs after discovery and before the last sync, as before.
+  At this stage it ran after discovery and before the last sync. The live order since 6e.5c is in [27.1](27.1-tick-mechanic-inventory.md#after-the-solve-through-publication).
 - **The rewind frames are the core's own.** `recordRewind` packs each player's position after the last sync, and the
   caster run reads the frames in place. `s.rewind` is gone from the game record; it never reached a snapshot or a
   recording. The window, `MAX_REWIND_TICKS`, is one constant in the core. `rewind.ts` keeps its own copy for
