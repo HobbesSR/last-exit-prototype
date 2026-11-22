@@ -4,6 +4,7 @@ import { applyLog, applyPlayerRows } from './phase-five.ts';
 import { playersStale, uploadPlayers } from './player-store.ts';
 import { applyElimination, configure, eliminateInCore } from './phase-three.ts';
 import { syncRegistry } from './registry-store.ts';
+import { projectilesCurrent, sawProjectiles, syncProjectiles } from './projectile-store.ts';
 import type { ActionsCore } from './phase-three.ts';
 import { mirrorPendingQueues, physicsRuntime } from './physics-runtime.ts';
 import { applySyncLog, prepareInRunSync } from './boundary.ts';
@@ -86,6 +87,7 @@ function call(s: Game, parts: Parts, resume: boolean): { kind: number; which: nu
   // call need follows the traps.
   prepareInRunSync(s, r);
   syncRegistry(s, r);
+  syncProjectiles(s, r);
   const markers = r.discontinuities.map(entry => r.world.key(entry.id));
   const inRunWords = [r.discontinuityCapacity, players.length, s.content.worldPhysics.maxImpulse, s.content.actorPhysics.maxImpulse,
     s.itemSerial ?? 1, s.scatterSerial ?? 0, s.content.gladiatorRespawnTicks, s.content.worldPhysics.loot.dropSpeed, markers.length, ...markers];
@@ -114,6 +116,8 @@ function call(s: Game, parts: Parts, resume: boolean): { kind: number; which: nu
   // Copied: an explosion's sync and an elimination applied from the log call into the core.
   const out = new Float64Array(core.memory.buffer, outPtr, new Float64Array(core.memory.buffer, outPtr, 1)[0]!).slice();
   let exploded = false, refused: { code: number; key: number } | undefined;
+  // The core queued a turret's spawns too (#1214 stage 6e.3), as the mirror queues them below.
+  const current = projectilesCurrent(s, r);
   // The log first, then the rows, which are the store's at the end of the call (6e.2).
   at = applyLog(s, out, OUT_HEADER + out[5]! * OUT_ROW, out[6]!, (op, k) => {
     if (op === OP_SYNC) {
@@ -131,6 +135,7 @@ function call(s: Game, parts: Parts, resume: boolean): { kind: number; which: nu
     else throw new Error(`unknown phase 6 fact ${op}`);
   });
   applyPlayerRows(s, out, OUT_HEADER);
+  if (current) sawProjectiles(s, r);
   s.serial = out[1]!;
   for (let i = 0; i < out[7]!; i++, at += OUT_TRAP) applyTrap(s, traps[out[at]!]!, out, at);
   // The impulses' mirror follows the core's queue, as each `enqueuePhysicsImpulse` read it back.

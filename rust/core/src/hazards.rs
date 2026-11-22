@@ -353,17 +353,16 @@ impl Hazards {
                                     // `!trap.cooldown`: zero or NaN.
                                     if !truthy(trap.cooldown) {
                                         trap.cooldown = cooldown;
+                                        let (dx, dy) =
+                                            (cos(trap.heading) * speed, sin(trap.heading) * speed);
                                         run.log.extend_from_slice(&[
-                                            OP_SPAWN,
-                                            8.0,
-                                            run.serial,
-                                            t as f64,
-                                            trap.x,
-                                            trap.y,
-                                            cos(trap.heading) * speed,
-                                            sin(trap.heading) * speed,
-                                            damage,
-                                            life,
+                                            OP_SPAWN, 8.0, run.serial, t as f64, trap.x, trap.y,
+                                            dx, dy, damage, life,
+                                        ]);
+                                        // The spawn waits in the world's queue too, as phase 5's row: a trap owns it,
+                                        // which is no player (6e.3).
+                                        world.pending_spawns.push([
+                                            run.serial, -1.0, trap.x, trap.y, dx, dy, life, damage,
                                         ]);
                                         run.serial += 1.0;
                                     }

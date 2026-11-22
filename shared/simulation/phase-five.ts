@@ -3,6 +3,7 @@ import type { Game, Player, Projectile, Vec2 } from '../types.ts';
 import { applyElimination, configure, eliminateInCore } from './phase-three.ts';
 import { prepareInRunSync } from './boundary.ts';
 import { syncRegistry } from './registry-store.ts';
+import { projectilesCurrent, sawProjectiles, syncProjectiles } from './projectile-store.ts';
 import type { ActionsCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { playersStale, uploadPlayers } from './player-store.ts';
@@ -27,6 +28,8 @@ const OUT_HEADER = 9, OUT_ROW = 5, OP_EFFECT = 1, OP_AGGRESSION = 2;
 /** An elimination the core carried out in the run (`phase_three::OP_ELIMINATED`): target, source, phase 3's output. */
 const OP_ELIMINATED = 9;
 const STEPS = 4;
+/** A count the core takes from its store (`phase_three::FROM_STORE`). */
+const FROM_STORE = -2;
 
 /** A caster in `ordered(s)` order, with what it pressed this tick. */
 export interface Caster { player: Player; skill: boolean; attack: boolean }
@@ -76,11 +79,15 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
   if (!r) throw new Error('phase 5 needs the game\'s physics world');
   const native = r.world.boundaryCall(), core = native.core as Core, world = native.world;
   configure(s, r, core, world);
-  const players = s.players, bullets = c.resume ? [] : c.bullets ?? [], casters = c.resume ? [] : c.casters ?? [];
+  // The bullets are the core's projectiles (#1214 stage 6e.3): a projectile call reads them from the store.
+  syncProjectiles(s, r);
+  const fromStore = c.mode === MODE_PROJECTILES && !c.resume && c.bullets === s.projectiles;
+  const current = projectilesCurrent(s, r) && (fromStore || c.mode !== MODE_PROJECTILES);
+  const players = s.players, bullets = c.resume || fromStore ? [] : c.bullets ?? [], casters = c.resume ? [] : c.casters ?? [];
   // The rewind frames are the core's own (phase 7, `phase_seven.rs`), so none cross here.
   const damage = c.damage;
   // A kill's elimination is carried out in the core (#1214 stage 6e.2): its call's words follow the casters.
-  const data: number[] = [c.mode, c.resume ? 1 : 0, s.tick, s.serial, players.length, bullets.length, casters.length,
+  const data: number[] = [c.mode, c.resume ? 1 : 0, s.tick, s.serial, players.length, fromStore ? FROM_STORE : bullets.length, casters.length,
     damage ? playerIndex(s, damage.target) : NaN, damage?.amount ?? NaN, damage?.source ? playerIndex(s, damage.source) : -1, 1];
   const paths = c.mode === MODE_PROJECTILES && !c.resume ? c.paths ?? {} : undefined;
   if (paths) players.forEach(p => {
@@ -135,6 +142,8 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
     const removed = new Set(Array.from({ length: out[8]! }, (_, i) => c.bullets![out[at + i]!]));
     s.projectiles = s.projectiles.filter(b => !removed.has(b));
   }
+  // The core flew its projectiles alike, and took any shot an elimination's call fired.
+  if (current) sawProjectiles(s, r);
   return out[2] ? { target: players[out[3]!]!, source: out[4]! >= 0 ? players[out[4]!]! : null } : null;
 }
 
