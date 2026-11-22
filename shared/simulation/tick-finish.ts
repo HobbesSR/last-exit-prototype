@@ -4,7 +4,10 @@ import { physicsRefusal } from '../physics/world.ts';
 import type { PhysicsExports } from '../physics/world.ts';
 import type { Game } from '../types.ts';
 import type { BotIntent } from './bots.ts';
-import { prepareInRunSync } from './boundary.ts';
+import { applySyncLog, prepareInRunSync } from './boundary.ts';
+import { applyHazards, hazardsBlock } from './hazards.ts';
+import { applyInteractions, sixBlock } from './phase-six.ts';
+import { applyFinish } from './phase-seven.ts';
 import { actorId } from './game.ts';
 import { applyHookOutput } from './hook.ts';
 import { applyCombat, MODE_CASTER_CALL, MODE_PROJECTILE_CALL } from './phase-five.ts';
@@ -17,9 +20,10 @@ import { syncRegistry } from './registry-store.ts';
 import { sightOf } from './sight-runtime.ts';
 import { applyItemPoses, ensureFloor } from './world-physics.ts';
 
-// The tick's second call (D4's `tick_finish(intents)`, #1214 stage 6e.5b, `rust/core/src/lib.rs`): phases 3 to 5 in one
-// call, which the core builds from the intents and its stores. This packs the intents, makes the call and applies each
-// step's output in its order with that step's own applier. Phases 6 and 7 still follow as their own calls (6e.5c).
+// The tick's second call (D4's `tick_finish(intents)`, #1214 stages 6e.5b and 6e.5c, `rust/core/src/lib.rs`): phases 3
+// to 7 in one call, which the core builds from the intents and its stores. This packs the intents and what the stores do
+// not hold, makes the call and applies each step's output in its order with that step's own applier. Discovery follows
+// in Node, after the call.
 
 interface TickFinishExports {
   tick_finish(world: number, collision: number, index: number, gates: number, swept: number): number;
@@ -54,15 +58,21 @@ export function tickFinish(s: Game, r: PhysicsRuntime, intents: readonly (BotInt
   configure(s, r, core as ActionsCore, world);
   if (playersStale(r)) uploadPlayers(s, r, core as unknown as CoreExports & PhysicsExports & Parameters<typeof uploadPlayers>[2], world);
   const markers = r.discontinuities.map(entry => r.world.key(entry.id));
+  const six = sixBlock(s, r), hazards = hazardsBlock(s, r);
   const words = [s.tick, s.serial, s.itemSerial ?? 1, s.scatterSerial ?? 0, s.content.gladiatorRespawnTicks, r.discontinuityCapacity,
-    s.content.worldPhysics.loot.dropSpeed, markers.length, ...markers, ...intentRows(s, intents)];
+    s.content.worldPhysics.loot.dropSpeed, markers.length, ...markers, ...intentRows(s, intents), six.length, ...six, hazards.length, ...hazards,
+    s.content.worldPhysics.maxImpulse, s.content.actorPhysics.maxImpulse, s.content.durationTicks, s.slots, s.hazardX];
   const sight = sightOf(s), map = sight.queryHandles(s.map), swept = sight.sweptHandle(s.map);
   const pointer = core.physics_boundary_input(world, words.length) >>> 0;
   new Float64Array(core.memory.buffer, pointer, words.length).set(words);
   const at = core.tick_finish(world, map.collision, map.index, map.gates, swept) >>> 0;
   const out = new Float64Array(core.memory.buffer, at, new Float64Array(core.memory.buffer, at, 1)[0]!).slice();
   let k = 4;
-  const next = (): Float64Array => { const length = out[k]!, section = out.subarray(k + 1, k + 1 + length); k += 1 + length; return section; };
+  // A section the call did not reach (it ended at a refusal) reads as empty.
+  const next = (): Float64Array => {
+    if (k >= out.length) return out.subarray(0, 0);
+    const length = out[k]!, section = out.subarray(k + 1, k + 1 + length); k += 1 + length; return section;
+  };
   // Phase 3.
   const loop = next();
   if (loop.length) applyLoop(s, loop);
@@ -91,7 +101,19 @@ export function tickFinish(s: Game, r: PhysicsRuntime, intents: readonly (BotInt
   if (finished.length) applyHookOutput(s, r, finished, [...r.hooks]);
   const casters = next();
   if (casters.length) applyCombat(s, casters, { mode: MODE_CASTER_CALL });
-  s.serial = out[1]!; s.itemSerial = out[2]!; s.scatterSerial = out[3]!;
-  // The core's projectiles took the shots and the flight the mirror took.
+  // Phase 6: the per-actor loop, then the environment and the traps; a turret's spawns wait for the next tick.
+  const interactions = next();
+  if (interactions.length) applyInteractions(s, r, interactions, true, []);
+  const traps = next();
+  if (traps.length) applyHazards(s, r, traps);
+  // The core's projectiles took the shots, the flight and the spawns the mirror took.
   sawProjectiles(s, r);
+  if (r.pendingSpawns.length > 128) throw new RangeError('pending projectile capacity');
+  // Phase 7: the sync, the terminal result, the sync again; the rewind frame is the core's alone.
+  const first = next();
+  if (first.length) applySyncLog(s, r, first, s.tick);
+  const result7 = next();
+  if (result7.length) applyFinish(s, result7);
+  const second = next();
+  if (second.length) applySyncLog(s, r, second, s.tick);
 }

@@ -36,7 +36,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 41;
+pub const ADAPTER_VERSION: u32 = 42;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -885,6 +885,205 @@ pub unsafe extern "C" fn tick_finish(
         } else {
             section(&mut out, &[]);
         }
+        // Phase 6: each active player with an intent, in ID order, takes its turn (`phase_six::PhaseSix`), then the
+        // environment and the traps (`hazards.rs`), each built from the adapter's block of what the stores do not hold.
+        let tail = &input[FINISH_HEADER + markers + n * phase_three::INTENT_ROW..];
+        let six = &tail[1..1 + tail[0] as usize];
+        let rest = &tail[1 + tail[0] as usize..];
+        let hazards_block = &rest[1..1 + rest[0] as usize];
+        let rest = &rest[1 + rest[0] as usize..];
+        let (world_max, actor_max, duration, mut slots, hazard_x) =
+            (rest[0], rest[1], rest[2], rest[3], rest[4]);
+        let mut order: Vec<usize> = (0..n).collect();
+        order.sort_by(|&a, &b| w.players.rows[a].rank.total_cmp(&w.players.rows[b].rank));
+        let selectable = six[9] != 0.0;
+        let mut turns = Vec::new();
+        let mut swaps = false;
+        for &i in &order {
+            let row = &intents[i * phase_three::INTENT_ROW..(i + 1) * phase_three::INTENT_ROW];
+            if row[0] == 0.0 || w.players.rows[i].status != 0.0 {
+                continue;
+            }
+            let transit = !row[17].is_nan() && selectable;
+            let interact = row[16] != 0.0;
+            let steps = phase_six::STEP_CHARGING
+                | phase_six::STEP_PICKUPS
+                | if interact {
+                    phase_six::STEP_INTERACT
+                } else {
+                    0
+                }
+                | if transit { phase_six::STEP_TRANSIT } else { 0 };
+            let moved = w.players.moved.get(i).copied().unwrap_or(0.0) > 0.05;
+            let full = w.players.equip[i]
+                .inventory
+                .as_ref()
+                .is_some_and(|v| v.iter().all(Option::is_some));
+            swaps |= interact && w.players.extra[i].bot == 0.0 && full;
+            let mut a = vec![0.0; phase_six::ACTOR_ROW];
+            a[0] = i as f64;
+            a[12] = f64::from(u8::from(moved));
+            a[14] = f64::from(steps);
+            a[15] = if transit { row[17] } else { f64::NAN };
+            a[16] = row[15];
+            // The inventory, the swap's lists and the near records are the core's to decide (`prepare`).
+            (a[18], a[19], a[22]) = (
+                phase_three::FROM_STORE,
+                phase_three::FROM_STORE,
+                phase_three::FROM_STORE,
+            );
+            turns.extend_from_slice(&a);
+        }
+        let (stations, chargers, sensors) = (six[10] as usize, six[11] as usize, six[12] as usize);
+        let points = 13 + 2 * (stations + chargers + sensors);
+        let gate_details = six[points] as usize;
+        let carried: Vec<f64> = if swaps {
+            w.players
+                .equip
+                .iter()
+                .flat_map(|q| q.inventory.iter().flatten().flatten())
+                .filter(|i| {
+                    !i.missing(action_types::ABSENT_INSTANCE) && action_types::truthy(i.instance)
+                })
+                .flat_map(|i| [i.token, i.instance])
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let mut call = vec![
+            0.0,
+            0.0,
+            0.0,
+            e.tick,
+            e.serial,
+            e.item_serial,
+            e.scatter_serial,
+            slots,
+            hazard_x,
+            six[0],
+            six[1],
+            six[2],
+            six[3],
+            w.ground.len() as f64,
+            n.saturating_sub(w.sync_actors) as f64,
+            six[4],
+            six[5],
+            six[6],
+            six[7],
+            six[8],
+            (turns.len() / phase_six::ACTOR_ROW) as f64,
+            n as f64,
+            stations as f64,
+            chargers as f64,
+            sensors as f64,
+            phase_three::FROM_STORE,
+            0.0,
+            (carried.len() / 2) as f64,
+            gate_details as f64,
+            1.0,
+            0.0,
+            0.0,
+        ];
+        call.extend_from_slice(&turns);
+        let radii = w.actions.rules().radii;
+        for r in &w.players.rows {
+            call.extend_from_slice(&[0.0, 0.0, 0.0, radii[usize::from(r.role != 0.0)]]);
+        }
+        call.extend_from_slice(&six[13..points]);
+        call.extend_from_slice(&carried);
+        call.extend_from_slice(
+            &six[points + 1..points + 1 + gate_details * phase_six::GATE_DETAIL],
+        );
+        call.extend_from_slice(&[
+            e.capacity,
+            n as f64,
+            e.drop_speed,
+            f64::from(u8::from(swaps)),
+        ]);
+        call.push(w.markers.len() as f64);
+        call.extend(w.markers.iter().map(|&k| f64::from(k)));
+        w.interactions.input = call;
+        interactions_call(w, &mut *map, &*index, &mut *gates, Some(&*swept));
+        let done = w.interactions.output.clone();
+        (e.serial, e.item_serial, e.scatter_serial, slots) = (done[1], done[2], done[3], done[6]);
+        section(&mut out, &done);
+        if done[9] < 0.0 {
+            return finish(w, out, &e);
+        }
+        // The environment, then the traps.
+        let mut call = hazards_block.to_vec();
+        (call[1], call[2]) = (e.tick, e.serial);
+        call.extend_from_slice(&[
+            e.capacity,
+            n as f64,
+            world_max,
+            actor_max,
+            e.item_serial,
+            e.scatter_serial,
+            e.respawn,
+            e.drop_speed,
+            w.markers.len() as f64,
+        ]);
+        call.extend(w.markers.iter().map(|&k| f64::from(k)));
+        w.hazards.input = call;
+        hazards_call(w, &mut *map, &*index, &mut *gates, Some(&*swept));
+        let done = w.hazards.output.clone();
+        e.serial = done[1];
+        if let Some(serials) = w.hazards.item_serials {
+            (e.item_serial, e.scatter_serial) = serials;
+        }
+        section(&mut out, &done);
+        // Phase 7: the sync, the terminal result, the sync again, then the rewind frame. Discovery is Node's, after.
+        let synced = boundary::synchronize_in_run(
+            w,
+            &mut *map,
+            &mut *gates,
+            &*swept,
+            e.tick,
+            e.capacity,
+            n as f64,
+        );
+        section(&mut out, &synced);
+        if synced[0] < 0.0 {
+            return finish(w, out, &e);
+        }
+        w.phase_seven.input = vec![
+            phase_seven::MODE_FINISH as f64,
+            e.tick,
+            e.serial,
+            n as f64,
+            slots,
+            duration,
+        ];
+        phase_seven_call(w);
+        let done = w.phase_seven.output.clone();
+        if done[1] != 0.0 {
+            // The event `match_finished` takes the next serial.
+            e.serial = done[2] + 1.0;
+        }
+        section(&mut out, &done);
+        let synced = boundary::synchronize_in_run(
+            w,
+            &mut *map,
+            &mut *gates,
+            &*swept,
+            e.tick,
+            e.capacity,
+            n as f64,
+        );
+        section(&mut out, &synced);
+        if synced[0] < 0.0 {
+            return finish(w, out, &e);
+        }
+        w.phase_seven.input = vec![
+            phase_seven::MODE_REWIND as f64,
+            e.tick,
+            e.serial,
+            n as f64,
+            0.0,
+            0.0,
+        ];
+        phase_seven_call(w);
         finish(w, out, &e)
     }
 }
@@ -1419,21 +1618,25 @@ pub unsafe extern "C" fn interactions_run(
     // run can use the world's bodies without aliasing them.
     unsafe {
         let w = &mut *world;
-        let mut interactions = std::mem::take(&mut w.interactions);
-        let actions = std::mem::take(&mut w.actions);
-        interactions.run(
-            actions.rules(),
-            w,
-            &mut *map,
-            &*index,
-            &mut *gates,
-            swept.as_ref(),
-        );
-        w.actions = actions;
-        w.interactions = interactions;
-        // The run applied its writes to the player store itself (6d.6c.2), as each stop inside it needed them.
+        interactions_call(w, &mut *map, &*index, &mut *gates, swept.as_ref());
         w.interactions.output.as_ptr()
     }
+}
+/// Phase 6's loop over `w.interactions.input` (`interactions_run`, and `tick_finish`'s phase 6). The run applied its
+/// writes to the player store itself (6d.6c.2), as each stop inside it needed them.
+fn interactions_call(
+    w: &mut world::World,
+    map: &mut collision::CollisionMap,
+    index: &sight::SightIndex,
+    gates: &mut sight::GateSet,
+    swept: Option<&swept::SweptMap>,
+) {
+    // The buffers and the rules move out so the run can use the world's bodies without aliasing them.
+    let mut interactions = std::mem::take(&mut w.interactions);
+    let actions = std::mem::take(&mut w.actions);
+    interactions.run(actions.rules(), w, map, index, gates, swept);
+    w.actions = actions;
+    w.interactions = interactions;
 }
 /// The gates' keys and closed bodies' rows, from the boundary input, once per world (`World::load_gates`, #1214 stage
 /// 6d.2).
@@ -1773,12 +1976,22 @@ pub unsafe extern "C" fn hazards_run(
     // hazards move out so the run can use the whole world (6d.6d).
     unsafe {
         let w = &mut *world;
-        let hz = w.actions.rules().hz;
-        let mut hazards = std::mem::take(&mut w.hazards);
-        hazards.run(w, &mut *map, &*index, &mut *gates, hz, swept.as_ref());
-        w.hazards = hazards;
+        hazards_call(w, &mut *map, &*index, &mut *gates, swept.as_ref());
         w.hazards.output.as_ptr()
     }
+}
+/// The environment and the traps over `w.hazards.input` (`hazards_run`, and `tick_finish`'s).
+fn hazards_call(
+    w: &mut world::World,
+    map: &mut collision::CollisionMap,
+    index: &sight::SightIndex,
+    gates: &mut sight::GateSet,
+    swept: Option<&swept::SweptMap>,
+) {
+    let hz = w.actions.rules().hz;
+    let mut hazards = std::mem::take(&mut w.hazards);
+    hazards.run(w, map, index, gates, hz, swept);
+    w.hazards = hazards;
 }
 /// Phase 7's input (27, step 5e.2; `phase_seven::PhaseSeven`).
 /// # Safety
@@ -1798,6 +2011,14 @@ pub unsafe extern "C" fn phase_seven_run(world: *mut world::World) -> *const f64
     // SAFETY: the caller's contract.
     unsafe {
         let w = &mut *world;
+        phase_seven_call(w);
+        w.phase_seven.output.as_ptr()
+    }
+}
+
+/// Phase 7's `finishMatch` or `recordRewind` over `w.phase_seven.input` (`phase_seven_run`, and `tick_finish`'s).
+fn phase_seven_call(w: &mut world::World) {
+    {
         // The rows come from the player store (#1214 stage 6c.3a): role and status to finish, the pose to rewind.
         let p7 = &mut w.phase_seven.input;
         let (mode, players) = (p7[0] as usize, p7[3] as usize);
@@ -1820,7 +2041,6 @@ pub unsafe extern "C" fn phase_seven_run(world: *mut world::World) -> *const f64
                 }
             }
         }
-        w.phase_seven.output.as_ptr()
     }
 }
 

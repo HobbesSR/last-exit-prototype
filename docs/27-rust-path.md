@@ -383,6 +383,32 @@ The header carries the serial and the item serials the call left. Phases 3 to 5 
 reached the path that test compared.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6e.5c, `tick_finish(intents)` for the whole of phases 3–7 (#1214, adapter version 42).** D4's two calls are complete:
+a tick is `tick_begin`, Node's phase 2, then `tick_finish(intents)`, which now also runs phases 6 and 7.
+- **Phase 6's turns are the core's.** Each active player with an intent, in ID order, takes the steps its intent asks:
+  interact, the chosen transit where transit is chosen, then charging and pickups. Its moved flag comes from the store's
+  `movedThisTick`. The core's run decides the rest as it has since 6d.6c.2 (`prepare`). The carried identities for a swap
+  come from the store.
+- **What the stores do not hold crosses as blocks:**
+  - phase 6's content and map (`sixBlock`): the charge and transit settings, the exit, the reserves' capacity, the
+    stations, chargers and sensors, and the gates' details once per gate set;
+  - the hazards' header, content, areas and, when the list changed, the traps (`hazardsBlock`);
+  - the impulse limits, the match's duration, `s.slots` and `s.hazardX`.
+
+  The serial, the item serials and the slots are threaded through the call.
+- **Phase 7 runs in the call:** the sync, `finishMatch`, the second sync, and the rewind frame. `actions_run`,
+  `combat_run`, `interactions_run`, `hazards_run` and `phase_seven_run` now share their bodies with `tick_finish`
+  (`*_call`).
+- **Discovery is Node's, after the call** (`advanceDiscovery`). It used to run before the terminal result. On the tick a
+  match finishes, a contestant just stranded now gets no discovery pass; that pass would only have updated its
+  memory, which no longer acts. This is the simpler order Corey's guidance allows (2026-11-22, qualitative correctness
+  over exact equivalence), and no fixture hash moved.
+- **Node applies each section** with that step's applier, now including `applyInteractions`, `applyHazards` and
+  `applyFinish`. It reads a section the call did not reach (after a refusal) as empty. Phases 3 to 7 are timed as
+  `sim.finish`.
+- **Removed:** `setInRunStops` and 6d.6c.2's A/B test. The tick no longer runs `phaseSix`.
+- **Cost:** measured once, at the end of step 6 (6e.6).
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.

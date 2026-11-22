@@ -115,11 +115,17 @@ function call(s: Game, parts: Parts, resume: boolean): { kind: number; which: nu
   if (upload) uploaded.set(r, { list: traps, length: traps.length });
   // Copied: an explosion's sync and an elimination applied from the log call into the core.
   const out = new Float64Array(core.memory.buffer, outPtr, new Float64Array(core.memory.buffer, outPtr, 1)[0]!).slice();
+  return applyHazards(s, r, out);
+}
+
+/** Apply an environment-and-traps call's output (`hazards.rs`); returns the stop it ended at, if any. */
+export function applyHazards(s: Game, r: PhysicsRuntime, out: Float64Array): { kind: number; which: number; source: number } | null {
+  const players = s.players, traps = s.traps ?? NO_TRAPS;
   let exploded = false, refused: { code: number; key: number } | undefined;
   // The core queued a turret's spawns too (#1214 stage 6e.3), as the mirror queues them below.
   const current = projectilesCurrent(s, r);
   // The log first, then the rows, which are the store's at the end of the call (6e.2).
-  at = applyLog(s, out, OUT_HEADER + out[5]! * OUT_ROW, out[6]!, (op, k) => {
+  let at = applyLog(s, out, OUT_HEADER + out[5]! * OUT_ROW, out[6]!, (op, k) => {
     if (op === OP_SYNC) {
       // A mine's explosion: its sync, as `enqueueExplosionImpulses` ran it; the impulses are queued in the core.
       exploded = true;
@@ -146,6 +152,31 @@ function call(s: Game, parts: Parts, resume: boolean): { kind: number; which: nu
   if (refused?.code === E_UNREPRESENTABLE_IMPULSE) throw new TypeError('representable finite impulse required');
   if (refused) throw new Error(`impulse refused ${refused.code} for ${r.world.idOf(refused.key)}`);
   return out[2] ? { kind: out[2]!, which: out[3]!, source: out[4]! } : null;
+}
+
+/**
+ * The environment-and-traps input `tick_finish` runs (#1214 stage 6e.5c): its header (the tick and serial the core sets),
+ * the content, the hazard areas and, where this runtime's core has not taken the list, the traps. The in-run words are
+ * the core's to add.
+ */
+export function hazardsBlock(s: Game, r: PhysicsRuntime): number[] {
+  const traps = s.traps ?? NO_TRAPS, areas = s.map.hazards, t = s.content.traps;
+  const kept = uploaded.get(r), upload = !kept || kept.list !== traps || kept.length !== traps.length;
+  const data = [0, s.tick, s.serial, s.players.length, traps.length, areas.length, s.hazardX, 1, 1, upload ? 1 : 0, 1,
+    t.mine.trigger, t.mine.blast, t.mine.damage,
+    t.turret.range, t.turret.cooldown, t.turret.speed, t.turret.damage, t.turret.life,
+    t.flame.cycle, t.flame.warnAt, t.flame.fireAt, t.flame.interval, t.flame.range, t.flame.cone, t.flame.damage,
+    t.spider.leash, t.spider.acquire, t.spider.step, t.spider.grapple, t.spider.cooldown, t.spider.stun, t.spider.damage];
+  for (const h of areas) data.push(h.x, h.y, h.w, h.h);
+  if (upload) {
+    for (const trap of traps) {
+      const target = trap.targetId == null ? undefined : playerById(s, trap.targetId as PlayerId);
+      data.push(TRAP_KINDS.indexOf(trap.kind), trap.x, trap.y, trap.homeX, trap.homeY, trap.heading, trap.offset, trap.cooldown || 0,
+        trap.spent ? 1 : 0, target ? playerIndex(s, target) : -1);
+    }
+    uploaded.set(r, { list: traps, length: traps.length });
+  }
+  return data;
 }
 
 /** Run to the end, eliminating at each stop, and resuming. */

@@ -126,6 +126,8 @@ pub struct Hazards {
     cursor: Option<Cursor>,
     /// The game's traps, in map order, kept between calls since the last upload.
     traps: Vec<Trap>,
+    /// The item and scatter serials the last run's eliminations left (6e.5c), for a call that threads them on.
+    pub(crate) item_serials: Option<(f64, f64)>,
 }
 
 fn distance(a: (f64, f64), b: (f64, f64)) -> f64 {
@@ -588,6 +590,7 @@ impl Hazards {
         self.input = input;
         self.traps = traps;
         world.players.restore(run.rows);
+        self.item_serials = elimination.map(|e| (e.item_serial, e.scatter_serial));
     }
 }
 

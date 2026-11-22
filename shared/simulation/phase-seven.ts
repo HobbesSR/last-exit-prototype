@@ -30,7 +30,11 @@ function call(s: Game, data: number[]): Float64Array {
 /** `finishMatch`: on no slots left, no contestant active or the match's time up, finish and strand the active contestants. */
 export function finishMatch(s: Game): void {
   const data = [MODE_FINISH, s.tick, s.serial, s.players.length, s.slots, s.content.durationTicks];
-  const out = call(s, data);
+  applyFinish(s, call(s, data));
+}
+
+/** Apply `finishMatch`'s output: on a finish, the match's phase, the stranded statuses and the event. */
+export function applyFinish(s: Game, out: Float64Array): void {
   if (!out[1]) return;
   s.phase = 'finished';
   for (let i = 0; i < out[3]!; i++) s.players[out[OUT_HEADER + i]!]!.status = 'stranded';
