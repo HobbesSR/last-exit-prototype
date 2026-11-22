@@ -12,6 +12,7 @@ import { HZ } from './rules.ts';
 import { playerIndex } from './relations.ts';
 import { addItems, addItemsFromCore, groundItem, itemsNear } from './ground-items.ts';
 import { sawCoreRegistrations, syncRegistry } from './registry-store.ts';
+import { projectilesCurrent, sawProjectiles } from './projectile-store.ts';
 import { applySyncLog, prepareInRunSync } from './boundary.ts';
 import { physicsRuntime, type PhysicsRuntime } from './physics-runtime.ts';
 import { appendItem, carriedItem, carriedToken, playersStale, uploadPlayers } from './player-store.ts';
@@ -215,6 +216,8 @@ interface Applied { mode: number; options: Options; source: Game; itemOf: (token
 
 /** Apply a phase 3 output (`phase_three.rs`): the players' rows, the registrations, then the log, in order. */
 function applyOutput(s: Game, r: PhysicsRuntime, out: Float64Array, { mode, options, source, itemOf, live }: Applied): { resume: number; stage: number; plan: DropPlan | null } {
+  // The core took this call's shots into its projectiles (#1214 stage 6e.3), as the mirror takes them below.
+  const current = projectilesCurrent(s, r);
   // Loop, attack and elimination calls write their players back; a standalone plan writes nothing.
   const writes = mode < 2 || mode === MODE_ELIMINATE;
   let at = OUT_HEADER;
@@ -307,6 +310,7 @@ function applyOutput(s: Game, r: PhysicsRuntime, out: Float64Array, { mode, opti
   if (out[11] === -103) throw new Error('Invalid carried item identity');
   if (out[11] === -104) throw new Error(`Unregistered item identity ${out[12]}`);
   if (out[11]! < 0) throw physicsRefusal(out[11]!, r.world.idOf(out[12]!));
+  if (current) sawProjectiles(s, r);
   const records = options.player ? Array.from({ length: out[10]! }, (_, i) => ground(out, at + i * RECORD_ROW, options.player!, s.tick)) : [];
   return { resume: out[4]!, stage: out[5]!, plan: out[6] === 1 && mode >= 2 ? { records, itemSerial: allocation.itemSerial!, scatterSerial: allocation.scatterSerial!, allocation } : null };
 }

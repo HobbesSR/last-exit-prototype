@@ -305,6 +305,24 @@ in phase 5 or the hazards, and an elimination's mandatory drops, are carried out
   every trap hash matched a pristine export of `3b80cbbc`.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6e.3, the projectiles in the core (#1214, adapter version 38).** The world keeps the projectiles in flight and a
+turret's pending spawns (`World::projectiles`, `pending_spawns`, as phase 5's rows), and `s.projectiles` and
+`pendingSpawns` are their mirror (`projectile-store.ts`).
+- **Each writer changes both,** where it reports its fact:
+  - phase 3's shots (op 2), with the hooks' facts (`apply_hook_facts`);
+  - the hazards' spawns (`OP_SPAWN`);
+  - phase 1's admission of the spawns (`projectiles_spawn`, `admitSpawns`);
+  - phase 5's flight (`combat::fly`): each bullet's position and life from the first part's rows, then the spent and
+    expired removed once the call ends, as the mirror applies them.
+- **Phase 5 reads its bullets from the store** (`FROM_STORE` for their count). The core puts them where the adapter
+  packed them (`Combat::stored_bullets`), so the run itself is unchanged.
+- **Uploaded only when Node changed a list without the facts** (`syncProjectiles`): a scenario's projectiles, or the
+  retained TypeScript attack (`combat.ts`). Each call the core matches is remembered, as the ground's and the hooks' are.
+  An in-place edit of a projectile record, which play never makes, does not reach the core.
+- **The witness.** `player-store.test.js` holds both lists equal to the mirror every tick (`projectileDrift`). With
+  phase 5's write-back disabled, it fails at tick 2.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -1014,6 +1032,9 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
   - **6e.1 (#1214):** the item registry, so a run can allocate and check identities for any actor without Node packing
     them. An elimination inside phase 5 or the hazards needs that, since its target is not known before the run. Below.
   - **6e.2 (#1214):** the elimination stops, the last of Node's mid-tick stops. Below.
+  - **Then the inputs Node still packs between phases**, so phases 3–7 can be one call: phase 5's bullets (6e.3, below),
+    phase 3's hearing cues, phase 6's bot and discovery flags, and phase 4's ground poses. Then the two calls, with the
+    markers' trim and the serials in the core, and the bench.
 
 **Step 6a, door state (#1214).** A game's doors' `open` and `locked` live in the core, in its gate set's masks
 (`GateSet::open` and `::locked` in `sight.rs`), and the gate records are their mirror (`shared/simulation/doors.ts`).

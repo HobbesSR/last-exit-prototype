@@ -7,6 +7,7 @@ import { storeDrift } from '../shared/simulation/player-store.ts';
 import { groundDrift } from '../shared/simulation/ground-store.ts';
 import { hookDrift, hookSkill } from '../shared/simulation/hook.ts';
 import { registryDrift } from '../shared/simulation/registry-store.ts';
+import { projectileDrift } from '../shared/simulation/projectile-store.ts';
 import { generatedMap } from './helpers/room-harness.js';
 import { openArea } from './helpers/arena.js';
 
@@ -44,6 +45,7 @@ test('every write inside a tick reaches the core\'s player store (#1214 stage 6c
       // The ground store follows the ground helpers' writes (6d.1): drops, pickups, swaps and phase 4's poses.
       assert.deepEqual(groundDrift(s, r), [], `ground at tick ${s.tick}`);
       assert.deepEqual(registryDrift(s, r), [], `registry at tick ${s.tick}`);
+      assert.deepEqual(projectileDrift(s, r), [], `projectiles at tick ${s.tick}`);
       // The world's hooks follow the rules' and phase 3's facts (6d.4), as the mirror does.
       assert.deepEqual(hookDrift(r), [], `hooks at tick ${s.tick}`);
     }

@@ -183,6 +183,11 @@ pub struct World {
     pub(crate) sync_config: SyncConfig,
     /// How many actor bodies the last body sync left: the runtime's `actors.size` (6d.6b).
     pub(crate) sync_actors: usize,
+    /// The projectiles in flight, in the list's order (#1214 stage 6e.3), as phase 5 reads them (`combat::BULLET_ROW`:
+    /// id, the owner's roster index (-1 a trap), x, y, dx, dy, life, damage); `s.projectiles` is their mirror.
+    pub(crate) projectiles: Vec<[f64; 8]>,
+    /// A turret's spawns, waiting for the next tick's phase 1 (`pendingSpawns`), in the same layout.
+    pub(crate) pending_spawns: Vec<[f64; 8]>,
     /// The item registry (#1214 stage 6e.1), once Node has uploaded it; the runs read it where it is live.
     pub(crate) registry: std::rc::Rc<crate::registry::Registry>,
     pub(crate) registry_live: bool,
@@ -314,6 +319,8 @@ impl World {
             markers: Vec::new(),
             sync_config: SyncConfig::default(),
             sync_actors: 0,
+            projectiles: Vec::new(),
+            pending_spawns: Vec::new(),
             registry: std::rc::Rc::default(),
             registry_live: false,
             interned: BTreeMap::new(),

@@ -425,8 +425,9 @@ pub const OP_DROP_SYNCED: f64 = 16.0;
 /// The body sync's log (`boundary::synchronize`'s header and entries), applied by Node as its own sync's.
 pub const OP_SYNC: f64 = 15.0;
 
-/// Walk the log's facts from `cursor`, applying the hooks' launches and cancels to the world (#1214 stage 6d.4), as
-/// Node applies them to its mirror. A sync inside the run reconciles the hooks, so they are applied before it.
+/// Walk the log's facts from `cursor`, applying the hooks' launches and cancels (#1214 stage 6d.4) and the shots
+/// fired (op 2, 6e.3) to the world, as Node applies them to its mirror. A sync inside the run reconciles the hooks, so
+/// they are applied before it.
 fn apply_hook_facts(world: &mut World, log: &[f64], cursor: &mut usize, tick: f64) {
     let mut at = *cursor;
     while at < log.len() {
@@ -436,6 +437,11 @@ fn apply_hook_facts(world: &mut World, log: &[f64], cursor: &mut usize, tick: f6
             world.cancel_hook(p[0] as usize);
         } else if op == 6.0 {
             world.launch_hook(p[0] as usize, p[1], p[2], p[3], tick);
+        } else if op == 2.0 {
+            // id, owner, x, y, dx, dy, life, damage: phase 5's row.
+            let mut row = [0.0; 8];
+            row.copy_from_slice(&p[..8]);
+            world.projectiles.push(row);
         }
         at += 2 + len;
     }

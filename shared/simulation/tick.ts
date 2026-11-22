@@ -17,6 +17,7 @@ import { finishMatch, recordRewind } from './phase-seven.ts';
 import { actorId, ordered, synchronize } from './game.ts';
 import { admitPending } from './boundary.ts';
 import { physicsRuntime } from './physics-runtime.ts';
+import { admitSpawns } from './projectile-store.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game } from '../types.ts';
 import { start, stop } from '../profiler.ts';
@@ -41,7 +42,7 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
   prepareHooks(s);
   // Trap spawns are projectile records, which stay here; impulses and attachments are admitted in the core.
-  s.projectiles.push(...r.pendingSpawns.splice(0));
+  admitSpawns(s, r);
   admitPending(s, r);
   r.world.commitMutations();
   // 2: roster-order collection from the same pre-movement world.

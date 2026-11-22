@@ -36,7 +36,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 37;
+pub const ADAPTER_VERSION: u32 = 38;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -884,6 +884,12 @@ pub unsafe extern "C" fn combat_run(
     // SAFETY: the caller's contract; the rules and the combat state are disjoint fields.
     unsafe {
         let w = &mut *world;
+        // A projectile call that reads its bullets from the store (`FROM_STORE` for their count, #1214 stage 6e.3) has
+        // them put where the adapter packed them.
+        let stored = w.combat.input[5] == phase_three::FROM_STORE;
+        if stored {
+            w.combat.stored_bullets(&w.projectiles);
+        }
         let Some((mut e, markers)) = w.combat.elimination_words() else {
             let rules = w.actions.rules();
             w.combat.run(
@@ -894,6 +900,10 @@ pub unsafe extern "C" fn combat_run(
                 &mut *gates,
                 swept.as_ref(),
             );
+            if stored {
+                let out = w.combat.output.clone();
+                combat::fly(&mut w.projectiles, &out, &out);
+            }
             return w.combat.output.as_ptr();
         };
         // A kill is carried out in the core (#1214 stage 6e.2): the run goes to its kill, the elimination runs, and the
@@ -990,6 +1000,9 @@ pub unsafe extern "C" fn combat_run(
         out[8] = last[8];
         out.extend_from_slice(&last[bullets..removed]);
         out[0] = out.len() as f64;
+        if stored {
+            combat::fly(&mut w.projectiles, &parts[0], parts.last().expect("a part"));
+        }
         w.combat.output = out;
         w.combat.output.as_ptr()
     }
@@ -1180,6 +1193,47 @@ pub unsafe extern "C" fn physics_queues_dump(world: *mut world::World) -> *const
             p.generation_a,
             p.generation_b,
         ]);
+    }
+    w.boundary_output = out;
+    w.boundary_output.as_ptr()
+}
+/// Replace the projectiles and the pending spawns with `count` and `pending` rows (`combat::BULLET_ROW` words each) from
+/// the boundary input (#1214 stage 6e.3), when Node changed its list without the facts.
+/// # Safety
+/// `world` is live and its boundary input holds the rows.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn projectiles_load(world: *mut world::World, count: usize, pending: usize) {
+    // SAFETY: the caller's contract.
+    let w = unsafe { &mut *world };
+    let rows: Vec<[f64; 8]> = w.boundary_input[..(count + pending) * 8]
+        .as_chunks::<8>()
+        .0
+        .to_vec();
+    w.projectiles = rows[..count].to_vec();
+    w.pending_spawns = rows[count..].to_vec();
+}
+/// Phase 1: the pending spawns enter the projectiles, in order (`s.projectiles.push(...pendingSpawns)`, 6e.3).
+/// # Safety
+/// `world` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn projectiles_spawn(world: *mut world::World) {
+    // SAFETY: the caller's contract.
+    let w = unsafe { &mut *world };
+    let spawns = std::mem::take(&mut w.pending_spawns);
+    w.projectiles.extend(spawns);
+}
+/// The projectiles then the pending spawns, written into the boundary output for tests: their counts, then the rows.
+/// # Safety
+/// `world` is live; the view expires on the next call into the world.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn projectiles_dump(world: *mut world::World) -> *const f64 {
+    // SAFETY: the caller's contract.
+    let w = unsafe { &mut *world };
+    let mut out = std::mem::take(&mut w.boundary_output);
+    out.clear();
+    out.extend_from_slice(&[w.projectiles.len() as f64, w.pending_spawns.len() as f64]);
+    for row in w.projectiles.iter().chain(&w.pending_spawns) {
+        out.extend_from_slice(row);
     }
     w.boundary_output = out;
     w.boundary_output.as_ptr()
