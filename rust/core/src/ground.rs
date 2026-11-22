@@ -40,8 +40,8 @@ pub struct Ground {
     pub(crate) records: Vec<Record>,
     /// The records by body key: which item bodies left the ground (6d.2), and where a waiting item lies (6d.3).
     by_key: BTreeMap<u64, Record>,
-    /// How many records hold each id, by its bits: `groundItem`'s question (6d.6c).
-    ids: BTreeMap<u64, u32>,
+    /// The sequence numbers of the records holding each id, by its bits: `groundItem`'s question (6d.6c).
+    ids: BTreeMap<u64, Vec<u64>>,
     /// The grid (#1214 stage 6d.6c), as `ground-items.ts` keeps its own: each record's sequence number, in the list's
     /// order, so a query returns records in list order; a replacement keeps its record's number.
     seqs: Vec<u64>,
@@ -66,7 +66,10 @@ impl Ground {
             None => self.loose.push(seq),
         }
         self.by_seq.insert(seq, record);
-        *self.ids.entry(record.words[0].to_bits()).or_default() += 1;
+        self.ids
+            .entry(record.words[0].to_bits())
+            .or_default()
+            .push(seq);
         if let Some(key) = key_of(&record) {
             self.by_key.insert(key, record);
         }
@@ -84,9 +87,9 @@ impl Ground {
             .expect("in its bucket");
         bucket.swap_remove(at);
         let id = record.words[0].to_bits();
-        if let Some(n) = self.ids.get_mut(&id) {
-            *n -= 1;
-            if *n == 0 {
+        if let Some(seqs) = self.ids.get_mut(&id) {
+            seqs.retain(|&s| s != seq);
+            if seqs.is_empty() {
                 self.ids.remove(&id);
             }
         }
@@ -106,8 +109,16 @@ impl Ground {
     /// Every record that could be within `reach` of `(x, y)`, in the list's order: a superset, never a ruling, as
     /// `itemsNear` gives it. A point that is not finite is offered the whole list.
     pub(crate) fn near(&self, x: f64, y: f64, reach: f64) -> Vec<Record> {
+        self.near_seqs(x, y, reach)
+            .into_iter()
+            .map(|s| self.by_seq[&s])
+            .collect()
+    }
+
+    /// `near`'s records by sequence number, in the list's order.
+    fn near_seqs(&self, x: f64, y: f64, reach: f64) -> Vec<u64> {
         if !x.is_finite() || !y.is_finite() {
-            return self.records.clone();
+            return self.seqs.clone();
         }
         let mut seqs: Vec<u64> = self.loose.clone();
         match (cell_of(x - reach, y - reach), cell_of(x + reach, y + reach)) {
@@ -123,12 +134,34 @@ impl Ground {
         }
         seqs.sort_unstable();
         seqs.dedup();
-        seqs.into_iter().map(|s| self.by_seq[&s]).collect()
+        seqs
     }
 
     /// Whether a record with this id is on the ground (`groundItem`).
     pub(crate) fn holds_id(&self, id: f64) -> bool {
         self.ids.contains_key(&id.to_bits())
+    }
+
+    /// Where the record `groundItem` names by this id lies in the list: the last that holds it, as its map keeps the
+    /// last, and that record's sequence number.
+    pub(crate) fn find_id(&self, id: f64) -> Option<(usize, u64)> {
+        let seq = *self.ids.get(&id.to_bits())?.iter().max()?;
+        let at = self.seqs.binary_search(&seq).ok()?;
+        Some((at, seq))
+    }
+
+    /// The record `groundItem` names by this id.
+    pub(crate) fn by_id(&self, id: f64) -> Option<Record> {
+        self.find_id(id).map(|(at, _)| self.records[at])
+    }
+
+    /// `near`, keeping only records whose sequence numbers exceed `after`: those after a removed record in the list.
+    pub(crate) fn near_after(&self, x: f64, y: f64, reach: f64, after: u64) -> Vec<Record> {
+        self.near_seqs(x, y, reach)
+            .into_iter()
+            .filter(|&s| s > after)
+            .map(|s| self.by_seq[&s])
+            .collect()
     }
 
     /// The input buffer, resized for `count` records.

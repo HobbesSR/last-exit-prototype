@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, disposePhysics } from '../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, snapshot, step } from '../shared/simulation.ts';
+import { setInRunStops } from '../shared/simulation/phase-six.ts';
+import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
+import { identifyItems, registeredItemId } from './helpers/item-identity.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { automaticPickups } from '../shared/simulation/loot.ts';
 import { collectAmmo, collectInstanceEquipment } from '../shared/equipment.ts';
@@ -119,4 +122,44 @@ test('the core picks the gate nearbyGate picks, from its own gate buckets', asyn
     }
     assert.ok(found > 100, `the cases reach gates (${found})`);
   } finally { disposePhysics(s); }
+});
+
+test('stops synced inside the run leave every record, body, counter and frame as the stop and resume did (#1214 6d.6c.2)', async t => {
+  // A swaps its stack for a cell, and its drop lands by B, whose list a resumed call read afresh; B and C take records
+  // whole, C two in a row. Run with the core's continuation and with the old stop and resume, the state must be the same.
+  const run = async inRun => {
+    setInRunStops(inRun);
+    try {
+      const c = { ...content('content-7', true), roster: { contestants: ['A', 'B', 'C'], gladiators: [] } };
+      const map = { ...arena(), spawns: [{ x: 300, y: 200 }, { x: 345, y: 200 }, { x: 560, y: 200 }] };
+      const s = await createGame(1263, map, c);
+      t.after(() => disposePhysics(s));
+      const [a, b, cc] = s.players;
+      for (const p of s.players) { p.bot = false; p.input = {}; }
+      [a.x, a.y, b.x, b.y, cc.x, cc.y] = [300, 200, 345, 200, 560, 200];
+      a.inventory = [{ kind: 'med', count: 3, instanceId: 'a-med', lineageId: 'a-med' },
+        ...[1, 2, 3, 4, 5].map(i => ({ kind: 'cell', charge: i, instanceId: `a-${i}`, lineageId: `a-${i}` }))];
+      a.selectedSlot = 0;
+      b.inventory = [null, null, null, null, null, null];
+      cc.inventory = [null, null, null, null, null, null];
+      s.items.push({ id: 'incoming', kind: 'cell', charge: 80, x: 310, y: 200 },
+        { id: 'c-1', kind: 'shield', count: 1, x: 565, y: 200 }, { id: 'c-2', kind: 'med', count: 1, x: 555, y: 205 });
+      identifyItems(s);
+      assert.ok(setInput(s, a.id, { seq: 1, interact: true }));
+      const frames = [];
+      for (let i = 0; i < 3; i++) {
+        step(s);
+        const r = physicsRuntime(s);
+        frames.push(JSON.stringify({ items: s.items, counters: [s.itemSerial, s.scatterSerial], players: s.players.map(p => [p.x, p.y, p.inventory, p.selectedSlot, p.reserves]),
+          frame: snapshot(s), discontinuities: r.discontinuities, bodies: [...r.items], pending: r.pendingImpulses }));
+      }
+      return { frames, s, a, b, cc };
+    } finally { setInRunStops(true); }
+  };
+  const synced = await run(true), stopped = await run(false);
+  const { s, a, b, cc } = stopped;
+  assert.equal(a.inventory[0]?.instanceId, registeredItemId(s, 'incoming'), 'A swapped');
+  assert.ok(b.inventory.some(item => item?.kind === 'med'), 'B took a record that the swap dropped');
+  assert.deepEqual(cc.inventory.filter(Boolean).map(item => item.kind).sort(), ['med', 'shield'], 'C took both of its records');
+  synced.frames.forEach((frame, i) => assert.equal(frame, stopped.frames[i], `tick ${i + 1}`));
 });

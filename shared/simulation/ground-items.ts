@@ -222,7 +222,7 @@ function add(s: Game, items: GroundItem[], fromCore: boolean): void {
 }
 
 /** Take a record off the ground; later records keep their order. Returns where it was, which is now where the next one is. */
-export function removeItem(s: Game, item: GroundItem): number {
+export function removeItem(s: Game, item: GroundItem, fromCore = false): number {
   const before = s.items, length = before.length;
   const list = writable(s), hinted = indexes.get(list)?.get(item.id);
   const at = hinted !== undefined && list[hinted] === item ? hinted : list.indexOf(item);
@@ -234,7 +234,9 @@ export function removeItem(s: Game, item: GroundItem): number {
   admitItem(s, item);
   const pending = admissions.get(list);
   if (pending) pending.size = list.length;
-  sinks.get(s)?.remove(before, length, at);
+  // A record the core took off its store itself (#1214 stage 6d.6c.2) is not written through.
+  if (fromCore) sinks.get(s)?.adopted(before, length);
+  else sinks.get(s)?.remove(before, length, at);
   return at;
 }
 
@@ -313,7 +315,7 @@ export function groundItem(s: Game, id: ItemId): GroundItem | undefined {
 }
 
 /** Put `next` where `item` is on the ground. The id stays: the position index is carried across. */
-export function replaceItem(s: Game, item: GroundItem, next: GroundItem): void {
+export function replaceItem(s: Game, item: GroundItem, next: GroundItem, fromCore = false): void {
   if (next.id !== item.id) throw new Error(`replacing ground item ${item.id} with ${next.id}`);
   const before = s.items, length = before.length;
   const list = writable(s), hinted = indexes.get(list)?.get(item.id);
@@ -328,7 +330,9 @@ export function replaceItem(s: Game, item: GroundItem, next: GroundItem): void {
   }
   const order = leave(list, item);
   if (order !== undefined) enter(grids.get(list)!, next, order);
-  sinks.get(s)?.replace(before, length, at, next);
+  // A record the core replaced in its store itself (#1214 stage 6d.6c.2) is not written through.
+  if (fromCore) sinks.get(s)?.adopted(before, length);
+  else sinks.get(s)?.replace(before, length, at, next);
 }
 
 /** A record's writable copy, for rules that change a ground item as they inspect it. */

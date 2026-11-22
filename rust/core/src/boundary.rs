@@ -422,6 +422,27 @@ pub fn synchronize(
     });
 }
 
+/// The body sync inside another run (#1214 stage 6d.6b): as `r.synchronize()` ran it at a stop, admitting items, from
+/// the world's markers. Returns the sync's header and log, for the run's output.
+pub(crate) fn synchronize_in_run(
+    world: &mut World,
+    map: &mut CollisionMap,
+    gates: &mut GateSet,
+    swept: &SweptMap,
+    tick: f64,
+    capacity: f64,
+    roster: f64,
+) -> Vec<f64> {
+    let markers: Vec<f64> = world.markers.iter().map(|&k| f64::from(k)).collect();
+    world.boundary_input.clear();
+    world
+        .boundary_input
+        .extend_from_slice(&[tick, 1.0, capacity, roster, markers.len() as f64]);
+    world.boundary_input.extend_from_slice(&markers);
+    synchronize(world, map, gates, swept);
+    world.boundary_output.clone()
+}
+
 /// The sync's first step: the actors, then the gates, then the item bodies whose items left the ground. Returns how
 /// many actor bodies the world then holds (the runtime's `actors.size`).
 fn bodies(

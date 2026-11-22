@@ -35,7 +35,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 32;
+pub const ADAPTER_VERSION: u32 = 33;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -931,6 +931,7 @@ pub unsafe extern "C" fn interactions_run(
     map: *mut collision::CollisionMap,
     index: *const sight::SightIndex,
     gates: *mut sight::GateSet,
+    swept: *const swept::SweptMap,
 ) -> *const f64 {
     // SAFETY: these handles are owned by the calling game. The buffers and the rules move out so the
     // run can use the world's bodies without aliasing them.
@@ -938,11 +939,17 @@ pub unsafe extern "C" fn interactions_run(
         let w = &mut *world;
         let mut interactions = std::mem::take(&mut w.interactions);
         let actions = std::mem::take(&mut w.actions);
-        interactions.run(actions.rules(), w, &mut *map, &*index, &mut *gates);
+        interactions.run(
+            actions.rules(),
+            w,
+            &mut *map,
+            &*index,
+            &mut *gates,
+            swept.as_ref(),
+        );
         w.actions = actions;
         w.interactions = interactions;
-        // The player store takes phase 6's writes (#1214 stage 6c.2).
-        w.players.apply_interactions(&w.interactions.output);
+        // The run applied its writes to the player store itself (6d.6c.2), as each stop inside it needed them.
         w.interactions.output.as_ptr()
     }
 }
@@ -1103,12 +1110,7 @@ pub unsafe extern "C" fn ground_write(world: *mut world::World, op: u32, at: usi
             let words = w.ground.input_words().to_vec();
             w.add_ground(&words);
         }
-        2 => {
-            if let Some(key) = w.ground.key_at(at) {
-                w.stop_awaiting(key as world::Key);
-            }
-            w.ground.remove(at);
-        }
+        2 => w.remove_ground(at),
         3 => w.ground.replace(at),
         _ => panic!("unknown ground write {op}"),
     }

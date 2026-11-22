@@ -186,6 +186,45 @@ the core does all of that where the loop committed the drop (`phase_three.rs`, `
   their list order, and a decoy beyond reach. With every rank flattened, it fails.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6d.6c.2, phase 6's stops sync in the run (#1214, adapter version 33).** A pickup that takes a record whole, a
+committed swap and an instant transit's landing no longer end phase 6's call. The core does what Node did at the stop,
+then reads the actors still to run as the call resuming there would, and goes on (`phase_six.rs`, `Run::carry_out`).
+- **The ground's writes are the core's** for phase 6, in log order:
+  - a partial take replaces its record (`write_partial`, as `replaceItem` of `settledItem` writes it);
+  - a whole take removes it;
+  - a swap removes its pickup, adds its drop's records and launches them.
+
+  Node mirrors each without writing through: `removeItem`'s and `replaceItem`'s `fromCore`, and `addItemsFromCore`. This
+  must hold for every write: once the core removes a record mid-run, an index Node wrote through later would name
+  another record.
+- **The stop.** A whole take and a swap run the body sync, and its log goes to Node (`OP_SYNC`, 17). A landing needs no
+  sync: the stop only made the next call read the actor's new pose.
+- **The resumed call, rebuilt.** First the run applies its facts so far to the player store
+  (`Players::apply_interaction_log`; the run now applies all its facts itself, so `lib.rs` does not). Then `prepare`
+  reads each actor still to run from the stores, deciding as the adapter decided:
+  - its near records, or a pickup's rest: the rest of its list, or the records after the taken one near where the sync
+    placed it, by the TypeScript's rule;
+  - whether it may swap;
+  - its inventory where a rule can read it.
+
+  The players, the ground's count, the actor reserve, the carried identities and the partial-take overlay follow too.
+- **What the run must hold, or stop.** A resumed call is given label phases (its budget) and the registered identities
+  of the actors that may take or swap, which only Node's registry knows. So:
+  - Node packs more: the identities of every near record, and, where a swap may happen, every turn's inventory and swap
+    candidates, plus twenty phases a turn per possible swapper.
+  - The run goes on only if it holds every identity the resumed call would register, and at least that call's budget as
+    it was before (near records, ten a swap, one an unidentified carried item). It cuts its phases to that budget.
+  - Otherwise the stop stays a stop, already carried out, and Node resumes, given the rest by id (`OP_REST`, 18).
+- **Marked by the adapter.** A call syncs in the run (`IN_RUN`) only when it can stop: a near record, a possible swap or
+  a gladiator's transit step. Its words carry the markers and, where a swap may drop records, the keys of the bodies it
+  may queue, as for phase 3's drops.
+- **The witness.** `trap-continuity` and the bots fixture took all their pickups (83 and 223) inside the run, none
+  falling back, and matched hash for hash. They never swap, so `phase-six-core.test.js` runs an A/B test against the
+  old stop (`setInRunStops(false)`). A swaps, its drop lands by B, who takes a record of it in the same tick, and C takes
+  two records in a row. Over three ticks, records, counters, inventories, frames, markers and bodies match. With only
+  the stopping actor rebuilt, the run fails.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -881,7 +920,7 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
       - **6d.6b (#1214):** phase 3's drops sync inside their run, and the ground's write direction flips for them. Below.
       - **6d.6c:** phase 6's pickups and swaps, in two PRs:
         - **6d.6c.1 (#1214):** phase 6 reads its ground from the core's store and grid. Below.
-        - **6d.6c.2:** pickups, swaps and an instant transit's landing sync inside the run.
+        - **6d.6c.2 (#1214):** pickups, swaps and an instant transit's landing sync inside the run. Below.
       - **6d.6d:** a mine's explosion syncs and enqueues its impulses in `hazards.rs`, retiring `STOP_EXPLOSION`.
 - **The direction (Corey, 2026-11-21, on #1214):** "now the way this should work eventually is that essentially the core
   should just be receiving tick timed input events or roughly that at the interface betweeen it and JS". So from 6d.2
