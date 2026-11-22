@@ -5,6 +5,7 @@ import { createGame, disposePhysics, enqueuePhysicsImpulse, snapshot, step, sync
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
+import { replaceItem } from '../shared/simulation/ground-items.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { createMatch } from '../server/match.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
@@ -116,7 +117,8 @@ test('forty physical pickup/drop cycles conserve the objective without body or j
       assert.equal(r.world.counts().dynamic, baseline + 1);
       const nextGeneration = r.world.getGeneration('item:sleeping');
       assert.ok(nextGeneration > generation); generation = nextGeneration;
-      p.x = dropped.x; p.y = dropped.y; dropped.pickupAfter = 0;
+      // Through the ground helpers: the core's store, which phase 6 reads (#1214 stage 6d.6c.1), sees no raw edit.
+      p.x = dropped.x; p.y = dropped.y; replaceItem(s, dropped, { ...dropped, pickupAfter: 0 });
       automaticPickups(s, p, {});
       assert.equal(itemLabel(s, p.inventory[0].instanceId), 'sleeping'); assert.equal(p.inventory[0].charge, 100);
       assert.equal(s.items.length, 0);

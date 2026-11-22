@@ -155,6 +155,37 @@ the core does all of that where the loop committed the drop (`phase_three.rs`, `
   the test's switch). With the taken spots left unextended, the test fails at tick 1.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6d.6c.1, phase 6 reads the ground from the core (#1214, adapter version 32).** The ground store keeps a grid
+(`ground.rs`, `Ground::near`), as `ground-items.ts` keeps its own. Phase 6 reads each actor's ground from it
+(`phase_six::read_ground`), where its adapter packed records before:
+- **The near records:** those in a box one unit past `automaticPickups`' reach, in the list's order. This is
+  `inReach(itemsNear(…))`'s rule; a NaN coordinate passes.
+- **A swap's candidates** (`itemsNear(s, p, PICKUP_REACH)`), each with whether its body is held and its label's rank
+  among them. The keys' ID order is the labels' order.
+- **A swap's spacing spots** (`SCATTER_REACH`), and whether the ground holds the outgoing item's identity
+  (`Ground::holds_id`).
+
+**Rules.**
+- **The grid offers a superset, never a ruling.** It keeps one cell size (64). Each record carries a sequence number,
+  which a replacement keeps, so a query answers in list order. A record outside every cell is offered to every query,
+  and a point that is not finite is offered the whole list.
+- **Supersets need not match.** The rules' own distance tests decide, and a rank only orders the candidates, so a
+  superset that differs from JavaScript's changes no ruling.
+- **Queries cost only their own cells.** A query walks the cells its reach covers, column by column, so its cost does
+  not grow with the map.
+- **What still crosses** is a resumed pickup's rest: the records Node hands back after a pickup stop (6d.6c.2).
+- **The adapter** still computes each near list, since the inventory it lets the core read, the label budget and the
+  registered identities depend on it. It no longer computes a swap's lists.
+- **A raw edit of a ground record no longer reaches phase 6.** The store follows only the ground helpers (6d.1).
+  Published records are frozen, so play cannot edit one in place, but a test could: `physics-items-boundaries`' pickup
+  cycle wrote `pickupAfter` on a dropped record, and now uses `replaceItem`.
+
+**Evidence.**
+- `trap-continuity` and the bots fixture take pickups (op 14) 83 and 223 times, and never swap. A new test in
+  `item-instances.test.js` covers the swap's tie-break: two equidistant candidates whose label order is the reverse of
+  their list order, and a decoy beyond reach. With every rank flattened, it fails.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -848,7 +879,9 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
       explosion's impulses are enqueued in the core. Staged by the stops it removes:
       - **6d.6a (#1214):** the whole sync is one core routine, which Node's `synchronize` calls once. Below.
       - **6d.6b (#1214):** phase 3's drops sync inside their run, and the ground's write direction flips for them. Below.
-      - **6d.6c:** phase 6's pickups and swaps, with the core's ground grid for the resume list.
+      - **6d.6c:** phase 6's pickups and swaps, in two PRs:
+        - **6d.6c.1 (#1214):** phase 6 reads its ground from the core's store and grid. Below.
+        - **6d.6c.2:** pickups, swaps and an instant transit's landing sync inside the run.
       - **6d.6d:** a mine's explosion syncs and enqueues its impulses in `hazards.rs`, retiring `STOP_EXPLOSION`.
 - **The direction (Corey, 2026-11-21, on #1214):** "now the way this should work eventually is that essentially the core
   should just be receiving tick timed input events or roughly that at the interface betweeen it and JS". So from 6d.2

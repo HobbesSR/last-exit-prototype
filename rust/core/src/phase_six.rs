@@ -2,8 +2,9 @@
 //! order, each active actor's `interact`, its chosen `transit`, `advanceCharging` and `automaticPickups`,
 //! with the swap's staged pickup and drop. `shared/simulation/phase-six.ts` is the adapter.
 //!
-//! The records stay in JavaScript (D1). Each call packs the actors with their inventories, the ground
-//! records near them, the gates near an interacting actor and the map's stations, chargers and sensors.
+//! The records stay in JavaScript (D1). Each call packs the actors and the map's stations, chargers and sensors. The
+//! ground an actor reads (its near records, a swap's candidates and spacing spots) comes from the world's ground store
+//! and its grid (`read_ground`, #1214 stage 6d.6c.1); only a resumed pickup's rest still crosses.
 //! The run writes nothing back as rows: every write comes back as an ordered fact, in the order the
 //! TypeScript made it, because several create keys (`charging`, `selectedSlot`, a gladiator's `transit`)
 //! whose position the frozen fixture hashes, and some are Node-owned (D4's table: `route`, `input`).
@@ -22,6 +23,7 @@ use crate::action_types::{
 };
 use crate::collision::{CollisionMap, line_clear, reach_clear};
 use crate::drop_planner::{self, Allocation, Context};
+use crate::ground;
 use crate::math::{hypot, js_max, js_min, js_round};
 use crate::placement::{Disk, placement};
 use crate::sight::{GateSet, SightIndex};
@@ -69,8 +71,11 @@ const GATE_DETAILS: usize = 28;
 /// moved (path over the jitter tolerance), discovery memory, steps (1 interact, 2 transit choice,
 /// 4 charging, 8 pickups), transit choice (NaN none, -1 unknown), sneak, reserves flag, inventory
 /// length (-1 none), then the counts of swap candidates, swap's nearby records, swap's ground IDs
-/// and near records.
+/// and near records. The core reads a swap's three lists (`FROM_STORE` in the first count) and the near records
+/// (`FROM_STORE` in theirs) from its ground store (#1214 stage 6d.6c.1); a resumed pickup's rest still crosses.
 pub const ACTOR_ROW: usize = 23;
+/// The spiral's farthest spot and its spacing, with a unit spare (`scatter.rs`): a swap's drop reads records this near.
+const SCATTER_REACH: f64 = 372.0 + 32.0 + 1.0;
 /// Per gate, once per gate set: x, y, door.
 pub const GATE_DETAIL: usize = 3;
 /// Per ground record: id, x, y, dropped by this actor, pickupAfter, ammo family (-1 none), has a
@@ -172,6 +177,9 @@ struct Actor {
     swap_taken: Vec<[f64; 3]>,
     swap_ground: Vec<f64>,
     near: Vec<Ground>,
+    /// The swap's lists and the near records come from the ground store (6d.6c.1).
+    swap_from_store: bool,
+    near_from_store: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -225,10 +233,13 @@ fn read_actor(r: &mut Reader<'_>) -> Actor {
             })
             .collect()
     });
-    let swap = (0..a[19] as usize).map(|_| r.ground()).collect();
-    let swap_taken = (0..a[20] as usize).map(|_| r.row()).collect();
-    let swap_ground = r.vec(a[21] as usize);
-    let near = (0..a[22] as usize).map(|_| r.ground()).collect();
+    let from_store = crate::phase_three::FROM_STORE;
+    let (swap_from_store, near_from_store) = (a[19] == from_store, a[22] == from_store);
+    let count = |n: f64| if n == from_store { 0 } else { n as usize };
+    let swap = (0..count(a[19])).map(|_| r.ground()).collect();
+    let swap_taken = (0..count(a[20])).map(|_| r.row()).collect();
+    let swap_ground = r.vec(count(a[21]));
+    let near = (0..count(a[22])).map(|_| r.ground()).collect();
     Actor {
         p: Player {
             roster: a[0] as usize,
@@ -270,6 +281,102 @@ fn read_actor(r: &mut Reader<'_>) -> Actor {
         swap_taken,
         swap_ground,
         near,
+        swap_from_store,
+        near_from_store,
+    }
+}
+
+/// A ground store record as the adapter packed it (`putGround`): the dropper compared with `roster`, the item's seven
+/// absence bits, no token.
+fn ground_of(w: &[f64; ground::RECORD], roster: usize, rank: f64, body: bool) -> Ground {
+    Ground {
+        id: w[0],
+        x: w[ground::X],
+        y: w[ground::Y],
+        mine: w[13] == roster as f64,
+        pickup_after: w[14],
+        family: w[9],
+        body,
+        rank,
+        item: Item {
+            kind: w[4],
+            weapon: w[5],
+            ammo: w[6],
+            count: w[7],
+            charge: w[8],
+            instance: w[10],
+            lineage: w[11],
+            quality: w[12],
+            token: f64::NAN,
+            absent: (w[15] as u32) & 127,
+        },
+    }
+}
+
+/// The ground an actor reads, from the world's store (#1214 stage 6d.6c.1), as the adapter packed it:
+/// - **near records**: `inReach(itemsNear(s, p, 38), p)`, the records in a box one unit past `automaticPickups`' reach
+///   (a coordinate that is NaN passes), in the list's order;
+/// - **a swap's candidates**: those `itemsNear(s, p, PICKUP_REACH)` offers, each with whether its body is held and its
+///   label's rank among them (the keys' ID order is the labels'), unranked when unlabelled;
+/// - **a swap's spacing spots** (`itemsNear(s, p, SCATTER_REACH)`), and the outgoing item's identity if the ground holds
+///   it.
+///
+/// The grid offers a superset; the rules' own distance tests decide, so a superset differing from JavaScript's changes no
+/// ruling, and ranks keep their relative order.
+fn read_ground(a: &mut Actor, world: &World) {
+    let (x, y, roster) = (a.p.x, a.p.y, a.p.roster);
+    let ground = &world.ground;
+    if a.near_from_store {
+        let box_reach = AUTOMATIC_REACH + 1.0;
+        a.near = ground
+            .near(x, y, box_reach)
+            .iter()
+            .filter(|r| {
+                !((r.words[ground::X] - x).abs() > box_reach
+                    || (r.words[ground::Y] - y).abs() > box_reach)
+            })
+            .map(|r| ground_of(&r.words, roster, 0.0, false))
+            .collect();
+    }
+    if a.swap_from_store {
+        let candidates = ground.near(x, y, PICKUP_REACH);
+        let key = |r: &ground::Record| {
+            let k = r.words[1];
+            (k.is_finite() && k >= 0.0).then_some(k as crate::world::Key)
+        };
+        let mut labelled: Vec<crate::world::Key> = candidates.iter().filter_map(key).collect();
+        labelled.sort_by(|&p, &q| world.id_order(p, q));
+        a.swap = candidates
+            .iter()
+            .map(|r| {
+                let k = key(r);
+                let rank = k.map_or(f64::NAN, |k| {
+                    labelled.iter().position(|&l| l == k).unwrap_or(0) as f64
+                });
+                ground_of(&r.words, roster, rank, k.is_some_and(|k| world.has_body(k)))
+            })
+            .collect();
+        a.swap_taken = ground
+            .near(x, y, SCATTER_REACH)
+            .iter()
+            .map(|r| [r.words[0], r.words[ground::X], r.words[ground::Y]])
+            .collect();
+        let selected = if a.p.selected.is_nan() {
+            0
+        } else {
+            a.p.selected as usize
+        };
+        let outgoing =
+            a.p.inventory
+                .as_ref()
+                .and_then(|i| i.get(selected))
+                .and_then(Option::as_ref);
+        a.swap_ground = outgoing
+            .filter(|o| {
+                !o.missing(ABSENT_INSTANCE) && truthy(o.instance) && ground.holds_id(o.instance)
+            })
+            .map(|o| vec![o.instance])
+            .unwrap_or_default();
     }
 }
 
@@ -1210,6 +1317,10 @@ impl PhaseSix {
                 a.p.inventory = q.inventory.clone();
             }
         }
+        for a in &mut actors {
+            read_ground(a, world);
+        }
+        let store = &world.players;
         let players = (0..h[PLAYERS] as usize)
             .map(|i| {
                 let a: [f64; PLAYER_ROW] = r.row();

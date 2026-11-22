@@ -11,10 +11,10 @@ import { addItems, draftItem, groundItem, itemsNear, removeItem, replaceItem, se
 import { configure, ground, putItem } from './phase-three.ts';
 import type { ActionsCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
+import { ensureGround } from './ground-store.ts';
 import { adoptCarried, carriedItem, carriedToken, playersStale, replaceCarried, uploadPlayers } from './player-store.ts';
 import { playerIndex } from './relations.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
-import { PICKUP_REACH } from './rules.ts';
 import { sightOf } from './sight-runtime.ts';
 import { launchPhysicalDrops } from './world-physics.ts';
 import { start as profileStart, stop as profileStop } from '../profiler.ts';
@@ -38,8 +38,6 @@ const HEADER = 32, OUT_HEADER = 11;
 /** An inventory the core takes from its player store (`phase_three::FROM_STORE`). */
 const FROM_STORE = -2;
 const ABSENT_AMMO = 1, ABSENT_CHARGE = 2, ABSENT_INSTANCE = 4, ABSENT_LINEAGE = 8, ABSENT_QUALITY = 16, ABSENT_WEAPON = 32, ABSENT_COUNT = 64;
-/** The spiral's farthest spot and its spacing, with a unit spare (`scatter.rs`): a swap's drop reads records this near. */
-const SCATTER_REACH = 372 + 32 + 1;
 /** `automaticPickups`' reach. */
 const AUTOMATIC_REACH = 38;
 
@@ -62,14 +60,15 @@ const writer = new Writer();
 /** Records that cross for no one. */
 const NONE: GroundItem[] = [];
 
-function putGround(w: Writer, s: Game, r: PhysicsRuntime | null, p: Player, item: GroundItem, rank: number): void {
+/** A resumed pickup's rest record (`GROUND_ROW`): its body and rank are not read, so both are 0. */
+function putGround(w: Writer, p: Player, item: GroundItem): void {
   const kind = ITEM_KINDS.indexOf(item.kind as typeof ITEM_KINDS[number]);
   const absent = (item.ammo == null ? ABSENT_AMMO : 0) | (item.charge == null ? ABSENT_CHARGE : 0) | (item.instanceId == null ? ABSENT_INSTANCE : 0)
     | (item.lineageId == null ? ABSENT_LINEAGE : 0) | (item.quality == null ? ABSENT_QUALITY : 0) | (item.weaponType == null ? ABSENT_WEAPON : 0)
     | (item.count == null ? ABSENT_COUNT : 0);
   w.put(item.id); w.put(item.x); w.put(item.y); w.put(item.droppedBy === p.id ? 1 : 0); w.put(n(item.pickupAfter));
-  w.put(item.family === undefined ? -1 : AMMO_FAMILIES.indexOf(item.family)); w.put(r?.items.has(`item:${itemLabel(s, item.id)}`) ? 1 : 0);
-  w.put(rank); w.put(kind === -1 ? -2 : kind); w.put(item.weaponType == null ? NaN : WEAPONS.indexOf(item.weaponType));
+  w.put(item.family === undefined ? -1 : AMMO_FAMILIES.indexOf(item.family)); w.put(0);
+  w.put(0); w.put(kind === -1 ? -2 : kind); w.put(item.weaponType == null ? NaN : WEAPONS.indexOf(item.weaponType));
   w.put(n(item.ammo)); w.put(n(item.count)); w.put(n(item.charge)); w.put(n(item.instanceId)); w.put(n(item.lineageId));
   w.put(n(item.quality)); w.put(NaN); w.put(absent);
 }
@@ -115,6 +114,8 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
   { resume: number; step: number; rest?: GroundItem[] } {
   const r = physicsRuntime(s);
   if (!r) throw new Error('phase 6 needs the game\'s physics world');
+  // The ground store is current before the core reads it (6d.6c.1).
+  ensureGround(s, r);
   const native = r.world.boundaryCall(), core = native.core as Core, world = native.world;
   // Between ticks the store is uploaded first (`player-store.ts`), before anything names a carried record by its token,
   // since the upload numbers them afresh; inside a tick the store and the tokens are current.
@@ -165,10 +166,9 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
     // extract or start charging, which need a carried cell. Gates and transit never read it.
     const readable = list.length || swap || p.charging || interact && p.inventory?.some(item => item?.kind === 'cell');
     const inventory = readable ? p.inventory : undefined;
-    const candidates = swap ? itemsNear(s, p, PICKUP_REACH) : NONE;
-    const taken = swap ? itemsNear(s, p, SCATTER_REACH) : NONE;
-    const outgoing = swap ? p.inventory![p.selectedSlot ?? 0] : undefined;
-    const groundId = outgoing?.instanceId && groundItem(s, outgoing.instanceId) ? outgoing.instanceId : undefined;
+    // The core reads the ground from its store (#1214 stage 6d.6c.1): a swap's candidates, spacing spots and the outgoing
+    // item's ground check, and the near records, except a resumed pickup's rest, which still crosses.
+    const rested = i === 0 && rest !== undefined;
     // Role, status, pose, `railCd` and `cloak` come from the core's player store (`player-store.ts`, #1214 stage 6c.3b);
     // their words stay 0.
     w.put(playerIndex(s, p)); w.put(0); w.put(0); w.put(p.bot ? 1 : 0);
@@ -177,18 +177,10 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
     w.put(0); w.put(0); w.put(0); w.put(0); w.put(0); w.put(0);
     w.put(0); w.put(0); w.put(moved ? 1 : 0); w.put(p.discovery ? 1 : 0); w.put(steps);
     w.put(choice === undefined ? NaN : s.map.stations.findIndex(st => st.id === choice)); w.put(sneak ? 1 : 0); w.put(0);
-    w.put(inventory ? FROM_STORE : -1); w.put(candidates.length); w.put(taken.length); w.put(groundId === undefined ? 0 : 1);
-    w.put(list.length);
-    if (candidates.length) {
-      // The swap's tie-break is the item labels' order (`interact`).
-      const labels = candidates.map(item => { try { return itemLabel(s, item.id); } catch { return undefined; } });
-      const sorted = labels.filter((l): l is ItemLabel => l !== undefined).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
-      candidates.forEach((item, k) => putGround(w, s, r, p, item, labels[k] === undefined ? NaN : sorted.indexOf(labels[k]!)));
-    }
-    for (const item of taken) { w.put(item.id); w.put(item.x); w.put(item.y); }
-    if (groundId !== undefined) w.put(groundId);
-    // Only a swap's pickup releases a body; the near records' bodies are not read.
-    for (const item of list) putGround(w, s, null, p, item, 0);
+    w.put(inventory ? FROM_STORE : -1); w.put(swap ? FROM_STORE : 0); w.put(0); w.put(0);
+    w.put(rested ? list.length : list.length ? FROM_STORE : 0);
+    // A resumed pickup's rest: the near records' bodies are not read.
+    if (rested) for (const item of list) putGround(w, p, item);
   }
   // Each player's status and pose come from the store too; only the radius crosses.
   for (const p of s.players) { w.put(0); w.put(0); w.put(0); w.put(actorRadius(s, p)); }
