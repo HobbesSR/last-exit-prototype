@@ -1,10 +1,9 @@
-import { itemLabel, itemIdForLabel } from '../item-instances.ts';
+import { itemLabel } from '../item-instances.ts';
 import { canOccupy } from '../movement.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GroundItem, MatchContent, GameMap, Vec2 } from '../types.ts';
 import type { PhysicsWorld } from '../physics/world.ts';
-import type { Point } from '../physics/types.ts';
 import { hypot } from '../math.ts';
 import { groundItem, replaceItem } from './ground-items.ts';
 
@@ -70,14 +69,17 @@ export function launchPhysicalDrops(s: Game, items: GroundItem[], from: Vec2): v
 }
 
 /**
- * Walks the item bodies, not the ground; a record is replaced only when its body moved. The pose is the end of the
- * step's path (`paths`), which is the body's pose after the solve, so no body is read back from the core one by one.
+ * Phase 4's ground poses, from the core (#1214 stage 6e.4): the core moved each record whose body the step moved, in its
+ * ground store, and this mirrors them without writing them through. Call it right after `players_after_step`.
  */
-export function writePhysicalItemPoses(s: Game, r: PhysicsRuntime, paths: Record<string, Point[]>): void {
-  for (const id of r.items) {
-    const item = groundItem(s, itemIdForLabel(s, id.slice(ITEM_PREFIX.length))!);
-    const pose = item && (paths[id]?.at(-1) ?? r.world.getTransform(id));
-    if (pose && !(Object.is(pose.x, item.x) && Object.is(pose.y, item.y))) replaceItem(s, item, { ...item, x: pose.x, y: pose.y });
+export function adoptItemPoses(s: Game, r: PhysicsRuntime): void {
+  const { core, world } = r.world.boundaryCall();
+  const at = (core as typeof core & { ground_poses_after_step(world: number): number }).ground_poses_after_step(world) >>> 0;
+  const count = new Float64Array(core.memory.buffer, at, 1)[0]!;
+  const moved = new Float64Array(core.memory.buffer, at + 8, count * 3).slice();
+  for (let k = 0; k < count; k++) {
+    const item = groundItem(s, moved[k * 3]! as GroundItem['id']);
+    if (item) replaceItem(s, item, { ...item, x: moved[k * 3 + 1]!, y: moved[k * 3 + 2]! }, true);
   }
 }
 

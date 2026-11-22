@@ -358,6 +358,8 @@ fn prepare(a: &mut Actor, world: &World, rest: Option<Vec<Ground>>) {
         (s.role, s.status, s.x, s.y, e.cloak, e.rail_cd);
     (a.p.selected, a.p.weapon, a.p.reserves, a.keys, a.charging) =
         (q.selected, q.weapon, q.reserves, q.keys, q.charging);
+    // Whether it is a bot and holds a discovery memory, from the store (#1214 stage 6e.4).
+    (a.bot, a.discovery) = (e.bot != 0.0, e.discovery != 0.0);
     let interact = a.steps & STEP_INTERACT != 0;
     let pickups = a.steps & STEP_PICKUPS != 0 && a.p.role == 0.0;
     let list = match rest {
@@ -1569,6 +1571,7 @@ impl PhaseSix {
             let (s, e) = (&store.rows[a.p.roster], &store.extra[a.p.roster]);
             (a.p.role, a.p.status, a.p.x, a.p.y, a.p.cloak, a.rail_cd) =
                 (s.role, s.status, s.x, s.y, e.cloak, e.rail_cd);
+            (a.bot, a.discovery) = (e.bot != 0.0, e.discovery != 0.0);
             // The equipment too (6c.3c.2): selection, weapon, keys, charging and reserves, and the inventory where the
             // adapter asked for it. A reload is not phase 6's, so it stays absent, as the adapter packed it.
             let q = &store.equip[a.p.roster];

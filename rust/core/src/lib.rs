@@ -36,7 +36,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 38;
+pub const ADAPTER_VERSION: u32 = 39;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -1329,6 +1329,22 @@ pub unsafe extern "C" fn players_after_step(world: *mut world::World) {
         let w = &mut *world;
         w.players.after_step(&w.output);
     }
+}
+/// Phase 4's ground poses from the world's last step output (`World::item_poses_after_step`, #1214 stage 6e.4), written
+/// into the boundary output: the count of moved records, then `id, x, y` each. Call it right after `players_after_step`.
+/// # Safety
+/// `world` is live; the view expires on the next call into the world.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ground_poses_after_step(world: *mut world::World) -> *const f64 {
+    // SAFETY: the caller's contract.
+    let w = unsafe { &mut *world };
+    let moved = w.item_poses_after_step();
+    let mut out = std::mem::take(&mut w.boundary_output);
+    out.clear();
+    out.push((moved.len() / 3) as f64);
+    out.extend_from_slice(&moved);
+    w.boundary_output = out;
+    w.boundary_output.as_ptr()
 }
 /// The player store in the upload's layout (`players::Players::dump`), for tests; the count is `players_count`'s.
 /// # Safety

@@ -14,8 +14,11 @@ use crate::world::STEP_HEADER;
 
 /// Words of `Extra` uploaded: respawnAt, transit arriveAt, the transit's destination station index (-1 none), railCd,
 /// cloak, revealed, boost, the actor's world key (`actor:<id>`) and its hook's (`hook:<id>`, #1214 stage 6d.4), and its
-/// kills (6e.2, the kill credit an elimination inside a run reads). An absent field is NaN.
-pub const EXTRA_ROW: usize = 10;
+/// kills (6e.2, the kill credit an elimination inside a run reads), and whether it is a bot and has a discovery memory
+/// (6e.4, which phase 6 reads). An absent field is NaN.
+pub const EXTRA_ROW: usize = 12;
+/// Words per heard cue (`HeardCue`: x, y, tick, until), after each player's carried items in the upload (6e.4).
+pub const CUE: usize = 4;
 /// Words per player uploaded: `combat::Row` (`PLAYER_ROW` words), `movedThisTick` (0 when unset), then `Extra`.
 pub const STORE_ROW: usize = PLAYER_ROW + 1 + EXTRA_ROW;
 
@@ -94,6 +97,9 @@ pub(crate) struct Extra {
     pub(crate) hook_key: f64,
     /// `kills`, which the kill credit counts on (6e.2).
     pub(crate) kills: f64,
+    /// Whether the player is a bot, and whether it holds a discovery memory (`p.discovery`): phase 6 reads both (6e.4).
+    pub(crate) bot: f64,
+    pub(crate) discovery: f64,
 }
 
 #[derive(Default)]
@@ -106,6 +112,8 @@ pub struct Players {
     pub(crate) extra: Vec<Extra>,
     /// Each player's equipment, in roster order.
     pub(crate) equip: Vec<Equip>,
+    /// The cues each player heard (`p.heard`), in roster order (#1214 stage 6e.4): phase 3 reads and writes them.
+    pub(crate) heard: Vec<Vec<[f64; CUE]>>,
     /// The token the next new item takes (`put_items`).
     pub(crate) next_token: f64,
     input: Vec<f64>,
@@ -128,6 +136,7 @@ impl Players {
         self.moved.clear();
         self.extra.clear();
         self.equip.clear();
+        self.heard.clear();
         let mut at = count * STORE_ROW;
         for _ in 0..count {
             let h = &self.input[at..at + EQUIP_HEAD];
@@ -139,6 +148,14 @@ impl Players {
                 at += h[4] as usize * ITEM_ROW;
                 items
             });
+            let cues = self.input[at] as usize;
+            self.heard.push(
+                self.input[at + 1..at + 1 + cues * CUE]
+                    .as_chunks::<CUE>()
+                    .0
+                    .to_vec(),
+            );
+            at += 1 + cues * CUE;
             self.equip.push(Equip {
                 selected: h[0],
                 weapon: h[1],
@@ -175,6 +192,8 @@ impl Players {
                 key: e[7],
                 hook_key: e[8],
                 kills: e[9],
+                bot: e[10],
+                discovery: e[11],
             });
         }
     }
@@ -211,9 +230,11 @@ impl Players {
                 e.key,
                 e.hook_key,
                 e.kills,
+                e.bot,
+                e.discovery,
             ]);
         }
-        for q in &self.equip {
+        for (q, cues) in self.equip.iter().zip(&self.heard) {
             let (res, rel) = (q.reserves.unwrap_or([0.0; 3]), q.reload.unwrap_or([0.0; 3]));
             words.extend_from_slice(&[
                 q.selected,
@@ -233,6 +254,8 @@ impl Players {
             for slot in q.inventory.iter().flatten() {
                 words.extend_from_slice(&slot.as_ref().map_or(EMPTY_ROW, Item::row));
             }
+            words.push(cues.len() as f64);
+            words.extend(cues.iter().flatten());
         }
         self.input = words;
         &self.input
@@ -465,6 +488,12 @@ impl Players {
                         e.revealed = p[1];
                     }
                 }
+                3 => {
+                    // The cues a shot left a hearer: the whole list (6e.4).
+                    if let Some(h) = self.heard.get_mut(i) {
+                        *h = p[2..2 + p[1] as usize * CUE].as_chunks::<CUE>().0.to_vec();
+                    }
+                }
                 14 => {
                     if let Some(q) = self.equip.get_mut(i) {
                         q.reload = None;
@@ -506,8 +535,9 @@ mod tests {
     #[test]
     fn an_upload_replaces_the_store_in_roster_order() {
         let mut players = Players::default();
-        // Two fixed rows, then the first player's equipment with one weapon and an empty slot, the second's with none.
-        let words = 2 * STORE_ROW + EQUIP_HEAD + 2 * ITEM_ROW + EQUIP_HEAD;
+        // Two fixed rows, then the first player's equipment with one weapon and an empty slot, the second's with none,
+        // each ending with an empty list of heard cues.
+        let words = 2 * STORE_ROW + EQUIP_HEAD + 2 * ITEM_ROW + 1 + EQUIP_HEAD + 1;
         let input = players.input(words);
         for (i, word) in input[..2 * STORE_ROW].iter_mut().enumerate() {
             *word = i as f64;
@@ -530,7 +560,7 @@ mod tests {
             6.0,
         ]);
         input[items + ITEM_ROW..items + 2 * ITEM_ROW].copy_from_slice(&EMPTY_ROW);
-        let second = items + 2 * ITEM_ROW;
+        let second = items + 2 * ITEM_ROW + 1;
         input[second..second + EQUIP_HEAD].copy_from_slice(&[
             f64::NAN,
             0.0,
@@ -554,9 +584,11 @@ mod tests {
             vec![PLAYER_ROW as f64, (STORE_ROW + PLAYER_ROW) as f64]
         );
         assert_eq!(players.extra[0].respawn_at, (PLAYER_ROW + 1) as f64);
-        assert_eq!(players.extra[1].key, (2 * STORE_ROW - 3) as f64);
-        assert_eq!(players.extra[1].hook_key, (2 * STORE_ROW - 2) as f64);
-        assert_eq!(players.extra[1].kills, (2 * STORE_ROW - 1) as f64);
+        assert_eq!(players.extra[1].key, (2 * STORE_ROW - 5) as f64);
+        assert_eq!(players.extra[1].hook_key, (2 * STORE_ROW - 4) as f64);
+        assert_eq!(players.extra[1].kills, (2 * STORE_ROW - 3) as f64);
+        assert_eq!(players.extra[1].discovery, (2 * STORE_ROW - 1) as f64);
+        assert!(players.heard.iter().all(Vec::is_empty));
         let q = &players.equip[0];
         assert_eq!(
             (q.selected, q.weapon, q.keys, q.charging),

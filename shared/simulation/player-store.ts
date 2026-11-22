@@ -67,6 +67,10 @@ function packEquipment(s: Game, token: (item: InventoryItem) => number | undefin
       reserves ? 1 : 0, ...reserves ? AMMO_FAMILIES.map(f => reserves[f]) : [0, 0, 0],
       reload ? 1 : 0, ...reload ? [reload.slot, reload.instanceId, reload.until] : [0, 0, 0]);
     for (const item of inventory ?? []) appendItem(out, item as InventoryItem | null, item ? token(item) ?? -2 : NaN);
+    // The cues it heard (#1214 stage 6e.4), which phase 3 reads and writes in the core.
+    const heard = p.heard ?? [];
+    out.push(heard.length);
+    for (const cue of heard) out.push(cue.x, cue.y, cue.tick, cue.until);
   }
   return out;
 }
@@ -82,7 +86,9 @@ export function idRanks(s: Game): number[] {
 /** Words in a player's fields (`combat::PLAYER_ROW`). */
 export const PLAYER_ROW = 15;
 /** Words per player uploaded (`players::STORE_ROW`): the fields, `movedThisTick`, then `players::Extra`. */
-const STORE_ROW = PLAYER_ROW + 1 + 10;
+const STORE_ROW = PLAYER_ROW + 1 + 12;
+/** Words per heard cue (`players::CUE`), after each player's carried items. */
+const CUE = 4;
 /** Words of a player's equipment header (`players::EQUIP_HEAD`), and per carried item (`players::ITEM_ROW`). */
 const EQUIP_HEAD = 13, ITEM_ROW = 10;
 const num = (value: number | null | undefined): number => value ?? NaN;
@@ -113,6 +119,8 @@ function packPlayers(s: Game, keys: readonly (readonly [number, number])[], data
     data[at++] = keys[i]![0]; data[at++] = keys[i]![1];
     // `kills`, which an elimination inside a run credits (#1214 stage 6e.2).
     data[at++] = num(p.kills);
+    // Whether it is a bot and holds a discovery memory, which phase 6 reads (6e.4).
+    data[at++] = p.bot ? 1 : 0; data[at++] = p.discovery ? 1 : 0;
   }
 }
 
@@ -136,7 +144,7 @@ export function storeDrift(s: Game, r: PhysicsRuntime): string[] {
     out.push(`${s.players[Math.floor(k / STORE_ROW)]!.id}.${FIELDS[k % STORE_ROW]}: ${kept[k]} != ${fresh[k]}`);
   // The equipment as a whole per player: its words differ in length when an inventory does.
   for (let at = fixed, i = 0; at < fresh.length; i++) {
-    const words = EQUIP_HEAD + Math.max(0, fresh[at + 4]!) * ITEM_ROW;
+    const items = EQUIP_HEAD + Math.max(0, fresh[at + 4]!) * ITEM_ROW, words = items + 1 + fresh[at + items]! * CUE;
     const a = Array.from(kept.subarray(at, at + words)), b = Array.from(fresh.subarray(at, at + words));
     if (a.some((v, k) => !Object.is(v, b[k]))) out.push(`${s.players[i]!.id}.equipment: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
     at += words;
@@ -144,7 +152,7 @@ export function storeDrift(s: Game, r: PhysicsRuntime): string[] {
   return out;
 }
 const FIELDS = ['role', 'status', 'kit', 'x', 'y', 'heading', 'hp', 'maxHp', 'shield', 'level', 'cooldown', 'attackCd', 'stun', 'rank',
-  'viewLagTicks', 'movedThisTick', 'respawnAt', 'arriveAt', 'destination', 'railCd', 'cloak', 'revealed', 'boost', 'key', 'hookKey', 'kills'];
+  'viewLagTicks', 'movedThisTick', 'respawnAt', 'arriveAt', 'destination', 'railCd', 'cloak', 'revealed', 'boost', 'key', 'hookKey', 'kills', 'bot', 'discovery'];
 
 /**
  * Upload every player to the world's store, in roster order. Call it before any other input of the call is viewed: the

@@ -114,7 +114,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   const token = (item: InventoryItem): number => carriedToken(r, item) ?? EXTRA_TOKEN + extras.push(item) - 1;
   const itemOf = (t: number): InventoryItem => (t >= EXTRA_TOKEN ? extras[t - EXTRA_TOKEN] : carriedItem(r, t))!;
   const allocations: InventoryItem[] = [], droppers: Player[] = [];
-  let allocationCount = 0, context = mode === 1, hearing = false;
+  let allocationCount = 0, context = mode === 1;
   for (const p of actors) {
     const intent = intents[playerIndex(s, p)], input = intent?.input;
     if (input?.moveSlot) { allocations.push(...p.inventory?.filter(i => i !== null) ?? []); allocationCount += p.inventory?.filter(i => i && i.instanceId === undefined).length ?? 0; }
@@ -122,7 +122,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
       droppers.push(p); allocations.push(...p.inventory?.filter(i => i !== null) ?? []); allocationCount += 4; context = true;
     }
     if (input?.skill && p.kit === 'specter' && p.cooldown <= 0) context = true;
-    if ((mode === 1 || input?.attack || intent?.utilitySlot !== undefined) && p.role === 'contestant' && p.attackCd <= 0) { context = true; hearing = true; }
+    if ((mode === 1 || input?.attack || intent?.utilitySlot !== undefined) && p.role === 'contestant' && p.attackCd <= 0) context = true;
   }
   if (options.item) { allocations.push(options.item); allocationCount += 3; }
   // The game's own allocation reads the core's item registry (#1214 stage 6e.1). A plan staged on a fork of it (a
@@ -185,11 +185,8 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
       n(input.x), n(input.y), input.sneak ? 1 : 0);
   }
   for (const p of contexts) {
-    const cues = hearing ? p.heard ?? [] : [];
-    // Role, status and pose come from the core's player store (stage 6c.3b); their words stay 0.
-    data.push(playerIndex(s, p), 0, 0, 0, 0,
-      s.content.actorPhysics.geometry[p.role].bodyRadius, r.world.key(`actor:${p.id}`), cues.length);
-    for (const cue of cues) data.push(cue.x, cue.y, cue.tick, cue.until);
+    // Role, status and pose come from the core's player store (stage 6c.3b), and so do the cues heard (6e.4).
+    data.push(playerIndex(s, p), 0, 0, 0, 0, s.content.actorPhysics.geometry[p.role].bodyRadius, r.world.key(`actor:${p.id}`), 0);
   }
   data.push(...phases, ...known);
   for (const item of near) data.push(item.x, item.y);

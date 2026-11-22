@@ -1,4 +1,4 @@
-import { applyFloorDrag, writePhysicalItemPoses } from './world-physics.ts';
+import { adoptItemPoses, applyFloorDrag } from './world-physics.ts';
 import { phaseThree } from './phase-three.ts';
 import { collectBotIntent } from './bots.ts';
 import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
@@ -66,10 +66,11 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   const result = r.world.step({ discardContacts: true });
   // The core's player store takes the poses from the step itself (#1214 stage 6c.2); the records take them below.
   { const { core, world } = r.world.boundaryCall(); core.players_after_step(world); }
+  // So does its ground store (6e.4); the mirror follows.
+  adoptItemPoses(s, r);
   stop('sim.solve');
   start('sim.poses');
   // Poses are the ends of the step's paths: the bodies' poses after the solve, without reading each one back.
-  writePhysicalItemPoses(s, r, result.paths);
   for (const p of s.players) if (p.status === 'active') {
     const at = result.paths[actorId(p)]?.at(-1);
     if (at) { p.x = at.x; p.y = at.y; p.movedThisTick = result.distance[actorId(p)] ?? 0; }

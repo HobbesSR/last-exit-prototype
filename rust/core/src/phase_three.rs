@@ -909,6 +909,15 @@ impl PhaseThree {
         for a in &mut actors {
             let s = &world.players.rows[a.roster];
             (a.role, a.status, a.x, a.y) = (s.role, s.status, s.x, s.y);
+            // The cues it heard are the store's too (#1214 stage 6e.4); the adapter sends none.
+            if a.heard.is_empty() {
+                a.heard = world
+                    .players
+                    .heard
+                    .get(a.roster)
+                    .cloned()
+                    .unwrap_or_default();
+            }
         }
         let phases = r.vec(h[11] as usize);
         let registered = r.vec(h[12] as usize);
