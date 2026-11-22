@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createGame, disposePhysics, setInput, snapshot, step } from '../shared/simulation.ts';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { planDrop } from '../shared/simulation/loot.ts';
-import { phaseThree } from '../shared/simulation/phase-three.ts';
+import { phaseThree, setInRunDrops } from '../shared/simulation/phase-three.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { createPhysicsWorld } from '../shared/physics/world.ts';
 import { arena } from './helpers/arena.js';
@@ -307,4 +307,34 @@ test('an absent quality uses configured tier one damage while explicit NaN falls
     assert.equal(s.projectiles.length, 1);
     assert.equal(s.projectiles[0].damage, expected);
   }
+});
+
+test('drops synced inside the run leave every record, body, counter and frame as the stop and resume did (#1214 6d.6b)', async t => {
+  // Two droppers in one tick, one of them rearranging unidentified items, splitting a stack and dropping ammo after it,
+  // the other dropping beside the first: each later drop reads what the earlier ones placed. Run with the core's
+  // continuation and with the old stop and resume, the state must be the same.
+  const run = async inRun => {
+    setInRunDrops(inRun);
+    try {
+      const { s, p, q } = await fixture(t, { ammo: true });
+      q.x = p.x + 40; q.y = p.y;
+      p.inventory[0] = { kind: 'med', count: 3, quality: 2 };
+      p.inventory[3] = { kind: 'shield', count: 1 };
+      p.reserves.pistol = 9;
+      q.inventory[1] = { kind: 'cell', charge: 30 };
+      input(s, p, { moveSlot: { from: 3, to: 1 }, drop: true, dropAmmo: { family: 'pistol', count: 5 } });
+      input(s, q, { slot: 1, drop: true });
+      const frames = [];
+      for (let i = 0; i < 3; i++) {
+        step(s);
+        const r = physicsRuntime(s);
+        frames.push(JSON.stringify({ items: s.items, counters: counters(s), players: s.players.map(x => [x.inventory, x.reserves]),
+          frame: snapshot(s), discontinuities: r.discontinuities, actors: [...r.actors], bodies: [...r.items] }));
+      }
+      return frames;
+    } finally { setInRunDrops(true); }
+  };
+  const synced = await run(true), stopped = await run(false);
+  assert.deepEqual(JSON.parse(stopped[0]).items.map(item => item.kind), ['med', 'med', 'ammo', 'cell'], 'the split stack (one copy picked up beside it), the ammo and the cell');
+  synced.forEach((frame, i) => assert.equal(frame, stopped[i], `tick ${i + 1}`));
 });

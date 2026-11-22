@@ -93,6 +93,35 @@ function output(core: Core, world: number): Float64Array {
   return new Float64Array(core.memory.buffer, pointer, new Float64Array(core.memory.buffer, pointer, OUT_HEADER)[5]!);
 }
 
+/**
+ * Apply a sync the core ran inside another run (#1214 stage 6d.6b): phase 3's drops. `markTick` is the sync's, as
+ * `r.synchronize()` gave it there. The queues' mirror follows, refusal or not, as `synchronizeInCore` does.
+ */
+export function applySyncLog(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number): void {
+  const queued = r.pendingImpulses.length > 0 || r.pendingAttachments.length > 0;
+  try { apply(s, r, out, markTick); } finally { if (queued) mirrorPendingQueues(r); }
+}
+
+/**
+ * Make the core ready for a sync it runs inside another run (#1214 stage 6d.6b), as `synchronizeInCore` does before its
+ * call: the ground store current, the hooks' mirror uploaded if Node changed it, the launches handed over and the sync's
+ * settings uploaded.
+ */
+export function prepareInRunSync(s: Game, r: PhysicsRuntime): void {
+  const world = r.world;
+  ensureGround(s, r);
+  syncHooks(r);
+  const launches = [...r.itemLaunches].map(([id, motion]) => [itemKey(s, world, id), motion.x, motion.y] as const);
+  r.itemLaunches.clear();
+  const { core, world: native } = world.boundaryCall();
+  configureSync(s, r, core, native);
+  if (launches.length) {
+    const view = input(core, native, launches.length * 3);
+    launches.forEach((row, i) => view.set(row, i * 3));
+    (core as Core & { physics_launch(world: number, count: number): void }).physics_launch(native, launches.length);
+  }
+}
+
 /** Applies a sync call's log in order, then throws its refusal, if any, with the message the TypeScript threw. */
 function apply(s: Game, r: PhysicsRuntime, out: Float64Array, markTick: number): void {
   const world = r.world, t = templatesOf(s), hooks = r.hooks, removed = new Set<number>();

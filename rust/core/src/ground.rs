@@ -44,6 +44,11 @@ impl Ground {
         &mut self.input
     }
 
+    /// The input as last filled.
+    pub(crate) fn input_words(&self) -> &[f64] {
+        &self.input
+    }
+
     fn rows(&self) -> impl Iterator<Item = Record> + '_ {
         self.input
             .as_chunks::<RECORD>()

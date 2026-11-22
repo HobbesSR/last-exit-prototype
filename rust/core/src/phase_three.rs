@@ -1,13 +1,15 @@
 //! Phase 3 and its shared attack/drop entry points (27, step 5c.2).
-//! A successful drop returns at the sync boundary; the adapter admits bounded item chunks,
-//! then repacks the changed poses and resumes at the next operation of that same player.
+//! The loop's drops sync inside the run (#1214 stage 6d.6b): a committed drop adds its records to the ground store,
+//! launches them and runs the body sync (`boundary::synchronize`), whose log goes to the output as a fact (`OP_SYNC`), then
+//! the loop goes on with what Node would have repacked. An elimination's drops still return at the sync boundary, and
+//! the adapter resumes at the next step.
 //!
 //! Input header: mode (loop, a contestant's scenario attack, carried plan, ammo plan, elimination), resume player and
 //! operation, tick, serial, item/scatter serials, ground count, reserved actor bodies,
 //! counts of action players, context actors, free label phases, known item IDs, near
 //! ground positions, ground IDs, carried identities and hooks; mandatory, ammo family/count,
-//! reserved. Each action player is 24 scalar words, optional reserves/reload triples,
-//! ten words per carried slot, then 15 intent words. Context actors are seven scalars,
+//! whether the loop syncs its drops in the run (`InRun`'s words then follow the lists). Each action player is 24 scalar
+//! words, optional reserves/reload triples, ten words per carried slot, then 15 intent words. Context actors are seven scalars,
 //! a cue count and four words per cue. The remaining lists follow in header order.
 //! Output: word length, serials, resume player/operation, plan success, player count,
 //! registration count, log length, plan record count and error/value. Updated player
@@ -18,9 +20,11 @@ use crate::action_equipment::{advance_reload, rearrange, sync_weapon};
 use crate::action_types::{Item, Player, Rules, Weapon, present, safe, truthy};
 use crate::collision::CollisionMap;
 use crate::drop_planner::{self, Allocation, Context, Plan};
+use crate::ground;
 use crate::math::js_min;
 use crate::placement::Disk;
 use crate::sight::{GateSet, SightIndex};
+use crate::swept::SweptMap;
 use crate::world::World;
 
 pub const HEADER: usize = 21;
@@ -125,40 +129,197 @@ impl PhaseThree {
         });
     }
 }
-/// The output's log facts in order, as `phase-three.ts` walks them: each fact's code and payload (owned, so the caller may
-/// change the world while it walks).
-pub fn log_facts(out: &[f64]) -> Vec<(u32, Vec<f64>)> {
-    const OUT_HEADER: usize = 13;
-    const ROW: usize = 24;
-    const ITEM_ROW: usize = 10;
-    let mut at = OUT_HEADER;
-    for _ in 0..out[7] as usize {
-        let row = &out[at..at + ROW];
-        at += ROW;
-        if row[21] != 0.0 {
-            at += 3;
-        }
-        if row[22] != 0.0 {
-            at += 3;
-        }
-        if row[20] >= 0.0 {
-            at += row[20] as usize * ITEM_ROW;
-        }
-        at += row[23] as usize * ITEM_ROW;
-    }
-    at += out[8] as usize * 2;
-    let end = at + out[9] as usize;
-    let mut facts = Vec::new();
-    while at < end {
-        let (op, len) = (out[at] as u32, out[at + 1] as usize);
-        facts.push((op, out[at + 2..at + 2 + len].to_vec()));
-        at += 2 + len;
-    }
-    facts
-}
-
 /// The inventory length an adapter writes for an inventory the core takes from its player store (#1214 stage 6c.3c.2).
 pub const FROM_STORE: f64 = -2.0;
+
+/// What the loop needs to sync a drop inside its run (#1214 stage 6d.6b), packed after the input's lists when header word
+/// 20 is set: the markers' capacity, the roster's size, the loot's drop speed, the markers' count and keys, then each
+/// free label phase's body key (`item:instance-<phase>`, parallel to the phases) and each carried identity's body key
+/// (`item:<label>`, parallel to the carried pairs; NaN unless a dropper carries it). Node interns those keys; the core
+/// does not intern strings.
+struct InRun<'s> {
+    swept: &'s SweptMap,
+    capacity: f64,
+    roster: f64,
+    drop_speed: f64,
+    phase_keys: Vec<(f64, f64)>,
+    carried_keys: Vec<(f64, f64)>,
+    /// The carried pairs no action player held when the call began: the rest are rebuilt from the players as they stand.
+    others: Vec<[f64; 2]>,
+}
+
+impl InRun<'_> {
+    /// A record's body key: a newly allocated identity's from its label phase, else the dropped item's own.
+    fn key_of(&self, allocation: &Allocation, record: &drop_planner::Record) -> f64 {
+        let phase = allocation
+            .facts
+            .iter()
+            .find(|f| f[0] == record.id)
+            .map(|f| f[1]);
+        let by_phase = phase.and_then(|phase| self.phase_keys.iter().find(|k| k.0 == phase));
+        let by_token = || self.carried_keys.iter().find(|k| k.0 == record.item.token);
+        by_phase.or_else(by_token).map_or(f64::NAN, |k| k.1)
+    }
+
+    /// The body sync, as `r.synchronize()` ran it at the stop: admitting items, from the world's markers.
+    fn synchronize(
+        &self,
+        world: &mut World,
+        map: &mut CollisionMap,
+        gates: &mut GateSet,
+        tick: f64,
+    ) -> Vec<f64> {
+        let markers: Vec<f64> = world.markers.iter().map(|&k| f64::from(k)).collect();
+        world.boundary_input.clear();
+        world.boundary_input.extend_from_slice(&[
+            tick,
+            1.0,
+            self.capacity,
+            self.roster,
+            markers.len() as f64,
+        ]);
+        world.boundary_input.extend_from_slice(&markers);
+        crate::boundary::synchronize(world, map, gates, self.swept);
+        world.boundary_output.clone()
+    }
+
+    /// The carried identities as Node packs them: every roster player's carried items with an identity, the action
+    /// players' as they now stand (`current` in place of player `at`), the others' as the call began.
+    fn carried(&self, players: &[Player], at: usize, current: &Player) -> Vec<[f64; 2]> {
+        let mut carried = self.others.clone();
+        for (j, q) in players.iter().enumerate() {
+            let q = if j == at { current } else { q };
+            for item in q.inventory.iter().flatten().flatten() {
+                if !item.missing(crate::action_types::ABSENT_INSTANCE) && truthy(item.instance) {
+                    carried.push([item.token, item.instance]);
+                }
+            }
+        }
+        carried
+    }
+}
+
+/// The world's hooks as phase 3 reads them: caster, interned key, and whether the caster's hook key is the hook's.
+fn world_hooks(world: &World) -> Vec<[f64; 3]> {
+    world
+        .hooks
+        .iter()
+        .map(|hook| {
+            // As `hooks.rs` reads it: a caster index the store does not hold matches nothing.
+            let matches = (hook.caster >= 0.0)
+                .then(|| world.players.extra.get(hook.caster as usize))
+                .flatten()
+                .is_some_and(|caster| caster.hook_key as u32 == hook.key);
+            [
+                hook.caster,
+                f64::from(hook.key),
+                f64::from(u8::from(matches)),
+            ]
+        })
+        .collect()
+}
+
+/// The fact a drop that synced in the run leaves for Node: its records, as op 9 carries them, to add without writing
+/// them through (`addItems` from the core).
+pub const OP_DROP_SYNCED: f64 = 16.0;
+/// The body sync's log (`boundary::synchronize`'s header and entries), applied by Node as its own sync's.
+pub const OP_SYNC: f64 = 15.0;
+
+/// Walk the log's facts from `cursor`, applying the hooks' launches and cancels to the world (#1214 stage 6d.4), as
+/// Node applies them to its mirror. A sync inside the run reconciles the hooks, so they are applied before it.
+fn apply_hook_facts(world: &mut World, log: &[f64], cursor: &mut usize, tick: f64) {
+    let mut at = *cursor;
+    while at < log.len() {
+        let (op, len) = (log[at], log[at + 1] as usize);
+        let p = &log[at + 2..at + 2 + len];
+        if op == 5.0 {
+            world.cancel_hook(p[0] as usize);
+        } else if op == 6.0 {
+            world.launch_hook(p[0] as usize, p[1], p[2], p[3], tick);
+        }
+        at += 2 + len;
+    }
+    *cursor = at;
+}
+
+/// A drop's ground record in the store's words (`ground::RECORD`), as `ground-store.ts` packs the record `ground` in
+/// `phase-three.ts` builds from the same row: the fields that record has, and the absence mask of those it lacks.
+fn ground_words(
+    rules: &Rules,
+    record: &drop_planner::Record,
+    key: f64,
+    roster: f64,
+    tick: f64,
+) -> [f64; ground::RECORD] {
+    const AMMO: u32 = 1;
+    const CHARGE: u32 = 2;
+    const INSTANCE: u32 = 4;
+    const QUALITY: u32 = 16;
+    const WEAPON: u32 = 32;
+    const COUNT: u32 = 64;
+    const FAMILY: u32 = 128;
+    let item = &record.item;
+    let index = |v: f64, len: usize| v >= 0.0 && v.fract() == 0.0 && (v as usize) < len;
+    let mut w = [f64::NAN; ground::RECORD];
+    w[0] = record.id;
+    w[1] = key;
+    w[2] = record.x;
+    w[3] = record.y;
+    w[4] = item.kind;
+    w[9] = -1.0;
+    w[11] = item.lineage;
+    w[13] = roster;
+    w[14] = tick + rules.hz;
+    let mut absent = AMMO | CHARGE | INSTANCE | QUALITY | WEAPON | COUNT | FAMILY;
+    if item.kind == 5.0 {
+        w[7] = item.count;
+        absent &= !COUNT;
+        if index(record.family, 3) {
+            w[9] = record.family;
+            absent &= !FAMILY;
+        }
+    } else {
+        if !item.quality.is_nan() {
+            w[12] = item.quality;
+            absent &= !QUALITY;
+        }
+        if item.kind == 0.0 {
+            if index(item.weapon, rules.weapons.len()) {
+                w[5] = item.weapon;
+                absent &= !WEAPON;
+            }
+            w[6] = item.ammo;
+            absent &= !AMMO;
+        } else if item.kind == 3.0 {
+            w[8] = item.charge;
+            absent &= !CHARGE;
+        } else {
+            w[7] = 1.0;
+            absent &= !COUNT;
+        }
+    }
+    w[15] = f64::from(absent);
+    w
+}
+
+/// `launchPhysicalDrops`: each record leaves its dropper at the drop speed, along the line from the dropper.
+fn launch(
+    world: &mut World,
+    key: f64,
+    record: &drop_planner::Record,
+    from: (f64, f64),
+    speed: f64,
+) {
+    let (dx, dy) = (record.x - from.0, record.y - from.1);
+    let length = crate::math::hypot(dx, dy);
+    // JavaScript's `length ? … : 0`: zero and NaN are falsy.
+    let (vx, vy) = if length != 0.0 && !length.is_nan() {
+        (dx / length * speed, dy / length * speed)
+    } else {
+        (0.0, 0.0)
+    };
+    world.launch(key as crate::world::Key, vx, vy);
+}
 
 /// One action player's row; the flag says the adapter asked for its inventory from the store.
 fn read_player(r: &mut Reader<'_>) -> (Player, bool) {
@@ -497,6 +658,7 @@ impl PhaseThree {
         map: &mut CollisionMap,
         index: &SightIndex,
         gates: &mut GateSet,
+        swept: Option<&SweptMap>,
     ) {
         let rules = self.rules.as_ref().expect("configured phase 3");
         let h = &self.input[..HEADER];
@@ -543,28 +705,14 @@ impl PhaseThree {
         }
         let phases = r.vec(h[11] as usize);
         let registered = r.vec(h[12] as usize);
-        let taken: Vec<[f64; 2]> = (0..h[13] as usize).map(|_| r.row()).collect();
-        let ground_ids = r.vec(h[14] as usize);
-        let carried: Vec<[f64; 2]> = (0..h[15] as usize).map(|_| r.row()).collect();
+        let mut taken: Vec<[f64; 2]> = (0..h[13] as usize).map(|_| r.row()).collect();
+        let mut ground_ids = r.vec(h[14] as usize);
+        let mut carried: Vec<[f64; 2]> = (0..h[15] as usize).map(|_| r.row()).collect();
         // Hooks: caster, interned constraint key, exact caster/id match. They are the world's (#1214 stage 6d.4): where the
         // adapter would have packed them it writes `FROM_STORE` for their count.
-        let mut hooks: Vec<[f64; 3]> = if h[16] == FROM_STORE {
-            world
-                .hooks
-                .iter()
-                .map(|hook| {
-                    // As `hooks.rs` reads it: a caster index the store does not hold matches nothing.
-                    let matches = (hook.caster >= 0.0)
-                        .then(|| world.players.extra.get(hook.caster as usize))
-                        .flatten()
-                        .is_some_and(|caster| caster.hook_key as u32 == hook.key);
-                    [
-                        hook.caster,
-                        f64::from(hook.key),
-                        f64::from(u8::from(matches)),
-                    ]
-                })
-                .collect()
+        let hooks_from_store = h[16] == FROM_STORE;
+        let mut hooks: Vec<[f64; 3]> = if hooks_from_store {
+            world_hooks(world)
         } else {
             (0..h[16] as usize).map(|_| r.row()).collect()
         };
@@ -575,6 +723,41 @@ impl PhaseThree {
         } else {
             [-1.0, 0.0, 0.0]
         };
+        // A loop with droppers syncs each drop inside the run (#1214 stage 6d.6b); every other call stops at a drop.
+        let in_run = (mode == 0 && h[20] != 0.0).then(|| {
+            let [capacity, roster, drop_speed, markers] = r.row();
+            world.markers = r.vec(markers as usize).iter().map(|&k| k as u32).collect();
+            let phase_keys = phases.iter().copied().zip(r.vec(h[11] as usize)).collect();
+            let carried_keys = carried
+                .iter()
+                .map(|c| c[0])
+                .zip(r.vec(carried.len()))
+                .collect();
+            let held: Vec<f64> = players
+                .iter()
+                .filter_map(|p| p.inventory.as_ref())
+                .flatten()
+                .flatten()
+                .map(|item| item.token)
+                .collect();
+            InRun {
+                swept: swept.expect("a sync inside the run needs the swept map"),
+                capacity,
+                roster,
+                drop_speed,
+                phase_keys,
+                carried_keys,
+                others: carried
+                    .iter()
+                    .copied()
+                    .filter(|c| !held.contains(&c[0]))
+                    .collect(),
+            }
+        });
+        let mut hook_cursor = 0;
+        let mut stopped = false;
+        let mut ground_count = h[7] as usize;
+        let mut reserve_actors = h[8] as usize;
         let mut allocation = Allocation {
             item_serial: h[5],
             scatter_serial: h[6],
@@ -609,7 +792,7 @@ impl PhaseThree {
                 taken: &taken,
                 ground_ids: &ground_ids,
                 carried_ids: &ids,
-                ground_count: h[7] as usize,
+                ground_count,
             };
             planned = if mode == 2 {
                 item.and_then(|item| {
@@ -654,7 +837,7 @@ impl PhaseThree {
                 taken: &taken,
                 ground_ids: &ground_ids,
                 carried_ids: &[],
-                ground_count: h[7] as usize,
+                ground_count,
             };
             let step = eliminate(
                 &mut players,
@@ -774,7 +957,7 @@ impl PhaseThree {
                         taken: &taken,
                         ground_ids: &ground_ids,
                         carried_ids: &ids,
-                        ground_count: h[7] as usize,
+                        ground_count,
                     };
                     let plan = if let Some(item) = item {
                         drop_planner::plan_drop(
@@ -801,8 +984,8 @@ impl PhaseThree {
                             )
                         }
                     };
-                    if let Some(plan) =
-                        plan.filter(|plan| world.can_add_bodies(plan.records.len() + h[8] as usize))
+                    if let Some(plan) = plan
+                        .filter(|plan| world.can_add_bodies(plan.records.len() + reserve_actors))
                     {
                         allocation = plan.allocation.clone();
                         if drop_stage == 0 {
@@ -815,12 +998,52 @@ impl PhaseThree {
                         }
                         let mut row = vec![p.roster as f64, plan.records.len() as f64];
                         records(&mut row, &plan);
-                        op(&mut log, 9.0, &row);
-                        resume = (i as f64, (drop_stage + 1) as f64);
-                        break;
+                        let Some(sync) = in_run.as_ref() else {
+                            op(&mut log, 9.0, &row);
+                            resume = (i as f64, (drop_stage + 1) as f64);
+                            break;
+                        };
+                        // The drop's records reach the ground and launch, and the world syncs, where Node did at the
+                        // stop: the hooks' facts first, since the sync reconciles the hooks.
+                        op(&mut log, OP_DROP_SYNCED, &row);
+                        let keys: Vec<f64> = plan
+                            .records
+                            .iter()
+                            .map(|record| sync.key_of(&allocation, record))
+                            .collect();
+                        let words: Vec<f64> = plan
+                            .records
+                            .iter()
+                            .zip(&keys)
+                            .flat_map(|(record, &key)| {
+                                ground_words(rules, record, key, p.roster as f64, tick)
+                            })
+                            .collect();
+                        world.add_ground(&words);
+                        for (record, &key) in plan.records.iter().zip(&keys) {
+                            launch(world, key, record, (p.x, p.y), sync.drop_speed);
+                        }
+                        apply_hook_facts(world, &log, &mut hook_cursor, tick);
+                        let out = sync.synchronize(world, map, gates, tick);
+                        op(&mut log, OP_SYNC, &out);
+                        hook_cursor = log.len();
+                        if out[0] < 0.0 {
+                            stopped = true;
+                            break;
+                        }
+                        // What Node repacked for the next call: the new records among the taken spots and on the
+                        // ground, the actor bodies' reserve, the carried identities as they stand, and the hooks.
+                        taken.extend(plan.records.iter().map(|record| [record.x, record.y]));
+                        ground_ids.extend(plan.records.iter().map(|record| record.id));
+                        ground_count += plan.records.len();
+                        reserve_actors = (sync.roster as usize).saturating_sub(world.sync_actors);
+                        carried = sync.carried(&players, i, &p);
+                        if hooks_from_store {
+                            hooks = world_hooks(world);
+                        }
                     }
                 }
-                if resume.0 >= 0.0 {
+                if resume.0 >= 0.0 || stopped {
                     players[i] = p;
                     break;
                 }
@@ -920,6 +1143,8 @@ impl PhaseThree {
                 }
             }
         }
+        // The hooks' launches and cancels reach the world, as Node applies them to its mirror (#1214 stage 6d.4).
+        apply_hook_facts(world, &log, &mut hook_cursor, tick);
         let mut out = std::mem::take(&mut self.output);
         out.clear();
         out.extend_from_slice(&[

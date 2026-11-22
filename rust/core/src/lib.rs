@@ -35,7 +35,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 30;
+pub const ADAPTER_VERSION: u32 = 31;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -831,7 +831,8 @@ pub unsafe extern "C" fn actions_configure(world: *mut world::World) {
     // SAFETY: the caller owns the live world and complete input.
     unsafe { (*world).actions.configure() }
 }
-/// Run phase 3, a shared attack, or a transactional drop plan.
+/// Run phase 3, a shared attack, or a transactional drop plan. `swept` may be null unless the loop syncs its drops in
+/// the run (#1214 stage 6d.6b).
 /// # Safety
 /// All handles are live, disjoint, and the input and gate mask are complete.
 #[unsafe(no_mangle)]
@@ -840,32 +841,19 @@ pub unsafe extern "C" fn actions_run(
     map: *mut collision::CollisionMap,
     index: *const sight::SightIndex,
     gates: *mut sight::GateSet,
+    swept: *const swept::SweptMap,
 ) -> *const f64 {
     // SAFETY: these handles are owned by the calling game. Move the buffers out so the
     // phase can mutate the world's bodies without aliasing its own storage.
     unsafe {
         let w = &mut *world;
         let mut actions = std::mem::take(&mut w.actions);
-        actions.run(w, &mut *map, &*index, &mut *gates);
+        actions.run(w, &mut *map, &*index, &mut *gates, swept.as_ref());
         w.actions = actions;
         // The player store takes phase 3's writes (#1214 stage 6c.2).
         let mode = w.actions.input.first().copied().unwrap_or(0.0);
         w.players.apply_actions(mode, &w.actions.output);
-        // And the world's hooks its launches and cancels (6d.4), in the log's order.
-        let tick = w.actions.input.get(3).copied().unwrap_or(0.0);
-        for (op, payload) in phase_three::log_facts(&w.actions.output) {
-            match op {
-                5 => w.cancel_hook(payload[0] as usize),
-                6 => w.launch_hook(
-                    payload[0] as usize,
-                    payload[1],
-                    payload[2],
-                    payload[3],
-                    tick,
-                ),
-                _ => {}
-            }
-        }
+        // The run applied the hooks' launches and cancels to the world itself (6d.6b), before each sync inside it.
         w.actions.output.as_ptr()
     }
 }
@@ -978,10 +966,7 @@ pub unsafe extern "C" fn physics_launch(world: *mut world::World, count: usize) 
     for k in 0..count {
         let r = &w.boundary_input[k * 3..k * 3 + 3];
         let (key, vx, vy) = (r[0] as world::Key, r[1], r[2]);
-        match w.launches.iter_mut().find(|l| l.0 == key) {
-            Some(l) => (l.1, l.2) = (vx, vy),
-            None => w.launches.push((key, vx, vy)),
-        }
+        w.launch(key, vx, vy);
     }
 }
 /// Replace the world's hooks with `count` records from the boundary input (`World::load_hooks`, #1214 stage 6d.4).
@@ -1115,12 +1100,8 @@ pub unsafe extern "C" fn ground_write(world: *mut world::World, op: u32, at: usi
             w.rebuild_waiting();
         }
         1 => {
-            let before = w.ground.len();
-            w.ground.add();
-            let added: Vec<u64> = w.ground.keys_from(before).collect();
-            for key in added {
-                w.await_body(key as world::Key);
-            }
+            let words = w.ground.input_words().to_vec();
+            w.add_ground(&words);
         }
         2 => {
             if let Some(key) = w.ground.key_at(at) {
