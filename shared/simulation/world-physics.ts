@@ -76,8 +76,12 @@ export function adoptItemPoses(s: Game, r: PhysicsRuntime): void {
   const { core, world } = r.world.boundaryCall();
   const at = (core as typeof core & { ground_poses_after_step(world: number): number }).ground_poses_after_step(world) >>> 0;
   const count = new Float64Array(core.memory.buffer, at, 1)[0]!;
-  const moved = new Float64Array(core.memory.buffer, at + 8, count * 3).slice();
-  for (let k = 0; k < count; k++) {
+  applyItemPoses(s, new Float64Array(core.memory.buffer, at + 8, count * 3).slice());
+}
+
+/** The moved ground records (`id, x, y` each), mirrored without writing them through (6e.4). */
+export function applyItemPoses(s: Game, moved: Float64Array): void {
+  for (let k = 0; k < moved.length / 3; k++) {
     const item = groundItem(s, moved[k * 3]! as GroundItem['id']);
     if (item) replaceItem(s, item, { ...item, x: moved[k * 3 + 1]!, y: moved[k * 3 + 2]! }, true);
   }
@@ -90,11 +94,16 @@ const floors = new WeakMap<PhysicsWorld, { surfaces: GameMap['motorSurfaces']; p
  * drag of the first floor containing it, in the motor's priority/ID order. Damping changes never wake a sleeper.
  */
 export function applyFloorDrag(s: Game, r: PhysicsRuntime): void {
+  ensureFloor(s, r);
+  r.world.applyFloorDrag();
+}
+
+/** Hand the world its floors and profiles, once per match. */
+export function ensureFloor(s: Game, r: PhysicsRuntime): void {
   const profile = s.content.worldPhysics, surfaces = s.map.motorSurfaces, sent = floors.get(r.world);
   if (!sent || sent.surfaces !== surfaces || sent.profile !== profile) {
     r.world.setFloor([...surfaces ?? []].sort((a, b) => b.priority - a.priority || order(a.id, b.id))
       .map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h, drag: f.drag ?? 1 })), profile.loot, profile.prop);
     floors.set(r.world, { surfaces, profile });
   }
-  r.world.applyFloorDrag();
 }

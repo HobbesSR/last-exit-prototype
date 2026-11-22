@@ -1,12 +1,8 @@
-import { adoptItemPoses, applyFloorDrag } from './world-physics.ts';
-import { phaseThree } from './phase-three.ts';
+import { tickFinish } from './tick-finish.ts';
 import { collectBotIntent } from './bots.ts';
 import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
 import type { BotIntent } from './bots.ts';
 import { consumeInput } from './input.ts';
-import { castersInCore, solvePhysicsProjectiles } from './phase-five.ts';
-import type { Caster } from './phase-five.ts';
-import { finishHooks } from './hook.ts';
 import { tickBegin } from './tick-begin.ts';
 import { phaseSix, STEP_CHARGING, STEP_INTERACT, STEP_PICKUPS, STEP_TRANSIT } from './phase-six.ts';
 import type { Turn } from './phase-six.ts';
@@ -14,7 +10,7 @@ import { environmentAndTraps } from './hazards.ts';
 import { advanceDiscovery } from './tick-rules.ts';
 import { playerIndex } from './relations.ts';
 import { finishMatch, recordRewind } from './phase-seven.ts';
-import { actorId, ordered, synchronize } from './game.ts';
+import { ordered, synchronize } from './game.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game } from '../types.ts';
@@ -47,41 +43,8 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
       if (p.status === 'active') intents[idx] = p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) };
     }
   } finally { endDynamicNavigationCollection(s); stop('sim.bots'); }
-  // 3: inventory then utilities/projectile admission, without damage callbacks during solve.
-  start('sim.actions');
-  phaseThree(s, intents);
-  stop('sim.actions');
-  // 4: all bodies together. Query projectiles use these actual substep paths.
-  start('sim.solve');
-  applyFloorDrag(s, r);
-  // Events are facts only; gameplay has no contact damage, so the step keeps none (its capacity still holds).
-  const result = r.world.step({ discardContacts: true });
-  // The core's player store takes the poses from the step itself (#1214 stage 6c.2); the records take them below.
-  { const { core, world } = r.world.boundaryCall(); core.players_after_step(world); }
-  // So does its ground store (6e.4); the mirror follows.
-  adoptItemPoses(s, r);
-  stop('sim.solve');
-  start('sim.poses');
-  // Poses are the ends of the step's paths: the bodies' poses after the solve, without reading each one back.
-  for (const p of s.players) if (p.status === 'active') {
-    const at = result.paths[actorId(p)]?.at(-1);
-    if (at) { p.x = at.x; p.y = at.y; p.movedThisTick = result.distance[actorId(p)] ?? 0; }
-  }
-  stop('sim.poses');
-  // 5: physical TOI first, then finalized-pose abilities/melee by stable caster ID.
-  start('sim.projectiles');
-  // All in the core (`combat.rs`, 27 step 5d.2); each caster's status is read at its turn there, as an earlier
-  // caster's hit may have removed it.
-  solvePhysicsProjectiles(s, result.paths);
-  finishHooks(s, result.paths);
-  const casters: Caster[] = [];
-  for (const p of ordered(s)) {
-    const input = intents[playerIndex(s, p)]?.input;
-    const skill = !!input?.skill && p.kit === 'warden', attack = !!input?.attack && p.role === 'gladiator';
-    if (skill || attack) casters.push({ player: p, skill, attack });
-  }
-  castersInCore(s, casters);
-  stop('sim.projectiles');
+  // 3 to 5 in one core call (D4's `tick_finish`, #1214 stage 6e.5b), built there from the intents.
+  start('sim.finish'); tickFinish(s, r, intents); stop('sim.finish');
   // 6: interactions/pickups, environment, traps; trap spawns wait for next tick.
   start('sim.pickups');
   // The per-actor loop runs in the core (`phase_six.rs`, 27 step 5e.1): interact, the chosen transit, then, while

@@ -36,7 +36,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 40;
+pub const ADAPTER_VERSION: u32 = 41;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -657,6 +657,246 @@ pub unsafe extern "C" fn tick_begin(
     }
 }
 
+/// Words of `tick_finish`'s input header (#1214 stage 6e.5b): the tick, the serial, the item and scatter serials, the
+/// gladiators' respawn delay, the markers' capacity, the loot's drop speed, then the markers' count; the markers' keys
+/// and the intents (`phase_three::INTENT_ROW` words per player, in roster order) follow.
+const FINISH_HEADER: usize = 8;
+
+/// Each player's path through the step's substeps, from the step's own output (`world::World::step`), as phase 5 and the
+/// hook's tip read them: `has path`, then its five points, per player in roster order.
+fn paths_of(w: &world::World, step: &[f64]) -> Vec<f64> {
+    let mut out = Vec::new();
+    let ok = step.len() > world::STEP_HEADER && step[0] == 0.0;
+    let n = if ok { step[2] as usize } else { 0 };
+    let keys = if ok {
+        &step[world::STEP_HEADER..world::STEP_HEADER + n]
+    } else {
+        &[][..]
+    };
+    let base = world::STEP_HEADER + n;
+    for e in &w.players.extra {
+        match keys.iter().position(|&k| k == e.key) {
+            Some(b) => {
+                out.push(1.0);
+                for substep in 0..=physics::SUBSTEPS {
+                    let at = base + (substep * n + b) * 2;
+                    out.extend_from_slice(&[step[at], step[at + 1]]);
+                }
+            }
+            None => out.extend_from_slice(&[0.0; 1 + 2 * (physics::SUBSTEPS + 1)]),
+        }
+    }
+    out
+}
+
+/// The tick's second call (D4's `tick_finish(intents)`, #1214 stage 6e.5b): phases 3 to 5 in one call, where they were
+/// eleven, each built in the core from the intents and the stores.
+/// 1. Phase 3's loop (`phase_three::loop_input`), when any player has an intent.
+/// 2. Phase 4: the floor drag, the commit of what is queued, the step, the players' poses in the store and the ground's
+///    (`item_poses_after_step`).
+/// 3. Phase 5: the projectiles (from the store, with the step's paths), the hook's tip, then the casters by stable ID.
+///
+/// The output is each step's own, in order, each after its length: phase 3's; the drag's rows; the commit's code and
+/// facts; the step's output; the moved ground records; the projectiles'; the hooks'; the casters'. An empty section is a
+/// step that did not run. The header holds the serial and the item serials as the call left them. A step that refuses
+/// ends the call there, as Node's throw ended the tick.
+///
+/// # Safety
+/// `world`, `map`, `index`, `gates` and `swept` are live and the map's, and the boundary input holds the call's input.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn tick_finish(
+    world: *mut world::World,
+    map: *mut collision::CollisionMap,
+    index: *const sight::SightIndex,
+    gates: *mut sight::GateSet,
+    swept: *const swept::SweptMap,
+) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        let w = &mut *world;
+        let input = w.boundary_input.clone();
+        let markers = input[7] as usize;
+        let mut e = phase_three::Elimination {
+            tick: input[0],
+            serial: input[1],
+            item_serial: input[2],
+            scatter_serial: input[3],
+            respawn: input[4],
+            capacity: input[5],
+            drop_speed: input[6],
+        };
+        w.markers = input[FINISH_HEADER..FINISH_HEADER + markers]
+            .iter()
+            .map(|&k| k as world::Key)
+            .collect();
+        let intents = input[FINISH_HEADER + markers..].to_vec();
+        let n = w.players.len();
+        let in_run = |e: &phase_three::Elimination, w: &world::World| {
+            let mut words = vec![
+                e.item_serial,
+                e.scatter_serial,
+                e.respawn,
+                e.capacity,
+                e.drop_speed,
+            ];
+            words.push(w.markers.len() as f64);
+            words.extend(w.markers.iter().map(|&k| f64::from(k)));
+            words
+        };
+        let mut out = vec![0.0; 4];
+        let section = |out: &mut Vec<f64>, words: &[f64]| {
+            out.push(words.len() as f64);
+            out.extend_from_slice(words);
+        };
+        let empties = |out: &mut Vec<f64>, count: usize| {
+            for _ in 0..count {
+                out.push(0.0);
+            }
+        };
+        // Phase 3.
+        if (0..n).any(|i| intents[i * phase_three::INTENT_ROW] != 0.0) {
+            w.actions.input = phase_three::loop_input(w, &intents, &e);
+            actions_call(w, &mut *map, &*index, &mut *gates, Some(&*swept));
+            let done = w.actions.output.clone();
+            (e.serial, e.item_serial, e.scatter_serial) = (done[1], done[2], done[3]);
+            section(&mut out, &done);
+            if done[11] < 0.0 {
+                empties(&mut out, 7);
+                return finish(w, out, &e);
+            }
+        } else {
+            section(&mut out, &[]);
+        }
+        // Phase 4.
+        let rows = w.apply_floor_drag();
+        let drag = w.output()[..rows * physics::DRAG_STRIDE].to_vec();
+        section(&mut out, &drag);
+        if w.queued_count() > 0 {
+            let code = w.commit();
+            let mut done = vec![f64::from(code)];
+            done.extend_from_slice(w.output());
+            section(&mut out, &done);
+            if code < 0 {
+                empties(&mut out, 5);
+                return finish(w, out, &e);
+            }
+        } else {
+            section(&mut out, &[]);
+        }
+        let step = w.step(true).to_vec();
+        section(&mut out, &step);
+        if step[0] != 0.0 || step.get(3).is_some_and(|&d| d != 0.0) {
+            empties(&mut out, 4);
+            return finish(w, out, &e);
+        }
+        w.players.after_step(&step);
+        let moved = w.item_poses_after_step();
+        section(&mut out, &moved);
+        let paths = paths_of(w, &step);
+        // Phase 5: the projectiles.
+        if !w.projectiles.is_empty() {
+            let mut call = vec![
+                combat::MODE_PROJECTILES as f64,
+                0.0,
+                e.tick,
+                e.serial,
+                n as f64,
+                phase_three::FROM_STORE,
+                0.0,
+                f64::NAN,
+                f64::NAN,
+                -1.0,
+                1.0,
+            ];
+            call.extend_from_slice(&paths);
+            call.extend(in_run(&e, w));
+            w.combat.input = call;
+            if let Some(serials) = combat_call(w, map, index, gates, swept) {
+                (e.item_serial, e.scatter_serial) = serials;
+            }
+            e.serial = w.combat.output[1];
+            section(&mut out, &w.combat.output.clone());
+        } else {
+            section(&mut out, &[]);
+        }
+        // The hook's tip.
+        let mut hooks = vec![
+            hooks::MODE_FINISH,
+            e.tick,
+            n as f64,
+            w.hooks.len() as f64,
+            1.0,
+        ];
+        hooks.extend_from_slice(&w.sync_config.hook);
+        hooks.extend_from_slice(&paths);
+        w.boundary_input = hooks;
+        hooks::run(w, &*swept, &*gates);
+        let done = w.boundary_output.clone();
+        section(&mut out, &done);
+        if done[0] < 0.0 {
+            empties(&mut out, 1);
+            return finish(w, out, &e);
+        }
+        // The casters, by stable ID: a warden's skill, then a gladiator's attack.
+        const WARDEN: f64 = 0.0;
+        let mut order: Vec<usize> = (0..n).collect();
+        order.sort_by(|&a, &b| w.players.rows[a].rank.total_cmp(&w.players.rows[b].rank));
+        let mut casters = Vec::new();
+        for i in order {
+            let row = &intents[i * phase_three::INTENT_ROW..(i + 1) * phase_three::INTENT_ROW];
+            if row[0] == 0.0 {
+                continue;
+            }
+            let r = &w.players.rows[i];
+            let (skill, attack) = (
+                row[11] != 0.0 && r.kit == WARDEN,
+                row[12] != 0.0 && r.role != 0.0,
+            );
+            if skill || attack {
+                casters.extend_from_slice(&[
+                    i as f64,
+                    f64::from(u8::from(skill)),
+                    f64::from(u8::from(attack)),
+                ]);
+            }
+        }
+        if !casters.is_empty() {
+            let mut call = vec![
+                combat::MODE_CASTERS as f64,
+                0.0,
+                e.tick,
+                e.serial,
+                n as f64,
+                0.0,
+                (casters.len() / 3) as f64,
+                f64::NAN,
+                f64::NAN,
+                -1.0,
+                1.0,
+            ];
+            call.extend_from_slice(&casters);
+            call.extend(in_run(&e, w));
+            w.combat.input = call;
+            if let Some(serials) = combat_call(w, map, index, gates, swept) {
+                (e.item_serial, e.scatter_serial) = serials;
+            }
+            e.serial = w.combat.output[1];
+            section(&mut out, &w.combat.output.clone());
+        } else {
+            section(&mut out, &[]);
+        }
+        finish(w, out, &e)
+    }
+}
+
+/// `tick_finish`'s output, its header written: the length, the serial and the item serials.
+fn finish(w: &mut world::World, mut out: Vec<f64>, e: &phase_three::Elimination) -> *const f64 {
+    (out[0], out[1], out[2], out[3]) =
+        (out.len() as f64, e.serial, e.item_serial, e.scatter_serial);
+    w.boundary_output = out;
+    w.boundary_output.as_ptr()
+}
+
 /// `roofAt`'s interned id at `(x, y)`, or -1: for the parity check against `shared/view.ts`
 /// (`tests/discovery-core.test.js`), since `roofAt` keeps JavaScript callers.
 ///
@@ -943,19 +1183,29 @@ pub unsafe extern "C" fn actions_run(
     gates: *mut sight::GateSet,
     swept: *const swept::SweptMap,
 ) -> *const f64 {
-    // SAFETY: these handles are owned by the calling game. Move the buffers out so the
-    // phase can mutate the world's bodies without aliasing its own storage.
+    // SAFETY: these handles are owned by the calling game.
     unsafe {
         let w = &mut *world;
-        let mut actions = std::mem::take(&mut w.actions);
-        actions.run(w, &mut *map, &*index, &mut *gates, swept.as_ref());
-        w.actions = actions;
-        // The player store takes phase 3's writes (#1214 stage 6c.2).
-        let mode = w.actions.input.first().copied().unwrap_or(0.0);
-        w.players.apply_actions(mode, &w.actions.output);
-        // The run applied the hooks' launches and cancels to the world itself (6d.6b), before each sync inside it.
+        actions_call(w, &mut *map, &*index, &mut *gates, swept.as_ref());
         w.actions.output.as_ptr()
     }
+}
+
+/// Phase 3 over `w.actions.input` (`actions_run`, and `tick_finish`'s phase 3): the run, then the player store takes its
+/// writes (#1214 stage 6c.2); the run applied the hooks' and shots' facts to the world itself (6d.6b, 6e.3).
+fn actions_call(
+    w: &mut world::World,
+    map: &mut collision::CollisionMap,
+    index: &sight::SightIndex,
+    gates: &mut sight::GateSet,
+    swept: Option<&swept::SweptMap>,
+) {
+    // Move the buffers out so the phase can mutate the world's bodies without aliasing its own storage.
+    let mut actions = std::mem::take(&mut w.actions);
+    actions.run(w, map, index, gates, swept);
+    w.actions = actions;
+    let mode = w.actions.input.first().copied().unwrap_or(0.0);
+    w.players.apply_actions(mode, &w.actions.output);
 }
 
 /// Phase 5's combat input (27, step 5d.2; `combat::Combat`).
@@ -980,9 +1230,29 @@ pub unsafe extern "C" fn combat_run(
     gates: *mut sight::GateSet,
     swept: *const swept::SweptMap,
 ) -> *const f64 {
-    // SAFETY: the caller's contract; the rules and the combat state are disjoint fields.
+    // SAFETY: the caller's contract.
     unsafe {
         let w = &mut *world;
+        combat_call(w, map, index, gates, swept);
+        w.combat.output.as_ptr()
+    }
+}
+
+/// Phase 5 over `w.combat.input` (`combat_run`, and `tick_finish`'s phase 5): the run, its kills' eliminations in the
+/// core (6e.2) and its projectiles' flight in the store (6e.3). Returns the item and scatter serials the eliminations
+/// left, when the call carries them out.
+///
+/// # Safety
+/// As `combat_run`.
+unsafe fn combat_call(
+    w: &mut world::World,
+    map: *mut collision::CollisionMap,
+    index: *const sight::SightIndex,
+    gates: *mut sight::GateSet,
+    swept: *const swept::SweptMap,
+) -> Option<(f64, f64)> {
+    // SAFETY: the caller's contract; the rules and the combat state are disjoint fields.
+    unsafe {
         // A projectile call that reads its bullets from the store (`FROM_STORE` for their count, #1214 stage 6e.3) has
         // them put where the adapter packed them.
         let stored = w.combat.input[5] == phase_three::FROM_STORE;
@@ -1003,7 +1273,7 @@ pub unsafe extern "C" fn combat_run(
                 let out = w.combat.output.clone();
                 combat::fly(&mut w.projectiles, &out, &out);
             }
-            return w.combat.output.as_ptr();
+            return None;
         };
         // A kill is carried out in the core (#1214 stage 6e.2): the run goes to its kill, the elimination runs, and the
         // run resumes, as Node's `drive` did, until it ends. The output is one call's: the store's rows at the end, every
@@ -1103,7 +1373,7 @@ pub unsafe extern "C" fn combat_run(
             combat::fly(&mut w.projectiles, &parts[0], parts.last().expect("a part"));
         }
         w.combat.output = out;
-        w.combat.output.as_ptr()
+        Some((e.item_serial, e.scatter_serial))
     }
 }
 

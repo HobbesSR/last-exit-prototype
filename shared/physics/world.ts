@@ -558,7 +558,10 @@ export class PhysicsWorld {
     this.ensure();
     const count = this.core.physics_floor_drag(this.native);
     if (!count) return;
-    const rows = this.output(count * DRAG_STRIDE);
+    this.adoptFloorDrag(this.output(count * DRAG_STRIDE));
+  }
+  /** The floor drag's rows (`World::apply_floor_drag`): each changed body's damping, into its spec. */
+  adoptFloorDrag(rows: Float64Array): void {
     for (let offset = 0; offset < rows.length; offset += DRAG_STRIDE) {
       const record = this.records[rows[offset]!]!, changed = rows[offset + 1]!;
       if (changed & 1) record.spec = Object.freeze({ ...record.spec, linearDamping: rows[offset + 2]! });
@@ -573,11 +576,14 @@ export class PhysicsWorld {
     this.ensure(); this.commitMutations();
     const pointer = this.core.physics_step(this.native, options.discardContacts ? 1 : 0) >>> 0;
     const header = this.view(pointer, STEP_HEADER);
-    const status = header[0]!, failed = header[1]!, count = header[2]!, dropped = header[3]!;
+    return this.parseStep(this.view(pointer, STEP_HEADER + header[2]! + (SUBSTEPS + 1) * header[2]! * 2));
+  }
+  /** A step's output (`World::step`): its paths and distances, or the throw a failed step makes. */
+  parseStep(output: Float64Array): { distance: Record<string, number>; paths: Record<string, Point[]> } {
+    const status = output[0]!, failed = output[1]!, count = output[2]!, dropped = output[3]!;
     // A failed step's output is its header alone.
     if (status === 1) throw new Error(`nonfinite physics speed ${this.ids[failed]}`);
     if (status === 2) throw new Error(`nonfinite physics angular speed ${this.ids[failed]}`);
-    const output = this.view(pointer, STEP_HEADER + count + (SUBSTEPS + 1) * count * 2);
 
     const distance: Record<string, number> = Object.create(null);
     const paths: Record<string, Point[]> = Object.create(null);

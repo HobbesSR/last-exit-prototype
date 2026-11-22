@@ -120,6 +120,20 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
   const outPtr = core.combat_run(world, map.collision, map.index, map.gates, swept) >>> 0;
   if (timed) profileStop('sim.projectiles.core');
   const out = new Float64Array(core.memory.buffer, outPtr, new Float64Array(core.memory.buffer, outPtr, 1)[0]!).slice();
+  applyCombat(s, out, c);
+  // The core flew its projectiles alike, and took any shot an elimination's call fired.
+  if (current) sawProjectiles(s, r);
+  return out[2] ? { target: players[out[3]!]!, source: out[4]! >= 0 ? players[out[4]!]! : null } : null;
+}
+
+export const MODE_PROJECTILE_CALL = MODE_PROJECTILES, MODE_CASTER_CALL = MODE_CASTERS;
+
+/**
+ * Apply a phase 5 call's output (`combat.rs`, `combat_call`): the log first, then the rows, then the bullets' flight.
+ * `tick_finish` runs phase 5 in its call and applies it here too (#1214 stage 6e.5b).
+ */
+export function applyCombat(s: Game, out: Float64Array, c: Pick<Call, 'mode' | 'bullets'>): void {
+  const players = s.players;
   // The log first, then the rows: an elimination in the log writes its players' rows as they stood at the kill, and
   // the rows are the store's at the end of the call (6e.2).
   const rowsEnd = OUT_HEADER + out[5]! * OUT_ROW;
@@ -142,9 +156,6 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
     const removed = new Set(Array.from({ length: out[8]! }, (_, i) => c.bullets![out[at + i]!]));
     s.projectiles = s.projectiles.filter(b => !removed.has(b));
   }
-  // The core flew its projectiles alike, and took any shot an elimination's call fired.
-  if (current) sawProjectiles(s, r);
-  return out[2] ? { target: players[out[3]!]!, source: out[4]! >= 0 ? players[out[4]!]! : null } : null;
 }
 
 /** Run a call to its end, eliminating at each stop and resuming. */
