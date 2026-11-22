@@ -10,15 +10,17 @@
 //! them) and each trap's writes with a mask. Node applies those to its trap records, the mirror, in the
 //! TypeScript's order, so a trap's keys keep theirs.
 //!
-//! **Damage is the core's** (`combat::Run::damage`), and a kill is a stop, as in phase 5: the run returns before
-//! anything of the elimination is written, Node runs it (`actions_run`'s mode 4), whose mandatory drops each
-//! return at 5c.2's sync boundary, then resumes. Everything is repacked on a resume; only the cursor is kept here.
+//! **Damage is the core's** (`combat::Run::damage`). A kill's elimination is carried out in the run (#1214 stage
+//! 6e.2, `eliminate`): the store takes the run's rows, the core eliminates as Node's `eliminateInCore` did at the stop
+//! this replaced, and the run goes on at its cursor with the rows the store then holds. A call without the in-run words
+//! still stops for it (`STOP_ELIMINATION`).
 //! A mine's explosion is carried out in the run (#1214 stage 6d.6d, `explode`): the world syncs from the store and
 //! the impulses are queued in its own queue, as `enqueueExplosionImpulses` did at the stop this replaced.
 use crate::collision::{CollisionMap, can_occupy, line_clear};
 use crate::combat::{OUT_ROW, Run};
 use crate::math::{atan2, cos, hypot, js_max, sin};
 use crate::phase_seven::Rewind;
+use crate::phase_three::{Elimination, OP_ELIMINATED, eliminate_in_world};
 use crate::sight::{GateSet, SightIndex};
 use crate::swept::SweptMap;
 use crate::world::World;
@@ -27,8 +29,9 @@ use crate::world::World;
 /// count, the hazard wall's x, whether to run the environment, whether to run the traps, and whether the trap rows
 /// follow (an upload, which replaces the kept traps). Without an upload the trap count is the kept traps'.
 pub const HEADER: usize = 11;
-/// Header word: the run carries out a mine's explosion itself (#1214 stage 6d.6d). Its words follow the traps: the
-/// markers' capacity, the roster's size, the world's and an actor's impulse limits, the markers' count and keys.
+/// Header word: the run carries out a mine's explosion (#1214 stage 6d.6d) and a kill's elimination (6e.2) itself. Its
+/// words follow the traps: the markers' capacity, the roster's size, the world's and an actor's impulse limits, the item
+/// and scatter serials, the gladiators' respawn delay, the loot's drop speed, then the markers' count and keys.
 const IN_RUN: usize = 10;
 /// The body sync's log an explosion leaves in the output (`boundary::synchronize`), applied by Node as its own.
 pub const OP_SYNC: f64 = 5.0;
@@ -192,9 +195,22 @@ impl Hazards {
         // A mine's explosion is carried out in the run where the adapter sent what its sync needs (6d.6d).
         let in_run = (h[IN_RUN] != 0.0).then(|| {
             let w = &input[at..];
-            let markers = w[4] as usize;
-            world.markers = w[5..5 + markers].iter().map(|&k| k as u32).collect();
+            let markers = w[8] as usize;
+            world.markers = w[9..9 + markers].iter().map(|&k| k as u32).collect();
             (w[0], w[1], w[2], w[3])
+        });
+        // A kill's elimination is carried out in the run too (6e.2), with what its call needs that the stores do not hold.
+        let mut elimination = (h[IN_RUN] != 0.0).then(|| {
+            let w = &input[at..];
+            Elimination {
+                tick,
+                serial: 0.0,
+                item_serial: w[4],
+                scatter_serial: w[5],
+                respawn: w[6],
+                capacity: w[0],
+                drop_speed: w[7],
+            }
         });
         let mut traps = std::mem::take(&mut self.traps);
         // Each call reports only its own writes.
@@ -273,8 +289,17 @@ impl Hazards {
                     if let Some(amount) = hit
                         && run.damage(p, amount, None)
                     {
-                        stop = Some((STOP_ELIMINATION, p, None));
-                        break 'run;
+                        {
+                            let target = p;
+                            let Some(e) = elimination.as_mut() else {
+                                stop = Some((STOP_ELIMINATION, target, None));
+                                break 'run;
+                            };
+                            eliminate(
+                                world, map, index, gates, swept, &mut run, e, target, players,
+                            );
+                            continue 'run;
+                        }
                     }
                 }
                 Cursor::Trap { t, step, j } => {
@@ -397,8 +422,18 @@ impl Hazards {
                                     if killed {
                                         // The grapple's effect is placed after the elimination, where it left the target.
                                         cursor = Cursor::Trap { t, step: 3, j: i };
-                                        stop = Some((STOP_ELIMINATION, i, None));
-                                        break 'run;
+                                        {
+                                            let target = i;
+                                            let Some(e) = elimination.as_mut() else {
+                                                stop = Some((STOP_ELIMINATION, target, None));
+                                                break 'run;
+                                            };
+                                            eliminate(
+                                                world, map, index, gates, swept, &mut run, e,
+                                                target, players,
+                                            );
+                                            continue 'run;
+                                        }
                                     }
                                     let (x, y) = near(&run, i);
                                     run.effect(x, y, EFFECT_GRAPPLE, GRAPPLE_RADIUS);
@@ -436,8 +471,18 @@ impl Hazards {
                                 };
                                 if hit && run.damage(p, amount, None) {
                                     cursor = Cursor::Trap { t, step: 1, j: i };
-                                    stop = Some((STOP_ELIMINATION, p, None));
-                                    break 'run;
+                                    {
+                                        let target = p;
+                                        let Some(e) = elimination.as_mut() else {
+                                            stop = Some((STOP_ELIMINATION, target, None));
+                                            break 'run;
+                                        };
+                                        eliminate(
+                                            world, map, index, gates, swept, &mut run, e, target,
+                                            players,
+                                        );
+                                        continue 'run;
+                                    }
                                 }
                             }
                             if trap.kind == MINE {
@@ -545,6 +590,40 @@ impl Hazards {
         self.traps = traps;
         world.players.restore(run.rows);
     }
+}
+
+/// A kill's elimination inside the run (#1214 stage 6e.2), where the run stopped for Node's `eliminateInCore` before:
+/// the store takes the run's rows, the core eliminates (`eliminate_in_world`), and the rows come back, so the rest of
+/// the run reads what the resumed call read. Phase 3's output goes to the log (`OP_ELIMINATED`), and the serials follow.
+#[allow(clippy::too_many_arguments)]
+fn eliminate(
+    world: &mut World,
+    map: &mut CollisionMap,
+    index: &SightIndex,
+    gates: &mut GateSet,
+    swept: Option<&SweptMap>,
+    run: &mut Run<'_>,
+    e: &mut Elimination,
+    target: usize,
+    players: usize,
+) {
+    world.players.restore(std::mem::take(&mut run.rows));
+    e.serial = run.serial;
+    let out = eliminate_in_world(
+        world,
+        map,
+        index,
+        gates,
+        swept.expect("an elimination in the run needs the swept map"),
+        target,
+        None,
+        e,
+    );
+    (run.serial, e.item_serial, e.scatter_serial) = (out[1], out[2], out[3]);
+    run.log
+        .extend_from_slice(&[OP_ELIMINATED, (out.len() + 2) as f64, target as f64, -1.0]);
+    run.log.extend_from_slice(&out);
+    run.rows = world.players.take(players);
 }
 
 /// `enqueueExplosionImpulses` after its sync (#1214 stage 6d.6d): every body that is not static, in ID order, within

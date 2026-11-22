@@ -272,6 +272,39 @@ explodes, the hazards run does what `enqueueExplosionImpulses` did at the stop (
   (`registryDrift`): IDs, keys and reserved phases.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6e.2, eliminations inside the runs (#1214, adapter version 37).** Node no longer stops the tick mid-run: a kill
+in phase 5 or the hazards, and an elimination's mandatory drops, are carried out in the core.
+- **An elimination's drops sync in its run** (`phase_three.rs`, the mode-4 branch). Each drop adds its records, launches
+  them and syncs in place (`sync_drop`, shared with the loop's drops), and the elimination goes on at its next step
+  with what the next call repacked: the taken spots, the ground's identities and count, the carried identities and the
+  context actors.
+  - Before each sync the run applies its facts so far to the player store (`Players::apply_action_log`). The sync then
+    reads the target's new status, eliminated or respawning, which removes its body.
+  - Those facts are assignments, so `apply_actions` applying them again after the run changes nothing.
+- **A kill eliminates in the core** (`phase_three::eliminate_in_world`). The core packs the call
+  `eliminateInCore` packed, from its own stores:
+  - the target and source as action players, with the target's inventory from the store;
+  - every player as context;
+  - the ground near the target (the grid), the target's carried identities on the ground, and every carried identity;
+  - the elimination row, whose source's kills are now in the store (`Extra::kills`, uploaded and credited by op 13).
+
+  The registry gives the phases and identities (6e.1). What the stores do not hold crosses with the outer call: the
+  item and scatter serials, the gladiators' respawn delay, the markers and their capacity, and the drop speed.
+- **Phase 5** (`combat_run`) runs to the kill, eliminates, and resumes with the serial the elimination left, as Node's
+  `drive` did; one damage stops after its elimination. Its output is one call's:
+  - the store's rows at the end;
+  - every part's log, with each elimination's phase 3 output between them (`OP_ELIMINATED`, 9);
+  - the first part's bullet rows and the last part's removals.
+- **The hazards** eliminate where they stopped, then go on at their cursor with the store's rows (`hazards::eliminate`).
+- **Node applies the log before the rows.** An elimination's rows are its players' at the kill, and the call's rows are
+  the latest, which phase 5's and the hazards' rows (health, shield, cooldowns, stun) then write.
+  `applyElimination` applies phase 3's output with the applier `eliminateInCore` uses (`applyOutput`).
+- **What still stops** is only a call Node sends without the in-run words, which play never does.
+- **The witness.** With a temporary probe, all of `trap-continuity`'s 18 eliminations and the bots fixture's 9 ran in
+  the core and none through `eliminateInCore`'s stop. Every elimination drop there synced in its run (41 and 18), and
+  every trap hash matched a pristine export of `3b80cbbc`.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -980,7 +1013,7 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
   exception are measured again.
   - **6e.1 (#1214):** the item registry, so a run can allocate and check identities for any actor without Node packing
     them. An elimination inside phase 5 or the hazards needs that, since its target is not known before the run. Below.
-  - **Then the elimination stops,** the last of Node's mid-tick stops, before the two calls.
+  - **6e.2 (#1214):** the elimination stops, the last of Node's mid-tick stops. Below.
 
 **Step 6a, door state (#1214).** A game's doors' `open` and `locked` live in the core, in its gate set's masks
 (`GateSet::open` and `::locked` in `sight.rs`), and the gate records are their mirror (`shared/simulation/doors.ts`).

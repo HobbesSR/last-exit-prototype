@@ -82,7 +82,7 @@ export function idRanks(s: Game): number[] {
 /** Words in a player's fields (`combat::PLAYER_ROW`). */
 export const PLAYER_ROW = 15;
 /** Words per player uploaded (`players::STORE_ROW`): the fields, `movedThisTick`, then `players::Extra`. */
-const STORE_ROW = PLAYER_ROW + 1 + 9;
+const STORE_ROW = PLAYER_ROW + 1 + 10;
 /** Words of a player's equipment header (`players::EQUIP_HEAD`), and per carried item (`players::ITEM_ROW`). */
 const EQUIP_HEAD = 13, ITEM_ROW = 10;
 const num = (value: number | null | undefined): number => value ?? NaN;
@@ -111,6 +111,8 @@ function packPlayers(s: Game, keys: readonly (readonly [number, number])[], data
     data[at++] = p.transit ? stations.findIndex(st => st.id === p.transit!.to) : -1;
     data[at++] = num(p.railCd); data[at++] = num(p.cloak); data[at++] = num(p.revealed); data[at++] = num(p.boost);
     data[at++] = keys[i]![0]; data[at++] = keys[i]![1];
+    // `kills`, which an elimination inside a run credits (#1214 stage 6e.2).
+    data[at++] = num(p.kills);
   }
 }
 
@@ -142,7 +144,7 @@ export function storeDrift(s: Game, r: PhysicsRuntime): string[] {
   return out;
 }
 const FIELDS = ['role', 'status', 'kit', 'x', 'y', 'heading', 'hp', 'maxHp', 'shield', 'level', 'cooldown', 'attackCd', 'stun', 'rank',
-  'viewLagTicks', 'movedThisTick', 'respawnAt', 'arriveAt', 'destination', 'railCd', 'cloak', 'revealed', 'boost', 'key', 'hookKey'];
+  'viewLagTicks', 'movedThisTick', 'respawnAt', 'arriveAt', 'destination', 'railCd', 'cloak', 'revealed', 'boost', 'key', 'hookKey', 'kills'];
 
 /**
  * Upload every player to the world's store, in roster order. Call it before any other input of the call is viewed: the

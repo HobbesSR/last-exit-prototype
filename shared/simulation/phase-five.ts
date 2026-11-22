@@ -1,6 +1,8 @@
 import { EFFECT_KINDS } from '../enum-tables.ts';
 import type { Game, Player, Projectile, Vec2 } from '../types.ts';
-import { configure, eliminateInCore } from './phase-three.ts';
+import { applyElimination, configure, eliminateInCore } from './phase-three.ts';
+import { prepareInRunSync } from './boundary.ts';
+import { syncRegistry } from './registry-store.ts';
 import type { ActionsCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { playersStale, uploadPlayers } from './player-store.ts';
@@ -12,16 +14,18 @@ import { start as profileStart, stop as profileStop } from '../profiler.ts';
 // flight, the end-of-tick casters (the warden skill, then the gladiator attack) and `damage`, with the rewind reads
 // (`asSeenBy`) the casters resolve against, from the frames phase 7 keeps in the core (`phase_seven.rs`). The records
 // stay here (D1), apart from the players' fields the run reads, which come from the core's player store (`player-store.ts`,
-// #1214 stage 6c), uploaded only between ticks (6c.2); the run writes back only what the rules wrote. A kill stops
-// the run before anything of the elimination is written; the elimination runs in the core too (`eliminateInCore`), each
-// mandatory drop at its own sync boundary (5c.2), and the run then resumes where it stopped, from what the core kept.
+// #1214 stage 6c), uploaded only between ticks (6c.2); the run writes back only what the rules wrote. A kill's
+// elimination is carried out in the core within the same call (#1214 stage 6e.2), its drops synced there, and its
+// output comes back in the log (`OP_ELIMINATED`), applied as `eliminateInCore`'s.
 interface CombatExports {
   combat_input(world: number, words: number): number;
-  combat_run(world: number, index: number, gates: number, swept: number): number;
+  combat_run(world: number, collision: number, index: number, gates: number, swept: number): number;
 }
 type Core = ActionsCore & CombatExports;
 const MODE_PROJECTILES = 0, MODE_CASTERS = 1, MODE_DAMAGE = 2;
 const OUT_HEADER = 9, OUT_ROW = 5, OP_EFFECT = 1, OP_AGGRESSION = 2;
+/** An elimination the core carried out in the run (`phase_three::OP_ELIMINATED`): target, source, phase 3's output. */
+const OP_ELIMINATED = 9;
 const STEPS = 4;
 
 /** A caster in `ordered(s)` order, with what it pressed this tick. */
@@ -75,8 +79,9 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
   const players = s.players, bullets = c.resume ? [] : c.bullets ?? [], casters = c.resume ? [] : c.casters ?? [];
   // The rewind frames are the core's own (phase 7, `phase_seven.rs`), so none cross here.
   const damage = c.damage;
+  // A kill's elimination is carried out in the core (#1214 stage 6e.2): its call's words follow the casters.
   const data: number[] = [c.mode, c.resume ? 1 : 0, s.tick, s.serial, players.length, bullets.length, casters.length,
-    damage ? playerIndex(s, damage.target) : NaN, damage?.amount ?? NaN, damage?.source ? playerIndex(s, damage.source) : -1];
+    damage ? playerIndex(s, damage.target) : NaN, damage?.amount ?? NaN, damage?.source ? playerIndex(s, damage.source) : -1, 1];
   const paths = c.mode === MODE_PROJECTILES && !c.resume ? c.paths ?? {} : undefined;
   if (paths) players.forEach(p => {
     const path = paths[`actor:${p.id}`];
@@ -89,9 +94,15 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
     data.push(b.id, owner ? playerIndex(s, owner) : -1, b.x, b.y, b.dx, b.dy, b.life, b.damage);
   }
   for (const k of casters) data.push(playerIndex(s, k.player), k.skill ? 1 : 0, k.attack ? 1 : 0);
+  prepareInRunSync(s, r);
+  syncRegistry(s, r);
+  const markers = r.discontinuities.map(entry => r.world.key(entry.id));
+  data.push(s.itemSerial ?? 1, s.scatterSerial ?? 0, s.content.gladiatorRespawnTicks, r.discontinuityCapacity,
+    s.content.worldPhysics.loot.dropSpeed, markers.length, ...markers);
   // Map preparation can grow memory; view the input only after it.
   const sight = sightOf(s), map = sight.queryHandles(s.map);
-  const swept = c.mode === MODE_PROJECTILES && !c.resume ? sight.sweptHandle(s.map) : 0;
+  // The swept map serves a fresh projectile call, and an elimination's drops' sync.
+  const swept = sight.sweptHandle(s.map);
   if (map.core !== core) throw new Error('phase 5 and sight are bound to different cores');
   if (playersStale(r)) uploadPlayers(s, r, core, world);
   const ptr = core.combat_input(world, data.length) >>> 0;
@@ -99,11 +110,18 @@ function call(s: Game, c: Call): { target: Player; source: Player | null } | nul
   // Only phase 5's own runs are timed (42.71); damage from phase 6 is not.
   const timed = c.mode !== MODE_DAMAGE;
   if (timed) profileStart('sim.projectiles.core');
-  const outPtr = core.combat_run(world, map.index, map.gates, swept) >>> 0;
+  const outPtr = core.combat_run(world, map.collision, map.index, map.gates, swept) >>> 0;
   if (timed) profileStop('sim.projectiles.core');
   const out = new Float64Array(core.memory.buffer, outPtr, new Float64Array(core.memory.buffer, outPtr, 1)[0]!).slice();
-  let at = applyPlayerRows(s, out, OUT_HEADER);
-  at = applyLog(s, out, at, out[6]!);
+  // The log first, then the rows: an elimination in the log writes its players' rows as they stood at the kill, and
+  // the rows are the store's at the end of the call (6e.2).
+  const rowsEnd = OUT_HEADER + out[5]! * OUT_ROW;
+  let at = applyLog(s, out, rowsEnd, out[6]!, (op, k) => {
+    if (op !== OP_ELIMINATED) throw new Error(`unknown combat fact ${op}`);
+    const source = out[k + 1]!;
+    applyElimination(s, out.subarray(k + 2, k + out[k - 1]!), players[out[k]!]!, source >= 0 ? players[source]! : null);
+  });
+  applyPlayerRows(s, out, OUT_HEADER);
   s.serial = out[1]!;
   // Each live bullet's life, then its position; an expired one keeps its position.
   c.bullets?.slice(0, out[7]!).forEach(b => {

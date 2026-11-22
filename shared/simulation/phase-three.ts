@@ -155,9 +155,9 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   const hooksRead = actors.some(p => p.kit === 'hook' && intents[playerIndex(s, p)]?.input.skill);
   if (hooksRead) syncHooks(r);
   // The loop's drops sync inside its run (#1214 stage 6d.6b): the core adds their records, launches them and syncs where
-  // this adapter stopped it. The bodies' keys are the core's registry's (6e.1). Elimination and the standalone plans
-  // still stop at a drop.
-  const inRun = mode === 0 && droppers.length > 0 && inRunDrops;
+  // this adapter stopped it. The bodies' keys are the core's registry's (6e.1). An elimination's drops do too (6e.2);
+  // the standalone plans still stop at a drop.
+  const inRun = (mode === 0 || mode === MODE_ELIMINATE) && droppers.length > 0 && inRunDrops;
   const inRunWords: number[] = [];
   if (inRun) {
     prepareInRunSync(s, r);
@@ -207,6 +207,14 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   const view = new Float64Array(core.memory.buffer, outPtr, new Float64Array(core.memory.buffer, outPtr, 1)[0]!);
   // So does a sync applied from the log (6d.6b).
   const out = mode === 1 || view[4]! >= 0 || inRun ? view.slice() : view;
+  return applyOutput(s, r, out, { mode, options, source, itemOf, live });
+}
+
+/** What an output's application reads of the call that made it. */
+interface Applied { mode: number; options: Options; source: Game; itemOf: (token: number) => InventoryItem; live: boolean }
+
+/** Apply a phase 3 output (`phase_three.rs`): the players' rows, the registrations, then the log, in order. */
+function applyOutput(s: Game, r: PhysicsRuntime, out: Float64Array, { mode, options, source, itemOf, live }: Applied): { resume: number; stage: number; plan: DropPlan | null } {
   // Loop, attack and elimination calls write their players back; a standalone plan writes nothing.
   const writes = mode < 2 || mode === MODE_ELIMINATE;
   let at = OUT_HEADER;
@@ -303,6 +311,17 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   return { resume: out[4]!, stage: out[5]!, plan: out[6] === 1 && mode >= 2 ? { records, itemSerial: allocation.itemSerial!, scatterSerial: allocation.scatterSerial!, allocation } : null };
 }
 
+/**
+ * An elimination the core carried out inside phase 5's or the hazards' run (#1214 stage 6e.2): phase 3's output for it,
+ * applied as `eliminateInCore` applied its call's. The core registered its allocations and synced its drops itself.
+ */
+export function applyElimination(s: Game, out: Float64Array, target: Player, killer: Player | null): void {
+  const r = physicsRuntime(s);
+  if (!r) throw new Error("phase 3 needs the game's physics world");
+  applyOutput(s, r, out, { mode: MODE_ELIMINATE, options: { mode: MODE_ELIMINATE, player: target, killer }, source: s,
+    itemOf: token => carriedItem(r, token)!, live: true });
+}
+
 export function phaseThree(s: Game, intents: readonly (ActionIntent | undefined)[]): void {
   let start = 0, stage = 0;
   for (;;) {
@@ -317,8 +336,8 @@ export function attackInCore(s: Game, player: Player): void {
   call(s, [], { mode: 1, player });
 }
 /**
- * `eliminate` (`lifecycle.ts`) in the core: the lifecycle, each mandatory drop at its own sync boundary (as 5c.2's
- * drops), the reserves, then the kill credit. Each committed drop returns; the next call resumes at the next step.
+ * `eliminate` (`lifecycle.ts`) in the core: the lifecycle, each mandatory drop synced inside the run (#1214 stage 6e.2),
+ * the reserves, then the kill credit, in one call.
  */
 export function eliminateInCore(s: Game, player: Player, killer: Player | null): void {
   let stage = 0;
