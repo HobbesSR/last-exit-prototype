@@ -22,7 +22,6 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.55](42.55-wire-adoption.md) | The descriptor codec live (#1131 stage 2): the production runtime against JSON on a live room's own state messages, bytes and Node encode/decode CPU per view, steady and keyframes |
 | [42.56](42.56-transport-probe.md) | A real WebTransport session, Node to Chrome through a lossy UDP relay (#1095): datagrams against a reliable stream and a WebSocket, delivery, latency and staleness per network profile, the datagram cap and connection setup |
 | [42.57](42.57-edge-cpu.md) | The Rust edge's CPU carrying 1, 4 and 8 Chrome players on WebTransport through a live match (#1095, stage 1) |
-| [42.76](42.76-state-flip-benchmark.md) | End-of-flip tick and boundary cost against pre-6a, with and without traps (#1214) |
 | [42.58](42.58-sight-core-adapter.md) | The core's first per-tick module: `visibilityPolygon` in Rust through the flat-buffer adapter against the TypeScript, the crossing's cost, and the budget it sets (#1175, stage 2) |
 | [42.59](42.59-split-delivery-under-loss.md) | Stage 3's split delivery in Chrome through the edge and a lossy relay (#1095): received and drawn frames, deltas and whole-frame recovery, staleness per profile, the ping pile-up it found, and the relay's reordering |
 | [42.60](42.60-whole-fast-frames.md) | A live player's whole fast frame on each generated size (#1095): whole and delta sizes over full bot matches against the edge's 1,100-byte fragment |
@@ -41,6 +40,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.73](42.73-phase-six-seven-core.md) | The rest of tick phase 6 and phase 7 in the Rust core (#1245): the environment's crossing about 14–16 µs, 0.3% of the tick, under the state-flip exception; with traps the phase is about half the TypeScript's cost |
 | [42.74](42.74-door-state-core.md) | Door state in the Rust core (#1214 stage 6a): no call in a game writes a gate mask; about 3 µs a tick saved on the bench map, within run spread |
 | [42.75](42.75-trap-state-core.md) | Trap state in the Rust core (#1214 stage 6b): with 277 traps the phase's crossing fell from about 44 µs to about 25 µs a tick; no change on maps without traps |
+| [42.76](42.76-state-flip-benchmark.md) | End-of-flip tick and boundary cost against pre-6a, with and without traps (#1214) |
 
 ### Navigation
 
