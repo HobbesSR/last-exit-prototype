@@ -119,6 +119,15 @@ function runHooks(s: Game, mode: number, paths?: Record<string, Vec2[]>): void {
   core.physics_hooks(native, swept, map.gates);
   const outPointer = core.physics_boundary_output(native) >>> 0;
   const out = new Float64Array(core.memory.buffer, outPointer, new Float64Array(core.memory.buffer, outPointer, OUT_HEADER)[5]!).slice();
+  applyHookOutput(s, r, out, hooks);
+}
+
+/**
+ * Apply a hook run's output: each rope queued, each commit's facts, each hook removed, then the hooks' fields as the
+ * rules left them. `hooks` is the mirror's list as the run began. `tick_begin` runs the prepare in its call (6e.5).
+ */
+export function applyHookOutput(s: Game, r: PhysicsRuntime, out: Float64Array, hooks: readonly HookState[]): void {
+  const world = r.world, tuning = s.content.hook, players = s.players;
   const removed = new Set<HookState>(), states = out.length - hooks.length * STATE_STRIDE;
   for (let at = OUT_HEADER; at < states;) {
     const op = out[at]!;

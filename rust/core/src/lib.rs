@@ -36,7 +36,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 39;
+pub const ADAPTER_VERSION: u32 = 40;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -556,6 +556,105 @@ pub unsafe extern "C" fn phase_one_run(
 ) -> *const f64 {
     // SAFETY: the caller's contract.
     unsafe { (*phase).run(&mut *world, &mut *map, &mut *gates).as_ptr() }
+}
+
+/// The tick's first call (D4's `tick_begin`, #1214 stage 6e.5): phase 1, then the boundary it ends at, in one call.
+/// 1. Phase 1 over its input (`phase_one_input`), as `phase_one_run`.
+/// 2. The discontinuity markers each tick keeps: those from the boundary input (`capacity, count`, then `key, tick`
+///    each) whose tick is the new tick's or later, as `tick.ts` trimmed them.
+/// 3. The body sync (`boundary::synchronize`), admitting items.
+/// 4. The hooks' revalidation (`hooks::run`'s prepare mode).
+/// 5. A turret's spawns enter the projectiles (6e.3), then the pending admission (`boundary::admit_pending`).
+/// 6. The commit of what is still queued (`commitMutations`).
+///
+/// The output is each step's own, in order, each after its length: phase 1's input as it left it, then its facts;
+/// the sync's log; the hooks'; the admission's; the commit's code and facts (empty when nothing was queued). A step
+/// that refuses ends the call there, and the later sections are empty, as Node's throw ended the tick.
+///
+/// # Safety
+/// As `phase_one_run`, and `index` and `swept` are the map's.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn tick_begin(
+    phase: *mut phase_one::PhaseOne,
+    world: *mut world::World,
+    map: *mut collision::CollisionMap,
+    index: *const sight::SightIndex,
+    gates: *mut sight::GateSet,
+    swept: *const swept::SweptMap,
+) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        let (p, w) = (&mut *phase, &mut *world);
+        let markers = w.boundary_input.clone();
+        let facts = p.run(w, &mut *map, &mut *gates).to_vec();
+        let state = p.input_words().to_vec();
+        let mut out = vec![0.0];
+        let section = |out: &mut Vec<f64>, words: &[f64]| {
+            out.push(words.len() as f64);
+            out.extend_from_slice(words);
+        };
+        let mut first = state.clone();
+        first.extend_from_slice(&facts);
+        out.push(state.len() as f64);
+        section(&mut out, &first);
+        let tick = state[0];
+        let (capacity, count) = (markers[0], markers[1] as usize);
+        let kept: Vec<f64> = markers[2..2 + count * 2]
+            .chunks(2)
+            .filter(|m| m[1] >= tick)
+            .map(|m| m[0])
+            .collect();
+        w.markers = kept.iter().map(|&k| k as world::Key).collect();
+        let sync = boundary::synchronize_in_run(
+            w,
+            &mut *map,
+            &mut *gates,
+            &*swept,
+            tick,
+            capacity,
+            w.players.len() as f64,
+        );
+        section(&mut out, &sync);
+        let mut refused = sync[0] < 0.0;
+        if !refused {
+            let mut hooks = vec![
+                hooks::MODE_PREPARE,
+                tick,
+                w.players.len() as f64,
+                w.hooks.len() as f64,
+                0.0,
+            ];
+            hooks.extend_from_slice(&w.sync_config.hook);
+            w.boundary_input = hooks;
+            hooks::run(w, &*swept, &*gates);
+            let done = w.boundary_output.clone();
+            refused = done[0] < 0.0;
+            section(&mut out, &done);
+        } else {
+            section(&mut out, &[]);
+        }
+        if !refused {
+            let spawns = std::mem::take(&mut w.pending_spawns);
+            w.projectiles.extend(spawns);
+            boundary::admit_pending(w, &*index, &*gates);
+            let done = w.boundary_output.clone();
+            refused = done[0] < 0.0;
+            section(&mut out, &done);
+        } else {
+            section(&mut out, &[]);
+        }
+        if !refused && w.queued_count() > 0 {
+            let code = w.commit();
+            let mut done = vec![f64::from(code)];
+            done.extend_from_slice(w.output());
+            section(&mut out, &done);
+        } else {
+            section(&mut out, &[]);
+        }
+        out[0] = out.len() as f64;
+        w.boundary_output = out;
+        w.boundary_output.as_ptr()
+    }
 }
 
 /// `roofAt`'s interned id at `(x, y)`, or -1: for the parity check against `shared/view.ts`
