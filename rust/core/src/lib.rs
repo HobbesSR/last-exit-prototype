@@ -36,7 +36,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 35;
+pub const ADAPTER_VERSION: u32 = 37;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -876,6 +876,7 @@ pub unsafe extern "C" fn combat_input(world: *mut world::World, len: usize) -> *
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn combat_run(
     world: *mut world::World,
+    map: *mut collision::CollisionMap,
     index: *const sight::SightIndex,
     gates: *mut sight::GateSet,
     swept: *const swept::SweptMap,
@@ -883,15 +884,113 @@ pub unsafe extern "C" fn combat_run(
     // SAFETY: the caller's contract; the rules and the combat state are disjoint fields.
     unsafe {
         let w = &mut *world;
-        let rules = w.actions.rules();
-        w.combat.run(
-            &mut w.players,
-            rules,
-            &w.phase_seven.rewind,
-            &*index,
-            &mut *gates,
-            swept.as_ref(),
-        );
+        let Some((mut e, markers)) = w.combat.elimination_words() else {
+            let rules = w.actions.rules();
+            w.combat.run(
+                &mut w.players,
+                rules,
+                &w.phase_seven.rewind,
+                &*index,
+                &mut *gates,
+                swept.as_ref(),
+            );
+            return w.combat.output.as_ptr();
+        };
+        // A kill is carried out in the core (#1214 stage 6e.2): the run goes to its kill, the elimination runs, and the
+        // run resumes, as Node's `drive` did, until it ends. The output is one call's: the store's rows at the end, every
+        // part's log with each elimination's output between them (`OP_ELIMINATED`), the first part's bullet rows and the
+        // last part's removals.
+        w.markers = markers;
+        let header = w.combat.input[..combat::HEADER].to_vec();
+        let swept = &*swept;
+        let (mut parts, mut eliminations) = (Vec::new(), Vec::new());
+        loop {
+            let rules = w.actions.rules();
+            w.combat.run(
+                &mut w.players,
+                rules,
+                &w.phase_seven.rewind,
+                &*index,
+                &mut *gates,
+                Some(swept),
+            );
+            let out = w.combat.output.clone();
+            e.serial = out[1];
+            let kill = (out[2] != 0.0)
+                .then(|| (out[3] as usize, (out[4] >= 0.0).then(|| out[4] as usize)));
+            parts.push(out);
+            let Some((target, source)) = kill else { break };
+            let done = phase_three::eliminate_in_world(
+                w,
+                &mut *map,
+                &*index,
+                &mut *gates,
+                swept,
+                target,
+                source,
+                &e,
+            );
+            (e.serial, e.item_serial, e.scatter_serial) = (done[1], done[2], done[3]);
+            eliminations.push((parts.len() - 1, target, source, done));
+            // One damage has nothing left after its elimination.
+            if header[0] as usize == combat::MODE_DAMAGE {
+                break;
+            }
+            let mut resume = header.clone();
+            (
+                resume[1],
+                resume[3],
+                resume[5],
+                resume[6],
+                resume[combat::IN_RUN],
+            ) = (1.0, e.serial, 0.0, 0.0, 0.0);
+            w.combat.input = resume;
+        }
+        let section = |o: &[f64]| {
+            let rows = combat::OUT_HEADER + o[5] as usize * combat::OUT_ROW;
+            let log = rows + o[6] as usize;
+            let bullets = log + o[7] as usize * 3;
+            (rows, log, bullets, bullets + o[8] as usize)
+        };
+        let mut out = vec![
+            0.0,
+            e.serial,
+            0.0,
+            -1.0,
+            -1.0,
+            w.players.rows.len() as f64,
+            0.0,
+            0.0,
+            0.0,
+        ];
+        for r in &w.players.rows {
+            r.write(&mut out);
+        }
+        let log_at = out.len();
+        for (k, part) in parts.iter().enumerate() {
+            let (rows, log, _, _) = section(part);
+            out.extend_from_slice(&part[rows..log]);
+            for (_, target, source, done) in eliminations.iter().filter(|x| x.0 == k) {
+                out.extend_from_slice(&[
+                    phase_three::OP_ELIMINATED,
+                    (done.len() + 2) as f64,
+                    *target as f64,
+                    source.map_or(-1.0, |s| s as f64),
+                ]);
+                out.extend_from_slice(done);
+            }
+        }
+        out[6] = (out.len() - log_at) as f64;
+        let first = &parts[0];
+        let (_, log, bullets, _) = section(first);
+        out[7] = first[7];
+        out.extend_from_slice(&first[log..bullets]);
+        let last = parts.last().expect("a part");
+        let (_, _, bullets, removed) = section(last);
+        out[8] = last[8];
+        out.extend_from_slice(&last[bullets..removed]);
+        out[0] = out.len() as f64;
+        w.combat.output = out;
         w.combat.output.as_ptr()
     }
 }

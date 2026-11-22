@@ -13,9 +13,9 @@ use crate::physics::SUBSTEPS;
 use crate::world::STEP_HEADER;
 
 /// Words of `Extra` uploaded: respawnAt, transit arriveAt, the transit's destination station index (-1 none), railCd,
-/// cloak, revealed, boost, the actor's world key (`actor:<id>`) and its hook's (`hook:<id>`, #1214 stage 6d.4). An absent
-/// field is NaN.
-pub const EXTRA_ROW: usize = 9;
+/// cloak, revealed, boost, the actor's world key (`actor:<id>`) and its hook's (`hook:<id>`, #1214 stage 6d.4), and its
+/// kills (6e.2, the kill credit an elimination inside a run reads). An absent field is NaN.
+pub const EXTRA_ROW: usize = 10;
 /// Words per player uploaded: `combat::Row` (`PLAYER_ROW` words), `movedThisTick` (0 when unset), then `Extra`.
 pub const STORE_ROW: usize = PLAYER_ROW + 1 + EXTRA_ROW;
 
@@ -92,6 +92,8 @@ pub(crate) struct Extra {
     /// The world key of this player's hook (`hook:<id>`), interned by JavaScript, so the core names a hook it launches
     /// with the key JavaScript's table holds.
     pub(crate) hook_key: f64,
+    /// `kills`, which the kill credit counts on (6e.2).
+    pub(crate) kills: f64,
 }
 
 #[derive(Default)]
@@ -172,6 +174,7 @@ impl Players {
                 boost: e[6],
                 key: e[7],
                 hook_key: e[8],
+                kills: e[9],
             });
         }
     }
@@ -207,6 +210,7 @@ impl Players {
                 e.boost,
                 e.key,
                 e.hook_key,
+                e.kills,
             ]);
         }
         for q in &self.equip {
@@ -437,7 +441,15 @@ impl Players {
         }
         // Each registration fact: id, phase, body key (#1214 stage 6e.1).
         at += out[8] as usize * 3;
-        let end = at + out[9] as usize;
+        self.apply_action_log(&out[at..at + out[9] as usize]);
+    }
+
+    /// Phase 3's log facts that write the store (charging cleared, a reveal, an elimination, kill credit, reload
+    /// cleared), in order. A run applies each part before it syncs inside itself (#1214 stage 6e.2), so the sync reads
+    /// the eliminated target's status; each is an assignment, so `apply_actions` applying them again after is the same.
+    pub(crate) fn apply_action_log(&mut self, log: &[f64]) {
+        let out = log;
+        let (mut at, end) = (0, log.len());
         while at < end {
             let (op, len) = (out[at], out[at + 1] as usize);
             let p = &out[at + 2..at + 2 + len];
@@ -470,6 +482,9 @@ impl Players {
                     }
                 }
                 13 => {
+                    if let Some(e) = self.extra.get_mut(i) {
+                        e.kills = p[1];
+                    }
                     if !p[2].is_nan()
                         && let Some(r) = self.rows.get_mut(i)
                     {
@@ -539,8 +554,9 @@ mod tests {
             vec![PLAYER_ROW as f64, (STORE_ROW + PLAYER_ROW) as f64]
         );
         assert_eq!(players.extra[0].respawn_at, (PLAYER_ROW + 1) as f64);
-        assert_eq!(players.extra[1].key, (2 * STORE_ROW - 2) as f64);
-        assert_eq!(players.extra[1].hook_key, (2 * STORE_ROW - 1) as f64);
+        assert_eq!(players.extra[1].key, (2 * STORE_ROW - 3) as f64);
+        assert_eq!(players.extra[1].hook_key, (2 * STORE_ROW - 2) as f64);
+        assert_eq!(players.extra[1].kills, (2 * STORE_ROW - 1) as f64);
         let q = &players.equip[0];
         assert_eq!(
             (q.selected, q.weapon, q.keys, q.charging),

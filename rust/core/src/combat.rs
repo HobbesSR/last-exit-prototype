@@ -6,12 +6,11 @@
 //! rows each call, and the run writes back only the fields these rules write: health, shield, the
 //! cooldowns and stun, then a log of effects and aggression in the order the TypeScript made them.
 //!
-//! **Elimination is a stop.** When damage kills, the run returns before anything of the elimination is
-//! written. JavaScript runs the elimination (`actions_run`'s mode 4, `phase_three.rs`), whose
-//! mandatory drops each return at 5c.2's sync boundary, then resumes this run. What the run must
-//! remember across that (the sorted hits, which bullets were spent, the caster and target it stopped
-//! at) is kept here; everything else is repacked, so a resume reads what the elimination and its
-//! syncs left, as the TypeScript read the live records.
+//! **Elimination stops the run, inside the call.** When damage kills, the run returns before anything of the
+//! elimination is written. What the run must remember across that (the sorted hits, which bullets were spent, the
+//! caster and target it stopped at) is kept here. Since #1214 stage 6e.2 the call carries the elimination out itself
+//! (`combat_run` in `lib.rs`, `phase_three::eliminate_in_world`) and resumes the run, as Node's `drive` did, so a resume
+//! still reads what the elimination and its syncs left in the stores.
 use crate::action_combat::{self, Fact};
 use crate::action_types::{Player, Rules};
 use crate::collision::line_clear;
@@ -27,7 +26,11 @@ pub const MODE_DAMAGE: usize = 2;
 /// Input header: mode, resume (nonzero continues the retained run), tick, serial, player count, bullet
 /// count, caster count, then a damage call's target, amount and source (-1 none). The rewind frames are
 /// the core's own (`phase_seven::Rewind`, 27 step 5e.2).
-pub const HEADER: usize = 10;
+pub const HEADER: usize = 11;
+/// Header word: the call carries out a kill's elimination itself (#1214 stage 6e.2). Its words follow the casters: the
+/// item and scatter serials, the gladiators' respawn delay, the markers' capacity, the loot's drop speed, then the
+/// markers' count and keys.
+pub const IN_RUN: usize = 10;
 /// A player's fields (`Row`): role (0 contestant), status (0 active), kit, x, y, heading, hp, maxHp, shield, level,
 /// cooldown, attackCd, stun, rank in ID order, view lag (0 when unset). The run reads them from the core's player
 /// store (`players.rs`, #1214 stage 6c), not the input. A fresh projectile call's input holds, per player after the
@@ -359,6 +362,34 @@ fn gladiator_attack(
 }
 
 impl Combat {
+    /// The elimination words of a call that carries out its kills itself (`IN_RUN`), and the markers.
+    pub(crate) fn elimination_words(&self) -> Option<(crate::phase_three::Elimination, Vec<u32>)> {
+        let h = &self.input;
+        if h.len() <= IN_RUN || h[IN_RUN] == 0.0 {
+            return None;
+        }
+        let (mode, resume, players) = (h[0] as usize, h[1] != 0.0, h[4] as usize);
+        let mut at = HEADER;
+        if mode == MODE_PROJECTILES && !resume {
+            at += players * PATH_ROW;
+        }
+        at += h[5] as usize * BULLET_ROW + h[6] as usize * CASTER_ROW;
+        let w = &h[at..];
+        let markers = w[5] as usize;
+        Some((
+            crate::phase_three::Elimination {
+                tick: h[2],
+                serial: h[3],
+                item_serial: w[0],
+                scatter_serial: w[1],
+                respawn: w[2],
+                capacity: w[3],
+                drop_speed: w[4],
+            },
+            w[6..6 + markers].iter().map(|&k| k as u32).collect(),
+        ))
+    }
+
     /// Run a call. `swept` is needed only by a fresh projectile call; `rewind` is phase 7's frames.
     pub fn run(
         &mut self,

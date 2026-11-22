@@ -17,7 +17,7 @@
 //! log (opcode, length, payload), and any standalone plan's fourteen-word records.
 use crate::action_combat::{self, Fact};
 use crate::action_equipment::{advance_reload, rearrange, sync_weapon};
-use crate::action_types::{Item, Player, Rules, Weapon, present, safe, truthy};
+use crate::action_types::{ABSENT_INSTANCE, Item, Player, Rules, Weapon, present, safe, truthy};
 use crate::collision::CollisionMap;
 use crate::drop_planner::{self, Allocation, Context, Plan};
 use crate::ground;
@@ -175,6 +175,191 @@ pub(crate) fn allocation_facts(
             (false, _) => f64::NAN,
         };
         out.extend_from_slice(&[id, phase, key]);
+    }
+}
+
+/// A drop that syncs inside the run (#1214 stages 6d.6b, 6e.2): its records reach the ground store and launch from
+/// their dropper, the hooks' and the store's facts so far reach the world (the sync reconciles the hooks, and reads an
+/// eliminated target's status), then the body sync runs where Node ran it at the stop, and its log goes to the output.
+/// Returns false when the sync refused, which ends the run as Node's throw did.
+#[allow(clippy::too_many_arguments)]
+fn sync_drop(
+    world: &mut World,
+    map: &mut CollisionMap,
+    gates: &mut GateSet,
+    sync: &InRun<'_>,
+    rules: &Rules,
+    allocation: &Allocation,
+    records: &[drop_planner::Record],
+    (roster, x, y): (usize, f64, f64),
+    tick: f64,
+    log: &mut Vec<f64>,
+    cursors: &mut (usize, usize),
+) -> bool {
+    let keys: Vec<f64> = records
+        .iter()
+        .map(|record| record_key(world, allocation, record))
+        .collect();
+    let words: Vec<f64> = records
+        .iter()
+        .zip(&keys)
+        .flat_map(|(record, &key)| ground_words(rules, record, key, roster as f64, tick))
+        .collect();
+    world.add_ground(&words);
+    for (record, &key) in records.iter().zip(&keys) {
+        launch(world, key, record, (x, y), sync.drop_speed);
+    }
+    apply_hook_facts(world, log, &mut cursors.0, tick);
+    world.players.apply_action_log(&log[cursors.1..]);
+    let out = sync.synchronize(world, map, gates, tick);
+    op(log, OP_SYNC, &out);
+    *cursors = (log.len(), log.len());
+    out[0] >= 0.0
+}
+
+/// What an elimination inside another run needs that its stores do not hold (#1214 stage 6e.2): the tick, the serial
+/// and the item serials as they stand, the gladiators' respawn delay, and its drops' sync words (the markers' capacity
+/// and the loot's drop speed; the markers are the world's).
+#[derive(Clone, Copy)]
+pub(crate) struct Elimination {
+    pub(crate) tick: f64,
+    pub(crate) serial: f64,
+    pub(crate) item_serial: f64,
+    pub(crate) scatter_serial: f64,
+    pub(crate) respawn: f64,
+    pub(crate) capacity: f64,
+    pub(crate) drop_speed: f64,
+}
+
+/// The elimination fact a run leaves for Node (`OP_ELIMINATED`): target, source (-1 none), then phase 3's whole output
+/// for that elimination, which Node applies as `eliminateInCore`'s.
+pub const OP_ELIMINATED: f64 = 9.0;
+
+/// `eliminate` inside another run (#1214 stage 6e.2): phase 5's or the hazards' kill, where they stopped for Node's
+/// `eliminateInCore` before. The core packs the call that adapter packed, from its own stores: the target and the
+/// source as action players (the target's inventory from the store), every player as context, the ground near the
+/// target (the grid), the target's carried identities on the ground, every carried identity, and the elimination row;
+/// the registry gives the phases and identities, and the drops sync inside the run. Returns phase 3's output, after
+/// the player store took its writes as `actions_run` gives them.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn eliminate_in_world(
+    world: &mut World,
+    map: &mut CollisionMap,
+    index: &SightIndex,
+    gates: &mut GateSet,
+    swept: &SweptMap,
+    target: usize,
+    source: Option<usize>,
+    e: &Elimination,
+) -> Vec<f64> {
+    const SCATTER_REACH: f64 = 372.0 + 32.0 + 1.0;
+    let store = &world.players;
+    let n = store.len();
+    let actors: Vec<usize> = std::iter::once(target)
+        .chain(source.filter(|&s| s != target))
+        .collect();
+    let (tx, ty) = (store.rows[target].x, store.rows[target].y);
+    // `itemsNear(s, p, 405)` for the target, or the whole list where its pose is not finite.
+    let near = world.ground.near(tx, ty, SCATTER_REACH);
+    let inventory = store.equip[target].inventory.clone().unwrap_or_default();
+    let ground_ids: Vec<f64> = inventory
+        .iter()
+        .flatten()
+        .filter(|i| {
+            !i.missing(ABSENT_INSTANCE) && truthy(i.instance) && world.ground.holds_id(i.instance)
+        })
+        .map(|i| i.instance)
+        .collect();
+    let carried: Vec<f64> = store
+        .equip
+        .iter()
+        .flat_map(|q| q.inventory.iter().flatten().flatten())
+        .filter(|i| !i.missing(ABSENT_INSTANCE) && truthy(i.instance))
+        .flat_map(|i| [i.token, i.instance])
+        .collect();
+    let rules = world.actions.rules();
+    let radii = rules.radii;
+    let mut data = vec![
+        MODE_ELIMINATE as f64,
+        0.0,
+        0.0,
+        e.tick,
+        e.serial,
+        e.item_serial,
+        e.scatter_serial,
+        world.ground.len() as f64,
+        n.saturating_sub(world.sync_actors) as f64,
+        actors.len() as f64,
+        n as f64,
+        FROM_STORE,
+        0.0,
+        near.len() as f64,
+        ground_ids.len() as f64,
+        (carried.len() / 2) as f64,
+        0.0,
+        0.0,
+        f64::NAN,
+        f64::NAN,
+        1.0,
+    ];
+    for &a in &actors {
+        // The target's inventory from the store; the source's is not read.
+        let flag = if a == target { FROM_STORE } else { -1.0 };
+        data.push(a as f64);
+        data.extend_from_slice(&[0.0; 19]);
+        data.extend_from_slice(&[flag, 0.0, 0.0, 0.0]);
+        // An empty input's intent words.
+        let nan = f64::NAN;
+        data.extend_from_slice(&[
+            nan, nan, nan, nan, nan, nan, 0.0, nan, nan, 0.0, 0.0, 0.0, nan, nan, 0.0,
+        ]);
+    }
+    for i in 0..n {
+        let (r, x) = (&store.rows[i], &store.extra[i]);
+        data.extend_from_slice(&[
+            i as f64,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            radii[usize::from(r.role != 0.0)],
+            x.key,
+            0.0,
+        ]);
+    }
+    for r in &near {
+        data.extend_from_slice(&[r.words[ground::X], r.words[ground::Y]]);
+    }
+    data.extend_from_slice(&ground_ids);
+    data.extend_from_slice(&carried);
+    let kills = source.map_or(0.0, |s| {
+        let k = store.extra[s].kills;
+        if k.is_nan() { 0.0 } else { k }
+    });
+    let relation = match source {
+        None => -1.0,
+        Some(s) if s == target => 0.0,
+        Some(_) => 1.0,
+    };
+    data.extend_from_slice(&[relation, kills, e.respawn]);
+    let markers: Vec<f64> = world.markers.iter().map(|&k| f64::from(k)).collect();
+    data.extend_from_slice(&[e.capacity, n as f64, e.drop_speed, markers.len() as f64]);
+    data.extend_from_slice(&markers);
+    let mut actions = std::mem::take(&mut world.actions);
+    actions.input = data;
+    actions.run(world, map, index, gates, Some(swept));
+    world.actions = actions;
+    world
+        .players
+        .apply_actions(MODE_ELIMINATE as f64, &world.actions.output);
+    world.actions.output.clone()
+}
+
+/// The context actors as the resumed call read them from the store after a sync: role, status and pose.
+fn refresh(actors: &mut [Actor], world: &World) {
+    for a in actors {
+        let s = &world.players.rows[a.roster];
+        (a.role, a.status, a.x, a.y) = (s.role, s.status, s.x, s.y);
     }
 }
 
@@ -536,7 +721,8 @@ fn eliminate(
     from: usize,
     [source, kills, respawn]: [f64; 3],
     tick: f64,
-) -> Option<usize> {
+    drop_op: f64,
+) -> Option<(usize, Vec<drop_planner::Record>)> {
     let slots = players[0].inventory.as_ref().map_or(0, Vec::len);
     let source = (source >= 0.0).then_some(source as usize);
     for step in from..slots + 5 {
@@ -587,8 +773,8 @@ fn eliminate(
                 op(log, 10.0, &[p.roster as f64]);
                 let mut row = vec![p.roster as f64, plan.records.len() as f64];
                 records(&mut row, &plan);
-                op(log, 9.0, &row);
-                return Some(step + 1);
+                op(log, drop_op, &row);
+                return Some((step + 1, plan.records));
             }
         } else if step <= slots + 3 {
             let family = step - slots - 1;
@@ -631,8 +817,8 @@ fn eliminate(
                 p.reserves.as_mut().unwrap()[family] -= count;
                 let mut row = vec![p.roster as f64, plan.records.len() as f64];
                 records(&mut row, &plan);
-                op(log, 9.0, &row);
-                return Some(step + 1);
+                op(log, drop_op, &row);
+                return Some((step + 1, plan.records));
             }
         } else {
             if let Some(inventory) = p.inventory.as_mut() {
@@ -739,7 +925,8 @@ impl PhaseThree {
             [-1.0, 0.0, 0.0]
         };
         // A loop with droppers syncs each drop inside the run (#1214 stage 6d.6b); every other call stops at a drop.
-        let in_run = (mode == 0 && h[20] != 0.0).then(|| {
+        // So does an elimination (6e.2), whose drops each stopped the call before.
+        let in_run = ((mode == 0 || mode == MODE_ELIMINATE) && h[20] != 0.0).then(|| {
             let [capacity, roster, drop_speed, markers] = r.row();
             world.markers = r.vec(markers as usize).iter().map(|&k| k as u32).collect();
             let held: Vec<f64> = players
@@ -761,7 +948,8 @@ impl PhaseThree {
                     .collect(),
             }
         });
-        let mut hook_cursor = 0;
+        // How far the log's facts have reached the world: the hooks', then the player store's.
+        let mut cursors = (0usize, 0usize);
         let mut stopped = false;
         let mut ground_count = h[7] as usize;
         let mut reserve_actors = h[8] as usize;
@@ -832,36 +1020,72 @@ impl PhaseThree {
         } else if mode == MODE_ELIMINATE {
             // The target is no longer active when its loot drops, so its body leaves no disk.
             let target = players[0].roster;
-            let disks: Vec<Disk> = actors
-                .iter()
-                .filter(|a| a.status == 0.0 && a.roster != target)
-                .map(|a| [a.x, a.y, a.radius])
-                .collect();
-            let mut ctx = Context {
-                world,
-                map,
-                index,
-                gates,
-                actors: &disks,
-                taken: &taken,
-                ground_ids: &ground_ids,
-                carried_ids: &[],
-                ground_count,
-            };
-            let step = eliminate(
-                &mut players,
-                rules,
-                &mut ctx,
-                &carried,
-                &mut allocation,
-                &mut serial,
-                &mut log,
-                h[2] as usize,
-                elimination,
-                tick,
-            );
-            if let Some(step) = step {
-                resume = (0.0, step as f64);
+            let mut from = h[2] as usize;
+            loop {
+                let disks: Vec<Disk> = actors
+                    .iter()
+                    .filter(|a| a.status == 0.0 && a.roster != target)
+                    .map(|a| [a.x, a.y, a.radius])
+                    .collect();
+                let mut ctx = Context {
+                    world,
+                    map,
+                    index,
+                    gates,
+                    actors: &disks,
+                    taken: &taken,
+                    ground_ids: &ground_ids,
+                    carried_ids: &[],
+                    ground_count,
+                };
+                let drop_op = if in_run.is_some() {
+                    OP_DROP_SYNCED
+                } else {
+                    9.0
+                };
+                let Some((step, records)) = eliminate(
+                    &mut players,
+                    rules,
+                    &mut ctx,
+                    &carried,
+                    &mut allocation,
+                    &mut serial,
+                    &mut log,
+                    from,
+                    elimination,
+                    tick,
+                    drop_op,
+                ) else {
+                    break;
+                };
+                let Some(sync) = in_run.as_ref() else {
+                    resume = (0.0, step as f64);
+                    break;
+                };
+                // Each drop syncs where the call stopped before (6e.2), and the elimination goes on at its next step
+                // with what the next call repacked.
+                let dropper = (target, players[0].x, players[0].y);
+                if !sync_drop(
+                    world,
+                    map,
+                    gates,
+                    sync,
+                    rules,
+                    &allocation,
+                    &records,
+                    dropper,
+                    tick,
+                    &mut log,
+                    &mut cursors,
+                ) {
+                    break;
+                }
+                taken.extend(records.iter().map(|record| [record.x, record.y]));
+                ground_ids.extend(records.iter().map(|record| record.id));
+                ground_count += records.len();
+                carried = sync.carried(&players, 0, &players[0]);
+                refresh(&mut actors, world);
+                from = step;
             }
         } else {
             for i in h[1] as usize..players.len() {
@@ -1015,31 +1239,24 @@ impl PhaseThree {
                         // The drop's records reach the ground and launch, and the world syncs, where Node did at the
                         // stop: the hooks' facts first, since the sync reconciles the hooks.
                         op(&mut log, OP_DROP_SYNCED, &row);
-                        let keys: Vec<f64> = plan
-                            .records
-                            .iter()
-                            .map(|record| record_key(world, &allocation, record))
-                            .collect();
-                        let words: Vec<f64> = plan
-                            .records
-                            .iter()
-                            .zip(&keys)
-                            .flat_map(|(record, &key)| {
-                                ground_words(rules, record, key, p.roster as f64, tick)
-                            })
-                            .collect();
-                        world.add_ground(&words);
-                        for (record, &key) in plan.records.iter().zip(&keys) {
-                            launch(world, key, record, (p.x, p.y), sync.drop_speed);
-                        }
-                        apply_hook_facts(world, &log, &mut hook_cursor, tick);
-                        let out = sync.synchronize(world, map, gates, tick);
-                        op(&mut log, OP_SYNC, &out);
-                        hook_cursor = log.len();
-                        if out[0] < 0.0 {
+                        let dropper = (p.roster, p.x, p.y);
+                        if !sync_drop(
+                            world,
+                            map,
+                            gates,
+                            sync,
+                            rules,
+                            &allocation,
+                            &plan.records,
+                            dropper,
+                            tick,
+                            &mut log,
+                            &mut cursors,
+                        ) {
                             stopped = true;
                             break;
                         }
+                        refresh(&mut actors, world);
                         // What Node repacked for the next call: the new records among the taken spots and on the
                         // ground, the actor bodies' reserve, the carried identities as they stand, and the hooks.
                         taken.extend(plan.records.iter().map(|record| [record.x, record.y]));
@@ -1153,7 +1370,7 @@ impl PhaseThree {
             }
         }
         // The hooks' launches and cancels reach the world, as Node applies them to its mirror (#1214 stage 6d.4).
-        apply_hook_facts(world, &log, &mut hook_cursor, tick);
+        apply_hook_facts(world, &log, &mut cursors.0, tick);
         let mut out = std::mem::take(&mut self.output);
         out.clear();
         out.extend_from_slice(&[
