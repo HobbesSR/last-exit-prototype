@@ -435,7 +435,8 @@ impl Players {
             }
             at += retired as usize * ITEM_ROW;
         }
-        at += out[8] as usize * 2;
+        // Each registration fact: id, phase, body key (#1214 stage 6e.1).
+        at += out[8] as usize * 3;
         let end = at + out[9] as usize;
         while at < end {
             let (op, len) = (out[at], out[at + 1] as usize);

@@ -23,6 +23,7 @@ impl ItemAllocation {
             phases: vec![words[3]],
             registered: Vec::new(),
             facts: Vec::new(),
+            registry: None,
         };
         if words[5] != 0.0 {
             allocation.registered.push(item.instance);

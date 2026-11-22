@@ -18,6 +18,7 @@
 
 use crate::physics::{self, BodyParams, HEADER, SUBSTEPS};
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 
 /// An interned ID.
 pub type Key = u32;
@@ -182,6 +183,11 @@ pub struct World {
     pub(crate) sync_config: SyncConfig,
     /// How many actor bodies the last body sync left: the runtime's `actors.size` (6d.6b).
     pub(crate) sync_actors: usize,
+    /// The item registry (#1214 stage 6e.1), once Node has uploaded it; the runs read it where it is live.
+    pub(crate) registry: std::rc::Rc<crate::registry::Registry>,
+    pub(crate) registry_live: bool,
+    /// Each interned ID's key, so interning an ID twice gives one key, from Node or from the core (6e.1).
+    interned: BTreeMap<Vec<u16>, Key>,
     pub(crate) phase_seven: crate::phase_seven::PhaseSeven,
     /// By key: a solid prop's shape as its spec gave it (`shape, a, b, vertices`), for the swept
     /// queries' `solidProps` (`hooks.rs`). Loot and every other kind keep none.
@@ -308,6 +314,9 @@ impl World {
             markers: Vec::new(),
             sync_config: SyncConfig::default(),
             sync_actors: 0,
+            registry: std::rc::Rc::default(),
+            registry_live: false,
+            interned: BTreeMap::new(),
             phase_seven: crate::phase_seven::PhaseSeven::default(),
             prop_shapes: Vec::new(),
         }
@@ -593,15 +602,42 @@ impl World {
 
     /// Interns the ID whose UTF-16 code units fill the input; returns its key.
     pub fn intern(&mut self) -> Key {
-        let id = self
+        let id: Vec<u16> = self
             .engine
             .input_values()
             .iter()
             .map(|&u| u as u16)
             .collect();
+        self.intern_units(id)
+    }
+
+    fn intern_units(&mut self, id: Vec<u16>) -> Key {
+        if let Some(&key) = self.interned.get(&id) {
+            return key;
+        }
+        let key = self.ids.len() as Key;
+        self.interned.insert(id.clone(), key);
         self.ids.push(id);
         self.bodies.push(None);
-        (self.ids.len() - 1) as Key
+        key
+    }
+
+    /// Intern an ID the core names itself: a new allocation's body key, `item:instance-<phase>` (#1214 stage 6e.1).
+    /// Node adopts it from the fact that reports the allocation.
+    pub(crate) fn intern_str(&mut self, id: &str) -> Key {
+        self.intern_units(id.encode_utf16().collect())
+    }
+
+    /// A new allocation's body key, interned.
+    pub(crate) fn allocation_key(&mut self, phase: f64) -> Key {
+        self.intern_str(&format!("item:instance-{}", phase as u64))
+    }
+
+    /// Register a run's allocation (#1214 stage 6e.1): its ID, its `instance-<phase>` label's phase and body key.
+    pub(crate) fn register_allocation(&mut self, id: f64, phase: f64) -> Key {
+        let key = self.allocation_key(phase);
+        std::rc::Rc::make_mut(&mut self.registry).insert(id, phase, f64::from(key));
+        key
     }
 
     fn queued(&self) -> usize {

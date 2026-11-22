@@ -13,9 +13,8 @@
 //! commits and an instant transit's landing change the ground and sync where Node used to: the core writes its ground
 //! store (`write_partial` for a partial take too), runs the body sync (`OP_SYNC`), applies the facts so far to the
 //! player store, and reads the actors still to run as the call resuming there would (`prepare`; after a pickup, the
-//! records still to visit by the TypeScript's rule). Where the run does not hold what that call would be given (an
-//! identity it would register, or its label budget), the stop stays a stop, carried out, and Node resumes (`OP_REST`).
-//! A call the adapter does not mark (`IN_RUN`) stops at each as before.
+//! records still to visit by the TypeScript's rule). The run allocates and checks identities in the world's item
+//! registry (6e.1), as that call would. A call the adapter does not mark (`IN_RUN`) stops at each as before.
 use crate::action_equipment::{equipped, sync_weapon, valid_payload};
 use crate::action_types::{
     ABSENT_AMMO, ABSENT_CHARGE, ABSENT_INSTANCE, ABSENT_LINEAGE, ABSENT_QUALITY, ABSENT_WEAPON,
@@ -183,8 +182,6 @@ struct Actor {
     near_from_store: bool,
     /// The near records crossed: a resumed pickup's rest.
     rested: bool,
-    /// The near records are the rest a pickup carried out inside the run left (6d.6c.2).
-    rested_after_stop: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -289,7 +286,6 @@ fn read_actor(r: &mut Reader<'_>) -> Actor {
         swap_from_store,
         near_from_store,
         rested: a[22] >= 0.0,
-        rested_after_stop: false,
     }
 }
 
@@ -791,22 +787,7 @@ struct InRun<'s> {
     roster: f64,
     drop_speed: f64,
     swaps: bool,
-    phase_keys: Vec<(f64, f64)>,
-    carried_keys: Vec<(f64, f64)>,
 }
-
-/// How a stop carried out inside the run ended.
-enum Carried {
-    /// The run goes on at the same actor's next step.
-    Continued,
-    /// The run stops there, as before 6d.6c.2, with the stop carried out (`OP_REST` gives Node the rest).
-    Stopped,
-    /// The sync refused: the run ends, as Node's throw did.
-    Refused,
-}
-
-/// The records a pickup's actor had still to visit, by id, when a stop carried out inside the run stays a stop.
-pub const OP_REST: f64 = 18.0;
 
 /// A stop the run carries out inside itself.
 enum StopKind {
@@ -851,36 +832,18 @@ impl Run<'_> {
         self.world.replace_ground(at, &words);
     }
 
-    /// A drop record's body key: a newly allocated identity's from its label phase, else the outgoing item's own.
-    fn record_key(&self, record: &drop_planner::Record) -> f64 {
-        let Some(sync) = self.in_run.as_ref() else {
-            return f64::NAN;
-        };
-        let phase = self
-            .allocation
-            .facts
-            .iter()
-            .find(|f| f[0] == record.id)
-            .map(|f| f[1]);
-        let by_phase = phase.and_then(|phase| sync.phase_keys.iter().find(|k| k.0 == phase));
-        let by_token = || sync.carried_keys.iter().find(|k| k.0 == record.item.token);
-        by_phase.or_else(by_token).map_or(f64::NAN, |k| k.1)
-    }
-
     /// Carry out a stop inside the run, as Node did between calls, then read the actors from `at` on as the call that
     /// resumed there would (#1214 stage 6d.6c.2). The facts so far reach the player store first, as Node applied them
     /// before its sync.
-    ///
-    /// The run goes on only where it holds what that call would: every identity it would register, and the label
-    /// phases it would be given (its budget, to which the run's are cut). Otherwise the stop stays a stop
-    /// (`Carried::Stopped`): the ground and the sync are done, and Node resumes with the rest (`OP_REST`).
+    /// The allocation reads the world's registry, as that call would (6e.1). Returns false when the sync refused, which
+    /// ends the run as Node's throw did.
     fn carry_out(
         &mut self,
         kind: StopKind,
         actors: &mut [Actor],
         at: usize,
         cursor: &mut usize,
-    ) -> Carried {
+    ) -> bool {
         self.world
             .players
             .apply_interaction_log(&self.log[*cursor..]);
@@ -945,7 +908,10 @@ impl Run<'_> {
                     self.world.players.rows[roster].x,
                     self.world.players.rows[roster].y,
                 );
-                let keys: Vec<f64> = records.iter().map(|r| self.record_key(r)).collect();
+                let keys: Vec<f64> = records
+                    .iter()
+                    .map(|r| crate::phase_three::record_key(self.world, &self.allocation, r))
+                    .collect();
                 let words: Vec<f64> = records
                     .iter()
                     .zip(&keys)
@@ -974,16 +940,14 @@ impl Run<'_> {
             op(&mut self.log, OP_SYNC, &out);
             *cursor = self.log.len();
             if refused {
-                return Carried::Refused;
+                return false;
             }
             self.h[RESERVE_ACTORS] = (size as usize).saturating_sub(self.world.sync_actors) as f64;
         }
         // What the next call repacked: the actors from here on, the players, the ground's count and, where a swap may
         // happen, the carried identities. The partial takes' overlay is the store's now.
-        let rested = rest.is_some();
         for (j, a) in actors.iter_mut().enumerate().skip(at) {
             prepare(a, self.world, if j == at { rest.take() } else { None });
-            a.rested_after_stop = j == at && rested;
         }
         for (k, o) in self.players.iter_mut().enumerate() {
             let s = &self.world.players.rows[k];
@@ -1002,63 +966,6 @@ impl Run<'_> {
                 .collect();
         }
         self.item_writes.clear();
-        if self.holds_resumed_call(&actors[at..]) {
-            return Carried::Continued;
-        }
-        // A pickup's actor resumes at its rest; after a swap or a landing the resumed call reads a fresh list.
-        if actors[at].rested_after_stop {
-            let mut row = vec![actors[at].near.len() as f64];
-            row.extend(actors[at].near.iter().map(|g| g.id));
-            op(&mut self.log, OP_REST, &row);
-        }
-        Carried::Stopped
-    }
-
-    /// Whether the run holds what the call resuming at these actors would be given: the registered identities of each
-    /// actor's carried items where it has near records or may swap (`known` in `phase-six.ts`), and at least the label
-    /// phases of that call's budget as it was before the run synced inside itself (the near records, ten a swap and one
-    /// an unidentified carried item), which the run's are then cut to.
-    fn holds_resumed_call(&mut self, actors: &[Actor]) -> bool {
-        let mut budget = 0usize;
-        let mut swaps = false;
-        for a in actors {
-            let (list, swap) = (a.near.len(), a.swap_from_store);
-            swaps |= swap;
-            if list == 0 && !swap {
-                continue;
-            }
-            budget += list + if swap { 10 } else { 0 };
-            for item in a.p.inventory.iter().flatten().flatten() {
-                if item.missing(ABSENT_INSTANCE) {
-                    budget += 1;
-                } else if !self.allocation.registered.contains(&item.instance) {
-                    return false;
-                }
-                if !item.missing(ABSENT_LINEAGE)
-                    && !self.allocation.registered.contains(&item.lineage)
-                {
-                    return false;
-                }
-            }
-        }
-        // The budget is the call's before 6d.6c.2 (`phase-six.ts` adds more where a swap may happen, so the run can hold it).
-        let _ = swaps;
-        let serial = self.allocation.scatter_serial;
-        if budget == 0 || !(safe(serial) && serial >= 0.0) {
-            self.allocation.phases.clear();
-            return true;
-        }
-        let left: Vec<f64> = self
-            .allocation
-            .phases
-            .iter()
-            .copied()
-            .filter(|&p| p >= serial)
-            .collect();
-        if left.len() < budget {
-            return false;
-        }
-        self.allocation.phases = left[..budget].to_vec();
         true
     }
 
@@ -1700,29 +1607,12 @@ impl PhaseSix {
             let [capacity, roster, drop_speed, swaps, markers] = r.row();
             world.markers = r.vec(markers as usize).iter().map(|&k| k as u32).collect();
             let swaps = swaps != 0.0;
-            let phase_keys = if swaps {
-                phases.iter().copied().zip(r.vec(phases.len())).collect()
-            } else {
-                Vec::new()
-            };
-            let carried_keys = if swaps {
-                let carried: &Vec<[f64; 2]> = &carried;
-                carried
-                    .iter()
-                    .map(|c| c[0])
-                    .zip(r.vec(carried.len()))
-                    .collect()
-            } else {
-                Vec::new()
-            };
             InRun {
                 swept: swept.expect("a run that syncs inside itself needs the swept map"),
                 capacity,
                 roster,
                 drop_speed,
                 swaps,
-                phase_keys,
-                carried_keys,
             }
         });
         // A run that syncs inside itself decides what each actor reads, as the adapter did (6d.6c.2).
@@ -1732,6 +1622,9 @@ impl PhaseSix {
                 prepare(a, world, rest);
             }
         }
+        // The world's registry where the adapter says so (`FROM_STORE` for the phases, #1214 stage 6e.1).
+        let registry = (h[PHASES] == crate::phase_three::FROM_STORE && world.registry_live)
+            .then(|| world.registry.clone());
         let mut run = Run {
             rules,
             world,
@@ -1747,6 +1640,7 @@ impl PhaseSix {
                 phases,
                 registered,
                 facts: Vec::new(),
+                registry,
             },
             log: Vec::new(),
             players,
@@ -1788,13 +1682,8 @@ impl PhaseSix {
                 match stop {
                     Ok(Some(next)) if run.in_run.is_some() => {
                         let kind = run.stop.take().expect("a stop's kind");
-                        match run.carry_out(kind, &mut actors, i, &mut cursor) {
-                            Carried::Continued => {}
-                            Carried::Stopped => {
-                                resume = (i as f64, f64::from(next));
-                                break 'actors;
-                            }
-                            Carried::Refused => break 'actors,
+                        if !run.carry_out(kind, &mut actors, i, &mut cursor) {
+                            break 'actors;
                         }
                         resumed = Some(next);
                         break;
@@ -1833,9 +1722,7 @@ impl PhaseSix {
             error.0,
             error.1,
         ]);
-        for a in &run.allocation.facts {
-            out.extend_from_slice(a);
-        }
+        crate::phase_three::allocation_facts(run.world, &mut run.allocation, true, &mut out);
         out.extend_from_slice(&run.log);
         out[0] = out.len() as f64;
         self.output = out;
@@ -1951,6 +1838,7 @@ mod tests {
             phases: vec![0.0, 1.0, 2.0],
             registered: vec![1.0, 2.0],
             facts: Vec::new(),
+            registry: None,
         }
     }
 

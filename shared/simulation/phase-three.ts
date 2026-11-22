@@ -11,7 +11,7 @@ import { MOVEMENT_SPEED } from '../movement.ts';
 import { HZ } from './rules.ts';
 import { playerIndex } from './relations.ts';
 import { addItems, addItemsFromCore, groundItem, itemsNear } from './ground-items.ts';
-import { keyOf } from './ground-store.ts';
+import { sawCoreRegistrations, syncRegistry } from './registry-store.ts';
 import { applySyncLog, prepareInRunSync } from './boundary.ts';
 import { physicsRuntime, type PhysicsRuntime } from './physics-runtime.ts';
 import { appendItem, carriedItem, carriedToken, playersStale, uploadPlayers } from './player-store.ts';
@@ -124,15 +124,20 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
     if ((mode === 1 || input?.attack || intent?.utilitySlot !== undefined) && p.role === 'contestant' && p.attackCd <= 0) { context = true; hearing = true; }
   }
   if (options.item) { allocations.push(options.item); allocationCount += 3; }
-  const known = new Set<number>();
-  for (const item of allocations) for (const id of [item.instanceId, item.lineageId]) if (id !== undefined) {
-    try { itemLabel(source, id); known.add(id); } catch { /* An unknown identity is refused by the core after the search. */ }
-  }
-  // Registry membership, not a scan of the ground, supplies the free legacy label phases (D6).
-  const phases: number[] = [];
-  let phase = source.scatterSerial ?? 0;
-  if (Number.isSafeInteger(phase) && phase >= 0) for (; phases.length < allocationCount && phase < Number.MAX_SAFE_INTEGER; phase++) {
-    if (itemIdForLabel(source, `instance-${phase}`) === undefined) phases.push(phase);
+  // The game's own allocation reads the core's item registry (#1214 stage 6e.1). A plan staged on a fork of it (a
+  // swap's) still packs the free label phases and registered identities from the fork, which the core does not hold.
+  const live = source === s;
+  const known = new Set<number>(), phases: number[] = [];
+  if (live) syncRegistry(s, r);
+  else {
+    for (const item of allocations) for (const id of [item.instanceId, item.lineageId]) if (id !== undefined) {
+      try { itemLabel(source, id); known.add(id); } catch { /* An unknown identity is refused by the core after the search. */ }
+    }
+    // Registry membership, not a scan of the ground, supplies the free legacy label phases (D6).
+    let phase = source.scatterSerial ?? 0;
+    if (Number.isSafeInteger(phase) && phase >= 0) for (; phases.length < allocationCount && phase < Number.MAX_SAFE_INTEGER; phase++) {
+      if (itemIdForLabel(source, `instance-${phase}`) === undefined) phases.push(phase);
+    }
   }
   const items = options.items ?? s.items, near = new Set<GroundItem>();
   for (const p of droppers) {
@@ -150,19 +155,17 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   const hooksRead = actors.some(p => p.kit === 'hook' && intents[playerIndex(s, p)]?.input.skill);
   if (hooksRead) syncHooks(r);
   // The loop's drops sync inside its run (#1214 stage 6d.6b): the core adds their records, launches them and syncs where
-  // this adapter stopped it. It needs the keys of the bodies it may queue, which only JavaScript interns: each free label
-  // phase's and each dropper's carried identity's. Elimination and the standalone plans still stop at a drop.
+  // this adapter stopped it. The bodies' keys are the core's registry's (6e.1). Elimination and the standalone plans
+  // still stop at a drop.
   const inRun = mode === 0 && droppers.length > 0 && inRunDrops;
   const inRunWords: number[] = [];
   if (inRun) {
     prepareInRunSync(s, r);
-    const dropping = new Set(droppers.flatMap(p => p.inventory ?? []));
     inRunWords.push(r.discontinuityCapacity, s.players.length, s.content.worldPhysics.loot.dropSpeed, r.discontinuities.length,
-      ...r.discontinuities.map(entry => r.world.key(entry.id)), ...phases.map(phase => r.world.key(`item:instance-${phase}`)));
-    for (const p of s.players) for (const item of p.inventory ?? []) if (item?.instanceId) inRunWords.push(dropping.has(item) ? keyOf(s, r, item.instanceId) : NaN);
+      ...r.discontinuities.map(entry => r.world.key(entry.id)));
   }
   const data: number[] = [mode, options.start ?? 0, options.stage ?? 0, s.tick, s.serial, source.itemSerial ?? 1, source.scatterSerial ?? 0,
-    items.length, Math.max(0, s.players.length - r.actors.size), actors.length, contexts.length, phases.length, known.size,
+    items.length, Math.max(0, s.players.length - r.actors.size), actors.length, contexts.length, live ? FROM_STORE : phases.length, known.size,
     near.size, groundIds.length, carried.length / 2, hooksRead ? FROM_STORE : 0, options.mandatory ? 1 : 0, code(AMMO_FAMILIES, options.family), n(options.count), inRun ? 1 : 0];
   for (const p of actors) {
     const intent = intents[playerIndex(s, p)], input: PlayerInput = intent?.input ?? {};
@@ -237,10 +240,14 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   const allocation = mode === 2 || mode === 3 ? forkItemAllocation(source) : s;
   allocation.itemSerial = out[2]!; allocation.scatterSerial = out[3]!;
   allocation.itemIdentities ??= { ids: new Map(), labels: new Map() };
-  for (let i = 0; i < out[8]!; i++, at += 2) {
+  // Each allocation with its body key, which the core interned, and registered where the call writes (6e.1).
+  const registered = s.itemIdentities?.labels.size ?? 0;
+  for (let i = 0; i < out[8]!; i++, at += 3) {
     const id = out[at]! as ItemId, label = `instance-${out[at + 1]!}` as ItemLabel;
     allocation.itemIdentities.ids.set(label, id); allocation.itemIdentities.labels.set(id, label);
+    if (!Number.isNaN(out[at + 2]!)) r.world.adoptKey(out[at + 2]!, `item:${label}`);
   }
+  if (live && allocation === s) sawCoreRegistrations(s, r, registered);
   const logEnd = at + out[9]!;
   if (writes) s.serial = out[1]!;
   while (at < logEnd) {

@@ -142,25 +142,43 @@ struct InRun<'s> {
     capacity: f64,
     roster: f64,
     drop_speed: f64,
-    phase_keys: Vec<(f64, f64)>,
-    carried_keys: Vec<(f64, f64)>,
     /// The carried pairs no action player held when the call began: the rest are rebuilt from the players as they stand.
     others: Vec<[f64; 2]>,
 }
 
-impl InRun<'_> {
-    /// A record's body key: a newly allocated identity's from its label phase, else the dropped item's own.
-    fn key_of(&self, allocation: &Allocation, record: &drop_planner::Record) -> f64 {
-        let phase = allocation
-            .facts
-            .iter()
-            .find(|f| f[0] == record.id)
-            .map(|f| f[1]);
-        let by_phase = phase.and_then(|phase| self.phase_keys.iter().find(|k| k.0 == phase));
-        let by_token = || self.carried_keys.iter().find(|k| k.0 == record.item.token);
-        by_phase.or_else(by_token).map_or(f64::NAN, |k| k.1)
+/// A drop record's body key (#1214 stage 6e.1): a new allocation's `item:instance-<phase>`, interned by the core, else
+/// the registered identity's, from the world's registry.
+pub(crate) fn record_key(
+    world: &mut World,
+    allocation: &Allocation,
+    record: &drop_planner::Record,
+) -> f64 {
+    match allocation.facts.iter().find(|f| f[0] == record.id) {
+        Some(fact) => f64::from(world.allocation_key(fact[1])),
+        None => world.registry.key(record.id).unwrap_or(f64::NAN),
     }
+}
 
+/// The allocations' facts for the output, each with its body key (Node adopts it), registered in the world's registry
+/// where the call writes and the run read the registry (6e.1): `id, phase, key`.
+pub(crate) fn allocation_facts(
+    world: &mut World,
+    allocation: &mut Allocation,
+    register: bool,
+    out: &mut Vec<f64>,
+) {
+    let live = allocation.registry.take().is_some();
+    for &[id, phase] in &allocation.facts {
+        let key = match (live, register) {
+            (true, true) => f64::from(world.register_allocation(id, phase)),
+            (true, false) => f64::from(world.allocation_key(phase)),
+            (false, _) => f64::NAN,
+        };
+        out.extend_from_slice(&[id, phase, key]);
+    }
+}
+
+impl InRun<'_> {
     /// The body sync, as `r.synchronize()` ran it at the stop.
     fn synchronize(
         &self,
@@ -724,12 +742,6 @@ impl PhaseThree {
         let in_run = (mode == 0 && h[20] != 0.0).then(|| {
             let [capacity, roster, drop_speed, markers] = r.row();
             world.markers = r.vec(markers as usize).iter().map(|&k| k as u32).collect();
-            let phase_keys = phases.iter().copied().zip(r.vec(h[11] as usize)).collect();
-            let carried_keys = carried
-                .iter()
-                .map(|c| c[0])
-                .zip(r.vec(carried.len()))
-                .collect();
             let held: Vec<f64> = players
                 .iter()
                 .filter_map(|p| p.inventory.as_ref())
@@ -742,8 +754,6 @@ impl PhaseThree {
                 capacity,
                 roster,
                 drop_speed,
-                phase_keys,
-                carried_keys,
                 others: carried
                     .iter()
                     .copied()
@@ -761,6 +771,8 @@ impl PhaseThree {
             phases,
             registered,
             facts: Vec::new(),
+            // The world's registry where the adapter says so (`FROM_STORE` for the phases, #1214 stage 6e.1).
+            registry: (h[11] == FROM_STORE && world.registry_live).then(|| world.registry.clone()),
         };
         let mut log = Vec::new();
         let mut resume = (-1.0, 0.0);
@@ -1006,7 +1018,7 @@ impl PhaseThree {
                         let keys: Vec<f64> = plan
                             .records
                             .iter()
-                            .map(|record| sync.key_of(&allocation, record))
+                            .map(|record| record_key(world, &allocation, record))
                             .collect();
                         let words: Vec<f64> = plan
                             .records
@@ -1162,9 +1174,12 @@ impl PhaseThree {
         for p in &players {
             write_player(&mut out, p);
         }
-        for a in &allocation.facts {
-            out.extend_from_slice(a);
-        }
+        allocation_facts(
+            world,
+            &mut allocation,
+            mode < 2 || mode == MODE_ELIMINATE,
+            &mut out,
+        );
         out.extend_from_slice(&log);
         if let Some(plan) = planned {
             records(&mut out, &plan);
