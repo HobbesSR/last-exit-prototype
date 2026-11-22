@@ -24,7 +24,7 @@ export function tickBegin(s: Game, r: PhysicsRuntime): void {
   prepareInRunSync(s, r);
   syncRegistry(s, r);
   syncProjectiles(s, r);
-  const hooks = [...r.hooks], projectiles = projectilesCurrent(s, r);
+  const projectiles = projectilesCurrent(s, r);
   const { core: bound, phase } = packPhaseOne(s);
   const core = bound as unknown as CoreExports & PhysicsExports & TickBeginExports;
   // The markers with their ticks: the core keeps those the new tick still captures. Keys are interned first.
@@ -44,8 +44,10 @@ export function tickBegin(s: Game, r: PhysicsRuntime): void {
   // Each marker reaches exactly one stepped capture: its own tick's, or the next after a between-tick change.
   r.discontinuities = r.discontinuities.filter(entry => entry.tick >= s.tick);
   applySyncLog(s, r, next(), s.tick);
+  // The revalidation ran over the hooks the sync's reconcile left, so its output is read against the mirror as the sync
+  // left it, not as the call began (review 1012).
   const prepared = next();
-  if (prepared.length) applyHookOutput(s, r, prepared, hooks);
+  if (prepared.length) applyHookOutput(s, r, prepared, [...r.hooks]);
   // Trap spawns are projectile records, which the core admitted too (6e.3).
   s.projectiles.push(...r.pendingSpawns.splice(0));
   if (projectiles) sawProjectiles(s, r);
