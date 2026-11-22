@@ -1,6 +1,5 @@
 import { AMMO_FAMILIES, EFFECT_KINDS, ITEM_KINDS, WEAPONS } from '../enum-tables.ts';
 import { observeGate } from '../discovery.ts';
-import { itemIdForLabel, itemLabel } from '../item-instances.ts';
 import { physicsRefusal } from '../physics/world.ts';
 import type { Game, GroundItem, InventoryItem, ItemId, ItemLabel, Player, StationId } from '../types.ts';
 import { actorRadius } from './actor-physics.ts';
@@ -12,8 +11,8 @@ import { applySyncLog, prepareInRunSync } from './boundary.ts';
 import { configure, ground, putItem } from './phase-three.ts';
 import type { ActionsCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
-import { PICKUP_REACH } from './rules.ts';
-import { ensureGround, keyOf } from './ground-store.ts';
+import { ensureGround } from './ground-store.ts';
+import { sawCoreRegistrations, syncRegistry } from './registry-store.ts';
 import { adoptCarried, carriedItem, carriedToken, playersStale, replaceCarried, uploadPlayers } from './player-store.ts';
 import { playerIndex } from './relations.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
@@ -27,8 +26,7 @@ import { start as profileStart, stop as profileStop } from '../profiler.ts';
 // ordered fact, which this applies in order, so keys are created where the TypeScript created them and D4's
 // Node-owned fields (`route`, `input`) are written here. A pickup taken whole, a committed swap and an instant
 // transit's landing are carried out inside the core's run (#1214 stage 6d.6c.2): the core writes its ground store and
-// syncs, and this mirrors the records without writing them through and applies the sync's log. Where the run cannot
-// hold what a resumed call would be given, it still stops there, carried out, and this resumes at the actor's next step.
+// syncs, and this mirrors the records without writing them through and applies the sync's log.
 interface SixExports {
   interactions_input(world: number, words: number): number;
   interactions_run(world: number, collision: number, index: number, gates: number, swept: number): number;
@@ -131,9 +129,10 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
   // since the upload numbers them afresh; inside a tick the store and the tokens are current.
   if (playersStale(r)) uploadPlayers(s, r, core, world);
   configure(s, r, core, world);
+  // The core's item registry follows the game's (#1214 stage 6e.1): the run allocates and checks identities there.
+  syncRegistry(s, r);
   const near: GroundItem[][] = [];
-  let allocations = 0, swaps = false, interacting = false;
-  const known = new Set<number>();
+  let swaps = false, interacting = false;
   for (let i = 0; i < turns.length; i++) {
     const { player: p, steps } = turns[i]!;
     const interact = (steps & STEP_INTERACT) !== 0;
@@ -142,42 +141,12 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
     near.push(list);
     const swap = interact && !p.bot && !!p.inventory?.every(Boolean);
     swaps ||= swap;
-    if (list.length || swap) {
-      // Each carried item without an identity takes one, each record taken may split once, and a swap's drop splits
-      // and identifies at most four more.
-      allocations += list.length + (swap ? 10 : 0);
-      for (const item of p.inventory ?? []) if (item) {
-        if (item.instanceId === undefined) allocations++;
-        for (const id of [item.instanceId, item.lineageId]) if (id !== undefined) {
-          try { itemLabel(s, id); known.add(id); } catch { /* The core refuses an unknown identity where the TypeScript threw. */ }
-        }
-      }
-    }
     interacting ||= interact;
   }
   // A call that can stop syncs inside the core's run instead (#1214 stage 6d.6c.2): a pickup, a swap or a gladiator's
   // landing. Its own stops are carried out there, so it reads the ground, the players and the hooks as they then stand.
   const inRun = inRunStops && (swaps || near.some(list => list.length > 0)
     || turns.some(t => (t.steps & STEP_TRANSIT) !== 0 && t.player.role === 'gladiator'));
-  if (inRun) {
-    // The identities a resumed call would register once a record is carried: those of the records an actor may take.
-    // The core checks it holds every one a resumed call would register, and stops as before where it does not.
-    const register = (id: ItemId | undefined): void => {
-      if (id !== undefined) { try { itemLabel(s, id); known.add(id); } catch { /* As above. */ } }
-    };
-    for (const list of near) for (const item of list) { register(item.id); register(item.lineageId); }
-    if (swaps) {
-      // A swap's drop can bring records near a later actor, whose list a resumed call counted afresh: its identities are
-      // registered, and the budget is raised so the run holds each resumed call's (the core checks, and stops as before
-      // where it does not).
-      const swappers = turns.filter(({ player: p, steps }) => (steps & STEP_INTERACT) !== 0 && !p.bot && !!p.inventory?.every(Boolean)).length;
-      allocations += 20 * turns.length * swappers;
-      for (const { player: p, steps } of turns) {
-        for (const item of p.inventory ?? []) if (item) { register(item.instanceId); register(item.lineageId); }
-        if ((steps & STEP_INTERACT) !== 0 && !p.bot) for (const item of itemsNear(s, p, PICKUP_REACH)) { register(item.id); register(item.lineageId); }
-      }
-    }
-  }
   if (inRun) prepareInRunSync(s, r);
   const map = sightOf(s).queryHandles(s.map);
   if (map.core !== core) throw new Error('phase 6 and sight are bound to different cores');
@@ -190,7 +159,8 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
   h[14] = Math.max(0, s.players.length - r.actors.size); h[15] = s.map.exit.x; h[16] = s.map.exit.y;
   for (let k = 0; k < 3; k++) h[17 + k] = n(s.content.reloading?.reserves[AMMO_FAMILIES[k]!]);
   h[20] = turns.length; h[21] = s.players.length; h[22] = s.map.stations.length; h[23] = s.map.chargers.length;
-  h[24] = s.map.sensors.length; h[25] = 0; h[26] = known.size; h[27] = 0; h[28] = 0; h[29] = inRun ? 1 : 0; h[30] = 0; h[31] = 0;
+  // The label phases and registered identities are the core's registry's (`FROM_STORE`, 6e.1).
+  h[24] = s.map.sensors.length; h[25] = FROM_STORE; h[26] = 0; h[27] = 0; h[28] = 0; h[29] = inRun ? 1 : 0; h[30] = 0; h[31] = 0;
   for (let i = 0; i < turns.length; i++) {
     const { player: p, steps, choice, sneak, moved } = turns[i]!;
     const interact = (steps & STEP_INTERACT) !== 0;
@@ -219,17 +189,8 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
   // Each player's status and pose come from the store too; only the radius crosses.
   for (const p of s.players) { w.put(0); w.put(0); w.put(0); w.put(actorRadius(s, p)); }
   for (const list of [s.map.stations, s.map.chargers, s.map.sensors]) for (const at of list) { w.put(at.x); w.put(at.y); }
-  // Registry membership, not a scan of the ground, supplies the free legacy label phases (D6).
-  let phases = 0, phase = s.scatterSerial ?? 0;
-  const packedPhases: number[] = [];
-  if (allocations && Number.isSafeInteger(phase) && phase >= 0) for (; phases < allocations && phase < Number.MAX_SAFE_INTEGER; phase++) {
-    if (itemIdForLabel(s, `instance-${phase}`) === undefined) { w.put(phase); phases++; packedPhases.push(phase); }
-  }
-  w.buf[25] = phases;
-  for (const id of known) w.put(id);
-  const carriedIds: ItemId[] = [];
   if (swaps) for (const p of s.players) for (const item of p.inventory ?? []) if (item?.instanceId) {
-    w.put(carriedToken(r, item)!); w.put(item.instanceId); w.buf[27]++; carriedIds.push(item.instanceId);
+    w.put(carriedToken(r, item)!); w.put(item.instanceId); w.buf[27]++;
   }
   // The core finds the gates near an interacting actor in its own gate set. Their positions and kinds cross once per
   // gate set; their state is the set's own (stage 6a, `doors.ts`), so nothing about it crosses.
@@ -238,14 +199,9 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
     for (const gate of s.map.gates) { w.put(gate.x); w.put(gate.y); w.put(gate.kind === 'door' ? 1 : 0); }
   }
   if (inRun) {
-    // The sync's markers and, where a swap may drop records, the body keys they may take: each free label phase's and
-    // each carried identity's, interned here since the core interns no strings.
+    // The sync's markers; the body keys a swap's drop takes are the core's registry's (6e.1).
     const markers = r.discontinuities.map(entry => r.world.key(entry.id));
     for (const value of [r.discontinuityCapacity, s.players.length, s.content.worldPhysics.loot.dropSpeed, swaps ? 1 : 0, markers.length, ...markers]) w.put(value);
-    if (swaps) {
-      for (const phase of packedPhases) w.put(r.world.key(`item:instance-${phase}`));
-      for (const id of carriedIds) w.put(keyOf(s, r, id));
-    }
   }
   const ptr = core.interactions_input(world, w.len) >>> 0;
   new Float64Array(core.memory.buffer, ptr, w.len).set(w.buf.subarray(0, w.len));
@@ -259,10 +215,14 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
   s.itemSerial = out[2]!; s.scatterSerial = out[3]!;
   s.itemIdentities ??= { ids: new Map(), labels: new Map() };
   let at = OUT_HEADER;
-  for (let i = 0; i < out[7]!; i++, at += 2) {
+  // Each allocation with its body key, which the core interned and registered (6e.1).
+  const registered = s.itemIdentities.labels.size;
+  for (let i = 0; i < out[7]!; i++, at += 3) {
     const id = out[at]! as ItemId, label = `instance-${out[at + 1]!}` as ItemLabel;
     s.itemIdentities.ids.set(label, id); s.itemIdentities.labels.set(id, label);
+    if (!Number.isNaN(out[at + 2]!)) r.world.adoptKey(out[at + 2]!, `item:${label}`);
   }
+  sawCoreRegistrations(s, r, registered);
   const logEnd = at + out[8]!;
   const resume = out[4]!, resumeStep = out[5]!;
   let restAfter: GroundItem[] | undefined;
@@ -351,11 +311,6 @@ function call(s: Game, turns: readonly Turn[], tickMode: boolean, rest: readonly
         break;
       }
       case 17: applySyncLog(s, r, out.subarray(at, at + len), r.stepping ? s.tick : s.tick + 1); break;
-      case 18: {
-        // A stop the core carried out but kept as a stop: the records the actor has still to visit, by id.
-        restAfter = Array.from({ length: out[at]! }, (_, k) => groundItem(s, out[at + 1 + k]! as ItemId)!);
-        break;
-      }
       case 16: p.revealed = out[at + 1]!; break;
       default: throw new Error(`unknown phase 6 fact ${op}`);
     }

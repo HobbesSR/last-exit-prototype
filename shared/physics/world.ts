@@ -418,6 +418,15 @@ export class PhysicsWorld {
   boundaryCall(): { core: CoreExports & PhysicsExports; world: number } { this.ensure(); return { core: this.core, world: this.native }; }
   /** The ID's key, interned the first time it is seen. */
   key(id: string): number { this.ensure(); return this.intern(validId(id)); }
+  /**
+   * A key the core interned itself: a new allocation's body (#1214 stage 6e.1). The core's table has one key per ID,
+   * so a key this table holds for the ID already is the same.
+   */
+  adoptKey(key: number, id: string): void {
+    const known = this.keys.get(id);
+    if (known !== undefined && known !== key) throw new Error(`the core interned ${id} as ${key}, not ${known}`);
+    this.keys.set(id, key); this.ids[key] = id;
+  }
   /** The ID a key was interned from. */
   idOf(key: number): string { return this.ids[key]!; }
   /** A body the core queued: its spec, validated and frozen as `queueAddBody` makes it. */

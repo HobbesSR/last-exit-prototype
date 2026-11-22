@@ -248,6 +248,30 @@ explodes, the hazards run does what `enqueueExplosionImpulses` did at the stop (
   hash. `physics-explosion`'s real games cover falloff, cover and order.
 - **Cost:** measured once, at the end of step 6.
 
+**Step 6e.1, the item registry in the core (#1214, adapter version 35).** The core keeps the item registry
+(`registry.rs`, `World::registry`), D6's next part after the serials the runs already advance. Node's registry
+(`s.itemIdentities`) keeps the labels. The core keeps what the rules ask of them: each registered ID with its body key
+(`item:<label>`), and the phases of the `instance-N` labels.
+- **The allocation asks the registry** (`Allocation::registry`).
+  - A free phase is the first from the scatter serial whose `instance-N` label is not taken, as `allocateItemId` scans.
+  - An ID is registered if the registry holds it or the run allocated it.
+  - Phases 3 and 6 no longer pack free phases, registered identities or the body keys a drop may take. Node writes
+    `FROM_STORE` for the phases' count, and the in-run words lose their keys.
+  - A plan staged on a fork of the registry still packs its lists: the core does not hold a fork's tentative labels.
+- **The budget is gone.** A call no longer gets a counted list of phases: the core scans the registry, so it cannot run
+  short. A budget never ran short before either, so allocations are unchanged. Phase 6's fallback, which stopped a call
+  whose continuation lacked a resumed call's identities or budget, cannot happen now, and is removed with `OP_REST`.
+- **Keys.** The core interns the IDs it names itself (`World::intern_str`), a new allocation's
+  `item:instance-<phase>`, and the intern table now gives one key per ID, from Node or from the core. Each
+  registration fact carries its key (`id, phase, key`), and Node adopts it (`PhysicsWorld.adoptKey`).
+- **Kept current.** The core registers its runs' allocations itself (`World::register_allocation`), where the call
+  writes. Node uploads what it registers outside the core (`registry-store.ts`): match setup, scenarios and the
+  retained TypeScript paths. It sends the entries added since the last upload, or the whole registry when the game's
+  registry object is new; registrations the core made are noted as already held (`sawCoreRegistrations`).
+- **The witness.** `player-store.test.js` holds the core's registry equal to the game's after every tick
+  (`registryDrift`): IDs, keys and reserved phases.
+- **Cost:** measured once, at the end of step 6.
+
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
 - **Network edge first,** as a full conversion.
 - **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
@@ -954,6 +978,9 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
 - **6e: the effects, events and projectiles, and the two calls** (`tick_begin`, `tick_finish`, D4), with bot side
   tables keyed by ID. The remaining packing goes, between-tick writes become commands, and the steps that used 42.58's
   exception are measured again.
+  - **6e.1 (#1214):** the item registry, so a run can allocate and check identities for any actor without Node packing
+    them. An elimination inside phase 5 or the hazards needs that, since its target is not known before the run. Below.
+  - **Then the elimination stops,** the last of Node's mid-tick stops, before the two calls.
 
 **Step 6a, door state (#1214).** A game's doors' `open` and `locked` live in the core, in its gate set's masks
 (`GateSet::open` and `::locked` in `sight.rs`), and the gate records are their mirror (`shared/simulation/doors.ts`).

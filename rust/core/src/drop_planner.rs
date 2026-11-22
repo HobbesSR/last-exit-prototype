@@ -22,6 +22,9 @@ pub struct Allocation {
     pub registered: Vec<f64>,
     /// New registrations, in allocation order: numeric ID, legacy label phase.
     pub facts: Vec<[f64; 2]>,
+    /// The world's item registry (#1214 stage 6e.1), where the run reads it: then `phases` and `registered` hold only
+    /// this run's allocations, and the free phases and registered IDs are the registry's.
+    pub registry: Option<std::rc::Rc<crate::registry::Registry>>,
 }
 
 fn valid_id(id: f64) -> bool {
@@ -34,11 +37,21 @@ impl Allocation {
         if !safe(self.scatter_serial) || self.scatter_serial < 0.0 {
             return None;
         }
-        let phase = self
-            .phases
-            .iter()
-            .copied()
-            .find(|phase| *phase >= self.scatter_serial)?;
+        let phase = match &self.registry {
+            // The first phase from the scatter serial whose `instance-N` label is free, as `allocateItemId` scans.
+            Some(registry) => {
+                let mut phase = self.scatter_serial;
+                while phase < MAX_SAFE && registry.reserved(phase) {
+                    phase += 1.0;
+                }
+                phase
+            }
+            None => self
+                .phases
+                .iter()
+                .copied()
+                .find(|phase| *phase >= self.scatter_serial)?,
+        };
         if !safe(phase)
             || phase >= MAX_SAFE
             || !safe(self.item_serial)
@@ -53,6 +66,11 @@ impl Allocation {
         self.registered.push(id);
         self.facts.push([id, phase]);
         Some(id)
+    }
+
+    /// Whether `id` is registered: by this run, or in the world's registry where the run reads it.
+    pub fn holds(&self, id: f64) -> bool {
+        self.registered.contains(&id) || self.registry.as_ref().is_some_and(|r| r.holds(id))
     }
 
     /// `ensureItemIdentity`: validate metadata, allocate if absent, and resolve both labels.
@@ -83,10 +101,10 @@ impl Allocation {
             item.lineage = item.instance;
             item.absent &= !ABSENT_LINEAGE;
         }
-        if !self.registered.contains(&item.instance) {
+        if !self.holds(item.instance) {
             return Err((-104, item.instance));
         }
-        if !self.registered.contains(&item.lineage) {
+        if !self.holds(item.lineage) {
             return Err((-104, item.lineage));
         }
         Ok(())

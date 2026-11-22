@@ -25,6 +25,7 @@ pub mod phase_three;
 pub mod physics;
 pub mod placement;
 pub mod players;
+pub mod registry;
 pub mod scatter;
 pub mod sight;
 pub mod swept;
@@ -35,7 +36,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 34;
+pub const ADAPTER_VERSION: u32 = 35;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -1081,6 +1082,39 @@ pub unsafe extern "C" fn physics_queues_dump(world: *mut world::World) -> *const
             p.generation_b,
         ]);
     }
+    w.boundary_output = out;
+    w.boundary_output.as_ptr()
+}
+/// Node's registrations (`registry::REGISTRATION` words each) from the boundary input into the world's item registry
+/// (#1214 stage 6e.1); `replace` starts it afresh. From then on the runs read it.
+/// # Safety
+/// `world` is live and its boundary input holds `count` registrations.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn item_registry_add(world: *mut world::World, count: usize, replace: u32) {
+    // SAFETY: the caller's contract.
+    let w = unsafe { &mut *world };
+    let rows: Vec<f64> = w.boundary_input[..count * registry::REGISTRATION].to_vec();
+    if replace != 0 {
+        w.registry = std::rc::Rc::default();
+    }
+    let registry = std::rc::Rc::make_mut(&mut w.registry);
+    for r in rows.chunks(registry::REGISTRATION) {
+        registry.insert(r[0], r[1], r[2]);
+    }
+    w.registry_live = true;
+}
+/// The world's item registry (`Registry::dump`), written into the boundary output, for tests: the count of IDs, then
+/// `id, key` per ID by bits, then the reserved phases' count and phases.
+/// # Safety
+/// `world` is live; the view expires on the next call into the world.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn item_registry_dump(world: *mut world::World) -> *const f64 {
+    // SAFETY: the caller's contract.
+    let w = unsafe { &mut *world };
+    let mut out = std::mem::take(&mut w.boundary_output);
+    out.clear();
+    out.push(w.registry.len() as f64);
+    w.registry.dump(&mut out);
     w.boundary_output = out;
     w.boundary_output.as_ptr()
 }

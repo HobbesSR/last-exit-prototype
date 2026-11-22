@@ -246,7 +246,9 @@ export function uploadGateBodies(s: Game, r: PhysicsRuntime): void {
   const world = r.world, keys = s.gates.map(gate => world.key(`gate:${gate.id}`));
   const rows = s.gates.map(gate => templateRow(physicsGate({ ...gate, open: false })));
   const { core, world: native } = world.boundaryCall() as unknown as { core: Core & { physics_gates_load(world: number, count: number): void }; world: number };
-  const words = s.gates.length * (1 + BODY_ROW), view = new Float64Array(core.memory.buffer, core.physics_boundary_input(native, words) >>> 0, words);
+  // The input is resized first, since resizing can grow the memory; the view is made after.
+  const words = s.gates.length * (1 + BODY_ROW), pointer = core.physics_boundary_input(native, words) >>> 0;
+  const view = new Float64Array(core.memory.buffer, pointer, words);
   s.gates.forEach((_, i) => { view[i * (1 + BODY_ROW)] = keys[i]!; view.set(rows[i]!.subarray(0, BODY_ROW), i * (1 + BODY_ROW) + 1); });
   core.physics_gates_load(native, s.gates.length);
 }
