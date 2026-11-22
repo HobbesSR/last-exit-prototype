@@ -41,7 +41,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.74](42.74-door-state-core.md) | Door state in the Rust core (#1214 stage 6a): no call in a game writes a gate mask; about 3 µs a tick saved on the bench map, within run spread |
 | [42.75](42.75-trap-state-core.md) | Trap state in the Rust core (#1214 stage 6b): with 277 traps the phase's crossing fell from about 44 µs to about 25 µs a tick; no change on maps without traps |
 | [42.76](42.76-state-flip-benchmark.md) | End-of-flip tick and boundary cost against pre-6a, with and without traps (#1214) |
-| [42.77](42.77-tick-inventory-checkpoint.md) | Tick and snapshot cost at the mechanic inventory checkpoint, compared with the end-of-flip range (#1279 step 1) |
+| [42.77](42.77-tick-inventory-checkpoint.md) | Tick and snapshot cost at the mechanic inventory checkpoint (#1279 step 1): unchanged from 42.76 on rerun; a 13% unpaired drift on the same code argues for paired milestone benches |
 
 ### Navigation
 
