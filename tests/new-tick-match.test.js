@@ -21,11 +21,23 @@ async function newMatch() {
 test('the new path records the inbound queue each tick spent, beside the room\'s own commands', async () => {
   const match = await newMatch();
   try {
-    // The lobby's seat, taken before the first tick sets up the core.
+    // The lobby's seat and a lag measured before the start are the setup's.
     match.seat([{ type: 'join', id: 'p1', role: 'contestant', kit: 'warden', name: 'P' }]);
     match.setViewLag('p1', 40);
-    let frame = match.advance();
-    assert.ok(match.spent().every(c => c.type === 'command' && c.source === 'bot'), JSON.stringify(match.spent()));
+    match.start();
+    // The frame the room records and publishes at the start is the core's tick 0, not the old world's (review 1049).
+    let frame = match.snapshot();
+    assert.deepEqual([frame.tick, frame.physics, frame.rng], [0, undefined, undefined]);
+    assert.ok(frame.bodies.length > 0);
+    // A measurement between the start and the first tick is that tick's observation.
+    match.setViewLag('p1', 200);
+    frame = match.advance();
+    assert.deepEqual(match.spent().filter(c => c.type !== 'command'), [{ type: 'observation', kind: 'viewLag', id: 'p1', ticks: viewLagFrom(200) },
+      ...inputLeadFrom(200) !== inputLeadFrom(40) ? [{ type: 'observation', kind: 'inputLead', id: 'p1', ticks: inputLeadFrom(200) }] : []]);
+    assert.ok(match.spent().filter(c => c.type === 'command').every(c => c.source === 'bot'));
+    // What the match hands out is detached.
+    match.spent()[0].id = 'changed';
+    assert.notEqual(match.spent()[0].id, 'changed');
 
     assert.ok(match.acceptInput('p1', { seq: 1, tick: match.tick + 1, x: 1, attack: true }));
     assert.equal(match.acceptInput('p1', { seq: 1, tick: match.tick + 1 }), null, 'a sequence already received is refused');

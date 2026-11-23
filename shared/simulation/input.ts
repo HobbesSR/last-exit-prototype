@@ -1,6 +1,7 @@
 import { finite, integer, safeInteger } from '../numbers.ts';
 import { SLOT_COUNT, isAmmoFamily } from '../equipment.ts';
 import { HZ } from './rules.ts';
+import { WIRE_ID_BITS } from './wire-ids.ts';
 import type { ChargerId, GateIdx, InputTarget, Player, PlayerInput, SlotIndex, StationId, Tick } from '../types.ts';
 
 /**
@@ -64,12 +65,15 @@ export function inputLeadFrom(roundTripMs: number | null | undefined): number {
 /** Clamp and coerce one wire input. Everything absent or malformed becomes a neutral value. */
 export function sanitizeInput(input: PlayerInput, seq: number): PlayerInput {
   const axis = (v: unknown) => finite(v) ? Math.max(-1, Math.min(1, v)) : 0;
+  // A nomination sent malformed is a failed one (27.2 R8): no interaction at all, neither the button's default target nor
+  // a rail destination, while movement and combat stand (review 1049).
+  const target = sanitizeTarget(input.target), failed = input.target !== undefined && target === undefined;
   return {
     seq,
     // Present only when stamped, so unstamped inputs keep their recorded shape.
     ...(safeInteger(input.tick) && input.tick >= 0 ? { tick: input.tick } : {}),
     x: axis(input.x), y: axis(input.y), aim: finite(input.aim) ? input.aim : 0,
-    attack: input.attack === true, skill: input.skill === true, interact: input.interact === true,
+    attack: input.attack === true, skill: input.skill === true, interact: input.interact === true && !failed,
     drop: input.drop === true, sneak: input.sneak === true,
     slot: integer(input.slot) && input.slot >= 0 && input.slot < SLOT_COUNT ? input.slot as SlotIndex : undefined,
     moveSlot: input.moveSlot && integer(input.moveSlot.from) && integer(input.moveSlot.to)
@@ -80,19 +84,22 @@ export function sanitizeInput(input: PlayerInput, seq: number): PlayerInput {
     ...(input.dropAmmo && isAmmoFamily(input.dropAmmo.family) && safeInteger(input.dropAmmo.count) && input.dropAmmo.count > 0 && input.dropAmmo.count <= MAX_AMMO_DROP
       ? { dropAmmo: { family: input.dropAmmo.family, count: input.dropAmmo.count } } : {}),
     // A station id is checked against the map when spent; here only its size is bounded.
-    ...(typeof input.transit === 'string' && input.transit.length > 0 && input.transit.length <= MAX_ID ? { transit: input.transit as StationId } : {}),
-    ...(() => { const target = sanitizeTarget(input.target); return target ? { target } : {}; })(),
+    ...(!failed && typeof input.transit === 'string' && input.transit.length > 0 && input.transit.length <= MAX_ID ? { transit: input.transit as StationId } : {}),
+    ...(target ? { target } : {}),
   };
 }
 
-/** A nominated target's shape and bounds; whether it names anything on the map is checked when spent. */
+/**
+ * A nominated target's shape and bounds; whether it names anything on the map is checked when spent. An item's ID lies in
+ * the wire's ID domain, keyed or not (#1164), so it always fits the core's codec.
+ */
 function sanitizeTarget(t: unknown): InputTarget | undefined {
   if (!t || typeof t !== 'object') return undefined;
   const { kind, id, gateIdx } = t as Record<string, unknown>;
   if (kind === 'extraction') return { kind };
   if (kind === 'gate' && safeInteger(gateIdx) && gateIdx >= 0) return { kind, gateIdx: gateIdx as GateIdx };
   if (kind === 'station' && typeof id === 'string' && id.length > 0 && id.length <= MAX_ID) return { kind, id: id as StationId | ChargerId };
-  if (kind === 'item' && safeInteger(id) && id > 0) return { kind, id };
+  if (kind === 'item' && safeInteger(id) && id >= 0 && id < (1 << WIRE_ID_BITS)) return { kind, id };
   return undefined;
 }
 

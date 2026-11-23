@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createGame, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { createTickMatch } from '../shared/simulation/tick-match.ts';
-import { TickBoundary, botCommand, inputOf } from '../shared/simulation/tick-boundary.ts';
+import { TickBoundary, botCommand, inputOf, targetOf } from '../shared/simulation/tick-boundary.ts';
 import { recordedInbound } from '../shared/simulation/tick-record.ts';
 import { emptyInput } from '../shared/simulation/tick-codec.ts';
 import { sanitizeInput } from '../shared/simulation/input.ts';
@@ -322,11 +322,21 @@ test('a nominated target maps onto the core, through the wire key for an item, a
       assert.deepEqual([target(t).interact, target(t).target], [false, null], JSON.stringify(t));
     }
     assert.deepEqual([inputOf(ids, { interact: true }).interact, inputOf(ids, { interact: true }).target], [true, null]);
+    // A failed nomination allows no other gesture, not even a valid rail destination; movement and combat stand.
+    const failed = inputOf(ids, { x: 1, attack: true, interact: true, transit: 's1', target: { kind: 'station', id: 'nowhere' } }, wire);
+    assert.deepEqual([failed.interact, failed.target, failed.transit, failed.movement, failed.attack], [false, null, null, [1, 0], true]);
+    assert.equal(inputOf(ids, { interact: true, transit: 's1' }).transit, ids.transitIndex.get('s1'), 'no nomination, so the rail stands');
+    // An item ID outside the core's range names nothing, keyed or not.
+    assert.equal(targetOf(ids, { kind: 'item', id: 2 ** 32 }, wireIds()), null);
+    assert.equal(targetOf(ids, { kind: 'item', id: 2 ** 20 }, wire), null);
   });
-  // The wire keeps a target's shape and bounds, and drops a malformed one.
+  // The wire keeps a target's shape and bounds. A malformed one is a failed nomination: no interaction and no rail.
   assert.deepEqual(sanitizeInput({ target: { kind: 'gate', gateIdx: 2, extra: 1 } }, 1).target, { kind: 'gate', gateIdx: 2 });
-  for (const t of [{ kind: 'gate', gateIdx: -1 }, { kind: 'item', id: 0 }, { kind: 'station', id: '' }, { kind: 'door' }, 'gate'])
-    assert.equal(sanitizeInput({ target: t }, 1).target, undefined, JSON.stringify(t));
+  for (const t of [{ kind: 'gate', gateIdx: -1 }, { kind: 'item', id: -1 }, { kind: 'item', id: 2 ** 32 }, { kind: 'station', id: '' }, { kind: 'door' }, 'gate']) {
+    const input = sanitizeInput({ x: 1, attack: true, interact: true, transit: 's1', target: t }, 1);
+    assert.deepEqual([input.target, input.interact, input.transit, input.x, input.attack], [undefined, false, undefined, 1, true], JSON.stringify(t));
+  }
+  assert.equal(sanitizeInput({ interact: true, transit: 's1' }, 1).transit, 's1');
 });
 
 test('a frame records its inbound queue: commands, observations and carried events, as the recording names them', async () => {

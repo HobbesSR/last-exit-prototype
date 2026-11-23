@@ -170,6 +170,8 @@ function matchOf(game, payloads, wire) {
       if (at) synchronizePhysics(game);
       return at && { type: 'teleport', id, ...at };
     },
+    /** The start of play, after the lobby's seats are taken and before the first frame is recorded: nothing to do here. */
+    start() {},
     advance() { if (disposedFrame) throw new Error('match disposed'); step(game); return snapshot(game); },
     snapshot: () => disposedFrame ? structuredClone(disposedFrame) : snapshot(game),
     dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); payloads = undefined; } },
@@ -195,9 +197,10 @@ function matchOf(game, payloads, wire) {
 }
 
 /**
- * The match on the new tick's path (27.2 "Frames (3d.3)"), with the room-facing interface of `matchOf`, unwired. The core
- * is set up at the first tick, after the lobby's seats are taken, from the game `createGame` built. Until then the seats
- * are the old match's.
+ * The match on the new tick's path (27.2 "The room-facing match (3d.3)"), with the room-facing interface of `matchOf`,
+ * unwired. `start()` sets up the core from the game `createGame` built, after the lobby's seats are taken and before the
+ * room records or publishes the first frame, which is then the core's tick 0 (review 1049). Until then the seats and a
+ * measured lag are the old match's, which the setup reads; after it, a measurement is an observation for the next tick.
  *
  * What it records differs, and the cutover's room (3d.4) follows it:
  * - `acceptInput`, `setViewLag` and `teleport` queue what arrives at the receive boundary and record nothing. They return
@@ -226,8 +229,10 @@ function newTickMatchOf(game, payloads, wire) {
       return identity(p);
     },
     leave(id) { return live ? !!live.boundary.seat(id, 'leave') : old.leave(id); },
-    acceptInput(id, input) { return started().boundary.input(id, input); },
-    // Before the first tick the player's own fields hold the measurement, which the core's setup reads.
+    // Detached, as the interface promises: the admitted input stays in the receive buffer untouched.
+    acceptInput(id, input) { const admitted = started().boundary.input(id, input); return admitted && structuredClone(admitted); },
+    start() { started(); },
+    // Before the start the player's own fields hold the measurement, which the core's setup reads.
     setViewLag(id, roundTripMs) { return live ? live.boundary.roundTrip(id, roundTripMs) : old.setViewLag(id, roundTripMs); },
     teleport(id, x, y) { return started().boundary.teleport(id, [x, y]); },
     advance() {
@@ -237,8 +242,8 @@ function newTickMatchOf(game, payloads, wire) {
       spent = t ? recordedInbound(match.ids, t.inbound) : [];
       return frames.frame();
     },
-    /** The last tick's inbound queue as the commands its frame records. */
-    spent: () => spent,
+    /** The last tick's inbound queue as the commands its frame records: a detached copy. */
+    spent: () => structuredClone(spent),
     snapshot: frame,
     dispose() {
       if (disposedFrame) return;

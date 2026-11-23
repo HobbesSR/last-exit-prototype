@@ -40,24 +40,24 @@ export function targetOf(ids: MatchIds, t: InputTarget, wire: WireIds): Target |
     case 'item': {
       let id: number;
       try { id = wire.internal(t.id, 'item'); } catch { return null; }
-      return { kind: 'item', id };
+      return Number.isSafeInteger(id) && id >= 0 && id <= 0xffffffff ? { kind: 'item', id } : null;
     }
   }
 }
 
 /**
  * A sanitized client input as the core's `Input`. A drop is the selected slot's, and a utility is used by attacking with
- * it selected. A nominated target that names nothing on the map cancels the interaction, since R8 never falls through to
- * another target.
+ * it selected. A nominated target that names nothing on the map is a failed nomination: R8 allows no other gesture, so
+ * the interaction and any rail destination go, and movement and combat stand (review 1049).
  */
 export function inputOf(ids: MatchIds, input: PlayerInput, wire: WireIds = wireIds()): Input {
-  const target = input.target ? targetOf(ids, input.target, wire) : null;
+  const target = input.target ? targetOf(ids, input.target, wire) : null, failed = input.target !== undefined && target === null;
   return { ...emptyInput(), movement: [input.x ?? 0, input.y ?? 0], aim: input.aim ?? null, sneak: input.sneak === true,
-    attack: input.attack === true, skill: input.skill === true, interact: input.interact === true && (!input.target || target !== null), target,
+    attack: input.attack === true, skill: input.skill === true, interact: input.interact === true && !failed, target,
     slot: input.slot ?? null, moveSlot: input.moveSlot ? [input.moveSlot.from, input.moveSlot.to] : null,
     drop: input.drop ? { kind: 'selected' } : null, reload: input.reload === true,
     dropAmmo: input.dropAmmo ? { family: input.dropAmmo.family, count: input.dropAmmo.count } : null,
-    transit: station(ids, input.transit) };
+    transit: failed ? null : station(ids, input.transit) };
 }
 
 /**
