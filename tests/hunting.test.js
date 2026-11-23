@@ -268,6 +268,28 @@ test('a goalkeeper patrols only within the exit radius, revisiting near the exit
   }
 });
 
+test('a goalkeeper never keeps a standing point the search moved beyond the exit radius', () => {
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] } });
+  const g = { id: 'g0', role: 'gladiator', status: 'active', x: map.exit.x - 1500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const s = { tick: 100, hazardX: -80, slots: 2, events: [], content: contentById('content-12'), map, players: [g] };
+  noteHunterTarget(s, g, false);
+  // The standing-point search may move an obstructed centre (up to 96 units per axis in `standingIn`), so the picker
+  // checks the point it will store, not the centre (review 1044 on #1305). This small arena's region centres lie well
+  // inside the radius, so the push here is larger, to carry some across it.
+  const PUSH = 1000;
+  const outward = at => ({ x: at.x + Math.sign(at.x - map.exit.x || -1) * PUSH, y: at.y });
+  const within = at => Math.hypot(at.x - map.exit.x, at.y - map.exit.y) <= 2400;
+  const centres = new Set();
+  for (let leg = 0; leg < 16; leg++) {
+    const target = sweepTarget(s, g, at => (centres.add(Math.hypot(at.x - map.exit.x, at.y - map.exit.y)), outward(at)));
+    assert.ok(target && within(target), `leg ${leg}: ${target?.x},${target?.y} is beyond the exit radius`);
+    Object.assign(g, { x: target.x, y: target.y });
+    s.tick++;
+  }
+  // Some offered centre was inside the radius while its pushed standing point was not, so the case reaches the boundary.
+  assert.ok([...centres].some(d => d <= 2400 && d + PUSH > 2400), [...centres].map(Math.round).join());
+});
+
 test('giveUpSweep clears target even when region is -1', () => {
   const chargers = [{ id: 'ch0', nodeId: 'n0', x: 3840, y: 576 }];
   const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] }, chargers });
