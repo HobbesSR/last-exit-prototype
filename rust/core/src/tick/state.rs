@@ -194,9 +194,31 @@ pub struct Gate {
     pub position: Point,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Trap {
+    pub position: Point,
+    pub heading: f64,
     pub ready_at: Tick,
+    pub kind: TrapKind,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TrapKind {
+    Mine {
+        spent: bool,
+    },
+    Turret {
+        aiming: bool,
+    },
+    Flame {
+        offset: Tick,
+        warning: bool,
+        firing: bool,
+    },
+    Spider {
+        home: Point,
+        target: Option<ActorId>,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

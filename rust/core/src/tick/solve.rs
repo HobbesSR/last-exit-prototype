@@ -96,6 +96,14 @@ impl Solved {
         self.path(id).map(|path| path[SUBSTEPS])
     }
 
+    pub(super) fn distance_travelled(&self, id: BodyId) -> Option<f64> {
+        self.path(id).map(|path| {
+            path.windows(2)
+                .map(|pair| crate::math::hypot(pair[1][0] - pair[0][0], pair[1][1] - pair[0][1]))
+                .sum()
+        })
+    }
+
     pub fn tether_broke(&self, id: HookId) -> bool {
         self.broken.contains(&id)
     }
@@ -118,6 +126,10 @@ struct DynamicBody {
 }
 
 impl Bodies {
+    pub(super) fn has_dynamic(&self, id: BodyId) -> bool {
+        self.dynamic.contains_key(&id)
+    }
+
     pub(super) fn gate(&mut self, id: GateId, spec: BodySpec, open: bool) {
         self.gate_specs.insert(id, spec);
         self.sync_gate(id, open);

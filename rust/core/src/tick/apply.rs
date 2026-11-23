@@ -5,7 +5,8 @@ use super::inventory::Utility;
 use super::solve::{Bodies, BodySpec, Contact};
 use super::state::{
     ActorId, ActorKind, Aggression, BodyId, Deadlines, Entity, GroundItem, Hook, HookId, HookPhase,
-    ItemId, Point, Presence, Projectile, ProjectileId, State, Status, Tick, WeaponKind, Window,
+    ItemId, Point, Presence, Projectile, ProjectileId, State, Status, Tick, Trap, TrapId,
+    WeaponKind, Window,
 };
 use super::{AmmoFamily, actor_word, contest_score};
 use super::{GateId, StationId, Target};
@@ -44,6 +45,10 @@ pub enum Lifecycle {
     UpdateHook {
         id: HookId,
         hook: Hook,
+    },
+    UpdateTrap {
+        id: TrapId,
+        trap: Trap,
     },
     Warp {
         body: BodyId,
@@ -103,6 +108,22 @@ pub enum HookRelease {
     Separation,
     EndpointGone,
     Relocated,
+}
+
+/// Retain the exact solved pose in the event while keeping a total order for publication.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct EventPoint([u64; 2]);
+
+impl From<Point> for EventPoint {
+    fn from(position: Point) -> Self {
+        Self(position.map(f64::to_bits))
+    }
+}
+
+impl EventPoint {
+    pub fn position(self) -> Point {
+        self.0.map(f64::from_bits)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -213,6 +234,14 @@ pub enum Fact {
         owner: ActorId,
         reason: HookRelease,
     },
+    MineExploded {
+        trap: TrapId,
+    },
+    SpiderGrappled {
+        trap: TrapId,
+        target: ActorId,
+        at: EventPoint,
+    },
     Contact(Contact),
     Finished,
 }
@@ -246,6 +275,7 @@ impl Fact {
             Self::HookFired { owner }
             | Self::HookAttached { owner, .. }
             | Self::HookReleased { owner, .. } => Entity::Actor(owner),
+            Self::MineExploded { trap } | Self::SpiderGrappled { trap, .. } => Entity::Trap(trap),
             Self::Contact(contact) => Entity::from(contact.a),
             Self::Finished => Entity::Match,
         }
@@ -635,6 +665,9 @@ pub(super) fn sync(
                 if let Some(current) = state.hooks.get_mut(&id) {
                     *current = hook;
                 }
+            }
+            Lifecycle::UpdateTrap { id, trap } => {
+                *state.traps.get_mut(&id).expect("resolved trap") = trap;
             }
             Lifecycle::Warp { body, to, angle } => {
                 let old = warps.insert(body, (to, angle));
