@@ -624,7 +624,12 @@ fn opposite_gate_intents_use_rewound_state_and_seeded_contention() {
 
 #[test]
 fn gates_and_full_inventory_swaps_share_the_distance_tier() {
-    for (gate_x, swap) in [(5.0, false), (35.0, true)] {
+    for (gate_x, swap, bodied) in [
+        (5.0, false, false),
+        (35.0, true, false),
+        (5.0, false, true),
+        (35.0, true, true),
+    ] {
         let mut scenario = Scenario::default();
         add_actor(&mut scenario, A, 0.0);
         cell(&mut scenario, A, 10, 0);
@@ -651,12 +656,19 @@ fn gates_and_full_inventory_swaps_share_the_distance_tier() {
         scenario.state.items.insert(
             item,
             GroundItem {
-                unplaced_at: Some([20.0, 0.0]),
+                unplaced_at: if bodied { None } else { Some([20.0, 0.0]) },
                 ..pending_item()
             },
         );
+        if bodied {
+            let mut spec = body(20.0);
+            spec.params.kind = crate::physics::KIND_PROP;
+            spec.params.groups = crate::physics::LOOT_GROUP << 16 | 1;
+            scenario.body(BodyId::Item(item), spec);
+        }
 
         let mut game = scenario.start(50, 10);
+        assert_eq!(game.position(BodyId::Item(item)).is_some(), bodied);
         interact(&mut game, A, 1, None);
         let tick = game.step(&Combat::default()).unwrap();
         assert_eq!(
