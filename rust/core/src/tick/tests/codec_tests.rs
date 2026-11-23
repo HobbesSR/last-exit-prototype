@@ -1114,3 +1114,44 @@ fn malformed_setup_is_an_error_and_never_a_panic() {
     assert!(Setup::decode(&count).is_err());
     assert!(Setup::decode(&[]).is_err());
 }
+
+/// A NaN or an infinity in any word either fails to decode or is dropped as padding: whatever
+/// decodes re-encodes to finite words. The one exception is the state's last word, `hazard_x`,
+/// whose negative infinity means no wall.
+#[test]
+fn non_finite_words_never_decode_into_a_value() {
+    type Decode = fn(&[f64]) -> Option<Vec<f64>>;
+    let state = encoded(|w| put_state(w, &sample_setup().state));
+    let decode_state: Decode = |words| {
+        let state = get_state(&mut Reader::new(words)).ok()?;
+        Some(encoded(|w| put_state(w, &state)))
+    };
+    let decode_inbound: Decode = |words| {
+        let inbound = get_inbound(&mut Reader::new(words)).ok()?;
+        Some(encoded(|w| put_inbound(w, &inbound)))
+    };
+    let mut rows = vec![(state, decode_state, true)];
+    rows.extend(
+        every_inbound()
+            .iter()
+            .map(|inbound| (encoded(|w| put_inbound(w, inbound)), decode_inbound, false)),
+    );
+    for (words, decode, wall_last) in rows {
+        for at in 0..words.len() {
+            for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+                let mut mutated = words.clone();
+                mutated[at] = bad;
+                let Some(again) = decode(&mutated) else {
+                    continue;
+                };
+                let last = again.len() - 1;
+                for (i, word) in again.iter().enumerate() {
+                    assert!(
+                        word.is_finite() || wall_last && i == last && *word == f64::NEG_INFINITY,
+                        "word {at} as {bad} decoded into word {i} = {word}"
+                    );
+                }
+            }
+        }
+    }
+}

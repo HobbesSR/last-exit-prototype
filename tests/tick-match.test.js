@@ -188,3 +188,23 @@ test('bot commands are accepted for a future tick, spent, and move the actor', a
     assert.equal(match.snapshot().state.actors[0].actor.aim, 0.5);
   });
 });
+
+test('a gladiator respawning at match start is admitted from its seeded spec', async () => {
+  const s = await game();
+  let match;
+  try {
+    const g = s.players[2];
+    Object.assign(g, { status: 'respawning', respawnAt: 3, hp: 0 });
+    // Respawn keeps 1,000 units from contestants: put them at the west edge, beyond that of station s1.
+    for (const c of s.players.slice(0, 2)) Object.assign(c, { x: 60, y: 300 });
+    const { setup, ids } = matchSetup(s);
+    assert.ok(setup.bodies.some(b => b.id.kind === 'actor' && b.id.id === ids.actorOfPlayer.get(g.id)));
+    match = new TickMatch(s, setup, ids);
+    const word = ids.actorOfPlayer.get(g.id), hasPose = () => match.snapshot().poses.some(p => p.body.kind === 'actor' && p.body.id === word);
+    assert.equal(hasPose(), false);
+    let respawned;
+    for (let i = 0; i < 5 && !respawned; i++) respawned = match.step().changes.events.find(e => e.fact.kind === 'respawned' && e.fact.actor === word);
+    assert.ok(respawned, 'the gladiator never respawned');
+    assert.equal(hasPose(), true);
+  } finally { match?.dispose(); disposePhysics(s); }
+});

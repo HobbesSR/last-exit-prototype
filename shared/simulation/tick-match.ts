@@ -243,7 +243,8 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
       deadlines: { skillReadyAt: deadline(tick, p.cooldown), weaponReadyAt: deadline(tick, p.attackCd), transitReadyAt: deadline(tick, p.railCd) },
       statuses,
     };
-    if (p.status === 'active') bodies.push({ id: { kind: 'actor', id: word }, row: bodyRow({ ...t.actor[p.role], x: p.x, y: p.y }) });
+    // Every actor's spec: the core gives only active ones a body now, and admits the rest from it on a respawn or arrival.
+    bodies.push({ id: { kind: 'actor', id: word }, row: bodyRow({ ...t.actor[p.role], x: p.x, y: p.y }) });
     return { kind: p.role, seat: word % 2 ** 32, word, actor };
   }).sort((a, b) => a.word - b.word);
 

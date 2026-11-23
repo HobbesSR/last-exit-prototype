@@ -245,7 +245,29 @@ impl<'a> Reader<'a> {
     }
 
     fn point(&mut self) -> Result<Point> {
-        Ok([self.word()?, self.word()?])
+        Ok([self.finite()?, self.finite()?])
+    }
+
+    /// The wall's x: finite, or negative infinity when there is no wall.
+    fn wall_x(&mut self) -> Result<f64> {
+        let word = self.word()?;
+        if word.is_finite() || word == f64::NEG_INFINITY {
+            Ok(word)
+        } else {
+            self.at -= 1;
+            self.fail("not a wall position")
+        }
+    }
+
+    /// A damping word: finite, or NaN for unset.
+    fn damping(&mut self) -> Result<f64> {
+        let word = self.word()?;
+        if word.is_finite() || word.is_nan() {
+            Ok(word)
+        } else {
+            self.at -= 1;
+            self.fail("not a damping")
+        }
     }
 
     /// A section's count, checked against the words left so a bad count cannot allocate.
@@ -648,8 +670,13 @@ fn get_actor(r: &mut Reader) -> Result<(ActorId, Actor)> {
     let kit = r.option(1, |r| r.pick(&KITS))?;
     let level = r.u8()?;
     let kills = r.u32()?;
-    let (hp, max_hp, shield, max_shield, aim) =
-        (r.word()?, r.word()?, r.word()?, r.word()?, r.word()?);
+    let (hp, max_hp, shield, max_shield, aim) = (
+        r.finite()?,
+        r.finite()?,
+        r.finite()?,
+        r.finite()?,
+        r.finite()?,
+    );
     let sneak = r.bool()?;
     let view_lag = r.u32()?;
     let inventory = get_inventory(r)?;
@@ -755,7 +782,7 @@ fn get_projectile(r: &mut Reader) -> Result<(ProjectileId, Projectile)> {
             source: r.entity()?,
             position: r.point()?,
             velocity: r.point()?,
-            damage: r.word()?,
+            damage: r.finite()?,
             active_from: r.u32()?,
             expires_at: r.u32()?,
         },
@@ -796,11 +823,11 @@ fn get_hook(r: &mut Reader) -> Result<(HookId, Hook)> {
             0 => HookPhase::Flying {
                 position: r.point()?,
                 direction: r.point()?,
-                travelled: r.word()?,
+                travelled: r.finite()?,
             },
             1 => HookPhase::Pulling {
                 target: r.actor()?,
-                length: r.word()?,
+                length: r.finite()?,
             },
             _ => return r.fail("unknown hook phase"),
         })
@@ -872,7 +899,7 @@ fn put_trap(w: &mut Vec<f64>, id: TrapId, trap: &Trap) {
 fn get_trap(r: &mut Reader) -> Result<(TrapId, Trap)> {
     let id = TrapId(r.u32()?);
     let position = r.point()?;
-    let heading = r.word()?;
+    let heading = r.finite()?;
     let ready_at = r.u32()?;
     let tag = r.u32()?;
     let kind = r.padded(4, |r| {
@@ -1000,7 +1027,7 @@ pub fn get_state(r: &mut Reader) -> Result<State> {
         stations,
         extraction,
         sensors,
-        hazard_x: r.word()?,
+        hazard_x: r.wall_x()?,
     })
 }
 
@@ -1446,7 +1473,7 @@ pub fn get_changes(r: &mut Reader) -> Result<Changes> {
     let gates = get_table(r, GATE_STRIDE, get_gate)?;
     let traps = get_table(r, TRAP_STRIDE, get_trap)?;
     let extraction = get_extraction(r)?;
-    let hazard_x = r.option(1, |r| r.word())?;
+    let hazard_x = r.option(1, |r| r.wall_x())?;
     let count = r.count(2)?;
     let removed = (0..count).map(|_| r.entity()).collect::<Result<Vec<_>>>()?;
     let poses = get_poses(r)?;
@@ -1531,7 +1558,7 @@ fn put_input(w: &mut Vec<f64>, input: &Input) {
 fn get_input(r: &mut Reader) -> Result<Input> {
     Ok(Input {
         movement: r.point()?,
-        aim: r.option(1, |r| r.word())?,
+        aim: r.option(1, |r| r.finite())?,
         sneak: r.bool()?,
         attack: r.bool()?,
         utility_slot: r.option(1, |r| r.u8())?,
@@ -1913,10 +1940,10 @@ fn get_surface(r: &mut Reader) -> Result<MotorSurface> {
         priority: r.finite()?,
         origin: r.point()?,
         size: r.point()?,
-        speed: r.word()?,
-        traction: r.word()?,
-        braking: r.word()?,
-        drag: r.option(1, |r| r.word())?,
+        speed: r.finite()?,
+        traction: r.finite()?,
+        braking: r.finite()?,
+        drag: r.option(1, |r| r.finite())?,
     })
 }
 
@@ -1953,7 +1980,7 @@ fn get_body_spec(r: &mut Reader) -> Result<(BodyId, BodySpec)> {
         *word = r.finite()?;
     }
     // NaN means unset.
-    let damping = [r.word()?, r.word()?];
+    let damping = [r.damping()?, r.damping()?];
     let groups = r.u32()?;
     r.bool()?;
     let speed_limit = r.finite()?;
