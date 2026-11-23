@@ -42,8 +42,15 @@ export class TickFrames {
       loot: frozenShape(t.loot.shape), props: authoredProps(s).map(p => frozenShape(p.spec.shape)) };
   }
 
-  /** The frame of the mirror's last tick: what `snapshot` gives on the old path. */
-  frame(): Snapshot { return frameOf(this.mirror.s, this.presentation()); }
+  /**
+   * The frame of the mirror's last tick: what `snapshot` gives on the old path, less the old tick's RNG and scatter
+   * serial, which the new tick does not keep (review 1047). Old frames keep both for the frozen fixture.
+   */
+  frame(): Snapshot {
+    const frame = frameOf(this.mirror.s, this.presentation()) as Snapshot & { scatterSerial?: number };
+    delete frame.rng; delete frame.scatterSerial;
+    return frame;
+  }
 
   /** The physics presentation of the mirror's last tick, in body order. */
   presentation(): FramePresentation {

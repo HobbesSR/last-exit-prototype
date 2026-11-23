@@ -2,10 +2,12 @@ import { finite } from '../numbers.ts';
 import { inputLeadFrom, queueInput, resetInput, takeQueued } from './input.ts';
 import { viewLagFrom } from './rewind.ts';
 import { emptyInput } from './tick-codec.ts';
-import type { Command, DropSlot, Inbound, Input, Point } from './tick-codec.ts';
+import { wireIds } from './wire-ids.ts';
+import type { Command, DropSlot, Inbound, Input, Point, Target } from './tick-codec.ts';
+import type { WireIds } from './wire-ids.ts';
 import type { MatchIds, TickMatch } from './tick-match.ts';
 import type { BotIntent } from './bots.ts';
-import type { Game, Player, PlayerId, PlayerInput, Tick } from '../types.ts';
+import type { Game, InputTarget, Player, PlayerId, PlayerInput, Tick } from '../types.ts';
 
 // The receive boundary of the new tick (docs/27.2 "Node adapter (3d.2)"): what arrives between ticks becomes the inbound
 // queue's rows. Player input keeps 24's stamped-input contract by keeping its buffer: `queueInput` admits on sequence,
@@ -24,27 +26,49 @@ function station(ids: MatchIds, id: string | undefined): number | null {
 }
 
 /**
- * A sanitized client input as the core's `Input`. A drop is the selected slot's; the nominated target arrives with 3d.3's
- * wire field, and a utility is used by attacking with it selected.
+ * The core's target for a nominated one, or null for one that names nothing on this map. A gate is its slot, a station its
+ * charger or transit index, and an item its internal ID through the match's wire key.
  */
-export function inputOf(ids: MatchIds, input: PlayerInput): Input {
+export function targetOf(ids: MatchIds, t: InputTarget, wire: WireIds): Target | null {
+  switch (t.kind) {
+    case 'extraction': return t;
+    case 'gate': return t.gateIdx < ids.gateIds.length ? { kind: 'gate', id: t.gateIdx } : null;
+    case 'station': {
+      const index = ids.chargerIndex.get(t.id as never) ?? ids.transitIndex.get(t.id as never);
+      return index === undefined ? null : { kind: 'station', id: index };
+    }
+    case 'item': {
+      let id: number;
+      try { id = wire.internal(t.id, 'item'); } catch { return null; }
+      return Number.isSafeInteger(id) && id >= 0 && id <= 0xffffffff ? { kind: 'item', id } : null;
+    }
+  }
+}
+
+/**
+ * A sanitized client input as the core's `Input`. A drop is the selected slot's, and a utility is used by attacking with
+ * it selected. A nominated target that names nothing on the map is a failed nomination: R8 allows no other gesture, so
+ * the interaction and any rail destination go, and movement and combat stand (review 1049).
+ */
+export function inputOf(ids: MatchIds, input: PlayerInput, wire: WireIds = wireIds()): Input {
+  const target = input.target ? targetOf(ids, input.target, wire) : null, failed = input.target !== undefined && target === null;
   return { ...emptyInput(), movement: [input.x ?? 0, input.y ?? 0], aim: input.aim ?? null, sneak: input.sneak === true,
-    attack: input.attack === true, skill: input.skill === true, interact: input.interact === true,
+    attack: input.attack === true, skill: input.skill === true, interact: input.interact === true && !failed, target,
     slot: input.slot ?? null, moveSlot: input.moveSlot ? [input.moveSlot.from, input.moveSlot.to] : null,
     drop: input.drop ? { kind: 'selected' } : null, reload: input.reload === true,
     dropAmmo: input.dropAmmo ? { family: input.dropAmmo.family, count: input.dropAmmo.count } : null,
-    transit: station(ids, input.transit) };
+    transit: failed ? null : station(ids, input.transit) };
 }
 
 /**
  * The command row of the input player `p` spends at `tick`, if one is buffered for it: a stamp for that tick or the oldest
  * unstamped input, as `consumeInput` takes it.
  */
-export function dueCommand(ids: MatchIds, p: Player, tick: Tick): Inbound | null {
+export function dueCommand(ids: MatchIds, p: Player, tick: Tick, wire: WireIds = wireIds()): Inbound | null {
   const actor = ids.actorOfPlayer.get(p.id);
   if (actor === undefined) return null;
   const input = takeQueued(p, tick);
-  return input ? { type: 'command', command: { actor, source: 'player', tick, seq: input.seq!, input: inputOf(ids, input) } } : null;
+  return input ? { type: 'command', command: { actor, source: 'player', tick, seq: input.seq!, input: inputOf(ids, input, wire) } } : null;
 }
 
 /** The margin a tick reports: that of the inputs that arrived before it (`consumeInput`'s first step). */
@@ -122,7 +146,9 @@ export function botCommand(s: Game, match: TickMatch, p: Player, intent: BotInte
 export class TickBoundary {
   readonly s: Game;
   readonly match: TickMatch;
-  constructor(s: Game, match: TickMatch) { this.s = s; this.match = match; }
+  /** The match's outward ID mapping (#1164), which a nominated item's ID arrives through. */
+  readonly wire: WireIds;
+  constructor(s: Game, match: TickMatch, wire: WireIds = wireIds()) { this.s = s; this.match = match; this.wire = wire; }
   #player(id: PlayerId): Player | undefined { return this.s.players.find(p => p.id === id); }
   #observe(rows: readonly Inbound[]): void {
     if (rows.length && !this.match.submit(this.s.tick + 1, rows).every(Boolean)) throw new Error('tick-boundary: the match refused an observation');
@@ -140,7 +166,7 @@ export class TickBoundary {
     const rows: Inbound[] = [];
     for (const p of this.s.players) {
       if (p.bot || p.status !== 'active') continue;
-      const row = dueCommand(this.match.ids, p, tick);
+      const row = dueCommand(this.match.ids, p, tick, this.wire);
       if (row) rows.push(row);
     }
     return rows;

@@ -3,7 +3,11 @@ import test from 'node:test';
 import { createGame, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { createTickMatch } from '../shared/simulation/tick-match.ts';
-import { TickBoundary, botCommand } from '../shared/simulation/tick-boundary.ts';
+import { TickBoundary, botCommand, inputOf, targetOf } from '../shared/simulation/tick-boundary.ts';
+import { recordedInbound } from '../shared/simulation/tick-record.ts';
+import { emptyInput } from '../shared/simulation/tick-codec.ts';
+import { sanitizeInput } from '../shared/simulation/input.ts';
+import { wireIds } from '../shared/simulation/wire-ids.ts';
 import { BodyLives, TickMirror, stepMirror } from '../shared/simulation/tick-mirror.ts';
 import { templatesOf } from '../shared/simulation/boundary.ts';
 import { TickFrames } from '../shared/simulation/tick-frame.ts';
@@ -302,4 +306,59 @@ test('bot intent maps onto the core input', async () => {
   await run((s, match) => {
     assert.equal(botCommand(s, match, s.players[2], { input: { transit: 's1' } }, 1).input.transit, match.ids.transitIndex.get('s1'));
   }, c => { c.transit = 'selectable'; });
+});
+
+test('a nominated target maps onto the core, through the wire key for an item, and one naming nothing cancels the interaction', async () => {
+  await run((s, match) => {
+    const ids = match.ids, wire = wireIds([1, 2, 3, 4]), outward = wire.id(7, 'item');
+    const target = t => inputOf(ids, { interact: true, target: t }, wire);
+    assert.deepEqual(target({ kind: 'extraction' }).target, { kind: 'extraction' });
+    assert.deepEqual(target({ kind: 'gate', gateIdx: 1 }).target, { kind: 'gate', id: 1 });
+    assert.deepEqual(target({ kind: 'station', id: 'c0' }).target, { kind: 'station', id: ids.chargerIndex.get('c0') });
+    assert.deepEqual(target({ kind: 'station', id: 's1' }).target, { kind: 'station', id: ids.transitIndex.get('s1') });
+    assert.deepEqual(target({ kind: 'item', id: outward }).target, { kind: 'item', id: 7 });
+    // R8 never falls through to another target, so a nomination of nothing is no interaction at all.
+    for (const t of [{ kind: 'gate', gateIdx: 9 }, { kind: 'station', id: 'nowhere' }]) {
+      assert.deepEqual([target(t).interact, target(t).target], [false, null], JSON.stringify(t));
+    }
+    assert.deepEqual([inputOf(ids, { interact: true }).interact, inputOf(ids, { interact: true }).target], [true, null]);
+    // A failed nomination allows no other gesture, not even a valid rail destination; movement and combat stand.
+    const failed = inputOf(ids, { x: 1, attack: true, interact: true, transit: 's1', target: { kind: 'station', id: 'nowhere' } }, wire);
+    assert.deepEqual([failed.interact, failed.target, failed.transit, failed.movement, failed.attack], [false, null, null, [1, 0], true]);
+    assert.equal(inputOf(ids, { interact: true, transit: 's1' }).transit, ids.transitIndex.get('s1'), 'no nomination, so the rail stands');
+    // An item ID outside the core's range names nothing, keyed or not.
+    assert.equal(targetOf(ids, { kind: 'item', id: 2 ** 32 }, wireIds()), null);
+    assert.equal(targetOf(ids, { kind: 'item', id: 2 ** 20 }, wire), null);
+  });
+  // The wire keeps a target's shape and bounds. A malformed one is a failed nomination: no interaction and no rail.
+  assert.deepEqual(sanitizeInput({ target: { kind: 'gate', gateIdx: 2, extra: 1 } }, 1).target, { kind: 'gate', gateIdx: 2 });
+  for (const t of [{ kind: 'gate', gateIdx: -1 }, { kind: 'item', id: -1 }, { kind: 'item', id: 2 ** 32 }, { kind: 'station', id: '' }, { kind: 'door' }, 'gate']) {
+    const input = sanitizeInput({ x: 1, attack: true, interact: true, transit: 's1', target: t }, 1);
+    assert.deepEqual([input.target, input.interact, input.transit, input.x, input.attack], [undefined, false, undefined, 1, true], JSON.stringify(t));
+  }
+  assert.equal(sanitizeInput({ interact: true, transit: 's1' }, 1).transit, 's1');
+});
+
+test('a frame records its inbound queue as the recording names it, less the commands of first-class bots', async () => {
+  await run((s, match) => {
+    const ids = match.ids, [c, , g] = s.players, word = id => ids.actorOfPlayer.get(id);
+    const input = { ...emptyInput(), movement: [1, 0], attack: true, target: { kind: 'gate', id: 0 }, transit: ids.transitIndex.get('s1') };
+    const recorded = recordedInbound(ids, [
+      { type: 'command', command: { actor: word(c.id), source: 'player', tick: 4, seq: 9, input } },
+      { type: 'command', command: { actor: word(g.id), source: 'bot', tick: 4, seq: 0, input: emptyInput() } },
+      { type: 'observation', observation: { kind: 'viewLag', actor: word(c.id), ticks: 3 } },
+      { type: 'observation', observation: { kind: 'join', actor: word(c.id) } },
+      { type: 'observation', observation: { kind: 'teleport', body: { kind: 'actor', id: word(g.id) }, to: [10, 20] } },
+      { type: 'carried', carried: { kind: 'impulse', body: { kind: 'prop', id: 0 }, impulse: [1, 2] } },
+      { type: 'carried', carried: { kind: 'gateObserved', actor: word(c.id), gate: 1, open: true, locked: false } },
+    ]);
+    assert.deepEqual(recorded, [
+      { type: 'command', id: c.id, source: 'player', tick: 4, seq: 9, input: { movement: [1, 0], attack: true, target: { kind: 'gate', id: 'd0' }, transit: 's1' } },
+      { type: 'observation', kind: 'viewLag', id: c.id, ticks: 3 },
+      { type: 'observation', kind: 'join', id: c.id },
+      { type: 'observation', kind: 'teleport', body: `actor:${g.id}`, x: 10, y: 20 },
+      { type: 'carried', kind: 'impulse', body: `prop:${ids.propLabels[0]}`, x: 1, y: 2 },
+      { type: 'carried', kind: 'gateObserved', id: c.id, gate: 'd1', open: true, locked: false },
+    ]);
+  });
 });

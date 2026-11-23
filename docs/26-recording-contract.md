@@ -40,6 +40,32 @@ compatible with schema 17 readers; schema 19 adds tick stamps to recorded input
 descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
 
+## Schema 22: the inbound queue as commands (#1283, at the cutover)
+
+On the new tick's path, a frame's `commands` are T's inbound queue as the core spent it, in the queue's order, less the
+first-class bots' commands (`shared/simulation/tick-record.ts`), beside the room's own commands (start, the roster's joins and choices,
+abandonment). This replaces input recorded as queued: an input that never reached a tick, superseded or refused at
+the boundary, is no longer recorded. Each of 27.2's three kinds of inbound item is one recorded type:
+- `{ type: 'command', id, source, tick, seq, input }`: input through the receive boundary, a person's or that of a
+  bot controlling a player. The core's `Input` leaves out fields at their empty value, and names a transit station
+  and a nominated target by authored ID.
+- `{ type: 'observation', kind, … }`: `viewLag` and `inputLead` (`id`, `ticks`), `join` and `leave` (`id`), and a dev
+  `teleport` (`body`, `x`, `y`) as requested. The frame's discontinuities say whether it warped.
+- `{ type: 'carried', kind, … }`: an `impulse` (`body`, `x`, `y`), a `killReward` (`id`) and a `gateObserved` (`id`,
+  `gate`, `open`, `locked`).
+
+An actor is its player ID, a gate or station its authored ID, an item its item ID. A body is a label: `actor:<player>`,
+`item:<id>` or `prop:<authored label>`.
+
+First-class bots' commands are not recorded (Corey, 2026-11-23). They are the match's own computation from the history
+the recording holds, and the old path never recorded them either. On arena 9's eleven-bot match they would add 41% to
+a gzipped recording (1.39 to 1.96 MB over 1800 ticks). A seat's `leave` and `join` observations mark where a bot
+derives that seat's commands. The new path's frames also leave out `rng` and `scatterSerial`, which that tick does
+not keep.
+
+The writer takes schema 22 when the room records this path (27.2 3d.4). Until then `SCHEMA` stays 21. Playback reads no
+command, so `minSchema` is unchanged.
+
 ## Schema 21: observations as commands (#1283)
 
 The new tick takes everything that enters a tick from one recorded inbound queue: commands, events carried from
