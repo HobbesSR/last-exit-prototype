@@ -10,9 +10,13 @@ specification. The current decision index and issue status belong on Forgejo
 issue #1282. The design lead owns later architecture synthesis and any normative
 requirements or implementation updates.
 
-`interview.md` preserves Corey's messages as submitted. Some interviewer
-prompts have been reconstructed from the answer sequence and working notes
-because the complete rendered assistant prompt text was not available in the
-repository capture. They are marked as reconstructed. Tool output and
-progress-only commentary are omitted. This is a complete substantive dialogue
-record, not a byte-for-byte export of the chat UI.
+`interview.md` was generated from the interviewer's Codex session log
+(`~/.codex/sessions/2026/11/22/rollout-2026-11-22T16-00-32-01a20546-….jsonl`).
+It contains every message Corey and the interviewer sent, verbatim and in order.
+The interview itself ends with the interviewer's decision record. The messages
+after it cover writing this archive, and the session's context was compacted
+partway through them, as the transcript notes.
+
+An earlier version of this file was reconstructed after that compaction. It
+paired several of Corey's answers with the wrong questions. Where a summary of
+the interview disagrees with this transcript, the transcript is correct.
