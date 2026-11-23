@@ -95,14 +95,14 @@ impl Window {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Deadlines {
     pub skill_ready_at: Tick,
     pub weapon_ready_at: Tick,
     pub transit_ready_at: Tick,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Actor {
     pub presence: Presence,
     pub kit: Option<Kit>,
@@ -146,7 +146,7 @@ pub enum Kit {
     Hook,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GroundItem {
     pub loot: Loot,
     /// If absent, the ground item's own ID is the root.
@@ -157,7 +157,7 @@ pub struct GroundItem {
     pub pickup_ready_at: Tick,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Projectile {
     pub source: Entity,
     pub position: Point,
@@ -187,7 +187,7 @@ pub struct Hook {
     pub expires_at: Tick,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Gate {
     pub open: bool,
     pub locked: bool,
@@ -228,13 +228,13 @@ pub enum StationKind {
     Transit,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Station {
     pub kind: StationKind,
     pub position: Point,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Extraction {
     pub position: Point,
     pub slots: u32,
@@ -254,6 +254,7 @@ pub struct Transit {
 }
 
 /// Geometry belongs to the map and physics. These tables hold discrete match state.
+#[derive(Clone, Debug, PartialEq)]
 pub struct State {
     pub actors: BTreeMap<ActorId, Actor>,
     pub items: BTreeMap<ItemId, GroundItem>,

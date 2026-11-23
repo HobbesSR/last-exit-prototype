@@ -264,6 +264,12 @@ pub enum Fact {
         target: ActorId,
         at: EventPoint,
     },
+    /// A listener heard a shot from the cell centred at `at` (R11).
+    Heard {
+        listener: ActorId,
+        at: EventPoint,
+        until: Tick,
+    },
     Contact(Contact),
     Finished,
 }
@@ -294,7 +300,10 @@ impl Fact {
             | Self::UtilityUsed { actor, .. }
             | Self::MeleeSwung { actor }
             | Self::WardenPulsed { actor }
-            | Self::SpecterScanned { actor } => Entity::Actor(actor),
+            | Self::SpecterScanned { actor }
+            | Self::Heard {
+                listener: actor, ..
+            } => Entity::Actor(actor),
             Self::HookFired { owner }
             | Self::HookAttached { owner, .. }
             | Self::HookReleased { owner, .. } => Entity::Actor(owner),
@@ -679,7 +688,7 @@ pub(super) fn sync(
     additions: Additions,
     deaths: &[Elimination],
     facts: &mut Vec<Fact>,
-) -> BTreeSet<BodyId> {
+) -> Synced {
     let mut presence_changes = BTreeMap::new();
     let mut respawns = BTreeMap::new();
     let mut warps = BTreeMap::new();
@@ -750,16 +759,21 @@ pub(super) fn sync(
             }
         }
     }
+    let mut synced = Synced::default();
     for &id in &removed {
-        bodies.remove(id);
+        if bodies.remove(id) {
+            synced.despawned.push(id);
+        }
     }
     for (&id, &(to, angle)) in &warps {
         if !removed.contains(&id) {
             bodies.warp(id, to, angle);
+            synced.warped.push(id);
         }
     }
     for (id, (body, arrival)) in additions.actors {
         bodies.insert(BodyId::Actor(id), body);
+        synced.placed.push(BodyId::Actor(id));
         let record = state.actors.get_mut(&id).expect("admitted actor");
         record.presence = Presence::Active;
         record.sneak = false;
@@ -790,6 +804,7 @@ pub(super) fn sync(
         }
         if let Some(body) = body {
             bodies.insert(BodyId::Item(id), body);
+            synced.placed.push(BodyId::Item(id));
             state.items.get_mut(&id).expect("admitted item").unplaced_at = None;
         }
     }
@@ -818,5 +833,18 @@ pub(super) fn sync(
         });
         false
     });
-    removed
+    synced.removed = removed;
+    synced
+}
+
+/// The bodies an apply moved discontinuously: what the recording's markers name (26) and what
+/// the rewind capture and the change list read.
+#[derive(Default)]
+pub(super) struct Synced {
+    /// Bodies leaving play, whether or not they had a body.
+    pub(super) removed: BTreeSet<BodyId>,
+    /// The subset of `removed` that had a body in the world.
+    pub(super) despawned: Vec<BodyId>,
+    pub(super) warped: Vec<BodyId>,
+    pub(super) placed: Vec<BodyId>,
 }

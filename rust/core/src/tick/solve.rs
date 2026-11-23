@@ -217,13 +217,33 @@ impl Bodies {
         }
     }
 
-    pub(super) fn remove(&mut self, id: BodyId) {
-        if let Some(slot) = self.slots.remove(&id) {
-            self.dynamic.remove(&id);
-            self.names.remove(&slot);
-            self.solid_props.remove(&id);
-            self.engine.remove_body(slot);
-        }
+    /// Whether the body was in the world.
+    pub(super) fn remove(&mut self, id: BodyId) -> bool {
+        let Some(slot) = self.slots.remove(&id) else {
+            return false;
+        };
+        self.dynamic.remove(&id);
+        self.names.remove(&slot);
+        self.solid_props.remove(&id);
+        self.engine.remove_body(slot);
+        true
+    }
+
+    /// Every dynamic body's position, in body order: a snapshot's poses.
+    pub(super) fn dynamic_positions(&mut self) -> BTreeMap<BodyId, Point> {
+        let ids: Vec<_> = self.dynamic.keys().copied().collect();
+        ids.into_iter()
+            .filter_map(|id| Some((id, self.position(id)?)))
+            .collect()
+    }
+
+    pub(super) fn is_dynamic(&self, id: BodyId) -> bool {
+        self.dynamic.contains_key(&id)
+    }
+
+    pub(super) fn angle(&mut self, id: BodyId) -> Option<f64> {
+        let &slot = self.slots.get(&id)?;
+        Some(self.engine.pose(slot)[2])
     }
 
     pub(super) fn warp(&mut self, id: BodyId, to: Point, angle: f64) {

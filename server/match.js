@@ -139,18 +139,24 @@ function matchOf(game, payloads, wire) {
      * Tell the simulation how far behind this player's view runs, and how far ahead its input may be
      * stamped, from a round trip the server measured itself. The conversions belong to the
      * simulation, which owns how much rewind and lead it will grant; the application only reports
-     * what it observed.
+     * what it observed. Returns the observations to record, or null for no such player.
      */
     setViewLag(id, roundTripMs) {
       const p = connectionPlayer(game, id);
-      if (!p) return false;
+      if (!p) return null;
+      const lag = p.viewLagTicks ?? 0, lead = p.inputLeadTicks ?? 0;
       const ticks = viewLagFrom(roundTripMs);
       // Absent rather than zero when there is nothing to compensate, so a player with no measured
       // latency carries no trace of the mechanism into snapshots or recordings.
       if (ticks > 0) p.viewLagTicks = ticks; else delete p.viewLagTicks;
       // The same measurement bounds how far ahead its input stamps may run (#1096).
       if (roundTripMs != null) p.inputLeadTicks = inputLeadFrom(roundTripMs); else delete p.inputLeadTicks;
-      return true;
+      // Each change is an observation the recording keeps as a command (schema 21, 26), as the new
+      // tick takes it from its inbound queue (27.2 Boundary). An unchanged measurement records nothing.
+      const observed = [];
+      if ((p.viewLagTicks ?? 0) !== lag) observed.push({ type: 'viewLag', id, ticks: p.viewLagTicks ?? 0 });
+      if ((p.inputLeadTicks ?? 0) !== lead) observed.push({ type: 'inputLead', id, ticks: p.inputLeadTicks ?? 0 });
+      return observed;
     },
     /** A dev teleport (24), as the command the recording keeps, or null when refused. */
     teleport(id, x, y) {

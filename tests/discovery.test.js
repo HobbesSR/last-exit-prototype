@@ -380,6 +380,20 @@ test('a landmark is discovered from its beacon radius, through walls, and the fo
   assert.deepEqual([...folded.discovered].sort(), [...memory.discovered].sort());
 });
 
+test('a replay folds each contestant on the canonical stagger index, not its place in the frame', () => {
+  // c0 holds seat 0, so canonical index 0, but is listed third, after a gladiator and c1 (27.2 R11).
+  const map = { width: 6000, height: 960, playableArea: openArea(6000, 960, 120), obstacles: [], gates: [], buildings: [], stations: [], exit: { x: 5900, y: 480 } };
+  const at = (tick, x) => ({ tick, players: [
+    { id: 'g0', x: 3000, y: 480, role: 'gladiator', status: 'active' },
+    { id: 'c1', seat: 1, x: 3000, y: 480, role: 'contestant', status: 'active' },
+    { id: 'c0', seat: 0, x, y: 480, role: 'contestant', status: 'active' },
+  ] });
+  // Index 0 samples at tick 10; the frame index, 2, would sample at tick 8.
+  const folded = foldDiscovery(sight, map, [at(8, 5800), at(10, 200)], 'c0');
+  assert.ok(isDiscovered(folded, map, 200, 480), 'the tick-10 eye');
+  assert.equal(isDiscovered(folded, map, 5800, 480), false, 'not the tick-8 eye');
+});
+
 test('nearby items and gates within discovery radius are indexed and remembered (#669)', () => {
   const eye = { x: 500, y: 500 };
   const itemNear = { id: 'item-near', kind: 'cell', x: 500 + 700, y: 500 };

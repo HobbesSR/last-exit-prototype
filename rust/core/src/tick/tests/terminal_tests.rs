@@ -47,7 +47,7 @@ fn interact(game: &mut Match, actor: ActorId, tick: Tick, target: Option<Target>
 }
 
 fn has(tick: &CompletedTick, fact: Fact) -> bool {
-    tick.events.iter().any(|event| event.fact == fact)
+    tick.changes.events.iter().any(|event| event.fact == fact)
 }
 
 fn station(scenario: &mut Scenario, id: u32, x: f64) -> StationId {
@@ -100,7 +100,7 @@ fn the_final_tick_completes_its_claims_then_strands_the_rest() {
     assert_eq!(last.tick, 10);
     // The time limit ends the match only after the final tick's own claims commit.
     assert!(has(&last, Fact::Escaped { actor: A, cell }));
-    assert_eq!(last.events.last().unwrap().fact, Fact::Finished);
+    assert_eq!(last.changes.events.last().unwrap().fact, Fact::Finished);
     assert_eq!(game.state().actors[&A].presence, Presence::Escaped);
     assert_eq!(game.state().actors[&C].presence, Presence::Stranded);
     assert_eq!(game.state().actors[&B].presence, Presence::Active);
@@ -302,6 +302,16 @@ fn discovery_rotates_through_active_contestants_and_learns_gate_attempts_next_ti
             locked: true
         }]
     );
+    let memory = game.memory(A).unwrap();
+    assert_eq!(
+        memory.gates[&gate],
+        DoorMemory {
+            open: false,
+            locked: true
+        }
+    );
+    assert_eq!(memory.revision, 1);
+    assert!(game.memory(B).is_none());
     let mut sampled = Vec::new();
     for _ in 3..=12 {
         let tick = game.step(&rules).unwrap();

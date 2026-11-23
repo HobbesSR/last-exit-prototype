@@ -22,7 +22,7 @@ fn fight(target_x: f64) -> Scenario {
 }
 
 fn has(result: &CompletedTick, fact: Fact) -> bool {
-    result.events.iter().any(|event| event.fact == fact)
+    result.changes.events.iter().any(|event| event.fact == fact)
 }
 
 #[test]
@@ -237,6 +237,7 @@ fn equally_early_actors_use_seeded_hook_arbitration() {
         submit(&mut game, B, 1, 1, skill());
         game.step(&movement)
             .unwrap()
+            .changes
             .events
             .iter()
             .find_map(|event| match event.fact {

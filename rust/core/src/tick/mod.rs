@@ -5,6 +5,7 @@ mod apply;
 mod combat;
 mod discovery;
 mod hazards;
+mod hearing;
 mod hook;
 mod input;
 mod interaction;
@@ -13,6 +14,7 @@ mod items;
 mod motor;
 mod movement;
 mod order;
+mod output;
 mod placement;
 mod projectile;
 mod rewind;
@@ -25,8 +27,12 @@ pub use apply::{
     Rejection, Spawn, SpawnKey, StatusEffect, VitalEffect,
 };
 pub use combat::{Combat, CombatIntent, CombatRules, WeaponTuning};
-pub use discovery::{DISCOVERY_INTERVAL, Discovery, DiscoverySample, GateObservation};
+pub use discovery::{
+    DISCOVERY_INTERVAL, DISCOVERY_RADIUS, Discovery, DiscoverySample, DoorMemory, GateObservation,
+    Memory, RememberedItem,
+};
 pub use hazards::{FlameTuning, HazardRules, MineTuning, SpiderTuning, TurretTuning};
+pub use hearing::{Cue, Hearing};
 pub use hook::HookTuning;
 pub use input::{
     AmmoFamily, Carried, Command, CommandSource, DropSlot, Inbound, Input, Observation, Target,
@@ -39,6 +45,7 @@ pub use items::{DropRequest, ItemClaim, ItemIntent, ItemRules};
 pub use motor::{MotorSurface, MotorTuning};
 pub use movement::{Movement, MovementIntent};
 pub use order::{actor_word, contest_score, scatter_score};
+pub use output::{Changes, Discontinuity, Snapshot};
 pub use placement::DropTuning;
 pub use rewind::{RewindFrame, RewindHistory, Rewound};
 pub use solve::{BeforeSolve, BodySpec, Contact, ContactKind, Motor, Path, Solved, Tether};
@@ -188,11 +195,16 @@ pub struct Placement<P> {
     pub reserved: BTreeMap<SpawnKey, Spawn>,
 }
 
+/// A completed tick's outputs (27.2 Boundary). The recording frame is `inbound`, the
+/// `discontinuities` and S1, which is the previous frame with `changes` applied.
 pub struct CompletedTick {
     pub tick: Tick,
+    /// T's inbound queue as spent: carried events, then stamped commands and observations.
     pub inbound: Vec<Inbound>,
     pub solved: Solved,
-    pub events: Vec<Event>,
+    /// The one list Node's mirror applies, with T's events.
+    pub changes: Changes,
+    pub discontinuities: Vec<Discontinuity>,
     pub discovery: Discovery,
 }
 
@@ -208,9 +220,21 @@ pub struct Scenario {
     floor: Option<Floor>,
     hazard_areas: Vec<[f64; 4]>,
     hazard_wall: Option<hazards::Wall>,
+    discovery: Option<discovery::Sampler>,
 }
 
 impl Scenario {
+    /// The map's discovery tables, with the sight index and gate set its samples cast through.
+    pub fn discovery(
+        &mut self,
+        map: crate::discovery::DiscoveryMap,
+        sight: SightIndex,
+        gates: GateSet,
+    ) -> &mut Self {
+        self.discovery = Some(discovery::Sampler::new(map, sight, gates));
+        self
+    }
+
     pub fn body(&mut self, id: BodyId, spec: BodySpec) -> &mut Self {
         assert!(
             self.body_specs.insert(id, spec).is_none(),
@@ -286,9 +310,17 @@ impl Scenario {
             )
         });
         let hazard_map = hazards::HazardMap::new(self.hazard_areas, self.hazard_wall, time_limit);
+        let memory = self
+            .state
+            .actors
+            .keys()
+            .filter(|id| id.kind == ActorKind::Contestant)
+            .map(|&id| (id, Memory::default()))
+            .collect();
         let mut state = self.state;
         state.hazard_x = hazard_map.wall_at(0).unwrap_or(state.hazard_x);
-        Match {
+        #[allow(unused_mut)]
+        let mut game = Match {
             state,
             history: self.history,
             bodies,
@@ -308,7 +340,17 @@ impl Scenario {
             queued: BTreeMap::new(),
             carried: Vec::new(),
             finished: false,
+            sampler: self.discovery,
+            memory,
+            cues: hearing::Cues::default(),
+            #[cfg(test)]
+            mirror: None,
+        };
+        #[cfg(test)]
+        {
+            game.mirror = Some(game.snapshot());
         }
+        game
     }
 }
 
@@ -330,6 +372,13 @@ pub struct Match {
     queued: BTreeMap<Tick, Vec<Inbound>>,
     carried: Vec<Carried>,
     finished: bool,
+    sampler: Option<discovery::Sampler>,
+    memory: BTreeMap<ActorId, Memory>,
+    cues: hearing::Cues,
+    /// Test builds fold every tick's change list into the first snapshot, as Node's mirror
+    /// does, and compare the result with the match.
+    #[cfg(test)]
+    mirror: Option<Snapshot>,
 }
 
 impl Match {
@@ -344,6 +393,27 @@ impl Match {
     /// The retained rewind frames, captured at the close of each tick (R12).
     pub fn history(&self) -> &RewindHistory {
         &self.history
+    }
+
+    /// The whole committed state and every dynamic body's pose: a keyframe for the recording
+    /// and a snapshot on request.
+    pub fn snapshot(&mut self) -> Snapshot {
+        Snapshot {
+            tick: self.tick,
+            state: self.state.clone(),
+            poses: self.bodies.dynamic_positions(),
+        }
+    }
+
+    /// The cues `listener` hears as of the last completed tick, oldest first. A cue published in T
+    /// first reaches a bot's intent for T+1 (R11).
+    pub fn heard(&self, listener: ActorId) -> Vec<Cue> {
+        self.cues.heard(listener, self.tick)
+    }
+
+    /// A contestant's discovery memory as of the last completed tick.
+    pub fn memory(&self, actor: ActorId) -> Option<&Memory> {
+        self.memory.get(&actor)
     }
 
     pub fn acknowledged(&self, actor: ActorId) -> Option<u64> {
@@ -377,6 +447,8 @@ impl Match {
             .chain(self.queued.remove(&tick).into_iter().flatten())
             .collect();
 
+        let start = output::Before::new(&self.state);
+        let teleported = self.observe(&inbound);
         let commands = self.commands(tick, &inbound);
         let mut writes = Intake::default();
         let mut intake_facts = Vec::new();
@@ -447,16 +519,87 @@ impl Match {
             &intents,
         );
         intake_facts.extend(writes.facts);
-        let events = self.apply(tick, mechanics, &solved, effects, intake_facts);
+        let (mut changes, mut discontinuities) =
+            self.apply(tick, mechanics, &solved, effects, intake_facts, start);
+        for body in teleported {
+            if let Some(pose) = self.bodies.position(body) {
+                changes.poses.insert(body, pose);
+                discontinuities.push(Discontinuity::Warped(body));
+            }
+        }
+        discontinuities.sort_unstable();
+        discontinuities.dedup();
+        self.cues.publish(&changes.events);
         let discovery = self.discover(tick, &inbound);
+        let (state, bodies) = (&self.state, &mut self.bodies);
+        discovery::remember(
+            &discovery,
+            state,
+            self.sampler.as_mut(),
+            || {
+                state
+                    .items
+                    .iter()
+                    .filter_map(|(&id, item)| Some((id, bodies.position(BodyId::Item(id))?, *item)))
+                    .collect()
+            },
+            &mut self.memory,
+        );
         self.tick = tick;
+        #[cfg(test)]
+        {
+            let mut mirror = self.mirror.take().expect("mirror");
+            mirror.apply(tick, &changes, &discontinuities);
+            assert_eq!(
+                mirror,
+                self.snapshot(),
+                "the mirror diverged at tick {tick}"
+            );
+            self.mirror = Some(mirror);
+        }
         Some(CompletedTick {
             tick,
             inbound,
             solved,
-            events,
+            changes,
+            discontinuities,
             discovery,
         })
+    }
+
+    /// Observations enter as recorded inbound records, never as writes between ticks (27.2
+    /// Boundary). Input lead is the receive boundary's and changes no match state. A dev
+    /// teleport moves its body before the solve and returns it as a discontinuity.
+    fn observe(&mut self, inbound: &[Inbound]) -> Vec<BodyId> {
+        let mut teleported = Vec::new();
+        for entry in inbound {
+            let Inbound::Observation(observation) = *entry else {
+                continue;
+            };
+            match observation {
+                Observation::ViewLag { actor, ticks } => {
+                    if let Some(record) = self.state.actors.get_mut(&actor) {
+                        record.view_lag = ticks;
+                    }
+                }
+                Observation::InputLead { .. } => {}
+                Observation::Join { actor } | Observation::Leave { actor } => {
+                    if let Some(record) = self.state.actors.get_mut(&actor) {
+                        record.bot = matches!(observation, Observation::Leave { .. });
+                        // A bot sees the world directly and is compensated for nothing.
+                        record.view_lag = 0;
+                        self.input.reset(actor);
+                    }
+                }
+                Observation::Teleport { body, to } => {
+                    if let Some(angle) = self.bodies.angle(body) {
+                        self.bodies.warp(body, to, angle);
+                        teleported.push(body);
+                    }
+                }
+            }
+        }
+        teleported
     }
 
     /// R12: discovery samples after the terminal check and rewind capture, so a stranded,
@@ -572,7 +715,8 @@ impl Match {
         solved: &Solved,
         mut effects: Effects<M::Claim, M::Placement>,
         mut facts: Vec<Fact>,
-    ) -> Vec<Event> {
+        start: output::Before,
+    ) -> (Changes, Vec<Discontinuity>) {
         // Merge first. Mark eliminations now so none of these actors can win a later claim.
         let deaths = apply::merge(&mut self.state, self.seed, tick, &mut effects);
         let mut commit = Commit {
@@ -635,8 +779,10 @@ impl Match {
         placed.sort_by_key(|(key, _)| *key);
         let additions = self.ids.spawn(&mut self.state, placed, &mut facts);
         let admitted = additions.admitted_items();
+        let mut touched = output::Touched::default();
+        touched.lifecycle(&commit.lifecycle);
 
-        let removed = apply::sync(
+        let synced = apply::sync(
             &mut self.state,
             &mut self.bodies,
             commit.lifecycle,
@@ -644,7 +790,8 @@ impl Match {
             &deaths,
             &mut facts,
         );
-        for &body in &removed {
+        let removed = &synced.removed;
+        for &body in removed {
             if let BodyId::Actor(actor) = body {
                 self.input.reset(actor);
             }
@@ -662,6 +809,7 @@ impl Match {
                 .filter(|(body, _)| solved.path(*body).is_some() && !removed.contains(body))
                 .map(|(body, impulse)| Carried::Impulse { body, impulse }),
         );
+        let mut synced = vec![synced];
         // R12: a started tick completes, then any terminal predicate ends the match.
         let slots_spent = self.state.extraction.is_some_and(|exit| exit.slots == 0);
         let contestant_active = self.state.actors.iter().any(|(id, actor)| {
@@ -681,18 +829,20 @@ impl Match {
                         })
                 })
                 .collect();
-            for body in apply::sync(
+            let strand = apply::sync(
                 &mut self.state,
                 &mut self.bodies,
                 stranded,
                 apply::Additions::default(),
                 &[],
                 &mut facts,
-            ) {
+            );
+            for &body in &strand.removed {
                 if let BodyId::Actor(actor) = body {
                     self.input.reset(actor);
                 }
             }
+            synced.push(strand);
             self.queued.clear();
             facts.push(Fact::Finished);
         }
@@ -711,7 +861,17 @@ impl Match {
             } => self.state.hooks.contains_key(&id),
             _ => true,
         });
-        self.ids.publish(tick, facts)
+        let events = self.ids.publish(tick, facts.clone());
+        output::changes(
+            start,
+            touched,
+            &self.state,
+            &mut self.bodies,
+            solved,
+            &synced,
+            &facts,
+            events,
+        )
     }
 }
 

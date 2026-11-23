@@ -21,7 +21,7 @@
  */
 
 /** The schema this build writes. Bump on any change to recorded structure. */
-export const SCHEMA = 20;
+export const SCHEMA = 21;
 /**
  * The oldest schema this build can read: the first with both cell-masked chain maps and the
  * engine-free physics presentation every match now records.

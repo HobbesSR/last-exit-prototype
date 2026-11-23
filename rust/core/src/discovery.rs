@@ -405,6 +405,11 @@ impl DiscoveryMap {
         &self.output
     }
 
+    /// The grid's columns and rows and the cell side, for packing a sample's reach window.
+    pub(crate) fn grid(&self) -> [f64; 3] {
+        [self.cols, self.rows, self.cell]
+    }
+
     /// `roofAt` over this map's roofs, for the parity check.
     pub fn roof_at(&self, x: f64, y: f64) -> Option<u32> {
         self.roofs.at(x, y)

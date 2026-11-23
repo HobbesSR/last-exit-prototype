@@ -8,6 +8,7 @@ mod hazard_trap_tests;
 mod interaction_tests;
 mod item_tests;
 mod movement_tests;
+mod output_tests;
 mod terminal_tests;
 
 const A: ActorId = ActorId {
@@ -285,6 +286,7 @@ fn apply_merges_simultaneous_hits_and_status_before_survivor_claims() {
     let result = game.step(&rules).unwrap();
     assert_eq!(
         result
+            .changes
             .events
             .iter()
             .map(|event| event.fact)
@@ -359,9 +361,9 @@ fn intake_drives_this_solve_but_resolve_impulse_reaches_the_next_solve() {
     submit(&mut game, A, 1, 1, input);
     submit(&mut game, A, 2, 2, Input::default());
     let first = game.step(&rules).unwrap();
-    assert!(first.events.is_empty());
+    assert!(first.changes.events.is_empty());
     let last = game.step(&rules).unwrap();
-    assert_eq!(last.events[0].fact, Fact::Finished);
+    assert_eq!(last.changes.events[0].fact, Fact::Finished);
     assert_eq!(
         last.inbound[0],
         Inbound::Carried(Carried::Impulse {
@@ -440,7 +442,7 @@ fn successful_placements_allocate_ids_and_publish_in_canonical_order() {
             ..TestEffects::default()
         }))
         .unwrap();
-    for (index, (out, actor)) in result.events.iter().zip([C, A, B]).enumerate() {
+    for (index, (out, actor)) in result.changes.events.iter().zip([C, A, B]).enumerate() {
         assert_eq!(out.id, index as u64 + 1);
         assert_eq!(
             out.fact,
@@ -450,7 +452,7 @@ fn successful_placements_allocate_ids_and_publish_in_canonical_order() {
             }
         );
     }
-    assert_eq!(result.events.len(), 3);
+    assert_eq!(result.changes.events.len(), 3);
     assert_eq!(game.state().items.len(), 4);
 }
 

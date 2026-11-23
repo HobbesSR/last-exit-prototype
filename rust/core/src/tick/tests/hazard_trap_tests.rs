@@ -25,7 +25,7 @@ fn flame(offset: Tick) -> Trap {
 }
 
 fn hit(tick: &CompletedTick, target: ActorId) -> bool {
-    tick.events.iter().any(|event| {
+    tick.changes.events.iter().any(|event| {
         event.fact
             == Fact::Hit {
                 source: Entity::Trap(TRAP),
@@ -109,11 +109,12 @@ fn spider_steps_into_range_and_lethal_grapple_uses_solved_victim_pose() {
     assert_eq!(game.state().traps[&TRAP].position, [5.0, 0.0]);
     assert!(hit(&tick, A));
     assert!(
-        tick.events
+        tick.changes
+            .events
             .iter()
             .any(|event| matches!(event.fact, Fact::Eliminated { actor: A }))
     );
-    assert!(tick.events.iter().any(|event| match event.fact {
+    assert!(tick.changes.events.iter().any(|event| match event.fact {
         Fact::SpiderGrappled {
             trap: TRAP,
             target: A,

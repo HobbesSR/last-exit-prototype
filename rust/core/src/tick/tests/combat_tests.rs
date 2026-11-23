@@ -29,7 +29,7 @@ fn equip(scenario: &mut Scenario, id: ActorId, kind: WeaponKind, rounds: u32) {
 }
 
 fn has(tick: &CompletedTick, fact: Fact) -> bool {
-    tick.events.iter().any(|event| event.fact == fact)
+    tick.changes.events.iter().any(|event| event.fact == fact)
 }
 
 fn attack(aim: f64) -> Input {
@@ -158,21 +158,24 @@ fn lethal_first_contact_consumes_shot_while_both_warden_casts_land() {
     assert!(has(&tick, hit_target(A, C)));
     assert!(!has(&tick, hit_target(A, B)));
     assert_eq!(
-        tick.events
+        tick.changes
+            .events
             .iter()
             .filter(|event| event.fact == hit_target(B, C))
             .count(),
         2
     );
     assert_eq!(
-        tick.events
+        tick.changes
+            .events
             .iter()
             .filter(|e| matches!(e.fact, Fact::KillCredited { target: C, .. }))
             .count(),
         1
     );
     assert_eq!(
-        tick.events
+        tick.changes
+            .events
             .iter()
             .filter(|e| matches!(e.fact, Fact::Assisted { target: C, .. }))
             .count(),
@@ -225,6 +228,7 @@ fn seeded_credit_is_independent_of_submission_order_and_rewards_only_the_winner(
         let first = game.step(&rules).unwrap();
         assert!(has(&first, hit_target(B, A)) && has(&first, hit_target(D, A)));
         let winner = first
+            .changes
             .events
             .iter()
             .find_map(|e| match e.fact {
@@ -260,7 +264,7 @@ fn seeded_credit_is_independent_of_submission_order_and_rewards_only_the_winner(
         ));
         assert_eq!(game.state().actors[&helper].level, 1);
         assert_eq!(game.state().actors[&winner].level, 2);
-        first.events
+        first.changes.events
     };
     assert_eq!(fight([B, D]), fight([D, B]));
 }
