@@ -121,7 +121,9 @@ pub(super) fn sweep(
     let props = &view.solved.solid_props;
     let wall = view.start.solid_contact(position, end, props);
     let contest = CONTACT_CONTEST ^ actor_word(hook.owner);
-    if let Some((target, _)) = first_actor_contact(view, hook.owner, position, end, wall, contest) {
+    if let Some((target, _)) =
+        first_actor_contact(view, Some(hook.owner), position, end, wall, contest)
+    {
         if target.kind == hook.owner.kind {
             return Err(HookRelease::FriendlyContact);
         }

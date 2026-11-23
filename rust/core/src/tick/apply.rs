@@ -1,11 +1,16 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::input::Carried;
+use super::input::{Carried, Inbound};
 use super::solve::{Bodies, BodySpec, Contact};
 use super::state::{
-    ActorId, BodyId, Deadlines, Entity, GroundItem, Hook, HookId, HookPhase, ItemId, Point,
-    Presence, Projectile, ProjectileId, State, Status, Tick, Window,
+    ActorId, ActorKind, Aggression, BodyId, Deadlines, Entity, GroundItem, Hook, HookId, HookPhase,
+    ItemId, Point, Presence, Projectile, ProjectileId, State, Status, Tick, WeaponKind, Window,
 };
+use super::{actor_word, contest_score};
+
+const KILL_CREDIT_CONTEST: u64 = 0x6b69_6c6c_0000_0000;
+const AGGRESSION_CONTEST: u64 = 0x6167_6772_0000_0000;
+const AGGRESSION_DURATION: Tick = 200;
 
 #[derive(Clone, Copy, Debug)]
 pub enum VitalEffect {
@@ -22,12 +27,26 @@ pub enum StatusEffect {
 
 #[derive(Clone, Copy, Debug)]
 pub enum Lifecycle {
-    SetPresence { actor: ActorId, presence: Presence },
+    SetPresence {
+        actor: ActorId,
+        presence: Presence,
+    },
     RemoveItem(ItemId),
     RemoveProjectile(ProjectileId),
+    UpdateProjectile {
+        id: ProjectileId,
+        projectile: Projectile,
+    },
     RemoveHook(HookId),
-    UpdateHook { id: HookId, hook: Hook },
-    Warp { body: BodyId, to: Point, angle: f64 },
+    UpdateHook {
+        id: HookId,
+        hook: Hook,
+    },
+    Warp {
+        body: BodyId,
+        to: Point,
+        angle: f64,
+    },
 }
 
 pub enum Spawn {
@@ -71,8 +90,15 @@ pub enum Fact {
     Hit { source: Entity, target: ActorId },
     Rejected { actor: ActorId, reason: Rejection },
     Eliminated { actor: ActorId },
+    KillCredited { actor: ActorId, target: ActorId },
+    Assisted { actor: ActorId, target: ActorId },
+    KillRewarded { actor: ActorId },
     Placed { source: Entity, placed: Entity },
     Boosted { actor: ActorId },
+    ShotFired { actor: ActorId, weapon: WeaponKind },
+    MeleeSwung { actor: ActorId },
+    WardenPulsed { actor: ActorId },
+    SpecterScanned { actor: ActorId },
     HookFired { owner: ActorId },
     HookAttached { owner: ActorId, target: ActorId },
     HookReleased { owner: ActorId, reason: HookRelease },
@@ -84,9 +110,16 @@ impl Fact {
     fn source(self) -> Entity {
         match self {
             Self::Hit { source, .. } | Self::Placed { source, .. } => source,
-            Self::Rejected { actor, .. } | Self::Eliminated { actor } | Self::Boosted { actor } => {
-                Entity::Actor(actor)
-            }
+            Self::Rejected { actor, .. }
+            | Self::Eliminated { actor }
+            | Self::KillCredited { actor, .. }
+            | Self::Assisted { actor, .. }
+            | Self::KillRewarded { actor }
+            | Self::Boosted { actor }
+            | Self::ShotFired { actor, .. }
+            | Self::MeleeSwung { actor }
+            | Self::WardenPulsed { actor }
+            | Self::SpecterScanned { actor } => Entity::Actor(actor),
             Self::HookFired { owner }
             | Self::HookAttached { owner, .. }
             | Self::HookReleased { owner, .. } => Entity::Actor(owner),
@@ -112,6 +145,7 @@ pub struct Effects<C, P> {
     pub claims: Vec<(ActorId, C)>,
     pub placements: Vec<P>,
     pub new_hooks: BTreeMap<ActorId, Hook>,
+    pub new_projectiles: BTreeMap<SpawnKey, Projectile>,
     pub lifecycle: Vec<Lifecycle>,
     pub facts: Vec<Fact>,
 }
@@ -125,6 +159,7 @@ impl<C, P> Default for Effects<C, P> {
             claims: Vec::new(),
             placements: Vec::new(),
             new_hooks: BTreeMap::new(),
+            new_projectiles: BTreeMap::new(),
             lifecycle: Vec::new(),
             facts: Vec::new(),
         }
@@ -158,7 +193,12 @@ fn sum(mut amounts: Vec<f64>) -> f64 {
     amounts.into_iter().sum()
 }
 
-pub(super) fn merge<C, P>(state: &mut State, effects: &mut Effects<C, P>) -> Vec<Elimination> {
+pub(super) fn merge<C, P>(
+    state: &mut State,
+    seed: u64,
+    tick: Tick,
+    effects: &mut Effects<C, P>,
+) -> Vec<Elimination> {
     let mut vitals = BTreeMap::<ActorId, Vitals>::new();
     for (target, effect) in effects.vitals.drain(..) {
         if !state.active(target) {
@@ -184,6 +224,12 @@ pub(super) fn merge<C, P>(state: &mut State, effects: &mut Effects<C, P>) -> Vec
         let hp = (actor.hp + sum(delta.heal)).min(actor.max_hp);
         actor.shield = (shield - damage).max(0.0);
         actor.hp = (hp - (damage - shield).max(0.0)).max(0.0);
+        if let Some(source) = ranked_hitter(seed, tick, AGGRESSION_CONTEST, id, &delta.hitters) {
+            actor.aggression = Some(Aggression {
+                source,
+                expires_at: tick.saturating_add(AGGRESSION_DURATION),
+            });
+        }
         if actor.hp == 0.0 {
             eliminated.push(Elimination {
                 actor: id,
@@ -225,6 +271,78 @@ pub(super) fn merge<C, P>(state: &mut State, effects: &mut Effects<C, P>) -> Vec
         }
     }
     eliminated
+}
+
+fn actor_hitter(source: Entity, target: ActorId) -> Option<ActorId> {
+    match source {
+        Entity::Actor(actor) if actor != target => Some(actor),
+        _ => None,
+    }
+}
+
+fn ranked_hitter(
+    seed: u64,
+    tick: Tick,
+    contest: u64,
+    target: ActorId,
+    hitters: &BTreeSet<Entity>,
+) -> Option<ActorId> {
+    hitters
+        .iter()
+        .filter_map(|&source| actor_hitter(source, target))
+        .min_by_key(|&actor| {
+            (
+                contest_score(seed, tick, contest ^ actor_word(target), actor_word(actor)),
+                actor,
+            )
+        })
+}
+
+pub(super) fn credit_eliminations(
+    state: &mut State,
+    seed: u64,
+    tick: Tick,
+    deaths: &[Elimination],
+    commit: &mut Commit,
+) {
+    for death in deaths {
+        let target = death.actor;
+        let Some(actor) = ranked_hitter(seed, tick, KILL_CREDIT_CONTEST, target, &death.hitters)
+        else {
+            continue;
+        };
+        if let Some(record) = state.actors.get_mut(&actor) {
+            record.kills = record.kills.saturating_add(1);
+        }
+        commit.facts.push(Fact::KillCredited { actor, target });
+        if actor.kind == ActorKind::Gladiator {
+            commit.carried.push(Carried::KillReward { actor });
+        }
+        commit
+            .facts
+            .extend(death.hitters.iter().filter_map(|&source| {
+                let helper = actor_hitter(source, target)?;
+                (helper != actor).then_some(Fact::Assisted {
+                    actor: helper,
+                    target,
+                })
+            }));
+    }
+}
+
+pub(super) fn reward_kills(state: &mut State, inbound: &[Inbound], facts: &mut Vec<Fact>) {
+    for entry in inbound {
+        let Inbound::Carried(Carried::KillReward { actor }) = *entry else {
+            continue;
+        };
+        if let Some(record) = state.actors.get_mut(&actor) {
+            record.level = record.level.saturating_add(1).min(4);
+            record.max_hp += 20.0;
+            record.hp = (record.hp + 45.0).min(record.max_hp);
+            record.deadlines.skill_ready_at = 0;
+            facts.push(Fact::KillRewarded { actor });
+        }
+    }
 }
 
 fn later(a: Window, b: Window) -> Window {
@@ -275,7 +393,7 @@ impl Ids {
         &mut self,
         state: &mut State,
         bodies: &mut Bodies,
-        spawns: BTreeMap<SpawnKey, Spawn>,
+        spawns: impl IntoIterator<Item = (SpawnKey, Spawn)>,
         facts: &mut Vec<Fact>,
     ) {
         for (key, spawn) in spawns {
@@ -352,6 +470,11 @@ pub(super) fn sync(
             }
             Lifecycle::RemoveProjectile(id) => {
                 state.projectiles.remove(&id);
+            }
+            Lifecycle::UpdateProjectile { id, projectile } => {
+                if let Some(current) = state.projectiles.get_mut(&id) {
+                    *current = projectile;
+                }
             }
             Lifecycle::RemoveHook(id) => {
                 state.hooks.remove(&id);

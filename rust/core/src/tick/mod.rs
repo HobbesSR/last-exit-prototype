@@ -2,11 +2,14 @@
 //! The WASM adapter still calls the seven-phase tick.
 
 mod apply;
+mod combat;
 mod hook;
 mod input;
 mod motor;
 mod movement;
 mod order;
+mod projectile;
+mod rewind;
 mod solve;
 mod state;
 mod sweep;
@@ -15,6 +18,7 @@ pub use apply::{
     Commit, Effects, Elimination, Event, Fact, HookRelease, Lifecycle, Rejection, Spawn, SpawnKey,
     StatusEffect, VitalEffect,
 };
+pub use combat::{Combat, CombatIntent, CombatRules, WeaponTuning};
 pub use hook::HookTuning;
 pub use input::{
     AmmoFamily, Carried, Command, CommandSource, DropSlot, Inbound, Input, Observation, Target,
@@ -22,6 +26,7 @@ pub use input::{
 pub use motor::{MotorSurface, MotorTuning};
 pub use movement::{Movement, MovementIntent};
 pub use order::{actor_word, contest_score, scatter_score};
+pub use rewind::{RewindFrame, RewindHistory, Rewound};
 pub use solve::{BeforeSolve, BodySpec, Contact, ContactKind, Motor, Path, Solved, Tether};
 pub use state::*;
 
@@ -29,6 +34,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::floor_drag::Floor;
+use crate::sight::{GateSet, SightIndex};
 use crate::swept::{Shape, SweptMap};
 use apply::Ids;
 use input::InputState;
@@ -40,6 +46,8 @@ pub struct View<'a> {
     pub seed: u64,
     pub state: &'a State,
     pub geometry: &'a SweptMap,
+    pub sight: &'a SightIndex,
+    pub sight_gates: &'a GateSet,
 }
 
 impl View<'_> {
@@ -65,6 +73,9 @@ pub struct Intake {
     pub sneak: BTreeMap<ActorId, bool>,
     pub boosts: BTreeMap<ActorId, Window>,
     pub skill_ready_at: BTreeMap<ActorId, Tick>,
+    pub weapon_ready_at: BTreeMap<ActorId, Tick>,
+    pub rounds: BTreeMap<ActorId, u32>,
+    pub projectiles: BTreeMap<(ActorId, u32), Projectile>,
     pub motors: BTreeMap<BodyId, Motor>,
     pub tethers: BTreeMap<HookId, Tether>,
     pub hooks: BTreeMap<HookId, Option<Hook>>,
@@ -74,6 +85,20 @@ pub struct Intake {
 pub struct ResolveView<'a> {
     pub start: View<'a>,
     pub solved: &'a Solved,
+    pub launched_projectiles: &'a BTreeMap<(ActorId, u32), Projectile>,
+    history: &'a RewindHistory,
+}
+
+impl<'a> ResolveView<'a> {
+    pub fn rewound(&self, viewer: ActorId) -> Rewound<'a> {
+        let lag = self
+            .start
+            .state
+            .actors
+            .get(&viewer)
+            .map_or(0, |a| a.view_lag);
+        Rewound::new(self.start, self.solved, self.history, lag)
+    }
 }
 
 pub struct ClaimView<'a> {
@@ -151,8 +176,10 @@ pub struct CompletedTick {
 #[derive(Default)]
 pub struct Scenario {
     pub state: State,
+    pub history: RewindHistory,
     body_specs: BTreeMap<BodyId, BodySpec>,
     geometry: Option<Arc<SweptMap>>,
+    sight: Option<(Arc<SightIndex>, Arc<GateSet>)>,
     floor: Option<Floor>,
 }
 
@@ -175,6 +202,11 @@ impl Scenario {
         self
     }
 
+    pub fn sight(&mut self, index: Arc<SightIndex>, gates: Arc<GateSet>) -> &mut Self {
+        self.sight = Some((index, gates));
+        self
+    }
+
     pub fn start(self, seed: u64, time_limit: Tick) -> Match {
         let ids = Ids::from_state(&self.state);
         let mut bodies = Bodies::default();
@@ -184,12 +216,22 @@ impl Scenario {
         if let Some(floor) = self.floor {
             bodies.use_floor(floor);
         }
+        let (sight, sight_gates) = self.sight.unwrap_or_else(|| {
+            let empty_grid = &[0, 0, 0, 0, 0];
+            (
+                Arc::new(SightIndex::new(&[], empty_grid, &[], &[0], empty_grid)),
+                Arc::new(GateSet::new(&[], &[0], &[], empty_grid)),
+            )
+        });
         Match {
             state: self.state,
+            history: self.history,
             bodies,
             geometry: self
                 .geometry
                 .unwrap_or_else(|| Arc::new(SweptMap::new(vec![], vec![], vec![]))),
+            sight,
+            sight_gates,
             seed,
             time_limit,
             tick: 0,
@@ -204,8 +246,11 @@ impl Scenario {
 
 pub struct Match {
     state: State,
+    history: RewindHistory,
     bodies: Bodies,
     geometry: Arc<SweptMap>,
+    sight: Arc<SightIndex>,
+    sight_gates: Arc<GateSet>,
     seed: u64,
     time_limit: Tick,
     tick: Tick,
@@ -258,6 +303,8 @@ impl Match {
 
         let commands = self.commands(tick, &inbound);
         let mut writes = Intake::default();
+        let mut intake_facts = Vec::new();
+        apply::reward_kills(&mut self.state, &inbound, &mut intake_facts);
         let bodies = self.bodies.before_solve();
         let before = IntakeView {
             start: self.view(tick),
@@ -284,6 +331,18 @@ impl Match {
                 actor.deadlines.skill_ready_at = ready_at;
             }
         }
+        for (id, ready_at) in writes.weapon_ready_at {
+            self.state
+                .actors
+                .get_mut(&id)
+                .expect("weapon user")
+                .deadlines
+                .weapon_ready_at = ready_at;
+        }
+        for (id, rounds) in writes.rounds {
+            let actor = self.state.actors.get_mut(&id).expect("weapon user");
+            actor.equipped_weapon.as_mut().expect("fired weapon").rounds = rounds;
+        }
         for (id, change) in writes.hooks {
             if let Some(hook) = change {
                 self.state.hooks.insert(id, hook);
@@ -300,10 +359,13 @@ impl Match {
             ResolveView {
                 start: self.view(tick),
                 solved: &solved,
+                launched_projectiles: &writes.projectiles,
+                history: &self.history,
             },
             &intents,
         );
-        let events = self.apply(tick, mechanics, &solved, effects, writes.rejections);
+        intake_facts.extend(writes.rejections);
+        let events = self.apply(tick, mechanics, &solved, effects, intake_facts);
         self.tick = tick;
         Some(CompletedTick {
             tick,
@@ -319,6 +381,8 @@ impl Match {
             seed: self.seed,
             state: &self.state,
             geometry: &self.geometry,
+            sight: &self.sight,
+            sight_gates: &self.sight_gates,
         }
     }
 
@@ -363,7 +427,7 @@ impl Match {
         mut facts: Vec<Fact>,
     ) -> Vec<Event> {
         // Merge first. Mark eliminations now so none of these actors can win a later claim.
-        let deaths = apply::merge(&mut self.state, &mut effects);
+        let deaths = apply::merge(&mut self.state, self.seed, tick, &mut effects);
         let mut commit = Commit {
             lifecycle: effects.lifecycle,
             ..Commit::default()
@@ -376,6 +440,7 @@ impl Match {
                 .presence = Presence::Eliminated;
             facts.push(Fact::Eliminated { actor: death.actor });
         }
+        apply::credit_eliminations(&mut self.state, self.seed, tick, &deaths, &mut commit);
         mechanics.eliminations(
             self.view(tick),
             &deaths,
@@ -405,12 +470,12 @@ impl Match {
             ResolveView {
                 start: self.view(tick),
                 solved,
+                launched_projectiles: &BTreeMap::new(),
+                history: &self.history,
             },
             placement,
             &mut commit,
         );
-        self.ids
-            .spawn(&mut self.state, &mut self.bodies, placed, &mut facts);
         let hooks = effects.new_hooks.into_iter().filter_map(|(owner, hook)| {
             let lost_target = matches!(hook.phase, HookPhase::Pulling { target, .. } if !self.state.active(target));
             if !self.state.active(owner) || lost_target {
@@ -418,9 +483,15 @@ impl Match {
                 return None;
             }
             Some((SpawnKey { source: Entity::Actor(owner), ordinal: 0 }, Spawn::Hook(hook)))
-        }).collect();
+        });
+        let projectiles = effects
+            .new_projectiles
+            .into_iter()
+            .map(|(key, projectile)| (key, Spawn::Projectile(projectile)));
+        let mut placed: Vec<_> = placed.into_iter().chain(projectiles).chain(hooks).collect();
+        placed.sort_by_key(|(key, _)| *key);
         self.ids
-            .spawn(&mut self.state, &mut self.bodies, hooks, &mut facts);
+            .spawn(&mut self.state, &mut self.bodies, placed, &mut facts);
 
         let deactivated = apply::sync(
             &mut self.state,

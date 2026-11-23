@@ -240,7 +240,7 @@ impl Movement {
     pub fn resolve_into<C, P>(
         &self,
         view: &ResolveView<'_>,
-        intents: &[MovementIntent],
+        intents: impl IntoIterator<Item = MovementIntent>,
         effects: &mut Effects<C, P>,
     ) {
         effects
@@ -271,7 +271,7 @@ impl Movement {
             }
         }
         for intent in intents {
-            match *intent {
+            match intent {
                 MovementIntent::Boost(actor) => effects.facts.push(Fact::Boosted { actor }),
                 MovementIntent::Release { owner, reason } => {
                     effects.facts.push(Fact::HookReleased { owner, reason })
@@ -326,7 +326,7 @@ impl Mechanics for Movement {
         intents: &[Self::Intent],
     ) -> Effects<Self::Claim, Self::Placement> {
         let mut effects = Effects::default();
-        self.resolve_into(&view, intents, &mut effects);
+        self.resolve_into(&view, intents.iter().copied(), &mut effects);
         effects
     }
 

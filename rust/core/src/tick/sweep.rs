@@ -24,7 +24,7 @@ fn path_contact(from: Point, to: Point, path: &Path, radius: f64) -> Option<f64>
 /// Return the first actor hit before geometry; policy such as friendly fire belongs to the caller.
 pub(super) fn first_actor_contact(
     view: &ResolveView<'_>,
-    owner: ActorId,
+    owner: Option<ActorId>,
     from: Point,
     to: Point,
     geometry_toi: f64,
@@ -32,7 +32,7 @@ pub(super) fn first_actor_contact(
 ) -> Option<(ActorId, f64)> {
     let mut first: Option<(ActorId, f64, u64)> = None;
     for &id in view.start.state.actors.keys() {
-        if id == owner || !view.start.state.active(id) {
+        if Some(id) == owner || !view.start.state.active(id) {
             continue;
         }
         let Some(path) = view.solved.path(BodyId::Actor(id)) else {
