@@ -62,15 +62,18 @@ export function inputLeadFrom(roundTripMs: number | null | undefined): number {
   return Math.min(MAX_INPUT_LEAD_TICKS, BASE_LEAD_TICKS + LEAD_ROUND_TRIPS * Math.ceil(roundTripMs / TICK_MS));
 }
 
-/** Clamp and coerce one wire input. Everything absent or malformed becomes a neutral value. */
-export function sanitizeInput(input: PlayerInput, seq: number): PlayerInput {
+/**
+ * Clamp and coerce one wire input. Everything absent or malformed becomes a neutral value. `keepMark` keeps an `unresolved`
+ * target as the mark an earlier pass made: queue admission passes it, since the room's input was already sanitized by
+ * protocol validation (review 1054). From the wire the mark is malformed like any other target (review 1055).
+ */
+export function sanitizeInput(input: PlayerInput, seq: number, { keepMark = false }: { keepMark?: boolean } = {}): PlayerInput {
   const axis = (v: unknown) => finite(v) ? Math.max(-1, Math.min(1, v)) : 0;
   // A nomination sent malformed is a failed one (27.2 R8): no interaction at all, neither the button's default target nor
   // a rail destination, while movement and combat stand (review 1049). Pressed, it is kept as `unresolved`, which the new
-  // tick's core rejects so the player learns why; the button itself is cleared, which is all the old tick reads. The
-  // mark is kept on a second pass, so sanitizing is idempotent: the room's input is sanitized by protocol validation and
-  // again when queued (review 1054).
-  const marked = (input.target as { kind?: unknown } | undefined)?.kind === 'unresolved';
+  // tick's core rejects so the player learns why; the button itself is cleared, which is all the old tick reads. Queue
+  // admission keeps the mark validation made, so a second pass changes nothing (reviews 1054, 1055).
+  const marked = keepMark && (input.target as { kind?: unknown } | undefined)?.kind === 'unresolved';
   const sent = marked ? undefined : sanitizeTarget(input.target), failed = input.target !== undefined && sent === undefined;
   const target: InputTarget | undefined = failed && (input.interact === true || marked) ? { kind: 'unresolved' } : sent;
   return {
@@ -122,7 +125,7 @@ export function queueInput(p: Player, input: PlayerInput | null | undefined, tic
   if (!input || !safeInteger(input.seq) || input.seq <= (p.receivedSeq ?? -1)) return null;
   p.receivedSeq = input.seq;
   p.inputQueue ??= [];
-  const accepted = sanitizeInput(input, input.seq);
+  const accepted = sanitizeInput(input, input.seq, { keepMark: true });
   const stamp = accepted.tick;
   if (stamp === undefined) {
     p.inputQueue.push(accepted);

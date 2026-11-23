@@ -679,8 +679,8 @@ export type InputTarget = { kind: 'extraction' } | { kind: 'gate'; gateIdx: Gate
   | { kind: 'item'; id: number }
   /**
    * The sanitizer's mark for a pressed interact whose nomination was malformed (27.2 R8). The button is cleared beside it,
-   * so the old tick, which reads no target, does nothing; the new tick's core rejects it. A second sanitizing pass keeps it,
-   * so a client sending it is the same as pressing interact with a failed nomination.
+   * so the old tick, which reads no target, does nothing; the new tick's core rejects it. Queue admission keeps it; from the
+   * wire it is malformed like any other target.
    */
   | { kind: 'unresolved' };
 

@@ -340,9 +340,10 @@ test('a nominated target maps onto the core, through the wire key for an item, a
   for (const t of [{ kind: 'gate', gateIdx: -1 }, { kind: 'item', id: -1 }, { kind: 'item', id: 2 ** 32 }, { kind: 'station', id: '' }, { kind: 'door' }, { kind: 'unresolved' }, 'gate']) {
     const input = sanitizeInput({ x: 1, attack: true, interact: true, transit: 's1', target: t }, 1);
     assert.deepEqual([input.target, input.interact, input.transit, input.x, input.attack], [{ kind: 'unresolved' }, false, undefined, 1, true], JSON.stringify(t));
-    // Sanitizing again keeps the mark: the room's input passes protocol validation, then queue admission (review 1054).
-    assert.deepEqual(sanitizeInput(input, 1), input, JSON.stringify(t));
-    if (t?.kind !== 'unresolved') assert.equal(sanitizeInput({ transit: 's1', target: t }, 1).target, undefined, 'unpressed, nothing is kept');
+    // Queue admission keeps the mark validation made: the room's input passes both (review 1054).
+    assert.deepEqual(sanitizeInput(input, 1, { keepMark: true }), input, JSON.stringify(t));
+    // Unpressed, nothing is kept, a wire-sent mark included (review 1055).
+    assert.equal(sanitizeInput({ transit: 's1', target: t }, 1).target, undefined, JSON.stringify(t));
   }
   await run((s, match) => {
     const input = inputOf(match.ids, sanitizeInput({ interact: true, target: { kind: 'door' } }, 1));
@@ -363,20 +364,26 @@ test('the core rejects an unresolved nomination it is sent, and the recording na
   });
 });
 
-test('a pressed malformed nomination from a client reaches the core through validation and admission, and is rejected', async () => {
-  await run((s, match, mirror) => {
-    const [c] = s.players, actor = match.ids.actorOfPlayer.get(c.id), boundary = new TickBoundary(s, match);
-    c.bot = false;
-    const validated = validateClientMessage({ type: CLIENT_MESSAGE.INPUT, seq: 0, tick: 1, x: 1, interact: true, transit: 's1', target: { kind: 'door' } });
-    assert.ok(validated.ok, validated.reason);
-    const { type: _type, ...input } = validated.message;
-    assert.ok(boundary.input(c.id, input), 'admitted');
-    const t = stepMirror(mirror, boundary);
-    const spent = t.inbound.find(row => row.type === 'command' && row.command.actor === actor);
-    assert.deepEqual([spent.command.input.interact, spent.command.input.target, spent.command.input.transit], [true, { kind: 'unresolved' }, null]);
-    assert.ok(t.changes.events.some(e => e.fact.kind === 'rejected' && e.fact.actor === actor && e.fact.reason.target?.kind === 'unresolved'), 'rejected');
-    assert.deepEqual(recordedInbound(match.ids, t.inbound).find(r => r.id === c.id && r.type === 'command').input.target, { kind: 'unresolved' });
-  });
+test('a malformed nomination from a client reaches the core through validation and admission: rejected pressed, silent released', async () => {
+  // A wire-sent mark is malformed like any other target, so released it records no press (review 1055).
+  for (const [interact, target] of [[true, { kind: 'door' }], [true, { kind: 'unresolved' }], [false, { kind: 'door' }], [false, { kind: 'unresolved' }]]) {
+    const label = JSON.stringify({ interact, target });
+    await run((s, match, mirror) => {
+      const [c] = s.players, actor = match.ids.actorOfPlayer.get(c.id), boundary = new TickBoundary(s, match);
+      c.bot = false;
+      const validated = validateClientMessage({ type: CLIENT_MESSAGE.INPUT, seq: 0, tick: 1, x: 1, interact, transit: 's1', target });
+      assert.ok(validated.ok, validated.reason);
+      const { type: _type, ...input } = validated.message;
+      assert.ok(boundary.input(c.id, input), 'admitted');
+      const t = stepMirror(mirror, boundary);
+      const spent = t.inbound.find(row => row.type === 'command' && row.command.actor === actor).command.input;
+      assert.deepEqual([spent.interact, spent.target, spent.transit, spent.movement], [interact, interact ? { kind: 'unresolved' } : null, null, [1, 0]], label);
+      const rejected = t.changes.events.some(e => e.fact.kind === 'rejected' && e.fact.actor === actor && e.fact.reason.kind === 'interaction');
+      assert.equal(rejected, interact, label);
+      const recorded = recordedInbound(match.ids, t.inbound).find(r => r.id === c.id && r.type === 'command').input;
+      assert.deepEqual([recorded.interact, recorded.target], interact ? [true, { kind: 'unresolved' }] : [undefined, undefined], label);
+    });
+  }
 });
 
 test('the core opens with the discovery the old game makes when it creates a player', async () => {
