@@ -17,7 +17,7 @@ import type { BodyId, ItemId, PlayerIdx, PropId, Snapshot, TetherId } from '../t
 // - **Shapes** are the specs the loader uploads: the actor templates, the loot template and the authored props, copied
 //   once and frozen, so no frame can change another's or what the loader uploads.
 // - **Tethers** are the hooks pulling, from caster (`a`) to target (`b`); **flights** are the hooks flying. A tether's ID
-//   is the hook's ID plus one, which the core keeps for the hook's life.
+//   is the hook's ID, which the core allocates from 1 and keeps for the hook's life (review 1047).
 // - **No private `physics` block.** The old frame carried the old world's state beside its presentation. A frame here
 //   carries only the presentation; `playerView` reads tether state from it (`tetherState`).
 
@@ -60,7 +60,7 @@ export class TickFrames {
     }
     const tethers: NumericPhysicsTether[] = [], hookFlights: NumericHookFlight[] = [];
     for (const [id, hook] of [...this.mirror.hooks].sort((a, b) => a[0] - b[0])) {
-      const a = actorBody.get(hook.owner), tether = id + 1 as TetherId;
+      const a = actorBody.get(hook.owner), tether = id as TetherId;
       if (a === undefined) continue;
       if (hook.phase.kind === 'pulling') {
         const b = actorBody.get(hook.phase.target);
