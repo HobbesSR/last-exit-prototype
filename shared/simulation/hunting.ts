@@ -221,11 +221,13 @@ export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): 
     let best = -1, score = Infinity;
     graph.regions.forEach((region, index) => {
       const centre = { x: region.box.x + region.box.w / 2, y: region.box.y + region.box.h / 2 };
-      if (centre.x < s.hazardX + SWEEP_AHEAD || taken.has(index)) return;
+      if (centre.x < s.hazardX + SWEEP_AHEAD || taken.has(index) || outside.has(index)) return;
       if (!ignoreRevisit && s.tick - (sweep.swept.get(index) ?? -Infinity) < SWEEP_REVISIT) return;
       const d = distance(p, centre);
       if (requireDistant && d < minStep) return;
-      if (goalkeep && distance(anchor, centre) > GOALKEEP_RADIUS && requireDistant) return;
+      // The exit radius holds in every pass, or a fallback would pick a region the next tick drops as stale. With every
+      // region near the exit swept, the last pass revisits one; with none free, the exit itself is the goal (#1305).
+      if (goalkeep && distance(anchor, centre) > GOALKEEP_RADIUS) return;
       const targetX = goalkeep ? anchor.x : Math.min(s.map.exit.x, currentFront + (d / 12) * FRONT_SPEED);
       const behindPenalty = !goalkeep && centre.x < currentFront ? (currentFront - centre.x) * 3.0 : 0;
       const value = Math.abs(centre.x - targetX) * FRONT_X_WEIGHT + Math.abs(centre.y - anchor.y) * FRONT_Y_WEIGHT
@@ -234,13 +236,20 @@ export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): 
     });
     return best;
   };
-  let best = pickRegion(true, false);
-  if (best < 0) best = pickRegion(false, false);
-  if (best < 0) best = pickRegion(false, true);
-  if (best < 0) return goalkeep ? stand(s.map.exit) : null;
-  const box = graph.regions[best]!.box;
-  Object.assign(sweep, { region: best, target: stand({ x: box.x + box.w / 2, y: box.y + box.h / 2 }), moved: { x: p.x, y: p.y }, progressed: s.tick });
-  return sweep.target;
+  // The centre filter is cheap; the point stored is the standing point near it, which the search may have moved
+  // (`standingIn`). A goalkeeper keeps only one inside the exit radius, or the next tick would drop it as stale: a
+  // region whose standing point falls outside is set aside for this pick, and the exit is the last goal (#1305).
+  const outside = new Set<number>();
+  for (;;) {
+    let best = pickRegion(true, false);
+    if (best < 0) best = pickRegion(false, false);
+    if (best < 0) best = pickRegion(false, true);
+    if (best < 0) return goalkeep ? stand(s.map.exit) : null;
+    const box = graph.regions[best]!.box, target = stand({ x: box.x + box.w / 2, y: box.y + box.h / 2 });
+    if (goalkeep && distance(s.map.exit, target) > GOALKEEP_RADIUS) { outside.add(best); continue; }
+    Object.assign(sweep, { region: best, target, moved: { x: p.x, y: p.y }, progressed: s.tick });
+    return sweep.target;
+  }
 }
 
 /** The region being swept is done with: swept on arrival, or set aside when it can't be reached. */

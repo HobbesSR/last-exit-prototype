@@ -1,7 +1,7 @@
 # 14. Match rules and implemented defaults
 
 Every number here is a tuning default, not a design constant. The shipped default is
-`content-7` under `last-exit-0.8-physics` rules: the physics engine, described in the
+`content-12` (#1303) under `last-exit-0.8-physics` rules: the physics engine, described in the
 sections below. Every physics match carries that one rules version (#921) and requires
 `actorPhysics`, `itemInstances`, `worldPhysics`, `hook` (`kits.hook`) and `dynamicNavigation: true`
 (#976). Every match runs on the physics engine: #920 retired the legacy mover, its rules version
@@ -42,7 +42,7 @@ Tuning is as it was in the experimental
 profiles: the human feel review of 2026-10-28 ([42.20](42.20-physics-p9.md)) accepted it as it
 stands and deferred tuning, so nothing here was rebalanced for the switch.
 
-`content-7` (#682, #865, the default) is `content-6` with gladiator bots planning trips across
+`content-7` (#682, #865; the default until #1303) is `content-6` with gladiator bots planning trips across
 regions over the portal graph (`hunterPlanning: 'portals'`, 22.6). When its goal is in another region, a
 gladiator takes the regions to cross from the portal graph, costing each crossing by its straight-line
 length, and searches tiles only as far as the crossing after the next one. Once its goal is in its own
@@ -52,7 +52,7 @@ plans as `content-6` does. Its goals, numbers and roster are `content-6`'s.
 
 <a id="heard-gunfire"></a>
 
-**Heard gunfire.** `content-8` (#684, selectable, not the default) is `content-7` with gunfire heard
+**Heard gunfire.** `content-8` (#684, selectable) is `content-7` with gunfire heard
 (`hearing`, 17.3 #26). When a contestant fires a weapon, every other active player, of either role, within
 that weapon's hearing range of the shooter hears it: they learn the centre of the 192-unit discovery cell the
 shooter stood in (never the shooter), which fades 4 seconds (80 ticks) later. Range is plain distance;
@@ -110,7 +110,7 @@ and walking on. A transit costs its travel time plus 3 seconds. A station counts
 spent by the time the gladiator gets there. When transit is quicker the gladiator heads for that station and, in
 reach, sends the destination with the `transit` input. Distances, times and weights are placeholders.
 
-`content-12` (#681, selectable) is `content-11` with front-estimated coarse sweeping, repulsion between targetless
+`content-12` (#681; the default since #1303, Corey 2026-11-23) is `content-11` with front-estimated coarse sweeping, repulsion between targetless
 gladiators, charging station investigation, and exit goalkeeping (`hunting: 'front'`, 17.3 #26). Before any evidence
 suggests a contestant is further right, a gladiator with no contestant seen and no gunfire lead targets an estimated
 contestant front advancing from the entry toward the exit at 4 units per tick (clamped ahead of the wall) in the
@@ -121,7 +121,8 @@ head there to investigate (using transit when quicker), resuming normal sweeping
 evidence suggests at least one contestant is further right — a sighted or revealed contestant or a heard gunfire cue more
 than 1,600 units east of the estimated front (or within 400 units of the exit), a claimed escape pod (`s.slots < 3`), or
 the estimated front itself reaching within 400 units of the exit — targetless gladiators switch their anchor to the exit
-to goalkeep (patrolling regions within 2,400 units of it). Charging a cell is not a goalkeeping trigger. Sweep targets are
+to goalkeep (patrolling regions within 2,400 units of it, revisiting one once all are swept, and standing at the exit
+when none is free). Charging a cell is not a goalkeeping trigger. Sweep targets are
 invalidated and dropped when the hazard wall advances past them, when goalkeeping latches while the target is far from
 the exit, when an uninspected charging station lead appears, or when the front advances far past the target. While
 sweeping toward the front, a gladiator prefers regions at least 2,400 units away so each sweep leg is a real trip where
@@ -299,7 +300,7 @@ body admission fails; L0 identity/transfer rules themselves create no bodies or 
 
 ### Weapon quality (L1, #443)
 
-`contentById('content-loot-1')` is the shipped set (`content-7`) plus weapon
+`contentById('content-loot-1')` is `content-7` (the shipped set until #1303) plus weapon
 quality, on the physics engine and its one rules version (#920). It is selectable
 and not the default. It requires item instances (L0), which already keep quality
 through pickup, drop, death, snapshots and schema-11 recordings, and never merge

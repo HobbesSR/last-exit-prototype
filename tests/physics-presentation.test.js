@@ -21,7 +21,7 @@ test('geometry is a detached, deeply frozen display projection included in descr
   assert.equal(described.actorGeometry.contestant.headRadius, geometry.contestant.headRadius);
 
   const wire = structuredClone(described);
-  const parsed = readPresentation(wire, 'content-7');
+  const parsed = readPresentation(wire, content.id);
   wire.actorGeometry.gladiator.bodyRadius = 99;
   assert.deepEqual(parsed.actorGeometry, geometry);
   assert.ok(Object.isFrozen(parsed.actorGeometry.gladiator));

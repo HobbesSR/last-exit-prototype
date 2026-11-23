@@ -41,7 +41,7 @@ named owner decides. Smaller owners that the parts don't list:
   outside the portable core.
 
 22.6 records #353, closed 2026-10-25: bots plan over the free-space tiles (adopted in
-`content-3` and carried forward with sliced replanning and local repair in `content-6`/`content-7`; #920 retired `content-1`–`5`), and default `content-7` uses the portal graph (#420) for gladiator legs (#682). 22.7, designed for #385, was implemented in #386. Their numbers sit in this
+`content-3` and carried forward with sliced replanning and local repair in `content-6`/`content-7`; #920 retired `content-1`–`5`), and `content-7` and its successors, the default `content-12` among them, use the portal graph (#420) for gladiator legs (#682). 22.7, designed for #385, was implemented in #386. Their numbers sit in this
 range because they concern ownership, and numbers never change (33).
 
 ## Reading guide

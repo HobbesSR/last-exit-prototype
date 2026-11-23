@@ -23,7 +23,7 @@ never resimulates. L2 (#444) raises the writer schema to **13**: frames of
 `reload`/`dropAmmo` commands; older readers ignore the fields and draw an ammo
 pickup as an unknown item, so `minSchema` stays at 10.
 
-Recording failure must never reach gameplay. Default content is `content-7` under
+Recording failure must never reach gameplay. Default content is `content-12` (#1303) under
 `last-exit-0.8-physics` ([below](#physics-rules-version-921)); the legacy mover's rules were `last-exit-0.7`.
 #920 retired that engine and contents 1 to 5, and #953 raised `MIN_SCHEMA` to **10** so
 archives recorded before schema 10 (pre-chain-map diamond arenas, `last-exit-0.7`, and

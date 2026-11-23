@@ -10,7 +10,7 @@ const frozenThrough = value => Object.isFrozen(value) && Object.values(value).ev
 test('a descriptor lists display data in table order and nothing private', () => {
   const p = describeContent(defaultContent());
   assert.deepEqual(p, {
-    contentId: 'content-7',
+    contentId: 'content-12',
     weapons: [{ id: 'pistol', name: 'Pistol', ammo: 48 }, { id: 'rifle', name: 'Rifle', ammo: 90 }, { id: 'scattergun', name: 'Scattergun', ammo: 24 }],
     kits: [{ id: 'warden', name: 'Warden', skill: 'Shockwave', color: 0xff6b70 }, { id: 'specter', name: 'Specter', skill: 'Pulse scan', color: 0xb39aff },
       { id: 'striker', name: 'Striker', skill: 'Overdrive', color: 0xffba62 }, { id: 'hook', name: 'Hook', skill: 'Hook / release', color: 0x77dddd }],
