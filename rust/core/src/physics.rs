@@ -200,6 +200,7 @@ fn constraint_force(row: &[f64], a: Anchor, b: Anchor) -> (f64, f64, f64) {
 
 /// What `add_body` needs beyond the shape, in world units: pose, velocity, material, damping
 /// (`NaN` for unset) and the packed collision groups (membership << 16 | filter).
+#[derive(Clone)]
 pub struct BodyParams {
     pub kind: u32,
     pub map_geometry: bool,

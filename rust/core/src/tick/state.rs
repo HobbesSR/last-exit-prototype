@@ -116,6 +116,8 @@ pub struct Actor {
     pub sneak: bool,
     pub view_lag: Tick,
     pub inventory: Inventory,
+    pub charging: Option<Charging>,
+    pub transit: Option<Transit>,
     pub bot: bool,
     pub aggression: Option<Aggression>,
     pub deadlines: Deadlines,
@@ -184,10 +186,12 @@ pub struct Hook {
     pub expires_at: Tick,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Gate {
     pub open: bool,
     pub locked: bool,
+    pub door: bool,
+    pub position: Point,
 }
 
 #[derive(Clone, Debug)]
@@ -201,8 +205,32 @@ pub enum StationKind {
     Transit,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct Station {
+    pub kind: StationKind,
+    pub position: Point,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Extraction {
+    pub position: Point,
+    pub slots: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Charging {
+    pub station: StationId,
+    pub cell: ItemId,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Transit {
+    pub destination: StationId,
+    pub origin: Point,
+    pub arrive_at: Tick,
+}
+
 /// Geometry belongs to the map and physics. These tables hold discrete match state.
-#[derive(Default)]
 pub struct State {
     pub actors: BTreeMap<ActorId, Actor>,
     pub items: BTreeMap<ItemId, GroundItem>,
@@ -210,7 +238,27 @@ pub struct State {
     pub hooks: BTreeMap<HookId, Hook>,
     pub gates: BTreeMap<GateId, Gate>,
     pub traps: BTreeMap<TrapId, Trap>,
-    pub stations: BTreeMap<StationId, StationKind>,
+    pub stations: BTreeMap<StationId, Station>,
+    pub extraction: Option<Extraction>,
+    pub sensors: Vec<Point>,
+    pub hazard_x: f64,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            actors: BTreeMap::new(),
+            items: BTreeMap::new(),
+            projectiles: BTreeMap::new(),
+            hooks: BTreeMap::new(),
+            gates: BTreeMap::new(),
+            traps: BTreeMap::new(),
+            stations: BTreeMap::new(),
+            extraction: None,
+            sensors: Vec::new(),
+            hazard_x: f64::NEG_INFINITY,
+        }
+    }
 }
 
 impl State {

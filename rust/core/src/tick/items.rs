@@ -23,14 +23,7 @@ pub struct ItemRules {
 
 #[derive(Clone, Copy, Debug)]
 pub enum ItemIntent {
-    Interact {
-        actor: ActorId,
-        target: Option<Target>,
-    },
-    Utility {
-        actor: ActorId,
-        kind: Utility,
-    },
+    Utility { actor: ActorId, kind: Utility },
     Drop(DropRequest),
 }
 
@@ -65,8 +58,8 @@ impl DropRequest {
 
 #[derive(Clone, Copy, Debug)]
 pub struct ItemClaim {
-    item: ItemId,
-    distance: f64,
+    pub(super) item: ItemId,
+    pub(super) distance: f64,
     explicit: bool,
     swap: Option<CarriedItem>,
 }
@@ -205,13 +198,6 @@ impl ItemRules {
         {
             reject(&mut writes.facts, id, Rejection::SelectSlot);
         }
-        if input.interact {
-            intents.push(ItemIntent::Interact {
-                actor: id,
-                target: input.target,
-            });
-        }
-
         if weapon_blocked
             || move_selected
             || input.slot.is_some()
@@ -244,18 +230,14 @@ impl ItemRules {
         input.attack
     }
 
-    pub fn resolve_into(
+    pub fn resolve_into<C: From<ItemClaim>>(
         &self,
         view: &ResolveView<'_>,
         intents: impl Iterator<Item = ItemIntent>,
-        effects: &mut Effects<ItemClaim, DropRequest>,
+        effects: &mut Effects<C, DropRequest>,
     ) {
-        let mut interactions = BTreeMap::new();
         for intent in intents {
             match intent {
-                ItemIntent::Interact { actor, target } => {
-                    interactions.insert(actor, target);
-                }
                 ItemIntent::Drop(request) => effects.placements.push(request),
                 ItemIntent::Utility { actor, kind } => {
                     let effect = match kind {
@@ -293,8 +275,6 @@ impl ItemRules {
                 continue;
             };
             let current_view = view.current();
-            let rewind = view.rewound(actor);
-            let full = record.inventory.slots.iter().all(Option::is_some);
             let eligible = |item: &GroundItem, position: Point| {
                 (item.dropped_by != Some(actor) || view.start.tick >= item.pickup_ready_at)
                     && !(record.bot
@@ -318,88 +298,87 @@ impl ItemRules {
                             distance: distance(origin, position),
                             explicit: false,
                             swap: None,
-                        },
+                        }
+                        .into(),
                     ));
-                }
-            }
-            let eligible_explicit = |id, item: &GroundItem| {
-                rewind
-                    .item_position(id)
-                    .is_some_and(|seen| eligible(item, seen) && rewind.reach_clear(origin, seen))
-            };
-            if interactions.get(&actor) == Some(&None)
-                && full
-                && !record.bot
-                && let Some(outgoing) = record.inventory.selected_item()
-            {
-                let rank = |claim: ItemClaim| {
-                    (
-                        contest_score(
-                            view.start.seed,
-                            view.start.tick,
-                            PICKUP_CONTEST ^ actor_word(actor),
-                            u64::from(claim.item.0),
-                        ),
-                        claim.item,
-                    )
-                };
-                let claim = items
-                    .iter()
-                    .filter_map(|&(id, item, position)| {
-                        (matches!(item.loot, Loot::Equipment(_))
-                            && eligible_explicit(id, item)
-                            && self.swap_fits(record.inventory, id, *item))
-                        .then_some(ItemClaim {
-                            item: id,
-                            distance: distance(origin, position),
-                            explicit: true,
-                            swap: Some(outgoing),
-                        })
-                    })
-                    .min_by(|&a, &b| {
-                        a.distance
-                            .total_cmp(&b.distance)
-                            .then_with(|| rank(a).cmp(&rank(b)))
-                    });
-                if let Some(claim) = claim {
-                    effects.claims.push((actor, claim));
-                }
-            }
-            if let Some(Some(Target::Item(id))) = interactions.get(&actor).copied() {
-                let candidate = items
-                    .binary_search_by_key(&id, |row| row.0)
-                    .ok()
-                    .map(|i| items[i]);
-                if let Some((_, item, current)) = candidate
-                    && eligible_explicit(id, item)
-                {
-                    let mut draft = record.inventory;
-                    let fits = draft
-                        .take(id, item.lineage.unwrap_or(id), item.loot, self.reloading)
-                        .is_some();
-                    let swap = if !fits
-                        && full
-                        && !record.bot
-                        && matches!(item.loot, Loot::Equipment(_))
-                    {
-                        record.inventory.selected_item()
-                    } else {
-                        None
-                    };
-                    effects.claims.push((
-                        actor,
-                        ItemClaim {
-                            item: id,
-                            distance: distance(origin, current),
-                            explicit: true,
-                            swap,
-                        },
-                    ));
-                } else {
-                    reject(&mut effects.facts, actor, Rejection::Pickup(id));
                 }
             }
         }
+    }
+
+    pub(super) fn explicit_candidates(
+        &self,
+        view: &ResolveView<'_>,
+        rewind: &Rewound<'_>,
+        actor: ActorId,
+        origin: Point,
+        nominated: Option<ItemId>,
+    ) -> Vec<ItemClaim> {
+        let Some(record) = view.start.state.actors.get(&actor) else {
+            return Vec::new();
+        };
+        if actor.kind != ActorKind::Contestant || record.presence != Presence::Active {
+            return Vec::new();
+        }
+        let full = record.inventory.slots.iter().all(Option::is_some);
+        if nominated.is_none() && (!full || record.bot) {
+            return Vec::new();
+        }
+        let items = &view.start.state.items;
+        let candidates =
+            items.range(nominated.unwrap_or(ItemId(0))..=nominated.unwrap_or(ItemId(u32::MAX)));
+        candidates
+            .filter_map(|(&id, item)| {
+                if item.unplaced_at.is_some()
+                    || (item.dropped_by == Some(actor) && view.start.tick < item.pickup_ready_at)
+                    || (record.bot
+                        && record.inventory.has_cell()
+                        && matches!(
+                            item.loot,
+                            Loot::Equipment(Equipment {
+                                kind: EquipmentKind::Cell { .. },
+                                ..
+                            })
+                        ))
+                {
+                    return None;
+                }
+                let current = view.solved.position(BodyId::Item(id))?;
+                let seen = rewind.item_position(id)?;
+                if distance(origin, seen) >= REACH || !rewind.reach_clear(origin, seen) {
+                    return None;
+                }
+                let mut draft = record.inventory;
+                let fits = draft
+                    .take(id, item.lineage.unwrap_or(id), item.loot, self.reloading)
+                    .is_some();
+                let swap = if full
+                    && !record.bot
+                    && matches!(item.loot, Loot::Equipment(_))
+                    && self.swap_fits(record.inventory, id, *item)
+                {
+                    record.inventory.selected_item()
+                } else {
+                    None
+                };
+                // Unnominated interaction only offers the full-inventory swap tier.
+                if (nominated.is_none() && swap.is_none())
+                    || (nominated.is_some() && !fits && swap.is_none())
+                {
+                    return None;
+                }
+                Some(ItemClaim {
+                    item: id,
+                    distance: distance(origin, current),
+                    explicit: true,
+                    swap: if nominated.is_some() && fits {
+                        None
+                    } else {
+                        swap
+                    },
+                })
+            })
+            .collect()
     }
 
     fn swap_fits(&self, mut draft: Inventory, id: ItemId, item: GroundItem) -> bool {
@@ -530,7 +509,7 @@ impl ItemRules {
                 mandatory: false,
             };
             if transfer.remaining.is_some()
-                || !self.reserve_drop(state, view, request, Some(claim.item), reserved)
+                || !self.reserve_drop(state, view, request, Some(claim.item), reserved, commit)
             {
                 return false;
             }
@@ -583,7 +562,7 @@ impl ItemRules {
             if !request.mandatory && !state.active(request.owner) {
                 continue;
             }
-            if !self.reserve_drop(state, view, request, None, &mut placement.reserved) {
+            if !self.reserve_drop(state, view, request, None, &mut placement.reserved, commit) {
                 assert!(
                     !request.mandatory,
                     "a mandatory drop needs the actor's solved pose"
@@ -613,6 +592,7 @@ impl ItemRules {
         request: DropRequest,
         replacing: Option<ItemId>,
         reserved: &mut BTreeMap<SpawnKey, Spawn>,
+        commit: &Commit,
     ) -> bool {
         let inventory = &state.actors[&request.owner].inventory;
         let (id, lineage, loot, copies) = match request.source {
@@ -649,6 +629,7 @@ impl ItemRules {
             state,
             view,
             reserved,
+            commit,
             replacing,
             owner: request.owner,
             ordinal,

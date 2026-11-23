@@ -4,7 +4,7 @@ use crate::math::{cos, hypot, sin};
 use crate::physics::{BodyParams, KIND_PROP, LOOT_GROUP, SHAPE_CIRCLE};
 use crate::world::MAX_DYNAMIC;
 
-use super::apply::{Spawn, SpawnKey};
+use super::apply::{Commit, Lifecycle, Spawn, SpawnKey};
 use super::solve::BodySpec;
 use super::state::{ActorId, BodyId, GateId, ItemId, Point, State};
 use super::{ClaimView, scatter_score};
@@ -33,6 +33,7 @@ pub(super) struct DropPlan<'a> {
     pub state: &'a State,
     pub view: ClaimView<'a>,
     pub reserved: &'a BTreeMap<SpawnKey, Spawn>,
+    pub commit: &'a Commit,
     pub replacing: Option<ItemId>,
     pub owner: ActorId,
     pub ordinal: u32,
@@ -51,6 +52,7 @@ impl DropTuning {
             state,
             view,
             reserved,
+            commit,
             replacing,
             owner,
             ordinal,
@@ -110,7 +112,10 @@ impl DropTuning {
             .filter(|&&id| state.active(id))
             .filter_map(|&id| {
                 let body = BodyId::Actor(id);
-                Some((view.solved.position(body)?, view.solved.radius(body)?))
+                Some((
+                    applied_position(view, commit, body)?,
+                    view.solved.radius(body)?,
+                ))
             })
             .collect();
         let clear = |point: Point, occupied: &[Point]| {
@@ -215,4 +220,89 @@ impl DropTuning {
         }
         Some(spots)
     }
+}
+
+fn applied_position(view: ClaimView<'_>, commit: &Commit, body: BodyId) -> Option<Point> {
+    commit
+        .lifecycle
+        .iter()
+        .find_map(|effect| match *effect {
+            Lifecycle::Warp { body: id, to, .. } if id == body => Some(to),
+            _ => None,
+        })
+        .or_else(|| view.solved.position(body))
+}
+
+pub(super) fn rail_landing(
+    state: &State,
+    view: ClaimView<'_>,
+    actor: ActorId,
+    destination: Point,
+    reserved: &BTreeMap<SpawnKey, Spawn>,
+    commit: &Commit,
+) -> Option<Point> {
+    let radius = view.solved.radius(BodyId::Actor(actor))?;
+    let actors: Vec<_> = state
+        .actors
+        .keys()
+        .filter(|&&id| id != actor && state.active(id))
+        .filter_map(|&id| {
+            let body = BodyId::Actor(id);
+            Some((
+                applied_position(view, commit, body)?,
+                view.solved.radius(body)?,
+            ))
+        })
+        .collect();
+    let drops = reserved.values().filter_map(|spawn| {
+        let Spawn::Item {
+            body: Some(body), ..
+        } = spawn
+        else {
+            return None;
+        };
+        Some((
+            [body.params.pose[0], body.params.pose[1]],
+            body.dimensions[0],
+        ))
+    });
+    let occupied: Vec<_> = actors.into_iter().chain(drops).collect();
+    let clear = |point: Point| {
+        let [x, y] = point;
+        view.bounds.is_none_or(|[min_x, min_y, max_x, max_y]| {
+            x - radius >= min_x && x + radius <= max_x && y - radius >= min_y && y + radius <= max_y
+        }) && occupied
+            .iter()
+            .all(|(pos, r)| hypot(x - pos[0], y - pos[1]) >= radius + r)
+            && !view
+                .geometry
+                .contact_with_gates(
+                    false,
+                    point,
+                    point,
+                    radius,
+                    &view.solved.solid_props,
+                    |index| {
+                        state
+                            .gates
+                            .get(&GateId(index as u32))
+                            .is_some_and(|gate| gate.open)
+                    },
+                )
+                .is_finite()
+    };
+    if clear(destination) {
+        return Some(destination);
+    }
+    (1..=24).find_map(|ring| {
+        (0..32).find_map(|sample| {
+            let angle = f64::from(sample) * std::f64::consts::PI / 16.0;
+            let distance = f64::from(ring) * 4.0;
+            let point = [
+                destination[0] + cos(angle) * distance,
+                destination[1] + sin(angle) * distance,
+            ];
+            clear(point).then_some(point)
+        })
+    })
 }
