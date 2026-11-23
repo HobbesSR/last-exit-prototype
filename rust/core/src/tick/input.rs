@@ -116,8 +116,11 @@ impl InputState {
         self.held.insert(command.actor, command);
     }
 
+    /// A seat changing hands (join or leave) starts its input over: nothing held, and nothing
+    /// spent, since a resumed connection numbers its commands from the start again.
     pub(super) fn reset(&mut self, actor: ActorId) {
         self.held.remove(&actor);
+        self.acknowledged.remove(&actor);
     }
 
     pub(super) fn acknowledged(&self, actor: ActorId) -> Option<u64> {

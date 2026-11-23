@@ -169,9 +169,15 @@ fn observations_are_recorded_inbound_and_written_at_intake() {
     );
     assert_eq!(tick.changes.poses[&BodyId::Actor(C)], [500.0, 40.0]);
 
-    observe(&mut game, 2, Observation::Join { actor: C });
+    // The bot spent a high sequence; a connection taking the seat back numbers from the start.
+    super::submit(&mut game, C, 2, 90, Input::default());
+    game.step(&Combat::default()).unwrap();
+    assert_eq!(game.acknowledged(C), Some(90));
+    observe(&mut game, 3, Observation::Join { actor: C });
+    super::submit(&mut game, C, 3, 0, Input::default());
     let joined = game.step(&Combat::default()).unwrap();
     assert!(!joined.changes.actors[&C].bot);
+    assert_eq!(game.acknowledged(C), Some(0));
 }
 
 fn discovery_scenario(scenario: &mut Scenario, gate_box: [f64; 4]) {
