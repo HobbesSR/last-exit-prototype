@@ -33,7 +33,6 @@ function play() {
       const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
       let t;
       while ((t = stepMirror(mirror))) {
-        frames.advance(t);
         for (const e of t.changes.events) facts.set(e.fact.kind, (facts.get(e.fact.kind) ?? 0) + 1);
         const snap = match.snapshot(), expected = mirror.mirrorOf(snap);
         assert.deepEqual(mirror.view(expected), expected, `tick ${t.tick}`);

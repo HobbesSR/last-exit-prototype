@@ -11,10 +11,10 @@ import { sightOf } from './sight-runtime.ts';
 import { botCommand, rollMargin } from './tick-boundary.ts';
 import { bodyKey, bodyOrder } from './tick-codec.ts';
 import type { TickBoundary } from './tick-boundary.ts';
-import type { Actor, ActorEntry, CarriedItem, Cue, DecodedTick, Equipment, Fact, GroundItem as CoreGround, Hook, Inbound, Loot,
+import type { Actor, ActorEntry, CarriedItem, Cue, DecodedTick, Discontinuity, Equipment, Fact, GroundItem as CoreGround, Hook, Inbound, Loot,
   Memory, Point, PoseEntry, Projectile as CoreProjectile, Snapshot, Tick, Trap as CoreTrap, Window } from './tick-codec.ts';
 import type { MatchIds, TickMatch } from './tick-match.ts';
-import type { DiscoveryMemory, Game, HeardCue, GroundItem, InventoryItem, Player, PlayerId, PlayerStatus, Projectile, Trap } from '../types.ts';
+import type { BodyId, DiscoveryMemory, Game, HeardCue, GroundItem, InventoryItem, Player, PlayerId, PlayerStatus, Projectile, Trap } from '../types.ts';
 
 // The mirror applier of the new tick (docs/27.2 "Node adapter (3d.2)"): one function writes a completed tick's change list
 // onto `Game`, the mirror Node's bots, projection and tools read until #1284 removes it. It replaces the old tick's
@@ -30,8 +30,9 @@ import type { DiscoveryMemory, Game, HeardCue, GroundItem, InventoryItem, Player
 //   the old effect kinds and radii, at the committed poses.
 // - **Identity.** A core item ID is the mirror's `ItemId` (the loader keeps them), so the ID maps need no item table;
 //   `itemSerial` follows the largest seen. Actors, gates, traps and stations go through `MatchIds`.
-// - **Records the mirror has no field for** (hooks, and every dynamic body's whole pose) are kept beside it, for the frame
-//   (`tick-frame.ts`).
+// - **Records the mirror has no field for** (hooks, and every dynamic body's whole pose and lifetime) are kept beside it,
+//   for the frame (`tick-frame.ts`). `apply` is the one reader of a tick's discontinuities, so a frame built after it is
+//   never a lifetime behind.
 
 /** The old effect kinds and radii (`rust/core/src/action_combat.rs`, `combat.rs`, `hazards.rs`, `phase_six.rs`). */
 const EFFECT = Object.freeze({ slash: 55, slashReach: 30, shock: 130, scan: 450, upgrade: 75, loot: 30, rail: 60, charge: 70, grapple: 35 });
@@ -43,6 +44,43 @@ const STATUS: Record<Actor['presence'], PlayerStatus> = {
 type Metadata = Pick<GroundItem, 'buildingId' | 'nodeId' | 'tier'>;
 /** Per player, whether it started with the optional records the core always has. */
 interface Shape { inventory: boolean; reserves: boolean }
+
+/** One lifetime of a body in the world: its presentation ID and its generation within that lifetime. */
+export interface BodyLife { readonly id: BodyId; readonly generation: number }
+
+/**
+ * The bodies' lifetimes, from the core's discontinuity markers (27.2 "Frames (3d.3)"). A body gets a new presentation ID
+ * when it enters the world and keeps it until it leaves; IDs count across the match, and the wire key maps them outward
+ * (#1164). A generation counts within one lifetime: 1 on entry, renewed by a warp, so `(id, generation)` changes whenever a
+ * viewer must not interpolate (24.4), and no count of the match's placements or warps reaches a client.
+ */
+export class BodyLives {
+  #serial = 0;
+  readonly #lives = new Map<string, BodyLife>();
+  #placed: ReadonlySet<string> = new Set();
+  /** Bodies already in the world at the start, keyed `kind:id`, in body order. */
+  start(keys: Iterable<string>): void { for (const key of keys) this.#begin(key); }
+  #begin(key: string): void { this.#lives.set(key, Object.freeze({ id: ++this.#serial as BodyId, generation: 1 })); }
+  /**
+   * A completed tick's markers. Removals end lifetimes first, so a body that left and entered again in one tick starts a
+   * new one. A warp of a body with no lifetime starts one.
+   */
+  take(markers: readonly Discontinuity[]): void {
+    const placed = new Set<string>();
+    for (const marker of markers) if (marker.kind === 'removed') this.#lives.delete(bodyKey(marker.body));
+    for (const marker of markers) {
+      const key = bodyKey(marker.body), life = this.#lives.get(key);
+      if (marker.kind === 'placed') { this.#begin(key); placed.add(key); }
+      else if (marker.kind === 'warped') {
+        if (life) this.#lives.set(key, Object.freeze({ id: life.id, generation: life.generation + 1 })); else this.#begin(key);
+      }
+    }
+    this.#placed = placed;
+  }
+  get(key: string): BodyLife | undefined { return this.#lives.get(key); }
+  /** Whether the body entered the world in the last tick taken. */
+  placed(key: string): boolean { return this.#placed.has(key); }
+}
 
 /** What the applier needs besides the game: the IDs and what the start fixed. */
 interface Context {
@@ -201,6 +239,7 @@ export class TickMirror {
   /** Hooks and every dynamic body's whole pose (keyed `kind:id`), which the game has no field for. */
   readonly hooks = new Map<number, Hook>();
   readonly poses = new Map<string, PoseEntry>();
+  readonly lives = new BodyLives();
   /** Each projectile's deadline, for its countdown. */
   readonly #expires = new Map<number, Tick>();
 
@@ -228,6 +267,7 @@ export class TickMirror {
     }
     snap.state.traps.forEach(e => this.#trap(e.id, e.trap, snap.tick));
     for (const pose of snap.poses) this.poses.set(bodyKey(pose.body), pose);
+    this.lives.start(snap.poses.map(p => bodyKey(p.body)));
     for (const p of s.players) this.#memory(p, true);
   }
 
@@ -279,10 +319,11 @@ export class TickMirror {
       else if (gone.kind === 'hook') this.hooks.delete(gone.id);
     }
     const changed = new Map(c.items.map(e => [e.id, e.item] as const));
-    // A body that moved with its record unchanged keeps the record and takes the pose.
+    // A body that moved with its record unchanged keeps the record and takes the pose. A pose that changed only its
+    // rotation, motion or sleep leaves the published record alone.
     for (const pose of c.poses) if (pose.body.kind === 'item' && !changed.has(pose.body.id)) {
       const old = groundItem(s, pose.body.id as never);
-      if (old) replaceItem(s, old, { ...old, x: pose.at[0], y: pose.at[1] }, true);
+      if (old && (old.x !== pose.at[0] || old.y !== pose.at[1])) replaceItem(s, old, { ...old, x: pose.at[0], y: pose.at[1] }, true);
     }
     for (const [id, record] of changed) {
       const old = groundItem(s, id as never), pose = at.get(`item:${id}`);
@@ -297,6 +338,7 @@ export class TickMirror {
     if (projectiles) s.projectiles = [...projectiles.values()].sort((a, b) => a.id - b.id);
     for (const e of c.hooks) this.hooks.set(e.id, e.hook);
     for (const marker of t.discontinuities) if (marker.kind === 'removed') this.poses.delete(bodyKey(marker.body));
+    this.lives.take(t.discontinuities);
     for (const pose of c.poses) {
       this.poses.set(bodyKey(pose.body), pose);
       if (pose.body.kind === 'actor') { const p = this.#player(pose.body.id); p.x = pose.at[0]; p.y = pose.at[1]; }

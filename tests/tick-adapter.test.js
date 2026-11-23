@@ -4,7 +4,8 @@ import { createGame, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { createTickMatch } from '../shared/simulation/tick-match.ts';
 import { TickBoundary, botCommand } from '../shared/simulation/tick-boundary.ts';
-import { TickMirror, stepMirror } from '../shared/simulation/tick-mirror.ts';
+import { BodyLives, TickMirror, stepMirror } from '../shared/simulation/tick-mirror.ts';
+import { templatesOf } from '../shared/simulation/boundary.ts';
 import { TickFrames } from '../shared/simulation/tick-frame.ts';
 import { playerView } from '../shared/simulation/visibility.ts';
 import { createFrameEncoder, createRecordingReader } from '../shared/recording-format.ts';
@@ -65,7 +66,6 @@ test('a bot match on the new path holds the mirror and its frames equal to the m
     for (let i = 0; i < 240; i++) {
       const t = stepMirror(mirror);
       if (!t) break;
-      frames.advance(t);
       for (const e of t.changes.events) kinds.add(e.fact.kind);
       const snap = match.snapshot(), expected = mirror.mirrorOf(snap);
       assert.deepEqual(mirror.view(expected), expected, `tick ${t.tick}`);
@@ -102,13 +102,18 @@ test('a hook is a flight on the frame, then a tether from caster to target, and 
     const g = s.players.find(p => p.role === 'gladiator'), c = s.players.find(p => p.role === 'contestant'), gi = s.players.indexOf(g);
     const boundary = new TickBoundary(s, match), frames = new TickFrames(mirror);
     boundary.seat(g.id, 'join');
-    // Beside the contestants, clear of the locked door between them and the gladiators' spawn.
+    // Beside the contestants, clear of the locked door between them and the gladiators' spawn. A warp keeps the body's ID
+    // and renews its generation, so a viewer does not interpolate across it.
+    const bodyOfG = () => frames.frame().bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === gi);
+    const before = bodyOfG();
     assert.ok(boundary.teleport(g.id, [c.x, c.y + 150]));
-    frames.advance(stepMirror(mirror, boundary));
+    stepMirror(mirror, boundary);
+    const after = bodyOfG();
+    assert.deepEqual([after.id, after.generation, after.discontinuity], [before.id, before.generation + 1, undefined]);
     let flew = 0, pulled = 0;
     for (let seq = 1; seq <= 60 && !pulled; seq++) {
       boundary.input(g.id, { seq, aim: Math.atan2(c.y - g.y, c.x - g.x), skill: seq === 1 });
-      frames.advance(stepMirror(mirror, boundary));
+      stepMirror(mirror, boundary);
       const frame = frames.frame(), view = playerView(s, frame, g.id);
       const own = frame.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === gi);
       for (const flight of frame.hookFlights) { flew++; assert.deepEqual([flight.a, flight.casterIdx], [own.id, gi]); }
@@ -122,6 +127,39 @@ test('a hook is a flight on the frame, then a tether from caster to target, and 
     }
     assert.ok(flew && pulled, `${flew} flights, ${pulled} tethers`);
   }, c => { c.roster.gladiators = [{ name: 'G', kit: 'hook' }]; });
+});
+
+test('a body gets a new ID each time it enters the world and a generation renewed only by a warp', () => {
+  const lives = new BodyLives(), actor = { kind: 'actor', id: 7 }, item = { kind: 'item', id: 3 };
+  const life = key => ({ ...lives.get(key) });
+  lives.start(['actor:7']);
+  assert.deepEqual(life('actor:7'), { id: 1, generation: 1 });
+  lives.take([{ kind: 'placed', body: item }, { kind: 'warped', body: actor }]);
+  assert.deepEqual([life('actor:7'), life('item:3'), lives.placed('item:3'), lives.placed('actor:7')],
+    [{ id: 1, generation: 2 }, { id: 2, generation: 1 }, true, false]);
+  // Left and entered again in one tick: a new lifetime, whatever order the markers came in.
+  lives.take([{ kind: 'placed', body: actor }, { kind: 'removed', body: actor }]);
+  assert.deepEqual([life('actor:7'), lives.placed('item:3')], [{ id: 3, generation: 1 }, false]);
+  // Removed, then readmitted on a later tick.
+  lives.take([{ kind: 'removed', body: item }]);
+  assert.equal(lives.get('item:3'), undefined);
+  lives.take([{ kind: 'placed', body: item }]);
+  assert.deepEqual(life('item:3'), { id: 4, generation: 1 });
+});
+
+test('frames publish frozen shapes of their own, which no frame can change for another or for the loader', async () => {
+  await run((s, match, mirror) => {
+    const frames = new TickFrames(mirror), template = templatesOf(s).actor.contestant.shape, radius = template.radius;
+    stepMirror(mirror);
+    const first = frames.frame();
+    stepMirror(mirror);
+    const second = new TickFrames(mirror).frame(), shape = second.bodies[0].shape;
+    assert.notEqual(shape, template);
+    assert.ok(Object.isFrozen(shape));
+    assert.throws(() => { shape.radius = 99; }, TypeError);
+    assert.equal(first.bodies[0].shape.radius, radius);
+    assert.equal(template.radius, radius);
+  });
 });
 
 test('player input waits in its buffer under 24, and only the tick about to run is submitted', async () => {
