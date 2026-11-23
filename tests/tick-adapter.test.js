@@ -339,7 +339,7 @@ test('a nominated target maps onto the core, through the wire key for an item, a
   assert.equal(sanitizeInput({ interact: true, transit: 's1' }, 1).transit, 's1');
 });
 
-test('a frame records its inbound queue: commands, observations and carried events, as the recording names them', async () => {
+test('a frame records its inbound queue as the recording names it, less the commands of first-class bots', async () => {
   await run((s, match) => {
     const ids = match.ids, [c, , g] = s.players, word = id => ids.actorOfPlayer.get(id);
     const input = { ...emptyInput(), movement: [1, 0], attack: true, target: { kind: 'gate', id: 0 }, transit: ids.transitIndex.get('s1') };
@@ -354,7 +354,6 @@ test('a frame records its inbound queue: commands, observations and carried even
     ]);
     assert.deepEqual(recorded, [
       { type: 'command', id: c.id, source: 'player', tick: 4, seq: 9, input: { movement: [1, 0], attack: true, target: { kind: 'gate', id: 'd0' }, transit: 's1' } },
-      { type: 'command', id: g.id, source: 'bot', tick: 4, seq: 0, input: {} },
       { type: 'observation', kind: 'viewLag', id: c.id, ticks: 3 },
       { type: 'observation', kind: 'join', id: c.id },
       { type: 'observation', kind: 'teleport', body: `actor:${g.id}`, x: 10, y: 20 },

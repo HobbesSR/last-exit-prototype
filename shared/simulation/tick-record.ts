@@ -3,11 +3,15 @@ import type { BodyRef, Carried, Command, Inbound, Input, Observation, Target } f
 import type { MatchIds } from './tick-match.ts';
 import type { PlayerId, Tick } from '../types.ts';
 
-// What a frame on the new tick's path records as its `commands` (docs/26 "Schema 22", 27.2 "Frames (3d.3)"): T's inbound
-// queue as the core spent it, one recorded command per row, in the queue's order. The three kinds of row are the three
-// recorded types: `command` (player and bot input), `observation` (view lag, input lead, join, leave, dev teleport) and
-// `carried` (events carried from T−1). The room's own commands (start, the roster's joins and choices, abandonment) are
-// recorded beside them as before.
+// What a frame on the new tick's path records as its `commands` (docs/26 "Schema 22", 27.2 Boundary): T's inbound queue as
+// the core spent it, one recorded command per row, in the queue's order, less the first-class bots' commands. The three
+// kinds of row are the three recorded types: `command` (input through the receive boundary: a person's, or that of a bot
+// controlling a player), `observation` (view lag, input lead, join, leave, dev teleport) and `carried` (events carried
+// from T−1). The room's own commands (start, the roster's joins and choices, abandonment) are recorded beside them.
+//
+// A first-class bot's command (`source: 'bot'`) is the match's own computation from the history the recording holds, so
+// it is derived, not recorded (Corey, 2026-11-23). A seat's `leave` and `join` observations mark where derivation starts
+// and stops.
 //
 // Identities are the recording's: an actor is its player ID, a gate, a station or a trap its authored ID, and an item its
 // item ID. A body is a label, `actor:<player>`, `item:<id>` or `prop:<authored label>`. An input field at its empty value
@@ -29,7 +33,7 @@ export type RecordedCommand =
 
 const EMPTY = emptyInput();
 
-/** T's inbound queue as the frame's recorded commands. */
+/** T's inbound queue as the frame's recorded commands, without the first-class bots' commands. */
 export function recordedInbound(ids: MatchIds, inbound: readonly Inbound[]): RecordedCommand[] {
   const player = (actor: number): PlayerId => {
     const id = ids.playerOfActor.get(actor);
@@ -68,7 +72,7 @@ export function recordedInbound(ids: MatchIds, inbound: readonly Inbound[]): Rec
       case 'gateObserved': return { type: 'carried', kind: 'gateObserved', id: player(c.actor), gate: ids.gateIds[c.gate]!, open: c.open, locked: c.locked };
     }
   };
-  return inbound.map(row => row.type === 'command'
+  return inbound.filter(row => row.type !== 'command' || row.command.source !== 'bot').map(row => row.type === 'command'
     ? { type: 'command', id: player(row.command.actor), source: row.command.source, tick: row.command.tick, seq: row.command.seq, input: input(row.command.input) }
     : row.type === 'observation' ? observation(row.observation) : carried(row.carried));
 }

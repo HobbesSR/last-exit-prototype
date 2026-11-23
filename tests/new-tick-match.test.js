@@ -34,7 +34,8 @@ test('the new path records the inbound queue each tick spent, beside the room\'s
     frame = match.advance();
     assert.deepEqual(match.spent().filter(c => c.type !== 'command'), [{ type: 'observation', kind: 'viewLag', id: 'p1', ticks: viewLagFrom(200) },
       ...inputLeadFrom(200) !== inputLeadFrom(40) ? [{ type: 'observation', kind: 'inputLead', id: 'p1', ticks: inputLeadFrom(200) }] : []]);
-    assert.ok(match.spent().filter(c => c.type === 'command').every(c => c.source === 'bot'));
+    // The bots acted, and their commands are derived, not recorded.
+    assert.deepEqual(match.spent().filter(c => c.type === 'command'), []);
     // What the match hands out is detached.
     match.spent()[0].id = 'changed';
     assert.notEqual(match.spent()[0].id, 'changed');
@@ -52,7 +53,6 @@ test('the new path records the inbound queue each tick spent, beside the room\'s
       { type: 'observation', kind: 'teleport', body: 'actor:p1', x: 600, y: 600 },
       { type: 'command', id: 'p1', source: 'player', tick: frame.tick, seq: 1, input: { movement: [1, 0], aim: 0, attack: true } },
     ]);
-    assert.ok(spent.some(c => c.type === 'command' && c.source === 'bot'));
     // The teleport stood, before the solve moved the body on by its input.
     const body = frame.bodies.find(b => b.owner.kind === 'actor' && frame.players[b.owner.playerIdx].id === 'p1');
     assert.ok(Math.hypot(body.x - 600, body.y - 600) < 10, `${body.x}, ${body.y}`);
@@ -64,10 +64,10 @@ test('the new path records the inbound queue each tick spent, beside the room\'s
     assert.deepEqual(JSON.parse(frameLine(frame, spent, kept).line).commands, spent);
     assert.equal(match.project(frame, 'p1').self.playerIdx, frame.players.findIndex(p => p.id === 'p1'));
 
-    // A seat handed to a bot and taken back is an observation each; a bot command fills the tick between.
+    // A seat handed to a bot and taken back is an observation each, which mark where its commands are derived instead.
     assert.equal(match.leave('p1'), true);
     match.advance();
-    assert.deepEqual(match.spent().filter(c => c.id === 'p1').map(c => c.kind ?? c.source), ['leave', 'bot']);
+    assert.deepEqual(match.spent().filter(c => c.id === 'p1').map(c => c.kind ?? c.source), ['leave']);
     assert.equal(match.resume('p1').id, 'p1');
     match.advance();
     assert.deepEqual(match.spent().filter(c => c.id === 'p1').map(c => c.kind ?? c.source), ['join']);
