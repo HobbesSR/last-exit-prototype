@@ -574,7 +574,51 @@ fn reload_completes_before_fire_and_matching_drops_win_over_new_reloads() {
 }
 
 #[test]
-fn mandatory_death_drops_keep_value_when_geometry_and_body_capacity_refuse() {
+fn a_swap_reserves_its_body_slot_before_a_due_arrival() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 0.0);
+    for slot in 0..SLOT_COUNT {
+        equip(&mut scenario, A, slot, 10 + slot as u32, cell(80));
+    }
+    let incoming = ItemId(40);
+    add_loot(&mut scenario, incoming, 8.0, loot(pistol(5)));
+    let destination = StationId(0);
+    scenario.state.stations.insert(
+        destination,
+        Station {
+            kind: StationKind::Transit,
+            position: [400.0, 0.0],
+        },
+    );
+    let mut rider = actor(Presence::Transit);
+    rider.transit = Some(Transit {
+        destination,
+        origin: [200.0, 0.0],
+        arrive_at: 1,
+    });
+    scenario.state.actors.insert(B, rider);
+    scenario.body(BodyId::Actor(B), body(200.0));
+
+    let mut game = scenario.start(30, 10);
+    nominate(&mut game, A, incoming);
+    let mut rules = Combat::default();
+    rules.items.drops.body_capacity = 2;
+    let tick = game.step(&rules).unwrap();
+    assert!(has(
+        &tick,
+        Fact::Pickup {
+            actor: A,
+            item: incoming,
+            count: 1
+        }
+    ));
+    assert!(game.position(BodyId::Item(ItemId(10))).is_some());
+    assert_eq!(game.state().actors[&B].presence, Presence::Transit);
+    assert_eq!(game.position(BodyId::Actor(B)), None);
+}
+
+#[test]
+fn mandatory_death_drops_keep_value_when_geometry_refuses_body_admission() {
     let mut scenario = Scenario::default();
     scenario.bounds([-5.0, -5.0], [5.0, 5.0]);
     add_actor(&mut scenario, A, 0.0);
@@ -599,7 +643,7 @@ fn mandatory_death_drops_keep_value_when_geometry_and_body_capacity_refuse() {
     let mut rules = Combat::default();
     rules.items.reloading = true;
     rules.items.drops.ground_capacity = 0;
-    rules.items.drops.body_capacity = 2;
+    rules.items.drops.body_capacity = 3; // One free slot cannot admit an overlapping fallback.
     let tick = game.step(&rules).unwrap();
     assert!(has(&tick, Fact::Eliminated { actor: A }));
     assert!(has(

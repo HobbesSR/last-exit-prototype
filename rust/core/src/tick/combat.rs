@@ -29,6 +29,7 @@ pub struct CombatRules {
     pub melee_damage: [f64; 4],
     pub warden_cooldown: Tick,
     pub specter_cooldown: Tick,
+    pub respawn_ticks: Tick,
 }
 
 impl Default for CombatRules {
@@ -60,11 +61,12 @@ impl Default for CombatRules {
             melee_damage: [24.0, 19.0, 29.0, 24.0],
             warden_cooldown: 110,
             specter_cooldown: 150,
+            respawn_ticks: 400,
         }
     }
 }
 
-/// The staged tick's movement, combat, inventory, interaction and hazard rules.
+/// The staged tick's movement, combat, inventory, interaction, hazard and admission rules.
 #[derive(Default)]
 pub struct Combat {
     pub movement: Movement,
@@ -422,9 +424,15 @@ impl Mechanics for Combat {
         state: View<'_>,
         deaths: &[Elimination],
         placements: &mut Vec<Self::Placement>,
-        _commit: &mut Commit,
+        commit: &mut Commit,
     ) {
         self.items.deaths(state, deaths, placements);
+        commit.lifecycle.extend(deaths.iter().filter_map(|death| {
+            (death.actor.kind == ActorKind::Gladiator).then_some(Lifecycle::ScheduleRespawn {
+                actor: death.actor,
+                ready_at: state.tick.saturating_add(self.rules.respawn_ticks.max(1)),
+            })
+        }));
     }
 
     fn claims(
@@ -447,7 +455,7 @@ impl Mechanics for Combat {
         placement: Placement<Self::Placement>,
         commit: &mut Commit,
     ) -> BTreeMap<SpawnKey, Spawn> {
-        let spawns = self.items.place_drops(state, view, placement, commit);
+        let spawns = placement::place(state, view, &self.items, placement, commit);
         let charging = std::mem::take(&mut commit.charging);
         self.interactions.charge(state, charging, commit);
         spawns

@@ -34,6 +34,10 @@ pub enum Lifecycle {
         actor: ActorId,
         presence: Presence,
     },
+    ScheduleRespawn {
+        actor: ActorId,
+        ready_at: Tick,
+    },
     RemoveItem(ItemId),
     SyncGate(GateId),
     RemoveProjectile(ProjectileId),
@@ -58,6 +62,15 @@ pub enum Lifecycle {
 }
 
 pub enum Spawn {
+    Actor {
+        id: ActorId,
+        body: BodySpec,
+        arrival: ActorArrival,
+    },
+    AdmitItem {
+        id: ItemId,
+        body: BodySpec,
+    },
     Item {
         id: Option<ItemId>,
         item: GroundItem,
@@ -69,6 +82,12 @@ pub enum Spawn {
     },
     Projectile(Projectile),
     Hook(Hook),
+}
+
+#[derive(Clone, Copy)]
+pub enum ActorArrival {
+    Respawn,
+    Transit(StationId),
 }
 
 /// The source and its canonical local ordinal identify a placement, independently of where
@@ -137,6 +156,9 @@ pub enum Fact {
         reason: Rejection,
     },
     Eliminated {
+        actor: ActorId,
+    },
+    Respawned {
         actor: ActorId,
     },
     KillCredited {
@@ -252,6 +274,7 @@ impl Fact {
             Self::Hit { source, .. } | Self::Placed { source, .. } => source,
             Self::Rejected { actor, .. }
             | Self::Eliminated { actor }
+            | Self::Respawned { actor }
             | Self::KillCredited { actor, .. }
             | Self::Assisted { actor, .. }
             | Self::KillRewarded { actor }
@@ -326,6 +349,7 @@ pub struct Commit {
     pub carried: Vec<Carried>,
     pub facts: Vec<Fact>,
     pub(super) charging: super::interaction::ChargeChanges,
+    pub(super) instant_rails: Vec<(ActorId, super::Transit)>,
 }
 
 #[derive(Debug)]
@@ -533,6 +557,12 @@ pub(super) struct Ids {
     event: u64,
 }
 
+#[derive(Default)]
+pub(super) struct Additions {
+    actors: BTreeMap<ActorId, (BodySpec, ActorArrival)>,
+    items: BTreeMap<ItemId, (Option<GroundItem>, Option<BodySpec>)>,
+}
+
 impl Ids {
     pub(super) fn from_state(state: &State) -> Self {
         let ground = state
@@ -558,12 +588,20 @@ impl Ids {
     pub(super) fn spawn(
         &mut self,
         state: &mut State,
-        bodies: &mut Bodies,
         spawns: impl IntoIterator<Item = (SpawnKey, Spawn)>,
         facts: &mut Vec<Fact>,
-    ) {
+    ) -> Additions {
+        let mut additions = Additions::default();
         for (key, spawn) in spawns {
             let placed = match spawn {
+                Spawn::Actor { id, body, arrival } => {
+                    additions.actors.insert(id, (body, arrival));
+                    Entity::Actor(id)
+                }
+                Spawn::AdmitItem { id, body } => {
+                    assert!(additions.items.insert(id, (None, Some(body))).is_none());
+                    Entity::Item(id)
+                }
                 Spawn::SplitItem { actor, slot } => {
                     let item = state
                         .actors
@@ -578,11 +616,8 @@ impl Ids {
                 }
                 Spawn::Item { id, item, body } => {
                     let id = id.unwrap_or_else(|| ItemId(next(&mut self.item)));
-                    if let Some(body) = body {
-                        bodies.insert(BodyId::Item(id), body);
-                    }
                     assert!(
-                        state.items.insert(id, item).is_none(),
+                        additions.items.insert(id, (Some(item), body)).is_none(),
                         "item identity already on ground"
                     );
                     Entity::Item(id)
@@ -603,6 +638,7 @@ impl Ids {
                 placed,
             });
         }
+        additions
     }
 
     pub(super) fn publish(&mut self, tick: Tick, mut facts: Vec<Fact>) -> Vec<Event> {
@@ -630,10 +666,12 @@ pub(super) fn sync(
     state: &mut State,
     bodies: &mut Bodies,
     lifecycle: Vec<Lifecycle>,
+    additions: Additions,
     deaths: &[Elimination],
     facts: &mut Vec<Fact>,
-) -> BTreeSet<ActorId> {
+) -> BTreeSet<BodyId> {
     let mut presence_changes = BTreeMap::new();
+    let mut respawns = BTreeMap::new();
     let mut warps = BTreeMap::new();
     let mut removed = BTreeSet::new();
     for effect in lifecycle {
@@ -644,6 +682,9 @@ pub(super) fn sync(
                     old.is_none_or(|old| old == presence),
                     "unresolved presence changes"
                 );
+            }
+            Lifecycle::ScheduleRespawn { actor, ready_at } => {
+                respawns.insert(actor, ready_at);
             }
             Lifecycle::RemoveItem(id) => {
                 state.items.remove(&id);
@@ -675,18 +716,26 @@ pub(super) fn sync(
             }
         }
     }
-    // A removal settled by the elimination stage overrides other lifecycle requests.
+    // A death overrides other lifecycle requests, including a same-tick departure.
     for death in deaths {
-        presence_changes.insert(death.actor, Presence::Eliminated);
+        let record = state
+            .actors
+            .get_mut(&death.actor)
+            .expect("eliminated actor");
+        record.respawn_at = respawns.get(&death.actor).copied();
+        let presence = if record.respawn_at.is_some() {
+            Presence::Pending
+        } else {
+            Presence::Eliminated
+        };
+        presence_changes.insert(death.actor, presence);
     }
-    let mut deactivated = BTreeSet::new();
     for (actor, presence) in presence_changes {
         if let Some(record) = state.actors.get_mut(&actor) {
             record.presence = presence;
             if presence != Presence::Active {
                 record.inventory.reload = None;
                 record.charging = None;
-                deactivated.insert(actor);
                 removed.insert(BodyId::Actor(actor));
             }
         }
@@ -697,6 +746,41 @@ pub(super) fn sync(
     for (&id, &(to, angle)) in &warps {
         if !removed.contains(&id) {
             bodies.warp(id, to, angle);
+        }
+    }
+    for (id, (body, arrival)) in additions.actors {
+        bodies.insert(BodyId::Actor(id), body);
+        let record = state.actors.get_mut(&id).expect("admitted actor");
+        record.presence = Presence::Active;
+        record.sneak = false;
+        match arrival {
+            ActorArrival::Respawn => {
+                record.respawn_at = None;
+                record.hp = record.max_hp;
+                record.shield = 0.0;
+                record.statuses.remove(&Status::Boost);
+                record.statuses.remove(&Status::Stun);
+                facts.push(Fact::Respawned { actor: id });
+            }
+            ActorArrival::Transit(destination) => {
+                record.transit = None;
+                facts.push(Fact::TransitLanded {
+                    actor: id,
+                    destination,
+                });
+            }
+        }
+    }
+    for (id, (item, body)) in additions.items {
+        if let Some(item) = item {
+            assert!(
+                state.items.insert(id, item).is_none(),
+                "item already on ground"
+            );
+        }
+        if let Some(body) = body {
+            bodies.insert(BodyId::Item(id), body);
+            state.items.get_mut(&id).expect("admitted item").unplaced_at = None;
         }
     }
     let actors = &state.actors;
@@ -724,5 +808,5 @@ pub(super) fn sync(
         });
         false
     });
-    deactivated
+    removed
 }
