@@ -41,7 +41,8 @@ use std::slice;
 /// 43: the new tick's live adapter (`match_*`, 27.2 3d.1) and its word layout (`tick/codec.rs`).
 /// 44: `Fact::Escaped` carries the slots left after it (27.2 3d.2).
 /// 45: a pose row carries the body's whole pose (27.2 3d.3).
-pub const ADAPTER_VERSION: u32 = 45;
+/// 46: the opening discovery at setup and an unresolved nomination target (27.2 3d.4).
+pub const ADAPTER_VERSION: u32 = 46;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]

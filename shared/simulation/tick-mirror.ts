@@ -421,8 +421,10 @@ export class TickMirror {
   /**
    * A whole snapshot mapped as the applier maps changes: the oracle a test holds `view` equal to. An actor with no body
    * has no position here; the mirror keeps its last one. A trap's static fields come from the mirror's own record.
+   * `remembers` limits which contestants' memory is decoded from the match; the others keep the mirror's own. Decoding
+   * every memory every tick dominates a whole match's check once bots remember the map's loot.
    */
-  mirrorOf(snap: Snapshot): MirrorView {
+  mirrorOf(snap: Snapshot, remembers: (p: Player) => boolean = () => true): MirrorView {
     const ctx = this.ctx, at = poseMap(snap.poses), tick = snap.tick;
     const players = this.s.players.map(p => {
       const e = snap.state.actors.find(x => x.word === ctx.ids.actorOfPlayer.get(p.id))!, out: Partial<Player> = {};
@@ -445,8 +447,10 @@ export class TickMirror {
       poses: snap.poses,
       // The match's own, as of its last completed tick: the snapshot's.
       knowledge: this.s.players.map(p => {
+        const heard = this.match.heard(p.id).map(heardOf);
+        if (!remembers(p)) return { memory: p.discovery ?? null, heard };
         const memory = p.role === 'contestant' && ctx.discovery ? this.match.memory(p.id) : null;
-        return { memory: memory ? writeMemory(ctx, emptyMemory(ctx), memory) : null, heard: this.match.heard(p.id).map(heardOf) };
+        return { memory: memory ? writeMemory(ctx, emptyMemory(ctx), memory) : null, heard };
       }),
     };
   }

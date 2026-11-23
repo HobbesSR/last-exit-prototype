@@ -317,6 +317,49 @@ fn default_interact_prefers_extraction_to_a_closer_gate() {
     assert!(!game.state().gates[&gate].open);
 }
 
+#[test]
+fn an_unresolved_nomination_is_rejected_and_allows_no_other_gesture() {
+    for pressed in [true, false] {
+        let mut scenario = Scenario::default();
+        add_actor(&mut scenario, B, 0.0);
+        rail_station(&mut scenario, 1, 0.0);
+        let destination = rail_station(&mut scenario, 2, 400.0);
+        keep_open(&mut scenario);
+        let mut game = scenario.start(50, 10);
+        // A valid rail destination competes with the failed nomination; R8 never falls through.
+        submit(
+            &mut game,
+            B,
+            1,
+            1,
+            Input {
+                interact: pressed,
+                target: Some(Target::Unresolved),
+                transit: Some(destination),
+                movement: [1.0, 0.0],
+                ..Input::default()
+            },
+        );
+        let tick = game.step(&Combat::default()).unwrap();
+        let rejected = Fact::Rejected {
+            actor: B,
+            reason: Rejection::Interaction(Some(Target::Unresolved)),
+        };
+        // Pressed, the core rejects it so the player learns why; unpressed, nothing was asked.
+        assert_eq!(has(&tick, rejected), pressed);
+        assert!(
+            !tick
+                .changes
+                .events
+                .iter()
+                .any(|event| matches!(event.fact, Fact::TransitLanded { .. }))
+        );
+        assert!(game.state().actors[&B].transit.is_none());
+        // Movement stands.
+        assert!(tick.solved.position(BodyId::Actor(B)).unwrap()[0] > 0.0);
+    }
+}
+
 fn rail_station(scenario: &mut Scenario, id: u32, x: f64) -> StationId {
     let id = StationId(id);
     scenario.state.stations.insert(

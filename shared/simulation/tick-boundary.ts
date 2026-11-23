@@ -42,18 +42,21 @@ export function targetOf(ids: MatchIds, t: InputTarget, wire: WireIds): Target |
       try { id = wire.internal(t.id, 'item'); } catch { return null; }
       return Number.isSafeInteger(id) && id >= 0 && id <= 0xffffffff ? { kind: 'item', id } : null;
     }
+    case 'unresolved': return null;
   }
 }
 
 /**
  * A sanitized client input as the core's `Input`. A drop is the selected slot's, and a utility is used by attacking with
- * it selected. A nominated target that names nothing on the map is a failed nomination: R8 allows no other gesture, so
- * the interaction and any rail destination go, and movement and combat stand (review 1049).
+ * it selected. A nomination that failed, malformed (the sanitizer's `unresolved`) or naming nothing on the map, reaches
+ * the core as `unresolved`: R8 allows no other gesture, so any rail destination goes, and the core rejects a pressed
+ * interact with it (review 1049). Movement and combat stand.
  */
 export function inputOf(ids: MatchIds, input: PlayerInput, wire: WireIds = wireIds()): Input {
-  const target = input.target ? targetOf(ids, input.target, wire) : null, failed = input.target !== undefined && target === null;
+  const mapped = input.target ? targetOf(ids, input.target, wire) : null, failed = input.target !== undefined && mapped === null;
+  const pressed = input.interact === true || input.target?.kind === 'unresolved';
   return { ...emptyInput(), movement: [input.x ?? 0, input.y ?? 0], aim: input.aim ?? null, sneak: input.sneak === true,
-    attack: input.attack === true, skill: input.skill === true, interact: input.interact === true && !failed, target,
+    attack: input.attack === true, skill: input.skill === true, interact: pressed, target: failed ? { kind: 'unresolved' } : mapped,
     slot: input.slot ?? null, moveSlot: input.moveSlot ? [input.moveSlot.from, input.moveSlot.to] : null,
     drop: input.drop ? { kind: 'selected' } : null, reload: input.reload === true,
     dropAmmo: input.dropAmmo ? { family: input.dropAmmo.family, count: input.dropAmmo.count } : null,

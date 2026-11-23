@@ -320,7 +320,6 @@ impl Scenario {
             .collect();
         let mut state = self.state;
         state.hazard_x = hazard_map.wall_at(0).or(state.hazard_x);
-        #[allow(unused_mut)]
         let mut game = Match {
             state,
             history: self.history,
@@ -347,6 +346,7 @@ impl Scenario {
             #[cfg(test)]
             mirror: None,
         };
+        game.open_discovery();
         #[cfg(test)]
         {
             game.mirror = Some(game.snapshot());
@@ -536,20 +536,7 @@ impl Match {
         discontinuities.dedup();
         self.cues.publish(&changes.events);
         let discovery = self.discover(tick, &inbound);
-        let (state, bodies) = (&self.state, &mut self.bodies);
-        discovery::remember(
-            &discovery,
-            state,
-            self.sampler.as_mut(),
-            || {
-                state
-                    .items
-                    .iter()
-                    .filter_map(|(&id, item)| Some((id, bodies.position(BodyId::Item(id))?, *item)))
-                    .collect()
-            },
-            &mut self.memory,
-        );
+        self.remember(&discovery);
         self.tick = tick;
         #[cfg(test)]
         {
@@ -660,6 +647,52 @@ impl Match {
 
     /// R12: discovery samples after the terminal check and rewind capture, so a stranded,
     /// escaped or departed contestant does not sample, and an eye uses its committed pose.
+    /// Applies a discovery to the contestants' memory. A line-of-sight sample reads the ground
+    /// records (#1301): an item is where its body is, or at its stored spot while it has none.
+    fn remember(&mut self, discovery: &Discovery) {
+        let (state, bodies) = (&self.state, &mut self.bodies);
+        discovery::remember(
+            discovery,
+            state,
+            self.sampler.as_mut(),
+            || {
+                state
+                    .items
+                    .iter()
+                    .filter_map(|(&id, item)| {
+                        let at = bodies.position(BodyId::Item(id)).or(item.unplaced_at)?;
+                        Some((id, at, *item))
+                    })
+                    .collect()
+            },
+            &mut self.memory,
+        );
+    }
+
+    /// The opening discovery, before the first frame and the first bot intent: every active
+    /// contestant samples at its starting pose, as the old game discovers when it creates a
+    /// player (`shared/simulation/state.ts`). Tick 0 and T1's intent then agree on what each
+    /// contestant already knows.
+    fn open_discovery(&mut self) {
+        let bodies = &mut self.bodies;
+        let samples = self
+            .state
+            .actors
+            .iter()
+            .filter(|(id, actor)| {
+                id.kind == ActorKind::Contestant && actor.presence == Presence::Active
+            })
+            .filter_map(|(&actor, _)| {
+                let eye = bodies.position(BodyId::Actor(actor))?;
+                Some(DiscoverySample { actor, eye })
+            })
+            .collect();
+        self.remember(&Discovery {
+            gates: Vec::new(),
+            samples,
+        });
+    }
+
     fn discover(&mut self, tick: Tick, inbound: &[Inbound]) -> Discovery {
         let contestants: Vec<_> = self
             .state

@@ -676,7 +676,13 @@ export interface SlotMove {
  * never falls through to another; the old tick ignores it.
  */
 export type InputTarget = { kind: 'extraction' } | { kind: 'gate'; gateIdx: GateIdx } | { kind: 'station'; id: StationId | ChargerId }
-  | { kind: 'item'; id: number };
+  | { kind: 'item'; id: number }
+  /**
+   * The sanitizer's mark for a pressed interact whose nomination was malformed (27.2 R8). The button is cleared beside it,
+   * so the old tick, which reads no target, does nothing; the new tick's core rejects it. Queue admission keeps it; from the
+   * wire it is malformed like any other target.
+   */
+  | { kind: 'unresolved' };
 
 export interface PlayerInput {
   /** Movement axes, each clamped to [-1, 1]. */

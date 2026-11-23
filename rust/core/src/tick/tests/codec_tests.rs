@@ -502,6 +502,7 @@ fn every_fact() -> Vec<Fact> {
         Rejection::Interaction(Some(Target::Station(StationId(2)))),
         Rejection::Interaction(Some(Target::Gate(GateId(3)))),
         Rejection::Interaction(Some(Target::Item(ItemId(6)))),
+        Rejection::Interaction(Some(Target::Unresolved)),
         Rejection::GateLocked(GateId(1)),
         Rejection::GateOccupied(GateId(2)),
         Rejection::GateContested(GateId(3)),
@@ -644,6 +645,7 @@ fn every_input() -> Vec<Input> {
         Target::Extraction,
         Target::Station(StationId(1)),
         Target::Item(ItemId(2)),
+        Target::Unresolved,
     ] {
         inputs.push(Input {
             target: Some(target),

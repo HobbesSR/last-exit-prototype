@@ -133,7 +133,9 @@ export interface Snapshot { tick: Tick; state: State; poses: PoseEntry[] }
 
 // --- Inbound ----------------------------------------------------------------
 
-export type Target = { kind: 'extraction' } | { kind: 'station'; id: number } | { kind: 'gate'; id: number } | { kind: 'item'; id: number };
+/** `unresolved` is a nomination the receive boundary could not map (27.2 R8): the core rejects it, pressed, and tries nothing else. */
+export type Target = { kind: 'extraction' } | { kind: 'station'; id: number } | { kind: 'gate'; id: number } | { kind: 'item'; id: number }
+  | { kind: 'unresolved' };
 export type DropSlot = { kind: 'selected' } | { kind: 'slot'; slot: number };
 export interface Input {
   movement: Point;
@@ -380,7 +382,7 @@ const STATUSES: readonly Status[] = ['boost', 'cloak', 'reveal', 'stun'];
 const RELEASES: readonly HookRelease[] = ['cancelled', 'expired', 'obstructed', 'friendlyContact', 'range', 'standoff', 'separation', 'endpointGone', 'relocated'];
 const ENTITIES: readonly EntityKind[] = ['actor', 'item', 'projectile', 'hook', 'gate', 'trap', 'station', 'prop', 'geometry', 'match'];
 const BODY_KINDS: readonly BodyKind[] = ['actor', 'item', 'prop', 'gate', 'geometry'];
-const TARGETS: readonly Target['kind'][] = ['extraction', 'station', 'gate', 'item'];
+const TARGETS: readonly Target['kind'][] = ['extraction', 'station', 'gate', 'item', 'unresolved'];
 
 /** `actor_word` (`tick/order.rs`): `(kind << 32) | seat`, as a plain number. */
 export const actorWord = (kind: 'contestant' | 'gladiator', seat: number): number => (kind === 'contestant' ? 0 : 1) * 2 ** 32 + seat;
@@ -599,7 +601,7 @@ export function encodeSetup(setup: MatchSetup): Float64Array {
   return Float64Array.from(w.words);
 }
 
-function putTarget(w: Writer, t: Target): void { w.pick(TARGETS, t.kind, 'target'); w.u32(t.kind === 'extraction' ? 0 : t.id); }
+function putTarget(w: Writer, t: Target): void { w.pick(TARGETS, t.kind, 'target'); w.u32('id' in t ? t.id : 0); }
 function putInput(w: Writer, input: Input): void {
   const start = w.length;
   w.point(input.movement);
@@ -849,7 +851,7 @@ function getRejection(r: Reader): Rejection {
 }
 function getTarget(r: Reader): Target {
   const kind = r.pick(TARGETS), id = r.u32();
-  return kind === 'extraction' ? { kind } : { kind, id };
+  return kind === 'extraction' || kind === 'unresolved' ? { kind } : { kind, id };
 }
 function getFact(r: Reader): Fact {
   const tag = r.u32();
