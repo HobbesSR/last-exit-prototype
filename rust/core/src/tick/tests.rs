@@ -1,6 +1,8 @@
 use super::*;
 use crate::physics::{BodyParams, KIND_ACTOR, SHAPE_CIRCLE};
 
+mod movement_tests;
+
 const A: ActorId = ActorId {
     kind: ActorKind::Contestant,
     seat: 10,
@@ -26,7 +28,7 @@ impl Mechanics for Rules {
 
     fn intake(
         &self,
-        before: View<'_>,
+        before: IntakeView<'_>,
         _inbound: &[Inbound],
         commands: &[Command],
         writes: &mut Intake,
@@ -34,7 +36,7 @@ impl Mechanics for Rules {
         assert!(
             commands
                 .iter()
-                .all(|command| before.state.active(command.actor))
+                .all(|command| before.start.state.active(command.actor))
         );
         for command in commands {
             if let Some(aim) = command.input.aim {
@@ -100,11 +102,14 @@ impl Mechanics for Rules {
 fn actor(presence: Presence) -> Actor {
     Actor {
         presence,
+        kit: None,
+        level: 1,
         hp: 90.0,
         max_hp: 100.0,
         shield: 0.0,
         max_shield: 15.0,
         aim: 0.0,
+        sneak: false,
         deadlines: Deadlines::default(),
         statuses: BTreeMap::new(),
     }

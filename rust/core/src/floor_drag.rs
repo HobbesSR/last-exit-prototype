@@ -7,6 +7,8 @@
 //! `?.drag ?? 1` did, without falling through to the next. The containment test is half-open,
 //! `x <= p < x + w`, in the same `f64` arithmetic.
 
+use crate::swept::Grid;
+
 /// What a body's damping follows: nothing (actors, statics), the loot profile or the prop profile.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Class {
@@ -23,6 +25,7 @@ pub struct Floor {
     surfaces: Vec<[f64; SURFACE_STRIDE]>,
     loot: [f64; 2],
     prop: [f64; 2],
+    index: Option<Grid>,
 }
 
 impl Floor {
@@ -34,14 +37,31 @@ impl Floor {
             surfaces: rows.as_chunks::<SURFACE_STRIDE>().0.to_vec(),
             loot: [bases[0], bases[1]],
             prop: [bases[2], bases[3]],
+            index: None,
         }
     }
 
+    pub(crate) fn indexed(mut self) -> Self {
+        self.index = Some(Grid::for_bounds(
+            self.surfaces.iter().map(|&[x, y, w, h, _]| [x, y, w, h]),
+        ));
+        self
+    }
+
     fn drag_at(&self, x: f64, y: f64) -> f64 {
-        self.surfaces
-            .iter()
-            .find(|f| x >= f[0] && x < f[0] + f[2] && y >= f[1] && y < f[1] + f[3])
-            .map_or(1.0, |f| f[4])
+        let contains = |f: &&[f64; SURFACE_STRIDE]| {
+            x >= f[0] && x < f[0] + f[2] && y >= f[1] && y < f[1] + f[3]
+        };
+        let surface = if let Some(index) = &self.index {
+            index
+                .at(x, y)
+                .into_iter()
+                .map(|i| &self.surfaces[i as usize])
+                .find(contains)
+        } else {
+            self.surfaces.iter().find(contains)
+        };
+        surface.map_or(1.0, |f| f[4])
     }
 
     /// The damping a body of `class` at `(x, y)` should have, or `None` when its class has none.

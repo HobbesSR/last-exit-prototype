@@ -1,10 +1,15 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
+use crate::floor_drag::Floor;
+use crate::hooks::prop_shape;
 use crate::physics::{
-    self, BodyParams, DYNAMIC_STRIDE, HEADER, KIND_STATIC, PUSH_STRIDE, SUBSTEPS,
+    self, BodyParams, CONSTRAINT_STRIDE, DYNAMIC_STRIDE, EVENT_STRIDE, HEADER, KIND_PROP,
+    KIND_STATIC, LOOT_GROUP, PUSH_STRIDE, SUBSTEPS,
 };
+use crate::swept::Shape;
+use crate::world::PropShape;
 
-use super::state::{BodyId, Point};
+use super::state::{BodyId, HookId, Point};
 
 pub struct BodySpec {
     pub params: BodyParams,
@@ -23,9 +28,49 @@ pub struct Motor {
 
 pub type Path = [Point; SUBSTEPS + 1];
 
+#[derive(Clone, Copy, Debug)]
+pub struct Tether {
+    pub a: BodyId,
+    pub b: BodyId,
+    pub length: f64,
+    pub stiffness: f64,
+    pub damping: f64,
+    pub max_force: f64,
+    pub break_distance: f64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum ContactKind {
+    Started,
+    Stopped,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Contact {
+    pub substep: u8,
+    pub a: BodyId,
+    pub b: BodyId,
+    pub kind: ContactKind,
+}
+
+#[derive(Default)]
+pub struct BeforeSolve {
+    positions: BTreeMap<BodyId, Point>,
+    pub solid_props: Vec<Shape>,
+}
+
+impl BeforeSolve {
+    pub fn position(&self, id: BodyId) -> Option<Point> {
+        self.positions.get(&id).copied()
+    }
+}
+
 #[derive(Default)]
 pub struct Solved {
     paths: BTreeMap<BodyId, Path>,
+    broken: BTreeSet<HookId>,
+    pub contacts: Vec<Contact>,
+    pub solid_props: Vec<Shape>,
 }
 
 impl Solved {
@@ -36,13 +81,19 @@ impl Solved {
     pub fn position(&self, id: BodyId) -> Option<Point> {
         self.path(id).map(|path| path[SUBSTEPS])
     }
+
+    pub fn tether_broke(&self, id: HookId) -> bool {
+        self.broken.contains(&id)
+    }
 }
 
 #[derive(Default)]
 pub(super) struct Bodies {
     engine: physics::World,
     slots: BTreeMap<BodyId, u32>,
+    names: BTreeMap<u32, BodyId>,
     dynamic: BTreeMap<BodyId, [f64; 2]>,
+    solid_props: BTreeMap<BodyId, PropShape>,
 }
 
 impl Bodies {
@@ -54,14 +105,28 @@ impl Bodies {
             .add_body(&spec.params, spec.shape, a, b, &spec.vertices)
             .expect("validated body shape");
         self.slots.insert(id, slot);
+        self.names.insert(slot, id);
         if spec.params.kind != KIND_STATIC {
             self.dynamic.insert(id, [spec.speed_limit, spec.tip_radius]);
+        }
+        if spec.params.kind == KIND_PROP && spec.params.groups >> 16 != LOOT_GROUP {
+            self.solid_props.insert(
+                id,
+                PropShape {
+                    shape: spec.shape,
+                    a,
+                    b,
+                    vertices: spec.vertices,
+                },
+            );
         }
     }
 
     pub(super) fn remove(&mut self, id: BodyId) {
         if let Some(slot) = self.slots.remove(&id) {
             self.dynamic.remove(&id);
+            self.names.remove(&slot);
+            self.solid_props.remove(&id);
             self.engine.remove_body(slot);
         }
     }
@@ -78,11 +143,42 @@ impl Bodies {
         Some([pose[0], pose[1]])
     }
 
+    pub(super) fn before_solve(&mut self) -> BeforeSolve {
+        let positions = self
+            .dynamic
+            .keys()
+            .map(|&id| {
+                let pose = self.engine.pose(self.slots[&id]);
+                (id, [pose[0], pose[1]])
+            })
+            .collect();
+        BeforeSolve {
+            positions,
+            solid_props: self.props(),
+        }
+    }
+
+    fn props(&mut self) -> Vec<Shape> {
+        self.solid_props
+            .iter()
+            .map(|(&id, shape)| {
+                let pose = self.engine.pose(self.slots[&id]);
+                prop_shape(shape, pose[0], pose[1], pose[2])
+            })
+            .collect()
+    }
+
+    pub(super) fn use_floor(&mut self, floor: Floor) {
+        self.engine.use_floor(floor);
+    }
+
     pub(super) fn step(
         &mut self,
         motors: &BTreeMap<BodyId, Motor>,
         impulses: &BTreeMap<BodyId, Point>,
+        tethers: &BTreeMap<HookId, Tether>,
     ) -> Solved {
+        self.engine.apply_floor_drag();
         let mut input = std::mem::take(self.engine.input_vec());
         input.clear();
         input.reserve(self.dynamic.len() * DYNAMIC_STRIDE + impulses.len() * PUSH_STRIDE);
@@ -113,10 +209,34 @@ impl Bodies {
                 impulse_count += 1;
             }
         }
+        let mut constraints = Vec::new();
+        for (&id, tether) in tethers {
+            let (Some(&a), Some(&b)) = (self.slots.get(&tether.a), self.slots.get(&tether.b))
+            else {
+                continue;
+            };
+            let row: [f64; CONSTRAINT_STRIDE] = [
+                f64::from(a),
+                f64::from(b),
+                1.0,
+                tether.length,
+                0.0,
+                tether.stiffness,
+                tether.damping,
+                tether.max_force,
+                tether.break_distance,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ];
+            input.extend_from_slice(&row);
+            constraints.push(id);
+        }
         *self.engine.input_vec() = input;
 
         let count = self.dynamic.len();
-        let out = self.engine.step(count, 0, impulse_count, 0);
+        let out = self.engine.step(count, 0, impulse_count, constraints.len());
         assert_eq!(out[0], 0.0, "Rapier rejected the tick's inputs");
         let paths = self
             .dynamic
@@ -130,6 +250,37 @@ impl Bodies {
                 (id, path)
             })
             .collect();
-        Solved { paths }
+        let event_start = HEADER + (SUBSTEPS + 1) * count * 2;
+        let event_end = event_start + out[2] as usize * EVENT_STRIDE;
+        let mut contacts: Vec<_> = out[event_start..event_end]
+            .as_chunks::<EVENT_STRIDE>()
+            .0
+            .iter()
+            .filter_map(|&[substep, a, b, started]| {
+                let a = *self.names.get(&(a as u32))?;
+                let b = *self.names.get(&(b as u32))?;
+                Some(Contact {
+                    substep: substep as u8,
+                    a: a.min(b),
+                    b: a.max(b),
+                    kind: if started == 0.0 {
+                        ContactKind::Stopped
+                    } else {
+                        ContactKind::Started
+                    },
+                })
+            })
+            .collect();
+        contacts.sort_unstable();
+        let broken = out[event_end..]
+            .iter()
+            .map(|&i| constraints[i as usize])
+            .collect();
+        Solved {
+            paths,
+            broken,
+            contacts,
+            solid_props: self.props(),
+        }
     }
 }

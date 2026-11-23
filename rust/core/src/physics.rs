@@ -414,7 +414,11 @@ impl World {
 
     /// Takes the floors and damping profiles from the input buffer (`Floor::from_input`'s layout).
     pub fn set_floor(&mut self) {
-        self.floor = Some(Floor::from_input(&self.input));
+        self.use_floor(Floor::from_input(&self.input));
+    }
+
+    pub(crate) fn use_floor(&mut self, floor: Floor) {
+        self.floor = Some(floor);
     }
 
     /// Floor drag over every dynamic prop, before the solve (`floor_drag`). A damping is set only

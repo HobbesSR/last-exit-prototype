@@ -1,25 +1,35 @@
-//! The unwired intake → solve → resolve → apply runner (27.2, stage 3a).
+//! The unwired intake → solve → resolve → apply runner (27.2).
 //! The WASM adapter still calls the seven-phase tick.
 
 mod apply;
+mod hook;
 mod input;
+mod motor;
+mod movement;
 mod order;
 mod solve;
 mod state;
+mod sweep;
 
 pub use apply::{
-    Commit, Effects, Elimination, Event, Fact, Lifecycle, Spawn, SpawnKey, StatusEffect,
-    VitalEffect,
+    Commit, Effects, Elimination, Event, Fact, HookRelease, Lifecycle, Rejection, Spawn, SpawnKey,
+    StatusEffect, VitalEffect,
 };
+pub use hook::HookTuning;
 pub use input::{
     AmmoFamily, Carried, Command, CommandSource, DropSlot, Inbound, Input, Observation, Target,
 };
+pub use motor::{MotorSurface, MotorTuning};
+pub use movement::{Movement, MovementIntent};
 pub use order::{actor_word, contest_score, scatter_score};
-pub use solve::{BodySpec, Motor, Path, Solved};
+pub use solve::{BeforeSolve, BodySpec, Contact, ContactKind, Motor, Path, Solved, Tether};
 pub use state::*;
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
+use crate::floor_drag::Floor;
+use crate::swept::{Shape, SweptMap};
 use apply::Ids;
 use input::InputState;
 use solve::Bodies;
@@ -29,12 +39,35 @@ pub struct View<'a> {
     pub tick: Tick,
     pub seed: u64,
     pub state: &'a State,
+    pub geometry: &'a SweptMap,
+}
+
+impl View<'_> {
+    pub fn solid_contact(&self, from: Point, to: Point, props: &[Shape]) -> f64 {
+        self.geometry
+            .contact_with_gates(false, from, to, 0.0, props, |index| {
+                self.state
+                    .gates
+                    .get(&GateId(index as u32))
+                    .is_some_and(|gate| gate.open)
+            })
+    }
+}
+
+pub struct IntakeView<'a> {
+    pub start: View<'a>,
+    pub bodies: &'a BeforeSolve,
 }
 
 #[derive(Default)]
 pub struct Intake {
     pub aim: BTreeMap<ActorId, f64>,
+    pub sneak: BTreeMap<ActorId, bool>,
+    pub boosts: BTreeMap<ActorId, Window>,
+    pub skill_ready_at: BTreeMap<ActorId, Tick>,
     pub motors: BTreeMap<BodyId, Motor>,
+    pub tethers: BTreeMap<HookId, Tether>,
+    pub hooks: BTreeMap<HookId, Option<Hook>>,
     pub rejections: Vec<Fact>,
 }
 
@@ -59,7 +92,7 @@ pub trait Mechanics {
 
     fn intake(
         &self,
-        before: View<'_>,
+        before: IntakeView<'_>,
         inbound: &[Inbound],
         commands: &[Command],
         writes: &mut Intake,
@@ -118,20 +151,45 @@ pub struct CompletedTick {
 #[derive(Default)]
 pub struct Scenario {
     pub state: State,
-    bodies: Bodies,
+    body_specs: BTreeMap<BodyId, BodySpec>,
+    geometry: Option<Arc<SweptMap>>,
+    floor: Option<Floor>,
 }
 
 impl Scenario {
     pub fn body(&mut self, id: BodyId, spec: BodySpec) -> &mut Self {
-        self.bodies.insert(id, spec);
+        assert!(
+            self.body_specs.insert(id, spec).is_none(),
+            "body ID already in use"
+        );
+        self
+    }
+
+    pub fn geometry(&mut self, geometry: Arc<SweptMap>) -> &mut Self {
+        self.geometry = Some(geometry);
+        self
+    }
+
+    pub fn floor_drag(&mut self, floor: Floor) -> &mut Self {
+        self.floor = Some(floor);
         self
     }
 
     pub fn start(self, seed: u64, time_limit: Tick) -> Match {
         let ids = Ids::from_state(&self.state);
+        let mut bodies = Bodies::default();
+        for (id, spec) in self.body_specs {
+            bodies.insert(id, spec);
+        }
+        if let Some(floor) = self.floor {
+            bodies.use_floor(floor);
+        }
         Match {
             state: self.state,
-            bodies: self.bodies,
+            bodies,
+            geometry: self
+                .geometry
+                .unwrap_or_else(|| Arc::new(SweptMap::new(vec![], vec![], vec![]))),
             seed,
             time_limit,
             tick: 0,
@@ -147,6 +205,7 @@ impl Scenario {
 pub struct Match {
     state: State,
     bodies: Bodies,
+    geometry: Arc<SweptMap>,
     seed: u64,
     time_limit: Tick,
     tick: Tick,
@@ -199,17 +258,44 @@ impl Match {
 
         let commands = self.commands(tick, &inbound);
         let mut writes = Intake::default();
-        let intents = mechanics.intake(self.view(tick), &inbound, &commands, &mut writes);
+        let bodies = self.bodies.before_solve();
+        let before = IntakeView {
+            start: self.view(tick),
+            bodies: &bodies,
+        };
+        let intents = mechanics.intake(before, &inbound, &commands, &mut writes);
         for (id, aim) in writes.aim {
             if let Some(actor) = self.state.actors.get_mut(&id) {
                 actor.aim = aim;
+            }
+        }
+        for (id, sneak) in writes.sneak {
+            if let Some(actor) = self.state.actors.get_mut(&id) {
+                actor.sneak = sneak;
+            }
+        }
+        for (id, window) in writes.boosts {
+            if let Some(actor) = self.state.actors.get_mut(&id) {
+                actor.statuses.insert(Status::Boost, window);
+            }
+        }
+        for (id, ready_at) in writes.skill_ready_at {
+            if let Some(actor) = self.state.actors.get_mut(&id) {
+                actor.deadlines.skill_ready_at = ready_at;
+            }
+        }
+        for (id, change) in writes.hooks {
+            if let Some(hook) = change {
+                self.state.hooks.insert(id, hook);
+            } else {
+                self.state.hooks.remove(&id);
             }
         }
         let impulses = apply::impulses(inbound.iter().filter_map(|entry| match *entry {
             Inbound::Carried(Carried::Impulse { body, impulse }) => Some((body, impulse)),
             _ => None,
         }));
-        let solved = self.bodies.step(&writes.motors, &impulses);
+        let solved = self.bodies.step(&writes.motors, &impulses, &writes.tethers);
         let effects = mechanics.resolve(
             ResolveView {
                 start: self.view(tick),
@@ -232,6 +318,7 @@ impl Match {
             tick,
             seed: self.seed,
             state: &self.state,
+            geometry: &self.geometry,
         }
     }
 
@@ -324,8 +411,24 @@ impl Match {
         );
         self.ids
             .spawn(&mut self.state, &mut self.bodies, placed, &mut facts);
+        let hooks = effects.new_hooks.into_iter().filter_map(|(owner, hook)| {
+            let lost_target = matches!(hook.phase, HookPhase::Pulling { target, .. } if !self.state.active(target));
+            if !self.state.active(owner) || lost_target {
+                facts.push(Fact::HookReleased { owner, reason: HookRelease::EndpointGone });
+                return None;
+            }
+            Some((SpawnKey { source: Entity::Actor(owner), ordinal: 0 }, Spawn::Hook(hook)))
+        }).collect();
+        self.ids
+            .spawn(&mut self.state, &mut self.bodies, hooks, &mut facts);
 
-        let deactivated = apply::sync(&mut self.state, &mut self.bodies, commit.lifecycle, &deaths);
+        let deactivated = apply::sync(
+            &mut self.state,
+            &mut self.bodies,
+            commit.lifecycle,
+            &deaths,
+            &mut facts,
+        );
         for actor in deactivated {
             self.input.reset(actor);
         }
@@ -355,7 +458,7 @@ impl Match {
                         })
                 })
                 .collect();
-            for actor in apply::sync(&mut self.state, &mut self.bodies, stranded, &[]) {
+            for actor in apply::sync(&mut self.state, &mut self.bodies, stranded, &[], &mut facts) {
                 self.input.reset(actor);
             }
             self.queued.clear();
@@ -363,6 +466,17 @@ impl Match {
         }
         facts.extend(effects.facts);
         facts.extend(commit.facts);
+        facts.retain(|fact| match *fact {
+            Fact::HookAttached { owner, target } => self.state.hooks.values().any(|hook| {
+                hook.owner == owner
+                    && matches!(hook.phase, HookPhase::Pulling { target: to, .. } if to == target)
+            }),
+            Fact::Placed {
+                placed: Entity::Hook(id),
+                ..
+            } => self.state.hooks.contains_key(&id),
+            _ => true,
+        });
         self.ids.publish(tick, facts)
     }
 }
