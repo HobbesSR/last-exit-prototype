@@ -35,7 +35,7 @@ test('createGameRecord without content takes the shipped set', () => {
 
 test('shipped content ids return independent deeply frozen copies, and retired ids none', () => {
   const six = contentById('content-6'), sixAgain = contentById('content-6'), current = contentById(CONTENT_ID);
-  assert.equal(defaultContent().id, 'content-7');
+  assert.equal(defaultContent().id, 'content-12');
   // content-6 is the first physics set (#523, #921): narrow character bodies, physical items and props, the hook kit
   // and temporary body detours, stated as fields. Ground capacity covers every live zone size (the lab's 4096 refuses
   // a 36x18 map's 8,608 items) and the drop reserve lets a real map's items fill the body slots.

@@ -42,7 +42,7 @@ Tuning is as it was in the experimental
 profiles: the human feel review of 2026-10-28 ([42.20](42.20-physics-p9.md)) accepted it as it
 stands and deferred tuning, so nothing here was rebalanced for the switch.
 
-`content-7` (#682, #865, the default) is `content-6` with gladiator bots planning trips across
+`content-7` (#682, #865; the default until #1303) is `content-6` with gladiator bots planning trips across
 regions over the portal graph (`hunterPlanning: 'portals'`, 22.6). When its goal is in another region, a
 gladiator takes the regions to cross from the portal graph, costing each crossing by its straight-line
 length, and searches tiles only as far as the crossing after the next one. Once its goal is in its own
@@ -52,7 +52,7 @@ plans as `content-6` does. Its goals, numbers and roster are `content-6`'s.
 
 <a id="heard-gunfire"></a>
 
-**Heard gunfire.** `content-8` (#684, selectable, not the default) is `content-7` with gunfire heard
+**Heard gunfire.** `content-8` (#684, selectable) is `content-7` with gunfire heard
 (`hearing`, 17.3 #26). When a contestant fires a weapon, every other active player, of either role, within
 that weapon's hearing range of the shooter hears it: they learn the centre of the 192-unit discovery cell the
 shooter stood in (never the shooter), which fades 4 seconds (80 ticks) later. Range is plain distance;
@@ -110,7 +110,7 @@ and walking on. A transit costs its travel time plus 3 seconds. A station counts
 spent by the time the gladiator gets there. When transit is quicker the gladiator heads for that station and, in
 reach, sends the destination with the `transit` input. Distances, times and weights are placeholders.
 
-`content-12` (#681, selectable) is `content-11` with front-estimated coarse sweeping, repulsion between targetless
+`content-12` (#681; the default since #1303, Corey 2026-11-23) is `content-11` with front-estimated coarse sweeping, repulsion between targetless
 gladiators, charging station investigation, and exit goalkeeping (`hunting: 'front'`, 17.3 #26). Before any evidence
 suggests a contestant is further right, a gladiator with no contestant seen and no gunfire lead targets an estimated
 contestant front advancing from the entry toward the exit at 4 units per tick (clamped ahead of the wall) in the

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { PHYSICS_VERSION } from '../shared/simulation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
+import { CONTENT_ID } from '../shared/simulation/content.ts';
 
 // The shipped default (#523) is physics content, so a room made with no options is the room a player gets. This is its
 // core client flow end to end: lobby, start, walking, and dropping an item, which a real map's item bodies once made
@@ -20,7 +21,7 @@ try {
   await start.click();
   await page.waitForFunction(() => window.arenaDebug().phase === 'live' && window.arenaDebug().me?.id, null, { timeout: 120000 });
   const live = await page.evaluate(() => window.arenaDebug());
-  assert.equal(live.content, 'content-7', 'a room with no options runs the shipped default');
+  assert.equal(live.content, CONTENT_ID, 'a room with no options runs the shipped default');
   assert.equal(live.version, PHYSICS_VERSION, 'on the physics rules');
   const game = server.rooms.get(room).game;
   // Walking: the client predicts and the server's physics world agrees.

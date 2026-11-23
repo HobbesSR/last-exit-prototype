@@ -25,11 +25,13 @@ import type { MatchContent } from '../types.ts';
  * format change. It identifies balance, where `VERSION` identifies rules: two matches can run the
  * same rules over different numbers, and a reader looking at an old recording needs to tell which.
  *
- * `content-7` adopts portal-graph planning for gladiators (#682, #865). `content-6` was the first set built
+ * `content-12` (Corey, 2026-11-23, #1303) adopts what `content-8` to `content-12` built: heard gunfire, temperament,
+ * selectable transit, and gladiator bots that hunt a front, repel and goalkeep at the exit instead of parking at a station.
+ * `content-7` adopted portal-graph planning for gladiators (#682, #865). `content-6` was the first set built
  * for the physics engine (#523). Content 1 to 5 and `content-equipment-1` ran the retired legacy mover (#920);
  * old recordings that name them are labelled from `presentation.ts`, and this module no longer builds them.
  */
-export const CONTENT_ID = 'content-7';
+export const CONTENT_ID = 'content-12';
 
 /** Recursively freeze, so a match cannot edit the balance it is running under. */
 function deepFreeze<T>(value: T): T {

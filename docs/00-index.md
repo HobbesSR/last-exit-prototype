@@ -1,7 +1,7 @@
 # Last Exit documentation index
 
 Status: living documentation
-Prototype rules version: `last-exit-0.8-physics`; default content: `content-7`
+Prototype rules version: `last-exit-0.8-physics`; default content: `content-12`
 Updated: 2026-11-14
 
 This directory is the canonical product and engineering record for the prototype.
