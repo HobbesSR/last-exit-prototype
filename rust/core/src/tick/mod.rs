@@ -660,7 +660,7 @@ impl Match {
                     .items
                     .iter()
                     .filter_map(|(&id, item)| {
-                        let at = bodies.position(BodyId::Item(id)).or(item.unplaced_at)?;
+                        let at = item.position(bodies.position(BodyId::Item(id)))?;
                         Some((id, at, *item))
                     })
                     .collect()

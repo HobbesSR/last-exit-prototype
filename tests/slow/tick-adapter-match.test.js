@@ -57,10 +57,8 @@ test('a whole bot match on the new path keeps the mirror equal to the match on e
   assert.ok(facts.get('pickup') && facts.get('cellCharged') && facts.get('escaped'), JSON.stringify([...facts]));
 });
 
-// The old tick picks up from the logical ground list, so loot without a body is still taken. The new tick claims only
-// placed loot (R4), and its placement admits the map's loot in ID order under the body ceiling: on this map 69 of 926
-// items, 20 of 328 weapons, wherever they lie. No contestant arms, so no shot is fired. Corey decides the remedy (#1301).
-test('contestants arm themselves and fire', { todo: '#1301: map loot beyond the body ceiling is never claimable' }, async () => {
+// The body ceiling leaves most of this arena's loot at its stored spot. Claims read those records (#1301).
+test('contestants arm themselves and fire', async () => {
   const { facts } = await play();
   assert.ok(facts.get('shotFired'), JSON.stringify([...facts]));
 });

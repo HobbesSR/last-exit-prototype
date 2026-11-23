@@ -134,10 +134,12 @@ export function botCommand(s: Game, match: TickMatch, p: Player, intent: BotInte
   const ids = match.ids, actor = ids.actorOfPlayer.get(p.id);
   if (actor === undefined) throw new RangeError(`tick-boundary: no actor for ${p.id}`);
   const input = intent.input;
+  // The planner names its preferred slot every tick. Only a change spends R1's slot action.
+  const slot = input.slot === p.selectedSlot ? undefined : input.slot;
   const drop: DropSlot | null = intent.discardSlot !== undefined ? { kind: 'slot', slot: intent.discardSlot }
     : input.drop ? { kind: 'selected' } : null;
   return { actor, source: 'bot', tick, seq: (match.acknowledged(p.id) ?? -1) + 1,
-    input: { ...inputOf(ids, { ...input, transit: s.content.transit === 'selectable' ? input.transit : undefined }),
+    input: { ...inputOf(ids, { ...input, slot, transit: s.content.transit === 'selectable' ? input.transit : undefined }),
       utilitySlot: intent.utilitySlot ?? null, drop } };
 }
 

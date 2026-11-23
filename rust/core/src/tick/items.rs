@@ -257,8 +257,8 @@ impl ItemRules {
             .items
             .iter()
             .filter_map(|(&id, item)| {
-                let position = view.solved.position(BodyId::Item(id))?;
-                item.unplaced_at.is_none().then_some((id, item, position))
+                let position = item.position(view.solved.position(BodyId::Item(id)))?;
+                Some((id, item, position))
             })
             .collect();
         let grid = Grid::for_bounds(
@@ -328,8 +328,7 @@ impl ItemRules {
             items.range(nominated.unwrap_or(ItemId(0))..=nominated.unwrap_or(ItemId(u32::MAX)));
         candidates
             .filter_map(|(&id, item)| {
-                if item.unplaced_at.is_some()
-                    || (item.dropped_by == Some(actor) && view.start.tick < item.pickup_ready_at)
+                if (item.dropped_by == Some(actor) && view.start.tick < item.pickup_ready_at)
                     || (record.bot
                         && record.inventory.has_cell()
                         && matches!(
@@ -342,7 +341,7 @@ impl ItemRules {
                 {
                     return None;
                 }
-                let current = view.solved.position(BodyId::Item(id))?;
+                let current = item.position(view.solved.position(BodyId::Item(id)))?;
                 let seen = rewind.item_position(id)?;
                 if distance(origin, seen) >= REACH || !rewind.reach_clear(origin, seen) {
                     return None;
