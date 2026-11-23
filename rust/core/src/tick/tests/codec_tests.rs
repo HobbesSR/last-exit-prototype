@@ -404,6 +404,7 @@ fn every_fact() -> Vec<Fact> {
         Fact::Escaped {
             actor: A,
             cell: ItemId(5),
+            slots: 2,
         },
         Fact::ChargingStarted {
             actor: A,

@@ -39,7 +39,7 @@ use std::slice;
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
 ///
 /// 43: the new tick's live adapter (`match_*`, 27.2 3d.1) and its word layout (`tick/codec.rs`).
-pub const ADAPTER_VERSION: u32 = 43;
+pub const ADAPTER_VERSION: u32 = 44;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]

@@ -455,7 +455,11 @@ impl InteractionRules {
             exit.slots -= 1;
             record.inventory.remove(slot);
             depart(record, actor, Presence::Escaped, commit);
-            commit.facts.push(Fact::Escaped { actor, cell });
+            commit.facts.push(Fact::Escaped {
+                actor,
+                cell,
+                slots: exit.slots,
+            });
         }
         rails.sort_unstable_by_key(|&(actor, ride)| {
             rank(RAIL_CONTEST ^ u64::from(ride.destination.0), actor)

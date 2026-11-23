@@ -153,7 +153,7 @@ fn wall_area_and_flame_merge_before_extraction_and_turret_keeps_its_s0_target() 
         }
     ));
     assert!(has(&tick, Fact::Eliminated { actor: A }));
-    assert!(!has(&tick, Fact::Escaped { actor: A, cell }));
+    assert!(!escaped(&tick, A, cell));
     assert_eq!(game.state().extraction.unwrap().slots, 1);
     assert_eq!(game.state().actors[&A].hp, 0.0);
     assert_eq!(

@@ -320,7 +320,7 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
 // The live match
 // ---------------------------------------------------------------------------
 
-/** The core's `match_*` exports (`rust/core/src/lib.rs`, adapter version 43). */
+/** The core's `match_*` exports (`rust/core/src/lib.rs`, adapter version 44). */
 interface MatchExports {
   match_new(setup: number, setupLength: number, swept: number, sightIndex: number, gateSet: number,
     discoveryMap: number, discoveryIndex: number, discoveryGates: number): number;

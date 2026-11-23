@@ -42,6 +42,36 @@ fn has(tick: &CompletedTick, fact: Fact) -> bool {
 }
 
 #[test]
+fn each_escape_carries_the_slots_left_after_it() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 10.0);
+    add_actor(&mut scenario, C, 30.0);
+    cell(&mut scenario, A, 10, 100);
+    cell(&mut scenario, C, 11, 100);
+    scenario.state.extraction = Some(Extraction {
+        position: [0.0, 0.0],
+        slots: 3,
+    });
+    let mut game = scenario.start(50, 10);
+    interact(&mut game, A, 1, None);
+    interact(&mut game, C, 1, None);
+    let tick = game.step(&Combat::default()).unwrap();
+    // The closer claimant takes the first slot; each fact pairs its actor with its own count.
+    let counts: Vec<_> = tick
+        .changes
+        .events
+        .iter()
+        .filter_map(|event| match event.fact {
+            Fact::Escaped { actor, slots, .. } => Some((actor, slots)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(counts.len(), 2);
+    assert!(counts.contains(&(A, 2)) && counts.contains(&(C, 1)));
+    assert_eq!(tick.changes.extraction.unwrap().slots, 1);
+}
+
+#[test]
 fn closest_surviving_extraction_claimant_gets_the_last_slot() {
     for lethal in [false, true] {
         let mut scenario = Scenario::default();
@@ -71,26 +101,8 @@ fn closest_surviving_extraction_claimant_gets_the_last_slot() {
         );
         let tick = game.step(&Combat::default()).unwrap();
         assert_eq!(has(&tick, Fact::Eliminated { actor: A }), lethal);
-        assert_eq!(
-            has(
-                &tick,
-                Fact::Escaped {
-                    actor: C,
-                    cell: ItemId(11)
-                }
-            ),
-            lethal
-        );
-        assert_eq!(
-            has(
-                &tick,
-                Fact::Escaped {
-                    actor: A,
-                    cell: ItemId(10)
-                }
-            ),
-            !lethal
-        );
+        assert_eq!(escaped(&tick, C, ItemId(11)), lethal);
+        assert_eq!(escaped(&tick, A, ItemId(10)), !lethal);
         let winner = if lethal { C } else { A };
         assert_eq!(game.state().actors[&winner].presence, Presence::Escaped);
         assert_eq!(game.state().extraction.unwrap().slots, 0);
@@ -152,22 +164,10 @@ fn charging_starts_then_completes_before_the_cell_can_fund_extraction() {
     interact(&mut game, A, 2, Some(Target::Extraction));
     let complete = game.step(&rules).unwrap();
     assert!(has(&complete, Fact::CellCharged { actor: A, station }));
-    assert!(!has(
-        &complete,
-        Fact::Escaped {
-            actor: A,
-            cell: ItemId(10)
-        }
-    ));
+    assert!(!escaped(&complete, A, ItemId(10)));
     interact(&mut game, A, 3, None);
-    let escaped = game.step(&rules).unwrap();
-    assert!(has(
-        &escaped,
-        Fact::Escaped {
-            actor: A,
-            cell: ItemId(10)
-        }
-    ));
+    let done = game.step(&rules).unwrap();
+    assert!(escaped(&done, A, ItemId(10)));
 }
 
 #[test]
@@ -313,13 +313,7 @@ fn default_interact_prefers_extraction_to_a_closer_gate() {
     let mut game = scenario.start(50, 10);
     interact(&mut game, A, 1, None);
     let tick = game.step(&Combat::default()).unwrap();
-    assert!(has(
-        &tick,
-        Fact::Escaped {
-            actor: A,
-            cell: ItemId(10)
-        }
-    ));
+    assert!(escaped(&tick, A, ItemId(10)));
     assert!(!game.state().gates[&gate].open);
 }
 
@@ -488,13 +482,7 @@ fn solved_occupants_block_door_closure_until_they_escape() {
     interact(&mut game, A, 2, Some(Target::Gate(gate)));
     interact(&mut game, C, 2, Some(Target::Extraction));
     let second = game.step(&Combat::default()).unwrap();
-    assert!(has(
-        &second,
-        Fact::Escaped {
-            actor: C,
-            cell: ItemId(9)
-        }
-    ));
+    assert!(escaped(&second, C, ItemId(9)));
     assert!(has(
         &second,
         Fact::GateChanged {

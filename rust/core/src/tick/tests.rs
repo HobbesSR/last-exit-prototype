@@ -179,6 +179,13 @@ fn body(x: f64) -> BodySpec {
     }
 }
 
+/// Whether `actor` escaped with `cell` in the tick, whatever slots remained.
+fn escaped(tick: &CompletedTick, actor: ActorId, cell: ItemId) -> bool {
+    tick.changes.events.iter().any(|event| {
+        matches!(event.fact, Fact::Escaped { actor: a, cell: c, .. } if a == actor && c == cell)
+    })
+}
+
 fn submit(game: &mut Match, actor: ActorId, tick: Tick, seq: u64, input: Input) {
     assert!(game.submit(
         tick,

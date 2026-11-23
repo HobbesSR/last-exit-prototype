@@ -113,7 +113,7 @@
 //! 4 KillCredited (actor, target); 5 Assisted (actor, target); 6 KillRewarded (actor); 7 Placed
 //! (source entity, placed entity); 8 Boosted (actor); 9 ShotFired (actor, weapon); 10 ReloadStarted
 //! (actor, ready_at); 11 Reloaded (actor, weapon, rounds); 12 Pickup (actor, item, count);
-//! 13 Escaped (actor, cell); 14 ChargingStarted, 15 ChargingStopped, 16 CellCharged (actor,
+//! 13 Escaped (actor, cell, slots remaining); 14 ChargingStarted, 15 ChargingStopped, 16 CellCharged (actor,
 //! station); 17 GateChanged (actor, gate, open); 18 GateObserved (actor, gate, open, locked);
 //! 19 TransitDeparted, 20 TransitLanded (actor, station); 21 UtilityUsed (actor, utility);
 //! 22 MeleeSwung, 23 WardenPulsed, 24 SpecterScanned (actor); 25 HookFired (owner);
@@ -1182,10 +1182,11 @@ fn put_fact(w: &mut Vec<f64>, fact: Fact) {
             w.int(item.0);
             w.int(count);
         }
-        Fact::Escaped { actor, cell } => {
+        Fact::Escaped { actor, cell, slots } => {
             w.int(13u32);
             w.actor(actor);
             w.int(cell.0);
+            w.int(slots);
         }
         Fact::ChargingStarted { actor, station }
         | Fact::ChargingStopped { actor, station }
@@ -1338,6 +1339,7 @@ fn get_fact(r: &mut Reader) -> Result<Fact> {
             13 => Fact::Escaped {
                 actor: r.actor()?,
                 cell: ItemId(r.u32()?),
+                slots: r.u32()?,
             },
             14 => Fact::ChargingStarted {
                 actor: r.actor()?,
