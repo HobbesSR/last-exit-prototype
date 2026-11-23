@@ -670,6 +670,14 @@ export interface SlotMove {
  * One client's intent for a tick. Every field is optional because a stale or absent client is
  * represented by an empty object, and because bots emit only the fields they mean to drive.
  */
+/**
+ * The target an input nominates for its interaction (27.2 R8): what the client holds. A gate by its dense slot, a charger or
+ * transit station by its authored ID, a ground item by its outward ID (#1164). The new tick validates only that target and
+ * never falls through to another; the old tick ignores it.
+ */
+export type InputTarget = { kind: 'extraction' } | { kind: 'gate'; gateIdx: GateIdx } | { kind: 'station'; id: StationId | ChargerId }
+  | { kind: 'item'; id: number };
+
 export interface PlayerInput {
   /** Movement axes, each clamped to [-1, 1]. */
   x?: number | undefined;
@@ -688,6 +696,8 @@ export interface PlayerInput {
   dropAmmo?: { family: AmmoFamily; count: number } | undefined;
   /** A transit destination, by station id (#692); one-shot, present only when sent. */
   transit?: StationId | undefined;
+  /** The interaction's nominated target (WIRE_VERSION 12); one-shot, present only when sent. */
+  target?: InputTarget | undefined;
   /** Monotonic client sequence number; the server rejects anything not newer than the last. */
   seq?: number | undefined;
   /**
@@ -901,7 +911,8 @@ export interface Snapshot<I extends ItemKey = ItemId> {
   cellChargeTicks: Tick;
   tick: Tick;
   phase: Phase;
-  rng: number;
+  /** The old tick's match RNG. A frame on the new tick's path has none (27.2 "Frames (3d.3)"), since that tick keeps none. */
+  rng?: number;
   hazardX: World;
   slots: number;
   serial: Serial;

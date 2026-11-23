@@ -1,7 +1,7 @@
 import { finite, integer, safeInteger } from '../numbers.ts';
 import { SLOT_COUNT, isAmmoFamily } from '../equipment.ts';
 import { HZ } from './rules.ts';
-import type { Player, PlayerInput, SlotIndex, StationId, Tick } from '../types.ts';
+import type { ChargerId, GateIdx, InputTarget, Player, PlayerInput, SlotIndex, StationId, Tick } from '../types.ts';
 
 /**
  * What a client may send, and the buffer a tick spends it from.
@@ -81,7 +81,19 @@ export function sanitizeInput(input: PlayerInput, seq: number): PlayerInput {
       ? { dropAmmo: { family: input.dropAmmo.family, count: input.dropAmmo.count } } : {}),
     // A station id is checked against the map when spent; here only its size is bounded.
     ...(typeof input.transit === 'string' && input.transit.length > 0 && input.transit.length <= MAX_ID ? { transit: input.transit as StationId } : {}),
+    ...(() => { const target = sanitizeTarget(input.target); return target ? { target } : {}; })(),
   };
+}
+
+/** A nominated target's shape and bounds; whether it names anything on the map is checked when spent. */
+function sanitizeTarget(t: unknown): InputTarget | undefined {
+  if (!t || typeof t !== 'object') return undefined;
+  const { kind, id, gateIdx } = t as Record<string, unknown>;
+  if (kind === 'extraction') return { kind };
+  if (kind === 'gate' && safeInteger(gateIdx) && gateIdx >= 0) return { kind, gateIdx: gateIdx as GateIdx };
+  if (kind === 'station' && typeof id === 'string' && id.length > 0 && id.length <= MAX_ID) return { kind, id: id as StationId | ChargerId };
+  if (kind === 'item' && safeInteger(id) && id > 0) return { kind, id };
+  return undefined;
 }
 
 /**

@@ -17,6 +17,11 @@ import { wireIds } from '../shared/simulation/wire-ids.ts';
 import { predictionConstants } from '../shared/simulation/physics-presentation.ts';
 import { publishGates, gatesJson } from '../shared/simulation/frame-gates.ts';
 import { profiling, observe } from '../shared/profiler.ts';
+import { createTickMatch } from '../shared/simulation/tick-match.ts';
+import { TickMirror, stepMirror } from '../shared/simulation/tick-mirror.ts';
+import { TickBoundary } from '../shared/simulation/tick-boundary.ts';
+import { TickFrames } from '../shared/simulation/tick-frame.ts';
+import { recordedInbound } from '../shared/simulation/tick-record.ts';
 
 // Only connection-facing operations resolve session labels; simulation relations use dense slots.
 const connectionPlayer = (game, id) => {
@@ -96,8 +101,9 @@ export function createLobby(content = defaultContent()) {
 // The application's only mutable access to simulation. Returned frames/commands are detached.
 // `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
 // `wireKey` keys the match's outward IDs (#1164, 24.4): drawn by the server's composition root, never
-// recorded, logged or sent. Without one the outward IDs are the internal ones.
-export async function createMatch(seed, size, map, content = defaultContent(), { wireKey = null } = {}) {
+// recorded, logged or sent. Without one the outward IDs are the internal ones. `tick: 'new'` runs the match on the
+// new tick's path (27.2 "Frames (3d.3)"), which no room asks for until the cutover (3d.4).
+export async function createMatch(seed, size, map, content = defaultContent(), { wireKey = null, tick = 'old' } = {}) {
   const wire = wireIds(wireKey);
   const game = await createGame(seed, map ?? generateLiveMap(seed, content, size), content,
     () => preparationPause());
@@ -108,7 +114,7 @@ export async function createMatch(seed, size, map, content = defaultContent(), {
     const beforeGround = profiling() ? performance.now() : undefined;
     await prepareGroundItems(publishItems(game), () => preparationPause());
     if (beforeGround !== undefined) observe('prepare.ground', performance.now() - beforeGround);
-    return matchOf(game, payloads, wire);
+    return tick === 'new' ? newTickMatchOf(game, payloads, wire) : matchOf(game, payloads, wire);
   } catch (error) { disposePhysics(game); throw error; }
 }
 
@@ -186,4 +192,59 @@ function matchOf(game, payloads, wire) {
     },
     result: () => ({ ticks: game.tick, escaped: game.players.filter(p => p.status === 'escaped').length })
   };
+}
+
+/**
+ * The match on the new tick's path (27.2 "Frames (3d.3)"), with the room-facing interface of `matchOf`, unwired. The core
+ * is set up at the first tick, after the lobby's seats are taken, from the game `createGame` built. Until then the seats
+ * are the old match's.
+ *
+ * What it records differs, and the cutover's room (3d.4) follows it:
+ * - `acceptInput`, `setViewLag` and `teleport` queue what arrives at the receive boundary and record nothing. They return
+ *   the admitted input, the observation rows (an array, possibly empty) and the queued teleport row, or null when
+ *   refused. A teleport's outcome is the next frame's (review 1041).
+ * - `spent()` is the last tick's inbound queue as recorded commands (26 "Schema 22"), which the room records with that
+ *   tick's frame, beside its own commands (start, the roster, abandonment).
+ * - Frames come from the mirror (`TickFrames`), with no old world state, RNG or scatter serial.
+ */
+function newTickMatchOf(game, payloads, wire) {
+  const base = matchOf(game, payloads, wire);
+  // The old match's own operations, kept before they are replaced: before the first tick they are this one's.
+  const old = { resume: base.resume, leave: base.leave, setViewLag: base.setViewLag, snapshot: base.snapshot, dispose: base.dispose };
+  let live, spent = [], disposedFrame;
+  const started = () => live ??= (() => {
+    const match = createTickMatch(game), mirror = new TickMirror(game, match);
+    return { match, mirror, boundary: new TickBoundary(game, match, wire), frames: new TickFrames(mirror) };
+  })();
+  const frame = () => disposedFrame ? structuredClone(disposedFrame) : live ? live.frames.frame() : old.snapshot();
+  return Object.assign(base, {
+    resume(id) {
+      if (!live) return old.resume(id);
+      const p = connectionPlayer(game, id);
+      if (!p || !live.boundary.seat(id, 'join')) return null;
+      clearRoute(p);
+      return identity(p);
+    },
+    leave(id) { return live ? !!live.boundary.seat(id, 'leave') : old.leave(id); },
+    acceptInput(id, input) { return started().boundary.input(id, input); },
+    // Before the first tick the player's own fields hold the measurement, which the core's setup reads.
+    setViewLag(id, roundTripMs) { return live ? live.boundary.roundTrip(id, roundTripMs) : old.setViewLag(id, roundTripMs); },
+    teleport(id, x, y) { return started().boundary.teleport(id, [x, y]); },
+    advance() {
+      if (disposedFrame) throw new Error('match disposed');
+      const { match, mirror, boundary, frames } = started();
+      const t = stepMirror(mirror, boundary);
+      spent = t ? recordedInbound(match.ids, t.inbound) : [];
+      return frames.frame();
+    },
+    /** The last tick's inbound queue as the commands its frame records. */
+    spent: () => spent,
+    snapshot: frame,
+    dispose() {
+      if (disposedFrame) return;
+      disposedFrame = frame();
+      live?.match.dispose();
+      old.dispose();
+    },
+  });
 }
