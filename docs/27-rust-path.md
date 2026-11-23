@@ -577,9 +577,12 @@ tuned, so now is the time."
 - **What follows.**
   1. A playtest checkpoint (#1280).
   2. [27.1](27.1-tick-mechanic-inventory.md), the mechanic inventory (#1281).
-  3. A governing design document (#1282): a state model, a shared effect vocabulary, and stages over a frozen
-     pre-state with one resolver (#1276) and one apply.
-  4. The tick built to that design (#1283).
+  3. The governing design, [27.2](27.2-tick-architecture.md) (#1282): a state model, a shared effect
+     vocabulary, and stages over a frozen pre-state with one resolver and one apply.
+  4. The tick built to that design (#1283). It is **built dark and cut over once** (Corey, 2026-11-22,
+     [17.7](17.7-tick-resolution.md) follow-ups 9–10). The new tick merges unwired. The frozen old tick keeps
+     `main` playable until one cutover PR switches to the new tick, re-baselines the fixture and triages the
+     tests ([27.2](27.2-tick-architecture.md#build-approach)).
   5. Phase 2 and discovery into the core (#1215).
   6. Projection and recording from the core, a test API with on-demand snapshots, and then the mirror's removal
      (#1284).
