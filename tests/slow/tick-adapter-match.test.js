@@ -14,7 +14,7 @@ import { checkFrame } from '../helpers/tick-frame.js';
 
 // A whole bot match on the new tick's path (27.2 "Node adapter (3d.2)"), on a chain arena stored in the frozen fixture, so no
 // map is generated here. The match runs with today's default content to its end, and the mirror the applier keeps is held
-// equal to the match's snapshot, memory and cues on every tick. Each tick's frame (27.2 "Frames (3d.3)") is held to the
+// equal to the match's snapshot and cues on every tick, and to its memory wherever a tick's discovery changed it. Each tick's frame (27.2 "Frames (3d.3)") is held to the
 // snapshot's poses and projected for one player in turn. The cheap witness is ../tick-adapter.test.js.
 
 const { arenas } = deserialize(gunzipSync(readFileSync(new URL('../fixtures/behavior-physics-1.v8.gz', import.meta.url))));
@@ -34,7 +34,10 @@ function play() {
       let t;
       while ((t = stepMirror(mirror))) {
         for (const e of t.changes.events) facts.set(e.fact.kind, (facts.get(e.fact.kind) ?? 0) + 1);
-        const snap = match.snapshot(), expected = mirror.mirrorOf(snap);
+        // Memory is decoded for those the tick's discovery names, and for everyone every hundredth tick and at the end.
+        const learned = new Set([...t.discovery.gates, ...t.discovery.samples].map(x => x.actor));
+        const whole = t.tick % 100 === 0 || s.phase !== 'live';
+        const snap = match.snapshot(), expected = mirror.mirrorOf(snap, p => whole || learned.has(match.ids.actorOfPlayer.get(p.id)));
         assert.deepEqual(mirror.view(expected), expected, `tick ${t.tick}`);
         const frame = frames.frame();
         checkFrame(frame, snap, t.tick, words);

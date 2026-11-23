@@ -66,8 +66,10 @@ export function inputLeadFrom(roundTripMs: number | null | undefined): number {
 export function sanitizeInput(input: PlayerInput, seq: number): PlayerInput {
   const axis = (v: unknown) => finite(v) ? Math.max(-1, Math.min(1, v)) : 0;
   // A nomination sent malformed is a failed one (27.2 R8): no interaction at all, neither the button's default target nor
-  // a rail destination, while movement and combat stand (review 1049).
-  const target = sanitizeTarget(input.target), failed = input.target !== undefined && target === undefined;
+  // a rail destination, while movement and combat stand (review 1049). Pressed, it is kept as `unresolved`, which the new
+  // tick's core rejects so the player learns why; the button itself is cleared, which is all the old tick reads.
+  const sent = sanitizeTarget(input.target), failed = input.target !== undefined && sent === undefined;
+  const target: InputTarget | undefined = failed && input.interact === true ? { kind: 'unresolved' } : sent;
   return {
     seq,
     // Present only when stamped, so unstamped inputs keep their recorded shape.

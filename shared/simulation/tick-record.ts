@@ -19,7 +19,7 @@ import type { PlayerId, Tick } from '../types.ts';
 
 type Recorded<T extends string, F> = { type: T } & F;
 export type RecordedBody = string;
-export type RecordedTarget = { kind: 'extraction' } | { kind: 'station' | 'gate'; id: string } | { kind: 'item'; id: number };
+export type RecordedTarget = { kind: 'extraction' | 'unresolved' } | { kind: 'station' | 'gate'; id: string } | { kind: 'item'; id: number };
 /** An input with its empty fields left out, and its station and target indices as authored IDs. */
 export type RecordedInput = Partial<Omit<Input, 'target' | 'transit'>> & { target?: RecordedTarget; transit?: string };
 export type RecordedCommand =
@@ -47,7 +47,7 @@ export function recordedInbound(ids: MatchIds, inbound: readonly Inbound[]): Rec
     if (!s) throw new RangeError(`tick-record: no station ${index}`);
     return s.id;
   };
-  const target = (t: Target): RecordedTarget => t.kind === 'extraction' ? t : t.kind === 'item' ? t
+  const target = (t: Target): RecordedTarget => t.kind === 'extraction' || t.kind === 'unresolved' || t.kind === 'item' ? t
     : { kind: t.kind, id: t.kind === 'gate' ? ids.gateIds[t.id]! : station(t.id) };
   const input = (i: Input): RecordedInput => {
     const out: Record<string, unknown> = {};

@@ -10,6 +10,10 @@ pub enum Target {
     Station(StationId),
     Gate(GateId),
     Item(ItemId),
+    /// A nomination the receive boundary could not map: malformed, or naming nothing on the
+    /// map. It is never eligible, so a pressed interact is rejected and, under R8, nothing
+    /// else is tried.
+    Unresolved,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]

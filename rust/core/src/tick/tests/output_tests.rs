@@ -288,25 +288,30 @@ fn humans_learn_the_view_window_and_bots_also_remember_what_they_see() {
     scenario.state.actors.get_mut(&C).unwrap().bot = true;
     let item = ItemId(7);
     add_loot(&mut scenario, item, 400.0);
+    // Map loot awaiting its body is still a record at its stored spot, which a sample sees (#1301).
+    let bodiless = ItemId(8);
+    scenario.state.items.insert(
+        bodiless,
+        GroundItem {
+            unplaced_at: Some([500.0, 0.0]),
+            ..pending_item()
+        },
+    );
     discovery_scenario(&mut scenario, [600.0, -20.0, 10.0, 40.0]);
     let mut game = scenario.start(50, 30);
     let rules = Combat::default();
-    for _ in 1..9 {
-        game.step(&rules).unwrap();
-    }
-    assert_eq!(game.memory(A), Some(&Memory::default()));
-    // A, canonical index 1, samples at tick 9: the view window's geometry only.
-    game.step(&rules).unwrap();
+
+    // The opening discovery, before tick 1: each active contestant has sampled where it starts.
+    // A human learns the view window's geometry only.
     let human = game.memory(A).unwrap();
     assert!(human.discovered.contains(&(2000 / 192)));
     assert!(human.seen.is_empty() && human.items.is_empty() && human.gates.is_empty());
     assert_eq!(human.revision, 1);
-
-    // C, a bot at canonical index 0, samples at tick 10 with line of sight.
-    game.step(&rules).unwrap();
+    // A bot also learns with line of sight: cells, items in sight and doors.
     let bot = game.memory(C).unwrap();
     assert!(bot.discovered.contains(&0) && bot.seen.contains(&0) && bot.surveyed.contains(&0));
     assert_eq!(bot.items[&item].item.loot, game.state().items[&item].loot);
+    assert_eq!(bot.items[&bodiless].at, [500.0, 0.0]);
     assert_eq!(
         bot.gates[&GateId(0)],
         DoorMemory {
@@ -314,6 +319,10 @@ fn humans_learn_the_view_window_and_bots_also_remember_what_they_see() {
             locked: true
         }
     );
+
+    // A, canonical index 1, samples again at tick 9 and learns nothing new from where it stands.
+    while game.step(&rules).unwrap().tick < 10 {}
+    assert_eq!(game.memory(A).unwrap().revision, 1);
 
     // Once the item is gone, the next sample sees its spot empty and forgets it.
     observe(

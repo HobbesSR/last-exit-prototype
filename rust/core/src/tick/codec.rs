@@ -1498,6 +1498,7 @@ fn put_target(w: &mut Vec<f64>, target: Target) {
         Target::Station(id) => (1, id.0),
         Target::Gate(id) => (2, id.0),
         Target::Item(id) => (3, id.0),
+        Target::Unresolved => (4, 0),
     };
     w.int(tag);
     w.int(id);
@@ -1511,6 +1512,7 @@ fn get_target(r: &mut Reader) -> Result<Target> {
         1 => Target::Station(StationId(id)),
         2 => Target::Gate(GateId(id)),
         3 => Target::Item(ItemId(id)),
+        4 => Target::Unresolved,
         _ => return r.fail("unknown target tag"),
     })
 }

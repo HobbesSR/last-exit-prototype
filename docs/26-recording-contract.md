@@ -48,7 +48,7 @@ abandonment). This replaces input recorded as queued: an input that never reache
 the boundary, is no longer recorded. Each of 27.2's three kinds of inbound item is one recorded type:
 - `{ type: 'command', id, source, tick, seq, input }`: input through the receive boundary, a person's or that of a
   bot controlling a player. The core's `Input` leaves out fields at their empty value, and names a transit station
-  and a nominated target by authored ID.
+  and a nominated target by authored ID. A nomination the boundary could not map is `target: { kind: 'unresolved' }`.
 - `{ type: 'observation', kind, … }`: `viewLag` and `inputLead` (`id`, `ticks`), `join` and `leave` (`id`), and a dev
   `teleport` (`body`, `x`, `y`) as requested. The frame's discontinuities say whether it warped.
 - `{ type: 'carried', kind, … }`: an `impulse` (`body`, `x`, `y`), a `killReward` (`id`) and a `gateObserved` (`id`,

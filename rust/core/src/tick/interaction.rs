@@ -101,7 +101,10 @@ pub enum InteractionIntent {
 
 impl InteractionIntent {
     pub(super) fn from_input(input: Input) -> Option<Self> {
-        if input.interact && input.target.is_some() {
+        if input.target == Some(Target::Unresolved) {
+            // A failed nomination allows no other gesture (R8): pressed, it is rejected.
+            input.interact.then_some(Self::Interact(input.target))
+        } else if input.interact && input.target.is_some() {
             Some(Self::Interact(input.target))
         } else if let Some(destination) = input.transit {
             Some(Self::Rail(destination))
@@ -337,6 +340,7 @@ impl InteractionRules {
                 Target::Station(id) => (1 << 32) | u64::from(id.0),
                 Target::Gate(id) => (2 << 32) | u64::from(id.0),
                 Target::Item(id) => (3 << 32) | u64::from(id.0),
+                Target::Unresolved => 4 << 32,
             };
             contest_score(
                 view.start.seed,

@@ -308,7 +308,7 @@ test('bot intent maps onto the core input', async () => {
   }, c => { c.transit = 'selectable'; });
 });
 
-test('a nominated target maps onto the core, through the wire key for an item, and one naming nothing cancels the interaction', async () => {
+test('a nominated target maps onto the core, through the wire key for an item, and a failed one reaches it unresolved', async () => {
   await run((s, match) => {
     const ids = match.ids, wire = wireIds([1, 2, 3, 4]), outward = wire.id(7, 'item');
     const target = t => inputOf(ids, { interact: true, target: t }, wire);
@@ -317,26 +317,66 @@ test('a nominated target maps onto the core, through the wire key for an item, a
     assert.deepEqual(target({ kind: 'station', id: 'c0' }).target, { kind: 'station', id: ids.chargerIndex.get('c0') });
     assert.deepEqual(target({ kind: 'station', id: 's1' }).target, { kind: 'station', id: ids.transitIndex.get('s1') });
     assert.deepEqual(target({ kind: 'item', id: outward }).target, { kind: 'item', id: 7 });
-    // R8 never falls through to another target, so a nomination of nothing is no interaction at all.
+    // R8 never falls through to another target: a nomination of nothing reaches the core unresolved, which rejects it.
     for (const t of [{ kind: 'gate', gateIdx: 9 }, { kind: 'station', id: 'nowhere' }]) {
-      assert.deepEqual([target(t).interact, target(t).target], [false, null], JSON.stringify(t));
+      assert.deepEqual([target(t).interact, target(t).target], [true, { kind: 'unresolved' }], JSON.stringify(t));
     }
     assert.deepEqual([inputOf(ids, { interact: true }).interact, inputOf(ids, { interact: true }).target], [true, null]);
     // A failed nomination allows no other gesture, not even a valid rail destination; movement and combat stand.
     const failed = inputOf(ids, { x: 1, attack: true, interact: true, transit: 's1', target: { kind: 'station', id: 'nowhere' } }, wire);
-    assert.deepEqual([failed.interact, failed.target, failed.transit, failed.movement, failed.attack], [false, null, null, [1, 0], true]);
+    assert.deepEqual([failed.interact, failed.target, failed.transit, failed.movement, failed.attack], [true, { kind: 'unresolved' }, null, [1, 0], true]);
+    // Unpressed, it still takes the rail away; the core asks nothing and rejects nothing.
+    const quiet = inputOf(ids, { transit: 's1', target: { kind: 'gate', gateIdx: 9 } }, wire);
+    assert.deepEqual([quiet.interact, quiet.target, quiet.transit], [false, { kind: 'unresolved' }, null]);
     assert.equal(inputOf(ids, { interact: true, transit: 's1' }).transit, ids.transitIndex.get('s1'), 'no nomination, so the rail stands');
     // An item ID outside the core's range names nothing, keyed or not.
     assert.equal(targetOf(ids, { kind: 'item', id: 2 ** 32 }, wireIds()), null);
     assert.equal(targetOf(ids, { kind: 'item', id: 2 ** 20 }, wire), null);
   });
-  // The wire keeps a target's shape and bounds. A malformed one is a failed nomination: no interaction and no rail.
+  // The wire keeps a target's shape and bounds. A malformed one is a failed nomination: no rail, and the button is cleared,
+  // which is all the old tick reads. Pressed, it is kept as `unresolved` for the new tick's core to reject.
   assert.deepEqual(sanitizeInput({ target: { kind: 'gate', gateIdx: 2, extra: 1 } }, 1).target, { kind: 'gate', gateIdx: 2 });
-  for (const t of [{ kind: 'gate', gateIdx: -1 }, { kind: 'item', id: -1 }, { kind: 'item', id: 2 ** 32 }, { kind: 'station', id: '' }, { kind: 'door' }, 'gate']) {
+  for (const t of [{ kind: 'gate', gateIdx: -1 }, { kind: 'item', id: -1 }, { kind: 'item', id: 2 ** 32 }, { kind: 'station', id: '' }, { kind: 'door' }, { kind: 'unresolved' }, 'gate']) {
     const input = sanitizeInput({ x: 1, attack: true, interact: true, transit: 's1', target: t }, 1);
-    assert.deepEqual([input.target, input.interact, input.transit, input.x, input.attack], [undefined, false, undefined, 1, true], JSON.stringify(t));
+    assert.deepEqual([input.target, input.interact, input.transit, input.x, input.attack], [{ kind: 'unresolved' }, false, undefined, 1, true], JSON.stringify(t));
+    assert.equal(sanitizeInput({ transit: 's1', target: t }, 1).target, undefined, 'unpressed, nothing is kept');
   }
+  await run((s, match) => {
+    const input = inputOf(match.ids, sanitizeInput({ interact: true, target: { kind: 'door' } }, 1));
+    assert.deepEqual([input.interact, input.target], [true, { kind: 'unresolved' }]);
+  });
   assert.equal(sanitizeInput({ interact: true, transit: 's1' }, 1).transit, 's1');
+});
+
+test('the core rejects an unresolved nomination it is sent, and the recording names it', async () => {
+  await run((s, match) => {
+    const [c] = s.players, actor = match.ids.actorOfPlayer.get(c.id);
+    const input = { ...emptyInput(), interact: true, target: { kind: 'unresolved' } };
+    assert.deepEqual(match.submit(1, [{ type: 'command', command: { actor, source: 'player', tick: 1, seq: 0, input } }]), [true]);
+    const t = match.step();
+    assert.ok(t.changes.events.some(e => e.fact.kind === 'rejected' && e.fact.actor === actor
+      && e.fact.reason.kind === 'interaction' && e.fact.reason.target?.kind === 'unresolved'), 'rejected');
+    assert.deepEqual(recordedInbound(match.ids, t.inbound)[0].input, { interact: true, target: { kind: 'unresolved' } });
+  });
+});
+
+test('the core opens with the discovery the old game makes when it creates a player', async () => {
+  const s = await game();
+  let match;
+  try {
+    const sorted = xs => [...xs].sort((a, b) => a - b);
+    const contestants = s.players.filter(p => p.role === 'contestant');
+    // What `createGame` discovered, before the mirror replaces it with the core's.
+    const opened = contestants.map(p => ({ discovered: sorted(p.discovery.discovered), seen: sorted(p.discovery.seen ?? []),
+      surveyed: sorted(p.discovery.surveyed ?? []), items: sorted(p.discovery.items?.keys() ?? []) }));
+    assert.ok(opened.every(m => m.discovered.length > 0));
+    assert.ok(opened.some(m => m.items.length > 0), 'a bot sees the map loot it starts near, bodiless as it is');
+    match = createTickMatch(s);
+    assert.deepEqual(contestants.map(p => {
+      const m = match.memory(p.id);
+      return { discovered: sorted(m.discovered), seen: sorted(m.seen), surveyed: sorted(m.surveyed), items: sorted(m.items.map(i => i.id)) };
+    }), opened);
+  } finally { match?.dispose(); disposePhysics(s); }
 });
 
 test('a frame records its inbound queue as the recording names it, less the commands of first-class bots', async () => {
