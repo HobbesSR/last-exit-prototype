@@ -252,6 +252,22 @@ test('sweep target is dropped when goalkeeping latches while target is far from 
   assert.ok(Math.abs(target2.x - map.exit.x) <= 2400, 'new target is near exit');
 });
 
+test('a goalkeeper patrols only within the exit radius, revisiting near the exit once nearby regions are swept', () => {
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] } });
+  const g = { id: 'g0', role: 'gladiator', status: 'active', x: map.exit.x - 1500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  // A claimed pod latches goalkeeping (review 1043 on #1305).
+  const s = { tick: 100, hazardX: -80, slots: 2, events: [], content: contentById('content-12'), map, players: [g] };
+  noteHunterTarget(s, g, false);
+  const near = at => Math.hypot(at.x - map.exit.x, at.y - map.exit.y) <= 2400;
+  // Arrive at each waypoint in turn, long enough to use up every region near the exit and reach the fallbacks.
+  for (let leg = 0; leg < 16; leg++) {
+    const target = sweepTarget(s, g, at => at);
+    assert.ok(target && near(target), `leg ${leg}: ${target?.x},${target?.y} is beyond the exit radius`);
+    Object.assign(g, { x: target.x, y: target.y });
+    s.tick++;
+  }
+});
+
 test('giveUpSweep clears target even when region is -1', () => {
   const chargers = [{ id: 'ch0', nodeId: 'n0', x: 3840, y: 576 }];
   const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] }, chargers });

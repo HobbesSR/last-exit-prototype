@@ -225,7 +225,9 @@ export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): 
       if (!ignoreRevisit && s.tick - (sweep.swept.get(index) ?? -Infinity) < SWEEP_REVISIT) return;
       const d = distance(p, centre);
       if (requireDistant && d < minStep) return;
-      if (goalkeep && distance(anchor, centre) > GOALKEEP_RADIUS && requireDistant) return;
+      // The exit radius holds in every pass, or a fallback would pick a region the next tick drops as stale. With every
+      // region near the exit swept, the last pass revisits one; with none free, the exit itself is the goal (#1305).
+      if (goalkeep && distance(anchor, centre) > GOALKEEP_RADIUS) return;
       const targetX = goalkeep ? anchor.x : Math.min(s.map.exit.x, currentFront + (d / 12) * FRONT_SPEED);
       const behindPenalty = !goalkeep && centre.x < currentFront ? (currentFront - centre.x) * 3.0 : 0;
       const value = Math.abs(centre.x - targetX) * FRONT_X_WEIGHT + Math.abs(centre.y - anchor.y) * FRONT_Y_WEIGHT
