@@ -197,9 +197,12 @@ pub enum Fact {
         item: ItemId,
         count: u32,
     },
+    /// `slots` is what remains after this escape's slot, so each escape keeps its own count
+    /// through canonical event order.
     Escaped {
         actor: ActorId,
         cell: ItemId,
+        slots: u32,
     },
     ChargingStarted {
         actor: ActorId,

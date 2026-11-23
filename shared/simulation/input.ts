@@ -132,11 +132,7 @@ export function consumeInput(p: Player, tick: Tick): PlayerInput {
   // The margin reported with this tick is that of the inputs that arrived before it.
   if (p.inputMarginNext !== undefined) { p.inputMargin = p.inputMarginNext; delete p.inputMarginNext; }
   else if (p.inputMargin !== undefined) delete p.inputMargin;
-  const queue = p.inputQueue;
-  // A stamp whose tick ran without spending it (the player was not active then) is past, not owed.
-  while (queue?.length && queue[0]!.tick !== undefined && queue[0]!.tick < tick) queue.shift();
-  const head = queue?.[0];
-  const queued = head && (head.tick === undefined || head.tick === tick) ? queue!.shift() : undefined;
+  const queued = takeQueued(p, tick);
   if (queued) {
     p.lastSeq = queued.seq ?? p.lastSeq;
     p.input = queued;
@@ -151,6 +147,18 @@ export function consumeInput(p: Player, tick: Tick): PlayerInput {
   // loss spend a charge, open a door or throw an attack the player never asked for twice.
   const held = p.input;
   return { x: held.x, y: held.y, aim: held.aim, sneak: held.sneak, seq: held.seq };
+}
+
+/**
+ * Take the buffered input `tick` spends, if any: a stamp for that tick, or the oldest unstamped input. A stamp whose
+ * tick ran without spending it (the player was not active then) is past, not owed, and goes. The new tick's receive
+ * boundary takes from the same buffer (`tick-boundary.ts`), so the two share one queue policy.
+ */
+export function takeQueued(p: Player, tick: Tick): PlayerInput | undefined {
+  const queue = p.inputQueue;
+  while (queue?.length && queue[0]!.tick !== undefined && queue[0]!.tick < tick) queue.shift();
+  const head = queue?.[0];
+  return head && (head.tick === undefined || head.tick === tick) ? queue!.shift() : undefined;
 }
 
 /** Start a player on an empty buffer. A join or resume must not spend the previous occupant's input. */

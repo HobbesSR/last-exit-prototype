@@ -80,11 +80,9 @@ fn the_change_list_carries_only_what_changed_and_escapes_are_removals() {
     );
     let escape = game.step(&rules).unwrap();
     assert!(
-        escape
-            .changes
-            .events
-            .iter()
-            .any(|event| event.fact == Fact::Escaped { actor: A, cell })
+        escape.changes.events.iter().any(
+            |event| matches!(event.fact, Fact::Escaped { actor: A, cell: c, .. } if c == cell)
+        )
     );
     assert_eq!(escape.changes.actors[&A].presence, Presence::Escaped);
     assert_eq!(escape.changes.extraction.unwrap().slots, 1);
@@ -169,9 +167,72 @@ fn observations_are_recorded_inbound_and_written_at_intake() {
     );
     assert_eq!(tick.changes.poses[&BodyId::Actor(C)], [500.0, 40.0]);
 
-    observe(&mut game, 2, Observation::Join { actor: C });
+    // The bot spent a high sequence; a connection taking the seat back numbers from the start.
+    super::submit(&mut game, C, 2, 90, Input::default());
+    game.step(&Combat::default()).unwrap();
+    assert_eq!(game.acknowledged(C), Some(90));
+    observe(&mut game, 3, Observation::Join { actor: C });
+    super::submit(&mut game, C, 3, 0, Input::default());
     let joined = game.step(&Combat::default()).unwrap();
     assert!(!joined.changes.actors[&C].bot);
+    assert_eq!(game.acknowledged(C), Some(0));
+}
+
+#[test]
+fn a_teleport_onto_another_actor_is_refused() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 10.0);
+    add_actor(&mut scenario, C, 300.0);
+    let mut game = scenario.start(50, 10);
+    observe(
+        &mut game,
+        1,
+        Observation::Teleport {
+            body: BodyId::Actor(C),
+            to: [10.5, 0.0],
+        },
+    );
+    let tick = game.step(&Combat::default()).unwrap();
+    // Recorded as it arrived, but nothing warped: the old dev rule's occupancy refusal (24).
+    assert_eq!(tick.inbound.len(), 1);
+    assert!(tick.discontinuities.is_empty());
+    assert!(game.position(BodyId::Actor(C)).unwrap()[0] > 250.0);
+}
+
+#[test]
+fn a_teleport_tangent_to_a_wall_stands_and_one_into_it_is_refused() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 10.0);
+    // A wall whose west face is at x = 100; the test bodies have radius 1.
+    scenario.geometry(Arc::new(SweptMap::new(
+        vec![Shape::Rect {
+            x: 100.0,
+            y: -50.0,
+            w: 20.0,
+            h: 100.0,
+        }],
+        vec![false],
+        vec![],
+    )));
+    let mut game = scenario.start(50, 10);
+    let warp = |game: &mut Match, tick: Tick, x: f64| {
+        observe(
+            game,
+            tick,
+            Observation::Teleport {
+                body: BodyId::Actor(A),
+                to: [x, 0.0],
+            },
+        );
+        !game
+            .step(&Combat::default())
+            .unwrap()
+            .discontinuities
+            .is_empty()
+    };
+    // Exactly one radius from the face is legal, as `canOccupy` allows; half a radius in is not.
+    assert!(warp(&mut game, 1, 99.0));
+    assert!(!warp(&mut game, 2, 99.5));
 }
 
 fn discovery_scenario(scenario: &mut Scenario, gate_box: [f64; 4]) {

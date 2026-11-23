@@ -106,6 +106,9 @@ test('a game that is not at its start, or holds what the state cannot, is refuse
     refused(() => { c.charging = 'c0'; }, () => { delete c.charging; }, /charging/);
     refused(() => { c.transit = { to: 's0', arriveAt: 9 }; }, () => { delete c.transit; }, /transit/);
     refused(() => { c.reload = { slot: 0, instanceId: 1, until: 9 }; }, () => { c.reload = null; }, /reload/);
+    // The core numbers new items from the largest it holds, so a counter elsewhere would renumber them.
+    const serial = s.itemSerial;
+    refused(() => { s.itemSerial = serial + 5; }, () => { s.itemSerial = serial; }, /next item ID/);
     assert.ok(matchSetup(s));
   } finally { disposePhysics(s); }
 });
