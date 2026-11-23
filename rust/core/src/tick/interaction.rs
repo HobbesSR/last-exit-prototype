@@ -186,16 +186,14 @@ impl InteractionRules {
                 continue;
             }
             let body = BodyId::Actor(id);
-            let Some(path) = view.solved.path(body) else {
+            let Some(origin) = view.solved.position(body) else {
                 continue;
             };
-            let origin = path[path.len() - 1];
             if let Some(charge) = actor.charging {
-                let travelled = path
-                    .windows(2)
-                    .map(|pair| distance(pair[0], pair[1]))
-                    .sum::<f64>();
-                let allowed = travelled <= CHARGE_JITTER
+                let allowed = view
+                    .solved
+                    .distance_travelled(body)
+                    .is_some_and(|distance| distance <= CHARGE_JITTER)
                     && state.stations.get(&charge.station).is_some_and(|station| {
                         station.kind == StationKind::Charging
                             && distance(origin, station.position) < CHARGE_REACH

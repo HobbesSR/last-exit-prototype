@@ -2,6 +2,8 @@ use super::*;
 use crate::physics::{BodyParams, KIND_ACTOR, SHAPE_CIRCLE};
 
 mod combat_tests;
+mod hazard_tests;
+mod hazard_trap_tests;
 mod interaction_tests;
 mod item_tests;
 mod movement_tests;

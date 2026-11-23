@@ -3,6 +3,7 @@
 
 mod apply;
 mod combat;
+mod hazards;
 mod hook;
 mod input;
 mod interaction;
@@ -19,10 +20,11 @@ mod state;
 mod sweep;
 
 pub use apply::{
-    Commit, Effects, Elimination, Event, Fact, HookRelease, Lifecycle, Rejection, Spawn, SpawnKey,
-    StatusEffect, VitalEffect,
+    Commit, Effects, Elimination, Event, EventPoint, Fact, HookRelease, Lifecycle, Rejection,
+    Spawn, SpawnKey, StatusEffect, VitalEffect,
 };
 pub use combat::{Combat, CombatIntent, CombatRules, WeaponTuning};
+pub use hazards::{FlameTuning, HazardRules, MineTuning, SpiderTuning, TurretTuning};
 pub use hook::HookTuning;
 pub use input::{
     AmmoFamily, Carried, Command, CommandSource, DropSlot, Inbound, Input, Observation, Target,
@@ -58,6 +60,8 @@ pub struct View<'a> {
     pub geometry: &'a SweptMap,
     pub sight: &'a SightIndex,
     pub sight_gates: &'a GateSet,
+    bounds: Option<[f64; 4]>,
+    hazard_map: &'a hazards::HazardMap,
     sites: &'a interaction::Sites,
 }
 
@@ -203,6 +207,8 @@ pub struct Scenario {
     bounds: Option<[f64; 4]>,
     sight: Option<(Arc<SightIndex>, Arc<GateSet>)>,
     floor: Option<Floor>,
+    hazard_areas: Vec<[f64; 4]>,
+    hazard_wall: Option<hazards::Wall>,
 }
 
 impl Scenario {
@@ -234,6 +240,19 @@ impl Scenario {
         self
     }
 
+    pub fn hazard_area(&mut self, bounds: [f64; 4]) -> &mut Self {
+        self.hazard_areas.push(bounds);
+        self
+    }
+
+    pub fn hazard_wall(&mut self, map_width: f64, grace_ticks: Tick) -> &mut Self {
+        self.hazard_wall = Some(hazards::Wall {
+            map_width,
+            grace_ticks,
+        });
+        self
+    }
+
     pub fn start(self, seed: u64, time_limit: Tick) -> Match {
         let ids = Ids::from_state(&self.state);
         let sites = interaction::Sites::new(&self.state);
@@ -257,8 +276,11 @@ impl Scenario {
                 Arc::new(GateSet::new(&[], &[0], &[], empty_grid)),
             )
         });
+        let hazard_map = hazards::HazardMap::new(self.hazard_areas, self.hazard_wall, time_limit);
+        let mut state = self.state;
+        state.hazard_x = hazard_map.wall_at(0).unwrap_or(state.hazard_x);
         Match {
-            state: self.state,
+            state,
             history: self.history,
             bodies,
             geometry: self
@@ -268,6 +290,7 @@ impl Scenario {
             sight,
             sight_gates,
             sites,
+            hazard_map,
             seed,
             time_limit,
             tick: 0,
@@ -289,6 +312,7 @@ pub struct Match {
     sight: Arc<SightIndex>,
     sight_gates: Arc<GateSet>,
     sites: interaction::Sites,
+    hazard_map: hazards::HazardMap,
     seed: u64,
     time_limit: Tick,
     tick: Tick,
@@ -391,6 +415,9 @@ impl Match {
                 self.state.hooks.remove(&id);
             }
         }
+        if let Some(wall_x) = self.hazard_map.wall_at(tick) {
+            self.state.hazard_x = wall_x;
+        }
         let impulses = apply::impulses(inbound.iter().filter_map(|entry| match *entry {
             Inbound::Carried(Carried::Impulse { body, impulse }) => Some((body, impulse)),
             _ => None,
@@ -424,6 +451,8 @@ impl Match {
             geometry: &self.geometry,
             sight: &self.sight,
             sight_gates: &self.sight_gates,
+            bounds: self.bounds,
+            hazard_map: &self.hazard_map,
             sites: &self.sites,
         }
     }
@@ -551,6 +580,7 @@ impl Match {
         self.carried.extend(
             apply::impulses(effects.impulses)
                 .into_iter()
+                .filter(|(body, _)| self.bodies.has_dynamic(*body))
                 .map(|(body, impulse)| Carried::Impulse { body, impulse }),
         );
         self.finished = tick == self.time_limit || mechanics.terminal(self.view(tick));

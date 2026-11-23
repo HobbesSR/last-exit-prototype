@@ -64,13 +64,14 @@ impl Default for CombatRules {
     }
 }
 
-/// The staged tick's movement, combat, inventory and interaction rules.
+/// The staged tick's movement, combat, inventory, interaction and hazard rules.
 #[derive(Default)]
 pub struct Combat {
     pub movement: Movement,
     pub rules: CombatRules,
     pub items: ItemRules,
     pub interactions: InteractionRules,
+    pub hazards: HazardRules,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -231,6 +232,7 @@ impl Combat {
             effects,
         );
         projectile::resolve_into(view, effects);
+        self.hazards.resolve_into(view, effects);
         for intent in intents {
             match *intent {
                 CombatIntent::Movement(_)
@@ -350,7 +352,7 @@ fn specter<C, P>(view: &ResolveView<'_>, effects: &mut Effects<C, P>, caster: Ac
     }
 }
 
-fn extend<C, P>(
+pub(super) fn extend<C, P>(
     effects: &mut Effects<C, P>,
     target: ActorId,
     kind: Status,
