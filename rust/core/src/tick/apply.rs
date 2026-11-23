@@ -563,6 +563,16 @@ pub(super) struct Additions {
     items: BTreeMap<ItemId, (Option<GroundItem>, Option<BodySpec>)>,
 }
 
+impl Additions {
+    /// Items whose bodies enter the world in this apply.
+    pub(super) fn admitted_items(&self) -> Vec<ItemId> {
+        self.items
+            .iter()
+            .filter_map(|(&id, (_, body))| body.is_some().then_some(id))
+            .collect()
+    }
+}
+
 impl Ids {
     pub(super) fn from_state(state: &State) -> Self {
         let ground = state

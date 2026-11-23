@@ -37,6 +37,7 @@ fn overdrive_spends_a_ready_skill_and_boosts_the_same_solve() {
         striker.deadlines.skill_ready_at = 2;
         scenario.state.actors.insert(B, striker);
         scenario.body(BodyId::Actor(B), body(0.0));
+        keep_open(&mut scenario);
         scenario.start(4217, 10)
     };
     let mut boosted = game();

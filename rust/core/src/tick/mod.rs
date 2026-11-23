@@ -3,6 +3,7 @@
 
 mod apply;
 mod combat;
+mod discovery;
 mod hazards;
 mod hook;
 mod input;
@@ -24,6 +25,7 @@ pub use apply::{
     Rejection, Spawn, SpawnKey, StatusEffect, VitalEffect,
 };
 pub use combat::{Combat, CombatIntent, CombatRules, WeaponTuning};
+pub use discovery::{DISCOVERY_INTERVAL, Discovery, DiscoverySample, GateObservation};
 pub use hazards::{FlameTuning, HazardRules, MineTuning, SpiderTuning, TurretTuning};
 pub use hook::HookTuning;
 pub use input::{
@@ -178,10 +180,6 @@ pub trait Mechanics {
         placement: Placement<Self::Placement>,
         commit: &mut Commit,
     ) -> BTreeMap<SpawnKey, Spawn>;
-
-    fn terminal(&self, _state: View<'_>) -> bool {
-        false
-    }
 }
 
 pub struct Placement<P> {
@@ -195,6 +193,7 @@ pub struct CompletedTick {
     pub inbound: Vec<Inbound>,
     pub solved: Solved,
     pub events: Vec<Event>,
+    pub discovery: Discovery,
 }
 
 /// Assemble an isolated match using stable IDs, without an adapter or the old tick.
@@ -342,6 +341,11 @@ impl Match {
         self.bodies.position(id)
     }
 
+    /// The retained rewind frames, captured at the close of each tick (R12).
+    pub fn history(&self) -> &RewindHistory {
+        &self.history
+    }
+
     pub fn acknowledged(&self, actor: ActorId) -> Option<u64> {
         self.input.acknowledged(actor)
     }
@@ -444,13 +448,75 @@ impl Match {
         );
         intake_facts.extend(writes.facts);
         let events = self.apply(tick, mechanics, &solved, effects, intake_facts);
+        let discovery = self.discover(tick, &inbound);
         self.tick = tick;
         Some(CompletedTick {
             tick,
             inbound,
             solved,
             events,
+            discovery,
         })
+    }
+
+    /// R12: discovery samples after the terminal check and rewind capture, so a stranded,
+    /// escaped or departed contestant does not sample, and an eye uses its committed pose.
+    fn discover(&mut self, tick: Tick, inbound: &[Inbound]) -> Discovery {
+        let contestants: Vec<_> = self
+            .state
+            .actors
+            .iter()
+            .filter(|(id, _)| id.kind == ActorKind::Contestant)
+            .map(|(&id, actor)| (id, actor.presence == Presence::Active))
+            .collect();
+        let bodies = &mut self.bodies;
+        Discovery {
+            gates: discovery::gate_observations(inbound),
+            samples: discovery::samples(
+                tick,
+                contestants.into_iter().map(|(id, active)| {
+                    (
+                        id,
+                        active.then(|| bodies.position(BodyId::Actor(id))).flatten(),
+                    )
+                }),
+            ),
+        }
+    }
+
+    /// R12 and R3: the committed state after apply, including same-tick admissions, warps
+    /// and removals. Items and gates are recorded only where they changed.
+    fn capture(&mut self, solved: &Solved, admitted: &[ItemId], facts: &[Fact]) -> RewindFrame {
+        let mut frame = RewindFrame::default();
+        for (&id, actor) in &self.state.actors {
+            if actor.presence == Presence::Active
+                && let Some(pose) = self.bodies.position(BodyId::Actor(id))
+            {
+                frame.poses.insert(id, pose);
+            }
+        }
+        for body in solved.bodies() {
+            let BodyId::Item(id) = body else { continue };
+            let before = solved.path(body).expect("solved body")[0];
+            if let Some(after) = self.bodies.position(body)
+                && after != before
+            {
+                frame.items.insert(id, after);
+                frame.items_before.insert(id, before);
+            }
+        }
+        for &id in admitted {
+            if let Some(after) = self.bodies.position(BodyId::Item(id)) {
+                frame.items.insert(id, after);
+            }
+        }
+        for fact in facts {
+            if let Fact::GateChanged { gate, open, .. } = *fact {
+                frame.gates_before.entry(gate).or_insert(!open);
+                frame.gates.insert(gate, self.state.gates[&gate].open);
+            }
+        }
+        frame
     }
 
     fn view(&self, tick: Tick) -> View<'_> {
@@ -568,6 +634,7 @@ impl Match {
         let mut placed: Vec<_> = placed.into_iter().chain(projectiles).chain(hooks).collect();
         placed.sort_by_key(|(key, _)| *key);
         let additions = self.ids.spawn(&mut self.state, placed, &mut facts);
+        let admitted = additions.admitted_items();
 
         let removed = apply::sync(
             &mut self.state,
@@ -595,7 +662,12 @@ impl Match {
                 .filter(|(body, _)| solved.path(*body).is_some() && !removed.contains(body))
                 .map(|(body, impulse)| Carried::Impulse { body, impulse }),
         );
-        self.finished = tick == self.time_limit || mechanics.terminal(self.view(tick));
+        // R12: a started tick completes, then any terminal predicate ends the match.
+        let slots_spent = self.state.extraction.is_some_and(|exit| exit.slots == 0);
+        let contestant_active = self.state.actors.iter().any(|(id, actor)| {
+            id.kind == ActorKind::Contestant && actor.presence == Presence::Active
+        });
+        self.finished = tick == self.time_limit || slots_spent || !contestant_active;
         if self.finished {
             let stranded = self
                 .state
@@ -626,6 +698,8 @@ impl Match {
         }
         facts.extend(effects.facts);
         facts.extend(commit.facts);
+        let frame = self.capture(solved, &admitted, &facts);
+        self.history.insert(tick, frame);
         facts.retain(|fact| match *fact {
             Fact::HookAttached { owner, target } => self.state.hooks.values().any(|hook| {
                 hook.owner == owner

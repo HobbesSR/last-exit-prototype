@@ -346,6 +346,7 @@ fn instant_transit_keeps_its_solved_origin_and_arbitrates_landing_space() {
     add_actor(&mut scenario, other, 10.0);
     let source = rail_station(&mut scenario, 1, 0.0);
     let destination = rail_station(&mut scenario, 2, 400.0);
+    keep_open(&mut scenario);
     let mut game = scenario.start(50, 10);
     submit(
         &mut game,

@@ -40,6 +40,7 @@ fn due_arrival_is_not_solved_or_allowed_to_spend_input_until_next_tick() {
     let mut scenario = Scenario::default();
     let destination = station(&mut scenario, 1, 400.0, StationKind::Transit);
     rider(&mut scenario, B, destination, 2);
+    keep_open(&mut scenario);
     let mut game = scenario.start(50, 10);
     let rules = Combat::default();
     assert_eq!(game.position(BodyId::Actor(B)), None);
@@ -124,8 +125,9 @@ fn due_arrivals_contend_for_a_single_site_then_retry_after_it_is_vacated() {
     scenario.bounds([398.9, -1.1], [401.1, 1.1]);
     scenario.state.extraction = Some(Extraction {
         position: [400.0, 0.0],
-        slots: 1,
+        slots: 2, // spending the last slot would end the match (R12)
     });
+    keep_open(&mut scenario);
     let mut game = scenario.start(50, 10);
     let rules = Combat::default();
     let first = game.step(&rules).unwrap();
@@ -185,6 +187,7 @@ fn respawn_uses_westmost_eligible_transit_station_and_waits_for_deadline() {
     station(&mut scenario, 3, 600.0, StationKind::Transit);
     station(&mut scenario, 4, 900.0, StationKind::Transit);
     pending_gladiator(&mut scenario, B, 2);
+    keep_open(&mut scenario);
     let mut game = scenario.start(50, 10);
     let rules = Combat::default();
     assert_eq!(game.position(BodyId::Actor(B)), None);
@@ -277,10 +280,11 @@ fn pending_item_waits_for_clearance_and_can_be_claimed_only_after_admission() {
     });
     scenario.state.extraction = Some(Extraction {
         position: [0.0, 0.0],
-        slots: 1,
+        slots: 2, // spending the last slot would end the match (R12)
     });
     let item = ItemId(20);
     scenario.state.items.insert(item, pending_item());
+    keep_open(&mut scenario);
     let mut game = scenario.start(50, 10);
     let rules = Combat::default();
     game.step(&rules).unwrap();
