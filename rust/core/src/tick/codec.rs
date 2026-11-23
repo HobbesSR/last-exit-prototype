@@ -92,7 +92,7 @@
 //!
 //! | Value | Words |
 //! | --- | --- |
-//! | Snapshot | tick, state tables, poses (a section of [`POSE_STRIDE`] 4: body, position) |
+//! | Snapshot | tick, state tables, poses (a section of [`POSE_STRIDE`] 9: body, position, angle, velocity, spin, sleeping flag) |
 //! | Changes | actors, items, projectiles, hooks, gates, traps (sections of the state rows), extraction option, `hazard_x` option (present, value), removed (a section of entities), poses, events (a section of [`EVENT_STRIDE`] 9) |
 //! | Event | id, tick, fact tag, fact payload ([`FACT_PAYLOAD`] 6) |
 //! | Inbound | [`INBOUND_STRIDE`] 32: tag (Command 0, Observation 1, Carried 2), payload (31) |
@@ -142,7 +142,7 @@ pub const GATE_STRIDE: usize = 6;
 pub const TRAP_STRIDE: usize = 10;
 pub const STATION_STRIDE: usize = 4;
 pub const EXTRACTION_WORDS: usize = 4;
-pub const POSE_STRIDE: usize = 4;
+pub const POSE_STRIDE: usize = 9;
 pub const FACT_PAYLOAD: usize = 6;
 pub const EVENT_STRIDE: usize = 3 + FACT_PAYLOAD;
 pub const INPUT_WORDS: usize = 27;
@@ -1011,19 +1011,31 @@ pub fn get_state(r: &mut Reader) -> Result<State> {
     })
 }
 
-fn put_poses(w: &mut Vec<f64>, poses: &BTreeMap<BodyId, Point>) {
+fn put_poses(w: &mut Vec<f64>, poses: &BTreeMap<BodyId, Pose>) {
     w.size(poses.len());
-    for (&body, &at) in poses {
+    for (&body, pose) in poses {
         w.body(body);
-        w.point(at);
+        w.point(pose.at);
+        w.push(pose.angle);
+        w.point(pose.velocity);
+        w.push(pose.spin);
+        w.flag(pose.sleeping);
     }
 }
 
-fn get_poses(r: &mut Reader) -> Result<BTreeMap<BodyId, Point>> {
+fn get_poses(r: &mut Reader) -> Result<BTreeMap<BodyId, Pose>> {
     let count = r.count(POSE_STRIDE)?;
     let mut poses = BTreeMap::new();
     for _ in 0..count {
-        poses.insert(r.body()?, r.point()?);
+        let body = r.body()?;
+        let pose = Pose {
+            at: r.point()?,
+            angle: r.finite()?,
+            velocity: r.point()?,
+            spin: r.finite()?,
+            sleeping: r.bool()?,
+        };
+        poses.insert(body, pose);
     }
     Ok(poses)
 }

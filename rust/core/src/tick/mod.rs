@@ -46,7 +46,7 @@ pub use items::{DropRequest, ItemClaim, ItemIntent, ItemRules};
 pub use motor::{MotorSurface, MotorTuning};
 pub use movement::{Movement, MovementIntent};
 pub use order::{actor_from_word, actor_word, contest_score, scatter_score};
-pub use output::{Changes, Discontinuity, Snapshot};
+pub use output::{Changes, Discontinuity, Pose, Snapshot};
 pub use placement::DropTuning;
 pub use rewind::{RewindFrame, RewindHistory, Rewound};
 pub use solve::{BeforeSolve, BodySpec, Contact, ContactKind, Motor, Path, Solved, Tether};
@@ -406,7 +406,7 @@ impl Match {
         Snapshot {
             tick: self.tick,
             state: self.state.clone(),
-            poses: self.bodies.dynamic_positions(),
+            poses: self.bodies.dynamic_poses(),
         }
     }
 
@@ -527,7 +527,7 @@ impl Match {
         let (mut changes, mut discontinuities) =
             self.apply(tick, mechanics, &solved, effects, intake_facts, start);
         for body in teleported {
-            if let Some(pose) = self.bodies.position(body) {
+            if let Some(pose) = self.bodies.pose(body) {
                 changes.poses.insert(body, pose);
                 discontinuities.push(Discontinuity::Warped(body));
             }

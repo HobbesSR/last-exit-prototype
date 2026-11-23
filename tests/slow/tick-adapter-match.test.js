@@ -8,10 +8,14 @@ import { defaultContent } from '../../shared/simulation/content.ts';
 import { attachPortalGraph } from '../../shared/navigation/portal-graph.ts';
 import { createTickMatch } from '../../shared/simulation/tick-match.ts';
 import { TickMirror, stepMirror } from '../../shared/simulation/tick-mirror.ts';
+import { TickFrames } from '../../shared/simulation/tick-frame.ts';
+import { playerView } from '../../shared/simulation/visibility.ts';
+import { checkFrame } from '../helpers/tick-frame.js';
 
 // A whole bot match on the new tick's path (27.2 "Node adapter (3d.2)"), on a chain arena stored in the frozen fixture, so no
 // map is generated here. The match runs with today's default content to its end, and the mirror the applier keeps is held
-// equal to the match's snapshot, memory and cues on every tick. The cheap witness is ../tick-adapter.test.js.
+// equal to the match's snapshot, memory and cues on every tick. Each tick's frame (27.2 "Frames (3d.3)") is held to the
+// snapshot's poses and projected for one player in turn. The cheap witness is ../tick-adapter.test.js.
 
 const { arenas } = deserialize(gunzipSync(readFileSync(new URL('../fixtures/behavior-physics-1.v8.gz', import.meta.url))));
 
@@ -25,12 +29,18 @@ function play() {
     let match;
     try {
       match = createTickMatch(s);
-      const mirror = new TickMirror(s, match), facts = new Map();
+      const mirror = new TickMirror(s, match), frames = new TickFrames(mirror), facts = new Map();
+      const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
       let t;
       while ((t = stepMirror(mirror))) {
         for (const e of t.changes.events) facts.set(e.fact.kind, (facts.get(e.fact.kind) ?? 0) + 1);
-        const expected = mirror.mirrorOf(match.snapshot());
+        const snap = match.snapshot(), expected = mirror.mirrorOf(snap);
         assert.deepEqual(mirror.view(expected), expected, `tick ${t.tick}`);
+        const frame = frames.frame();
+        checkFrame(frame, snap, t.tick, words);
+        // One player's view a tick, in turn: every player is projected hundreds of times over the match.
+        const i = t.tick % s.players.length;
+        assert.equal(playerView(s, frame, s.players[i].id).self.playerIdx, i);
       }
       return { phase: s.phase, facts };
     } finally { match?.dispose(); disposePhysics(s); }

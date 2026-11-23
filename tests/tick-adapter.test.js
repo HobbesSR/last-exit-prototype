@@ -4,11 +4,30 @@ import { createGame, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { createTickMatch } from '../shared/simulation/tick-match.ts';
 import { TickBoundary, botCommand } from '../shared/simulation/tick-boundary.ts';
-import { TickMirror, stepMirror } from '../shared/simulation/tick-mirror.ts';
+import { BodyLives, TickMirror, stepMirror } from '../shared/simulation/tick-mirror.ts';
+import { templatesOf } from '../shared/simulation/boundary.ts';
+import { TickFrames } from '../shared/simulation/tick-frame.ts';
+import { playerView } from '../shared/simulation/visibility.ts';
+import { createFrameEncoder, createRecordingReader } from '../shared/recording-format.ts';
+import { SCHEMA } from '../shared/recording.ts';
 import { arena } from './helpers/arena.js';
+import { checkFrame } from './helpers/tick-frame.js';
 
 // The Node adapter (27.2 "Node adapter (3d.2)"): the receive boundary, bot commands and the mirror applier, on a small
-// arena. The whole-match check on a generated map is tests/slow/tick-adapter-match.test.js.
+// arena, and the frames on that path (27.2 "Frames (3d.3)"). The whole-match check on a generated map is
+// tests/slow/tick-adapter-match.test.js.
+
+/** A recording's delta store in memory: each frame encoded as the writer stores it and read back as playback reads it. */
+function recordingRoundTrip() {
+  const encoder = createFrameEncoder({ schema: SCHEMA }), reader = createRecordingReader();
+  reader.push(`${JSON.stringify({ schema: SCHEMA, frameEncoding: 'delta-1' })}
+`);
+  return frame => {
+    reader.push(`${encoder.encode({ entries: Object.entries(frame).map(([key, value]) => [key, JSON.stringify(value)]) }).text}
+`);
+    return reader.end().frames.at(-1).state;
+  };
+}
 
 async function game(adjust = () => {}) {
   const { map } = arena({ cols: 6, rows: 4, seed: 11,
@@ -37,21 +56,109 @@ async function run(fn, content) {
   } finally { match?.dispose(); disposePhysics(s); }
 }
 
-test('a bot match on the new path holds the mirror equal to the match snapshot every tick', async () => {
+test('a bot match on the new path holds the mirror and its frames equal to the match snapshot every tick', async () => {
   await run((s, match, mirror) => {
     assert.ok(s.players.every(p => p.bot));
-    const kinds = new Set();
+    const kinds = new Set(), frames = new TickFrames(mirror), record = recordingRoundTrip();
+    const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
     assert.deepEqual(mirror.view(mirror.mirrorOf(match.snapshot())), mirror.mirrorOf(match.snapshot()));
+    let previous = checkFrame(frames.frame(), match.snapshot(), 0, words), placed = 0;
     for (let i = 0; i < 240; i++) {
       const t = stepMirror(mirror);
       if (!t) break;
       for (const e of t.changes.events) kinds.add(e.fact.kind);
-      const expected = mirror.mirrorOf(match.snapshot());
+      const snap = match.snapshot(), expected = mirror.mirrorOf(snap);
       assert.deepEqual(mirror.view(expected), expected, `tick ${t.tick}`);
+      const frame = frames.frame(), bodies = checkFrame(frame, snap, t.tick, words);
+      // A body keeps its ID and generation until it is placed or warped; a placed body is marked on that tick only.
+      const marked = new Map(t.discontinuities.map(d => [`${d.body.kind}:${d.body.id}`, d.kind]));
+      for (const [key, body] of bodies) {
+        const was = previous.get(key), marker = marked.get(key);
+        assert.equal(body.discontinuity, marker === 'placed' ? 'placed' : undefined, `tick ${t.tick}: ${key}`);
+        if (marker === 'placed') { placed++; if (was) assert.notEqual(body.id, was.id); }
+        else if (was) {
+          assert.equal(body.id, was.id, `tick ${t.tick}: ${key}`);
+          assert.equal(body.generation === was.generation, marker !== 'warped', `tick ${t.tick}: ${key}`);
+        }
+      }
+      previous = bodies;
+      // The recording stores it and reads it back whole; every player's view projects from it.
+      assert.deepEqual(record(frame), JSON.parse(JSON.stringify(frame)), `tick ${t.tick}`);
+      for (const p of s.players) {
+        const view = playerView(s, frame, p.id);
+        assert.equal(view.self.playerIdx, s.players.indexOf(p));
+        assert.equal(typeof view.hookActive, 'boolean');
+      }
     }
-    // The bots acted: they moved and picked up the loot, and every command they sent was spent.
+    // The bots acted: they moved and picked up the loot, and every command they sent was spent. The loot was placed.
     assert.ok(kinds.has('pickup'), [...kinds].join());
+    assert.ok(placed >= 4, `${placed} placements`);
     assert.ok(s.tick >= 200);
+  });
+});
+
+test('a hook is a flight on the frame, then a tether from caster to target, and the view of its caster says so', async () => {
+  await run((s, match, mirror) => {
+    const g = s.players.find(p => p.role === 'gladiator'), c = s.players.find(p => p.role === 'contestant'), gi = s.players.indexOf(g);
+    const boundary = new TickBoundary(s, match), frames = new TickFrames(mirror);
+    boundary.seat(g.id, 'join');
+    // Beside the contestants, clear of the locked door between them and the gladiators' spawn. A warp keeps the body's ID
+    // and renews its generation, so a viewer does not interpolate across it.
+    const bodyOfG = () => frames.frame().bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === gi);
+    const before = bodyOfG();
+    assert.ok(boundary.teleport(g.id, [c.x, c.y + 150]));
+    stepMirror(mirror, boundary);
+    const after = bodyOfG();
+    assert.deepEqual([after.id, after.generation, after.discontinuity], [before.id, before.generation + 1, undefined]);
+    let flew = 0, pulled = 0;
+    for (let seq = 1; seq <= 60 && !pulled; seq++) {
+      boundary.input(g.id, { seq, aim: Math.atan2(c.y - g.y, c.x - g.x), skill: seq === 1 });
+      stepMirror(mirror, boundary);
+      const frame = frames.frame(), view = playerView(s, frame, g.id);
+      const own = frame.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === gi);
+      for (const flight of frame.hookFlights) { flew++; assert.deepEqual([flight.a, flight.casterIdx], [own.id, gi]); }
+      for (const tether of frame.tethers) {
+        pulled++;
+        const target = frame.bodies.find(b => b.id === tether.b);
+        assert.deepEqual([tether.a, target.owner.playerIdx], [own.id, s.players.indexOf(c)]);
+      }
+      assert.equal(view.hookActive, frame.hookFlights.length + frame.tethers.length > 0, `tick ${s.tick}`);
+      assert.equal(view.predictionTethered, frame.tethers.length > 0, `tick ${s.tick}`);
+    }
+    assert.ok(flew && pulled, `${flew} flights, ${pulled} tethers`);
+  }, c => { c.roster.gladiators = [{ name: 'G', kit: 'hook' }]; });
+});
+
+test('a body gets a new ID each time it enters the world and a generation renewed only by a warp', () => {
+  const lives = new BodyLives(), actor = { kind: 'actor', id: 7 }, item = { kind: 'item', id: 3 };
+  const life = key => ({ ...lives.get(key) });
+  lives.start(['actor:7']);
+  assert.deepEqual(life('actor:7'), { id: 1, generation: 1 });
+  lives.take([{ kind: 'placed', body: item }, { kind: 'warped', body: actor }]);
+  assert.deepEqual([life('actor:7'), life('item:3'), lives.placed('item:3'), lives.placed('actor:7')],
+    [{ id: 1, generation: 2 }, { id: 2, generation: 1 }, true, false]);
+  // Left and entered again in one tick: a new lifetime, whatever order the markers came in.
+  lives.take([{ kind: 'placed', body: actor }, { kind: 'removed', body: actor }]);
+  assert.deepEqual([life('actor:7'), lives.placed('item:3')], [{ id: 3, generation: 1 }, false]);
+  // Removed, then readmitted on a later tick.
+  lives.take([{ kind: 'removed', body: item }]);
+  assert.equal(lives.get('item:3'), undefined);
+  lives.take([{ kind: 'placed', body: item }]);
+  assert.deepEqual(life('item:3'), { id: 4, generation: 1 });
+});
+
+test('frames publish frozen shapes of their own, which no frame can change for another or for the loader', async () => {
+  await run((s, match, mirror) => {
+    const frames = new TickFrames(mirror), template = templatesOf(s).actor.contestant.shape, radius = template.radius;
+    stepMirror(mirror);
+    const first = frames.frame();
+    stepMirror(mirror);
+    const second = new TickFrames(mirror).frame(), shape = second.bodies[0].shape;
+    assert.notEqual(shape, template);
+    assert.ok(Object.isFrozen(shape));
+    assert.throws(() => { shape.radius = 99; }, TypeError);
+    assert.equal(first.bodies[0].shape.radius, radius);
+    assert.equal(template.radius, radius);
   });
 });
 

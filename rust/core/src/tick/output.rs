@@ -31,6 +31,17 @@ pub enum Discontinuity {
     Removed(BodyId),
 }
 
+/// A dynamic body's committed pose: where it is, its rotation, its motion and whether Rapier
+/// has put it to sleep. A viewer draws and corrects from it (26's body presentation).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Pose {
+    pub at: Point,
+    pub angle: f64,
+    pub velocity: Point,
+    pub spin: f64,
+    pub sleeping: bool,
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Changes {
     pub actors: BTreeMap<ActorId, Actor>,
@@ -45,8 +56,9 @@ pub struct Changes {
     pub hazard_x: Option<f64>,
     /// Ground items, projectiles and hooks that left their tables, in entity order.
     pub removed: Vec<Entity>,
-    /// Dynamic bodies' committed poses that moved or entered the world.
-    pub poses: BTreeMap<BodyId, Point>,
+    /// Dynamic bodies' committed poses that changed (position, rotation, motion or sleep) or
+    /// entered the world.
+    pub poses: BTreeMap<BodyId, Pose>,
     /// T's events in canonical order (A6), published after apply commits.
     pub events: Vec<Event>,
 }
@@ -57,7 +69,7 @@ pub struct Changes {
 pub struct Snapshot {
     pub tick: Tick,
     pub state: State,
-    pub poses: BTreeMap<BodyId, Point>,
+    pub poses: BTreeMap<BodyId, Pose>,
 }
 
 impl Snapshot {
@@ -259,10 +271,10 @@ pub(super) fn changes(
         if !bodies.is_dynamic(body) {
             continue;
         }
-        let Some(after) = bodies.position(body) else {
+        let Some(after) = bodies.pose(body) else {
             continue;
         };
-        let start = solved.path(body).map(|path| path[0]);
+        let start = solved.start(body);
         let entered = discontinuities.iter().any(|marker| {
             matches!(*marker, Discontinuity::Placed(id) | Discontinuity::Warped(id) if id == body)
         });

@@ -10,7 +10,7 @@ import { publishItems, framedItems, shareItemPublication } from './ground-items.
 import { publishGates, publishedGates, shareGatePublication } from './frame-gates.ts';
 import { settledLayer } from '../frame-layers.ts';
 import { heardBy } from './hearing.ts';
-import { capturePhysicsPresentation, projectPhysicsPresentation } from './physics-presentation.ts';
+import { capturePhysicsPresentation, projectPhysicsPresentation, type PhysicsPresentation } from './physics-presentation.ts';
 import { assertWireDomain, wireCache, wireIds, type WireIds } from './wire-ids.ts';
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
 // visible before the next update — through cover clearing, a cloak dropping, a scan reveal, or simply
@@ -103,20 +103,38 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
   // `directed` is the client's own (it knows how it joined); the match constants come with the map (24.3).
   return { ...rest, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
     ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.playerIdx)), items, inRange, wire) : {}),
-    ...(frame.bodies && viewer ? { predictionTethered: (frame.physics?.world.constraints ?? []).some(c => c.a === `actor:${viewer.id}` || c.b === `actor:${viewer.id}`),
-    // The viewer's own flight, pending hit or pull, which hidden endpoints may omit from tethers and flights.
-    ...(frame.physics?.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) } : {}),
+    ...(frame.bodies && viewer ? tetherState(frame, viewer, relations.byActor(viewer.playerIdx)?.id) : {}),
     ...(viewer ? { self: projectPlayer(viewer, true) } : {}),
     players: authorized.filter(p => p !== viewer).map(p => projectPlayer(p)),
     items: items.map(item => { const projected = projectedItem(item, wire, projectedItems); return itemBodies.has(item.id) ? omitPose(projected) : projected; }), gates: frame.gates,
     traps: (frame.traps || []).filter(inRange).map(trap => trapFields(trap)), projectiles: frame.projectiles.filter(inRange).map(shot => projectileFields(shot, wire)),
     effects: frame.effects.filter(inRange).map(effect => effectFields(effect, wire)), events: frame.events?.map(event => eventFields(event, wire)) };
 }
+/**
+ * Whether the viewer's own body is tethered and whether it has a hook out, which hidden endpoints may omit from the
+ * projected tethers and flights. The old world's frame answers from its private state. A frame on the new tick's path
+ * (`tick-frame.ts`) has none, and answers from the whole presentation, before any view filtering: a tether is a hook's
+ * pull and its caster is end `a`.
+ */
+function tetherState(frame: Snapshot, viewer: Player<ItemKey> & { playerIdx: PlayerIdx }, own: unknown) {
+  if (frame.physics) return { predictionTethered: frame.physics.world.constraints.some(c => c.a === `actor:${viewer.id}` || c.b === `actor:${viewer.id}`),
+    ...(frame.physics.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) };
+  const tethers = frame.tethers ?? [];
+  return { predictionTethered: own !== undefined && tethers.some(t => t.a === own || t.b === own),
+    hookActive: (frame.hookFlights ?? []).some(hook => hook.casterIdx === viewer.playerIdx) || (own !== undefined && tethers.some(t => t.a === own)) };
+}
+/** What a frame's physics presentation holds: the old world's capture, or the new tick's, which has no private `physics`. */
+export type FramePresentation = Omit<PhysicsPresentation, 'physics'> & { physics?: PhysicsPresentation['physics'] };
 export function snapshot(s: Game): Snapshot {
   // Inclusive; presentation timing accumulates numeric capture and physical item pose publication.
   start('sim.snapshot');
+  try { return frameOf(s, capturePhysicsPresentation(s)); }
+  finally { stop('sim.snapshot'); }
+}
+/** The game's frame with `captured` as its physics presentation (`snapshot` captures the old world's). */
+export function frameOf(s: Game, captured: FramePresentation | undefined): Snapshot {
   try {
-    const captured = capturePhysicsPresentation(s), physics = captured?.physics;
+    const physics = captured?.physics;
     start('sim.snapshot.presentation');
     const ground = publishItems(s);
     const presentation = captured ? { physicsProfile: captured.physicsProfile, bodies: captured.bodies, tethers: captured.tethers, ...(captured.hookFlights ? { hookFlights: captured.hookFlights } : {}) } : undefined;
@@ -130,7 +148,7 @@ export function snapshot(s: Game): Snapshot {
     const actors = bodyRelations(captured?.bodies);
     frame.players = frame.players.map((p, i) => { const player = { ...p, playerIdx: i as PlayerIdx }; return actors.byActor(i as PlayerIdx) ? omitPose(player) : player; });
     frame.gates = dynamicGates(publishGates(s));
-    return physics ? Object.assign(frame, { physics }, presentation) : frame;
+    return physics ? Object.assign(frame, { physics }, presentation) : presentation ? Object.assign(frame, presentation) : frame;
   }
-  finally { stop('sim.snapshot.clone'); stop('sim.snapshot'); }
+  finally { stop('sim.snapshot.clone'); }
 }

@@ -57,7 +57,10 @@ The new tick's recording frame is S1, T's inbound queue and apply's discontinuit
 (`rust/core/src/tick/output.rs`). S1 is the previous frame with the tick's change list applied, which is the delta
 form [Schema 17](#schema-17-lines-and-delta-frames-901) already stores, and a keyframe is the core's `Snapshot`.
 A marker names a body placed, warped or removed in that tick. The cutover maps these onto the frame's fields and
-records the inbound queue as the frame's `commands`.
+records the inbound queue as the frame's `commands`. A frame on that path (`shared/simulation/tick-frame.ts`, 27.2
+"Frames (3d.3)") keeps the physics presentation, `bodies`, `tethers` and `hookFlights`, and drops the private
+`physics` block, the old world's state, which playback never read. A placed body is marked `placed` and takes a new body ID.
+A generation counts within one body ID, renewed by a warp, where the old world's counted across the match.
 
 ## Schema 20: relational presentation (#1153)
 
