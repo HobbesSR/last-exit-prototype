@@ -678,8 +678,9 @@ export interface SlotMove {
 export type InputTarget = { kind: 'extraction' } | { kind: 'gate'; gateIdx: GateIdx } | { kind: 'station'; id: StationId | ChargerId }
   | { kind: 'item'; id: number }
   /**
-   * Never sent: the sanitizer's mark for a pressed interact whose nomination was malformed (27.2 R8). The button is cleared
-   * beside it, so the old tick, which reads no target, does nothing; the new tick's core rejects it.
+   * The sanitizer's mark for a pressed interact whose nomination was malformed (27.2 R8). The button is cleared beside it,
+   * so the old tick, which reads no target, does nothing; the new tick's core rejects it. A second sanitizing pass keeps it,
+   * so a client sending it is the same as pressing interact with a failed nomination.
    */
   | { kind: 'unresolved' };
 
