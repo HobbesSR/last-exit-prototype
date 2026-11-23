@@ -12,7 +12,6 @@ const REACH: f64 = 45.0;
 const OWNER_LOCKOUT: Tick = 20;
 const UTILITY_COOLDOWN: Tick = 20;
 const PICKUP_CONTEST: u64 = 0x7069_636b_0000_0000;
-const DROP_CONTEST: u64 = 0x6472_6f70_0000_0000;
 
 #[derive(Default)]
 pub struct ItemRules {
@@ -35,13 +34,13 @@ enum DropSource {
 
 #[derive(Clone, Copy, Debug)]
 pub struct DropRequest {
-    owner: ActorId,
+    pub(super) owner: ActorId,
     source: DropSource,
     mandatory: bool,
 }
 
 impl DropRequest {
-    fn ordinal(self) -> u32 {
+    pub(super) fn ordinal(self) -> u32 {
         match self.source {
             DropSource::Slot { slot, .. } => u32::from(slot) * 4,
             DropSource::Reserve { family, .. } => (SLOT_COUNT as u32 + family as u32) * 4,
@@ -543,46 +542,34 @@ impl ItemRules {
         true
     }
 
-    pub fn place_drops(
+    pub(super) fn place_drop(
         &self,
         state: &mut State,
         view: ClaimView<'_>,
-        mut placement: Placement<DropRequest>,
+        request: DropRequest,
+        reserved: &mut BTreeMap<SpawnKey, Spawn>,
         commit: &mut Commit,
-    ) -> BTreeMap<SpawnKey, Spawn> {
-        placement.pending.sort_unstable_by_key(|request| {
-            let key = DROP_CONTEST ^ u64::from(request.ordinal());
-            (
-                contest_score(view.seed, view.tick, key, actor_word(request.owner)),
-                request.owner,
-                request.ordinal(),
-            )
-        });
-        for request in placement.pending {
-            if !request.mandatory && !state.active(request.owner) {
-                continue;
-            }
-            if !self.reserve_drop(state, view, request, None, &mut placement.reserved, commit) {
-                assert!(
-                    !request.mandatory,
-                    "a mandatory drop needs the actor's solved pose"
-                );
-                reject(&mut commit.facts, request.owner, request.refusal());
-                continue;
-            }
-            let inventory = &mut state
-                .actors
-                .get_mut(&request.owner)
-                .expect("dropper")
-                .inventory;
-            match request.source {
-                DropSource::Slot { slot, .. } => inventory.remove(slot as usize),
-                DropSource::Reserve { family, count } => {
-                    inventory.reserves[family as usize] -= count
-                }
-            }
+    ) {
+        if !request.mandatory && !state.active(request.owner) {
+            return;
         }
-        placement.reserved
+        if !self.reserve_drop(state, view, request, None, reserved, commit) {
+            assert!(
+                !request.mandatory,
+                "a mandatory drop needs the actor's solved pose"
+            );
+            reject(&mut commit.facts, request.owner, request.refusal());
+            return;
+        }
+        let inventory = &mut state
+            .actors
+            .get_mut(&request.owner)
+            .expect("dropper")
+            .inventory;
+        match request.source {
+            DropSource::Slot { slot, .. } => inventory.remove(slot as usize),
+            DropSource::Reserve { family, count } => inventory.reserves[family as usize] -= count,
+        }
     }
 
     fn reserve_drop(

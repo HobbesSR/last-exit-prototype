@@ -9,7 +9,7 @@ use crate::physics::{
 use crate::swept::Shape;
 use crate::world::PropShape;
 
-use super::state::{BodyId, GateId, HookId, Point};
+use super::state::{ActorId, BodyId, GateId, HookId, Point};
 
 #[derive(Clone)]
 pub struct BodySpec {
@@ -19,6 +19,17 @@ pub struct BodySpec {
     pub vertices: Vec<f64>,
     pub speed_limit: f64,
     pub tip_radius: f64,
+}
+
+impl BodySpec {
+    pub(super) fn radius(&self) -> f64 {
+        let [a, b] = self.dimensions;
+        if self.shape == physics::SHAPE_CIRCLE {
+            a
+        } else {
+            crate::math::hypot(a, b)
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -117,6 +128,7 @@ pub(super) struct Bodies {
     dynamic: BTreeMap<BodyId, DynamicBody>,
     solid_props: BTreeMap<BodyId, PropShape>,
     gate_specs: BTreeMap<GateId, BodySpec>,
+    actor_specs: BTreeMap<ActorId, BodySpec>,
 }
 
 struct DynamicBody {
@@ -126,8 +138,15 @@ struct DynamicBody {
 }
 
 impl Bodies {
-    pub(super) fn has_dynamic(&self, id: BodyId) -> bool {
-        self.dynamic.contains_key(&id)
+    pub(super) fn seed_actor(&mut self, id: ActorId, spec: BodySpec, active: bool) {
+        if active {
+            self.insert(BodyId::Actor(id), spec.clone());
+        }
+        self.actor_specs.insert(id, spec);
+    }
+
+    pub(super) fn actor_spec(&self, id: ActorId) -> Option<&BodySpec> {
+        self.actor_specs.get(&id)
     }
 
     pub(super) fn gate(&mut self, id: GateId, spec: BodySpec, open: bool) {
@@ -176,17 +195,12 @@ impl Bodies {
         self.slots.insert(id, slot);
         self.names.insert(slot, id);
         if spec.params.kind != KIND_STATIC {
-            let radius = if spec.shape == physics::SHAPE_CIRCLE {
-                a
-            } else {
-                crate::math::hypot(a, b)
-            };
             self.dynamic.insert(
                 id,
                 DynamicBody {
                     speed_limit: spec.speed_limit,
                     tip_radius: spec.tip_radius,
-                    radius,
+                    radius: spec.radius(),
                 },
             );
         }

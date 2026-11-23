@@ -15,7 +15,7 @@ const GATE_REACH: f64 = 85.0;
 const SENSOR_REACH: f64 = 180.0;
 const CHARGE_JITTER: f64 = 0.05;
 const REVEAL_TICKS: Tick = 65;
-const RAIL_COOLDOWN: Tick = 180;
+pub(super) const RAIL_COOLDOWN: Tick = 180;
 const TILE: f64 = 40.0;
 const TARGET_CONTEST: u64 = 0x696e_7472_0000_0000;
 const SLOT_CONTEST: u64 = 0x6578_6974_0000_0000;
@@ -529,38 +529,7 @@ impl InteractionRules {
         }
         pickups.retain(|(actor, _)| state.active(*actor));
         items.settle_claims(state, view, pickups, placement, commit);
-        for (actor, ride) in instant {
-            let destination = ride.destination;
-            let Some(to) = rail_landing(
-                state,
-                view,
-                actor,
-                state.stations[&destination].position,
-                &placement.reserved,
-                commit,
-            ) else {
-                reject(commit, actor, Rejection::Transit(destination));
-                continue;
-            };
-            let record = &mut state.actors.get_mut(&actor).expect("transit claimant");
-            record.charging = None;
-            commit.lifecycle.push(Lifecycle::Warp {
-                body: BodyId::Actor(actor),
-                to,
-                angle: record.aim,
-            });
-            commit
-                .deadlines
-                .entry(actor)
-                .or_insert(record.deadlines)
-                .transit_ready_at = view.tick.saturating_add(RAIL_COOLDOWN);
-            commit
-                .facts
-                .push(Fact::TransitDeparted { actor, destination });
-            commit
-                .facts
-                .push(Fact::TransitLanded { actor, destination });
-        }
+        commit.instant_rails = instant;
         charging
     }
 

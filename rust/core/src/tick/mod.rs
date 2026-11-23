@@ -20,8 +20,8 @@ mod state;
 mod sweep;
 
 pub use apply::{
-    Commit, Effects, Elimination, Event, EventPoint, Fact, HookRelease, Lifecycle, Rejection,
-    Spawn, SpawnKey, StatusEffect, VitalEffect,
+    ActorArrival, Commit, Effects, Elimination, Event, EventPoint, Fact, HookRelease, Lifecycle,
+    Rejection, Spawn, SpawnKey, StatusEffect, VitalEffect,
 };
 pub use combat::{Combat, CombatIntent, CombatRules, WeaponTuning};
 pub use hazards::{FlameTuning, HazardRules, MineTuning, SpiderTuning, TurretTuning};
@@ -258,10 +258,20 @@ impl Scenario {
         let sites = interaction::Sites::new(&self.state);
         let mut bodies = Bodies::default();
         for (id, spec) in self.body_specs {
-            if let BodyId::Gate(gate) = id
+            if let BodyId::Actor(actor) = id {
+                bodies.seed_actor(actor, spec, self.state.active(actor));
+            } else if let BodyId::Gate(gate) = id
                 && let Some(record) = self.state.gates.get(&gate)
             {
                 bodies.gate(gate, spec, record.open);
+            } else if let BodyId::Item(item) = id
+                && self
+                    .state
+                    .items
+                    .get(&item)
+                    .is_some_and(|item| item.unplaced_at.is_some())
+            {
+                continue;
             } else {
                 bodies.insert(id, spec);
             }
@@ -557,18 +567,20 @@ impl Match {
             .map(|(key, projectile)| (key, Spawn::Projectile(projectile)));
         let mut placed: Vec<_> = placed.into_iter().chain(projectiles).chain(hooks).collect();
         placed.sort_by_key(|(key, _)| *key);
-        self.ids
-            .spawn(&mut self.state, &mut self.bodies, placed, &mut facts);
+        let additions = self.ids.spawn(&mut self.state, placed, &mut facts);
 
-        let deactivated = apply::sync(
+        let removed = apply::sync(
             &mut self.state,
             &mut self.bodies,
             commit.lifecycle,
+            additions,
             &deaths,
             &mut facts,
         );
-        for actor in deactivated {
-            self.input.reset(actor);
+        for &body in &removed {
+            if let BodyId::Actor(actor) = body {
+                self.input.reset(actor);
+            }
         }
         for (id, deadlines) in commit.deadlines {
             if let Some(actor) = self.state.actors.get_mut(&id) {
@@ -580,7 +592,7 @@ impl Match {
         self.carried.extend(
             apply::impulses(effects.impulses)
                 .into_iter()
-                .filter(|(body, _)| self.bodies.has_dynamic(*body))
+                .filter(|(body, _)| solved.path(*body).is_some() && !removed.contains(body))
                 .map(|(body, impulse)| Carried::Impulse { body, impulse }),
         );
         self.finished = tick == self.time_limit || mechanics.terminal(self.view(tick));
@@ -597,8 +609,17 @@ impl Match {
                         })
                 })
                 .collect();
-            for actor in apply::sync(&mut self.state, &mut self.bodies, stranded, &[], &mut facts) {
-                self.input.reset(actor);
+            for body in apply::sync(
+                &mut self.state,
+                &mut self.bodies,
+                stranded,
+                apply::Additions::default(),
+                &[],
+                &mut facts,
+            ) {
+                if let BodyId::Actor(actor) = body {
+                    self.input.reset(actor);
+                }
             }
             self.queued.clear();
             facts.push(Fact::Finished);

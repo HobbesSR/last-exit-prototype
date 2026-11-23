@@ -1,6 +1,7 @@
 use super::*;
 use crate::physics::{BodyParams, KIND_ACTOR, SHAPE_CIRCLE};
 
+mod admission_tests;
 mod combat_tests;
 mod hazard_tests;
 mod hazard_trap_tests;
@@ -121,6 +122,7 @@ fn actor(presence: Presence) -> Actor {
         view_lag: 0,
         inventory: Inventory::default(),
         charging: None,
+        respawn_at: None,
         transit: None,
         bot: false,
         aggression: None,

@@ -127,7 +127,8 @@ fn firing_tick_and_lethal_melee_trade_both_award_credit() {
         (gladiator.level, gladiator.max_hp, gladiator.hp),
         (2, 120.0, 45.0)
     );
-    assert_eq!(gladiator.presence, Presence::Eliminated);
+    assert_eq!(gladiator.presence, Presence::Pending);
+    assert_eq!(gladiator.respawn_at, Some(401));
 }
 
 #[test]

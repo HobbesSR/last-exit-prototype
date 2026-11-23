@@ -117,6 +117,7 @@ pub struct Actor {
     pub view_lag: Tick,
     pub inventory: Inventory,
     pub charging: Option<Charging>,
+    pub respawn_at: Option<Tick>,
     pub transit: Option<Transit>,
     pub bot: bool,
     pub aggression: Option<Aggression>,
