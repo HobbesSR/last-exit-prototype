@@ -207,7 +207,7 @@ export async function checkContentPresentation(browser) {
     const pending = await (await fetch(`${base}/api/rooms`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":99}' })).json();
     const dev = await open();
     await dev.goto(`${base}/?room=${pending.id}&dev`);
-    await dev.waitForFunction(() => window.arenaDebug().content === 'browser-content-b' && document.getElementById('connection-text').textContent === 'DEV VIEW');
+    await dev.waitForFunction(() => window.arenaDebug?.().content === 'browser-content-b' && document.getElementById('connection-text').textContent === 'DEV VIEW');
     assert.equal(await dev.evaluate(() => window.arenaDebug().mapWidth), undefined, 'no map yet');
 
     // Recording A over it, then the map and B's ready arrive behind the recording.

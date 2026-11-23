@@ -82,10 +82,10 @@ try {
   await page.waitForFunction(() => document.querySelector('#lobby-count')?.textContent === '1/8 contestants / 0/3 gladiators');
   const ownerRoom = new URL(page.url()).searchParams.get('room');
   // The lobby opens before the map exists (#258), with the player already in the waiting yard (#236).
-  const myId = async () => (await page.waitForFunction(() => window.arenaDebug().me?.id, null, { timeout: 120000 })).jsonValue();
+  const myId = async () => (await page.waitForFunction(() => window.arenaDebug?.().me?.id, null, { timeout: 120000 })).jsonValue();
   const ownerPlayer = await myId();
   // Until the start players walk about a waiting yard (#236): the lobby stays open and the arena hidden.
-  await page.waitForFunction(() => window.arenaDebug().phase === 'waiting');
+  await page.waitForFunction(() => window.arenaDebug?.().phase === 'waiting');
   assert.equal(await page.evaluate(() => window.arenaDebug().map.width), 1400, 'the yard, not the arena');
   const waitingX = await page.evaluate(() => window.arenaDebug().me.x);
   await page.keyboard.down('KeyD'); await page.waitForTimeout(650); await page.keyboard.up('KeyD');
