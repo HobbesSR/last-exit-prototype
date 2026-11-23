@@ -165,7 +165,7 @@ fn observations_are_recorded_inbound_and_written_at_intake() {
         tick.discontinuities,
         [Discontinuity::Warped(BodyId::Actor(C))]
     );
-    assert_eq!(tick.changes.poses[&BodyId::Actor(C)], [500.0, 40.0]);
+    assert_eq!(tick.changes.poses[&BodyId::Actor(C)].at, [500.0, 40.0]);
 
     // The bot spent a high sequence; a connection taking the seat back numbers from the start.
     super::submit(&mut game, C, 2, 90, Input::default());

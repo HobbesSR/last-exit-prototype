@@ -9,6 +9,7 @@ use crate::physics::{
 use crate::swept::Shape;
 use crate::world::PropShape;
 
+use super::output::Pose;
 use super::state::{ActorId, BodyId, GateId, HookId, Point};
 
 #[derive(Clone)]
@@ -88,6 +89,8 @@ pub struct Solved {
 struct SolvedBody {
     path: Path,
     radius: f64,
+    /// The pose before the step, which a change list compares the committed one with.
+    start: Pose,
 }
 
 impl Solved {
@@ -105,6 +108,11 @@ impl Solved {
 
     pub fn position(&self, id: BodyId) -> Option<Point> {
         self.path(id).map(|path| path[SUBSTEPS])
+    }
+
+    /// The body's whole pose before the step.
+    pub(super) fn start(&self, id: BodyId) -> Option<Pose> {
+        self.bodies.get(&id).map(|body| body.start)
     }
 
     pub(super) fn distance_travelled(&self, id: BodyId) -> Option<f64> {
@@ -229,11 +237,11 @@ impl Bodies {
         true
     }
 
-    /// Every dynamic body's position, in body order: a snapshot's poses.
-    pub(super) fn dynamic_positions(&mut self) -> BTreeMap<BodyId, Point> {
+    /// Every dynamic body's pose, in body order: a snapshot's poses.
+    pub(super) fn dynamic_poses(&mut self) -> BTreeMap<BodyId, Pose> {
         let ids: Vec<_> = self.dynamic.keys().copied().collect();
         ids.into_iter()
-            .filter_map(|id| Some((id, self.position(id)?)))
+            .filter_map(|id| Some((id, self.pose(id)?)))
             .collect()
     }
 
@@ -254,6 +262,12 @@ impl Bodies {
         if let Some(&slot) = self.slots.get(&id) {
             self.engine.set_pose(slot, to[0], to[1], angle);
         }
+    }
+
+    /// The body's whole pose: position, rotation, motion and sleep.
+    pub(super) fn pose(&mut self, id: BodyId) -> Option<Pose> {
+        let &slot = self.slots.get(&id)?;
+        Some(pose_of(self.engine.pose(slot)))
     }
 
     pub(super) fn position(&mut self, id: BodyId) -> Option<Point> {
@@ -298,6 +312,11 @@ impl Bodies {
         tethers: &BTreeMap<HookId, Tether>,
     ) -> Solved {
         self.engine.apply_floor_drag();
+        let starts: Vec<Pose> = self
+            .dynamic
+            .keys()
+            .map(|id| pose_of(self.engine.pose(self.slots[id])))
+            .collect();
         let mut input = std::mem::take(self.engine.input_vec());
         input.clear();
         input.reserve(self.dynamic.len() * DYNAMIC_STRIDE + impulses.len() * PUSH_STRIDE);
@@ -361,7 +380,8 @@ impl Bodies {
             .dynamic
             .iter()
             .enumerate()
-            .map(|(index, (&id, body))| {
+            .zip(starts)
+            .map(|((index, (&id, body)), start)| {
                 let path = std::array::from_fn(|substep| {
                     let at = HEADER + (substep * count + index) * 2;
                     [out[at], out[at + 1]]
@@ -371,6 +391,7 @@ impl Bodies {
                     SolvedBody {
                         path,
                         radius: body.radius,
+                        start,
                     },
                 )
             })
@@ -407,5 +428,16 @@ impl Bodies {
             contacts,
             solid_props: self.props(),
         }
+    }
+}
+
+/// The engine's `x, y, angle, vx, vy, omega, sleeping` words as a pose.
+fn pose_of(words: &[f64]) -> Pose {
+    Pose {
+        at: [words[0], words[1]],
+        angle: words[2],
+        velocity: [words[3], words[4]],
+        spin: words[5],
+        sleeping: words[6] != 0.0,
     }
 }

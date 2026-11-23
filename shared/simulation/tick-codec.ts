@@ -127,7 +127,8 @@ export interface State {
   hazardX: number | null;
 }
 
-export interface PoseEntry { body: BodyRef; at: Point }
+/** A dynamic body's committed pose (`tick::Pose`): position, rotation, motion and whether Rapier put it to sleep. */
+export interface PoseEntry { body: BodyRef; at: Point; angle: number; velocity: Point; spin: number; sleeping: boolean }
 export interface Snapshot { tick: Tick; state: State; poses: PoseEntry[] }
 
 // --- Inbound ----------------------------------------------------------------
@@ -348,7 +349,7 @@ export const GATE_STRIDE = 6;
 export const TRAP_STRIDE = 10;
 export const STATION_STRIDE = 4;
 export const EXTRACTION_WORDS = 4;
-export const POSE_STRIDE = 4;
+export const POSE_STRIDE = 9;
 export const FACT_PAYLOAD = 6;
 export const EVENT_STRIDE = 3 + FACT_PAYLOAD;
 export const INPUT_WORDS = 27;
@@ -806,7 +807,7 @@ function getTable<T extends { id: number } | { word: number }>(r: Reader, stride
 }
 function getPoses(r: Reader): PoseEntry[] {
   const count = r.count(POSE_STRIDE), poses: PoseEntry[] = [];
-  for (let i = 0; i < count; i++) poses.push({ body: r.body(), at: r.point() });
+  for (let i = 0; i < count; i++) poses.push({ body: r.body(), at: r.point(), angle: r.finite(), velocity: r.point(), spin: r.finite(), sleeping: r.bool() });
   return poses;
 }
 export function getState(r: Reader): State {
@@ -1005,8 +1006,10 @@ function upsert<T>(rows: readonly T[], changed: readonly T[], idOf: (row: T) => 
   return [...byId.values()].sort((a, b) => idOf(a) - idOf(b));
 }
 const BODY_RANK: Record<BodyKind, number> = { actor: 0, item: 1, prop: 2, gate: 3, geometry: 4 };
-const bodyOrder = (a: BodyRef, b: BodyRef): number => BODY_RANK[a.kind] - BODY_RANK[b.kind] || a.id - b.id;
-const bodyKey = (body: BodyRef): string => `${body.kind}:${body.id}`;
+/** Bodies in `BodyId` order: actor, item, prop, gate, geometry, then ID. */
+export const bodyOrder = (a: BodyRef, b: BodyRef): number => BODY_RANK[a.kind] - BODY_RANK[b.kind] || a.id - b.id;
+/** A body's key in a map: `kind:id`. */
+export const bodyKey = (body: BodyRef): string => `${body.kind}:${body.id}`;
 
 /**
  * `Snapshot::apply`: the previous tick's snapshot becomes this tick's. Changed records replace whole, removals follow, a

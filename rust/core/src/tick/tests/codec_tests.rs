@@ -572,9 +572,18 @@ fn changes_round_trip_every_field() {
             Entity::Hook(HookId(3)),
         ],
         poses: BTreeMap::from([
-            (BodyId::Actor(A), [1.0, 2.0]),
-            (BodyId::Item(ItemId(4)), [3.0, 4.0]),
-            (BodyId::Prop(5), [5.0, 6.0]),
+            (BodyId::Actor(A), at([1.0, 2.0])),
+            (BodyId::Item(ItemId(4)), at([3.0, 4.0])),
+            (
+                BodyId::Prop(5),
+                Pose {
+                    at: [5.0, 6.0],
+                    angle: -0.5,
+                    velocity: [7.0, -8.0],
+                    spin: 0.25,
+                    sleeping: true,
+                },
+            ),
         ]),
         events: every_fact()
             .into_iter()
@@ -594,12 +603,20 @@ fn changes_round_trip_every_field() {
     assert_eq!(get_changes(&mut Reader::new(&words)).unwrap(), none);
 }
 
+/// A pose at rest at `point`.
+fn at(point: Point) -> Pose {
+    Pose {
+        at: point,
+        ..Pose::default()
+    }
+}
+
 #[test]
 fn snapshots_round_trip() {
     let snapshot = Snapshot {
         tick: 12,
         state: rich_state(),
-        poses: BTreeMap::from([(BodyId::Actor(A), [9.0, 8.0])]),
+        poses: BTreeMap::from([(BodyId::Actor(A), at([9.0, 8.0]))]),
     };
     let words = encoded(|w| put_snapshot(w, &snapshot));
     assert_eq!(get_snapshot(&mut Reader::new(&words)).unwrap(), snapshot);
@@ -1068,7 +1085,7 @@ fn a_decoded_setup_runs_through_the_live_match() {
     live.snapshot();
     let snapshot = get_snapshot(&mut Reader::new(live.output())).unwrap();
     assert_eq!(snapshot.tick, 1);
-    assert!(snapshot.poses[&BodyId::Actor(A)][0] > 0.0);
+    assert!(snapshot.poses[&BodyId::Actor(A)].at[0] > 0.0);
     live.memory(actor_word(A) as f64);
     assert_eq!(
         get_memory(&mut Reader::new(live.output())),

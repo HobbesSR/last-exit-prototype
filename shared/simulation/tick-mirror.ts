@@ -9,6 +9,7 @@ import { effect, event, participant } from './event-records.ts';
 import { addItemsFromCore, groundItem, removeItem, replaceItem } from './ground-items.ts';
 import { sightOf } from './sight-runtime.ts';
 import { botCommand, rollMargin } from './tick-boundary.ts';
+import { bodyKey, bodyOrder } from './tick-codec.ts';
 import type { TickBoundary } from './tick-boundary.ts';
 import type { Actor, ActorEntry, CarriedItem, Cue, DecodedTick, Equipment, Fact, GroundItem as CoreGround, Hook, Inbound, Loot,
   Memory, Point, PoseEntry, Projectile as CoreProjectile, Snapshot, Tick, Trap as CoreTrap, Window } from './tick-codec.ts';
@@ -29,7 +30,8 @@ import type { DiscoveryMemory, Game, HeardCue, GroundItem, InventoryItem, Player
 //   the old effect kinds and radii, at the committed poses.
 // - **Identity.** A core item ID is the mirror's `ItemId` (the loader keeps them), so the ID maps need no item table;
 //   `itemSerial` follows the largest seen. Actors, gates, traps and stations go through `MatchIds`.
-// - **Records the mirror has no field for** (hooks, prop poses) are kept beside it, for 3d.3's projection.
+// - **Records the mirror has no field for** (hooks, and every dynamic body's whole pose) are kept beside it, for the frame
+//   (`tick-frame.ts`).
 
 /** The old effect kinds and radii (`rust/core/src/action_combat.rs`, `combat.rs`, `hazards.rs`, `phase_six.rs`). */
 const EFFECT = Object.freeze({ slash: 55, slashReach: 30, shock: 130, scan: 450, upgrade: 75, loot: 30, rail: 60, charge: 70, grapple: 35 });
@@ -180,7 +182,8 @@ export interface MirrorView {
   slots: number;
   hazardX: number;
   hooks: [number, Hook][];
-  props: [number, Point][];
+  /** Every dynamic body's pose, in body order. */
+  poses: PoseEntry[];
   /** Each player's discovery memory and the cues it hears, in roster order. */
   knowledge: { memory: DiscoveryMemory | null; heard: HeardCue[] }[];
 }
@@ -195,9 +198,9 @@ export class TickMirror {
   readonly #actors = new Map<number, Actor>();
   /** Traps whose deadline has not passed, by index. */
   readonly #counting = new Map<number, Tick>();
-  /** Hooks and prop poses, which the game has no field for. */
+  /** Hooks and every dynamic body's whole pose (keyed `kind:id`), which the game has no field for. */
   readonly hooks = new Map<number, Hook>();
-  readonly props = new Map<number, Point>();
+  readonly poses = new Map<string, PoseEntry>();
   /** Each projectile's deadline, for its countdown. */
   readonly #expires = new Map<number, Tick>();
 
@@ -224,7 +227,7 @@ export class TickMirror {
       if (old) replaceItem(s, old, next, true); else addItemsFromCore(s, [next]);
     }
     snap.state.traps.forEach(e => this.#trap(e.id, e.trap, snap.tick));
-    for (const pose of snap.poses) if (pose.body.kind === 'prop') this.props.set(pose.body.id, pose.at);
+    for (const pose of snap.poses) this.poses.set(bodyKey(pose.body), pose);
     for (const p of s.players) this.#memory(p, true);
   }
 
@@ -293,9 +296,10 @@ export class TickMirror {
     for (const e of c.projectiles) { projectiles!.set(e.id, projectileOf(ctx, e.id, e.projectile, tick)); this.#expires.set(e.id, e.projectile.expiresAt); }
     if (projectiles) s.projectiles = [...projectiles.values()].sort((a, b) => a.id - b.id);
     for (const e of c.hooks) this.hooks.set(e.id, e.hook);
+    for (const marker of t.discontinuities) if (marker.kind === 'removed') this.poses.delete(bodyKey(marker.body));
     for (const pose of c.poses) {
-      if (pose.body.kind === 'prop') this.props.set(pose.body.id, pose.at);
-      else if (pose.body.kind === 'actor') { const p = this.#player(pose.body.id); p.x = pose.at[0]; p.y = pose.at[1]; }
+      this.poses.set(bodyKey(pose.body), pose);
+      if (pose.body.kind === 'actor') { const p = this.#player(pose.body.id); p.x = pose.at[0]; p.y = pose.at[1]; }
     }
     // Countdowns from the kept deadlines: every actor, the counting traps, every projectile.
     for (const [word, actor] of this.#actors) countdowns(this.#player(word), actor, tick);
@@ -367,7 +371,7 @@ export class TickMirror {
       traps: s.traps.map(t => ({ ...t })),
       slots: s.slots, hazardX: s.hazardX,
       hooks: [...this.hooks].sort((a, b) => a[0] - b[0]),
-      props: [...this.props].sort((a, b) => a[0] - b[0]),
+      poses: [...this.poses.values()].sort((a, b) => bodyOrder(a.body, b.body)),
       knowledge: s.players.map(p => ({ memory: p.discovery ?? null, heard: p.heard ?? [] })),
     };
   }
@@ -396,7 +400,7 @@ export class TickMirror {
       gates: snap.state.gates.map(e => ({ open: e.gate.open, locked: e.gate.locked })),
       traps, slots: snap.state.extraction?.slots ?? this.s.slots, hazardX: snap.state.hazardX ?? this.s.hazardX,
       hooks: snap.state.hooks.map(e => [e.id, e.hook] as [number, Hook]),
-      props: snap.poses.filter(p => p.body.kind === 'prop').map(p => [p.body.id, p.at] as [number, Point]),
+      poses: snap.poses,
       // The match's own, as of its last completed tick: the snapshot's.
       knowledge: this.s.players.map(p => {
         const memory = p.role === 'contestant' && ctx.discovery ? this.match.memory(p.id) : null;
@@ -407,7 +411,7 @@ export class TickMirror {
 }
 
 function poseMap(poses: readonly PoseEntry[]): Map<string, Point> {
-  return new Map(poses.map(p => [`${p.body.kind}:${p.body.id}`, p.at] as const));
+  return new Map(poses.map(p => [bodyKey(p.body), p.at] as const));
 }
 function byId(list: readonly Projectile[]): Map<number, Projectile> { return new Map(list.map(p => [p.id, p] as const)); }
 
