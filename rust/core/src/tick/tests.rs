@@ -8,6 +8,7 @@ mod hazard_trap_tests;
 mod interaction_tests;
 mod item_tests;
 mod movement_tests;
+mod terminal_tests;
 
 const A: ActorId = ActorId {
     kind: ActorKind::Contestant,
@@ -129,6 +130,20 @@ fn actor(presence: Presence) -> Actor {
         deadlines: Deadlines::default(),
         statuses: BTreeMap::new(),
     }
+}
+
+/// A bodiless contestant that keeps a scenario's match open once its own contestants
+/// leave, or when it has none, since R12 ends a match with no active contestant.
+const BYSTANDER: ActorId = ActorId {
+    kind: ActorKind::Contestant,
+    seat: 99,
+};
+
+fn keep_open(scenario: &mut Scenario) {
+    scenario
+        .state
+        .actors
+        .insert(BYSTANDER, actor(Presence::Active));
 }
 
 fn pending_item() -> GroundItem {

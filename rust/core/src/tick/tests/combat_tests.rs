@@ -60,6 +60,7 @@ fn firing_tick_and_lethal_melee_trade_both_award_credit() {
             expires_at: 20,
         },
     );
+    keep_open(&mut scenario);
     let mut game = scenario.start(87, 10);
     submit(&mut game, B, 1, 1, attack(PI));
     submit(&mut game, A, 1, 1, attack(0.0));
@@ -205,6 +206,7 @@ fn seeded_credit_is_independent_of_submission_order_and_rewards_only_the_winner(
                 .deadlines
                 .skill_ready_at = 80;
         }
+        keep_open(&mut scenario);
         let mut game = scenario.start(71, 10);
         for id in order {
             submit(&mut game, id, 1, 1, attack(if id == B { PI } else { 0.0 }));
@@ -356,6 +358,7 @@ fn projectile_from_a_previously_eliminated_shooter_still_gets_credit() {
             expires_at: 10,
         },
     );
+    keep_open(&mut scenario);
     let mut game = scenario.start(22, 10);
     let rules = Combat::default();
     for x in [20.0, 40.0, 60.0] {
