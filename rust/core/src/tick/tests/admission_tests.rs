@@ -181,7 +181,7 @@ fn due_arrivals_contend_for_a_single_site_then_retry_after_it_is_vacated() {
 #[test]
 fn respawn_uses_westmost_eligible_transit_station_and_waits_for_deadline() {
     let mut scenario = Scenario::default();
-    scenario.state.hazard_x = 0.0;
+    scenario.state.hazard_x = Some(0.0);
     station(&mut scenario, 1, 350.0, StationKind::Transit);
     station(&mut scenario, 2, 450.0, StationKind::Charging);
     station(&mut scenario, 3, 600.0, StationKind::Transit);
@@ -229,7 +229,7 @@ fn respawn_uses_westmost_eligible_transit_station_and_waits_for_deadline() {
 fn respawn_and_arrival_share_placement_reservations() {
     for seed in [1, 2, 3, 4, 50] {
         let mut scenario = Scenario::default();
-        scenario.state.hazard_x = 0.0;
+        scenario.state.hazard_x = Some(0.0);
         let destination = station(&mut scenario, 1, 600.0, StationKind::Transit);
         pending_gladiator(&mut scenario, B, 1);
         rider(&mut scenario, C, destination, 1);
@@ -433,4 +433,58 @@ fn a_due_rider_sees_the_gate_committed_in_apply() {
         assert_eq!(has(&result, landing), open);
         assert_eq!(game.position(BodyId::Actor(B)).is_some(), open);
     }
+}
+
+#[test]
+fn pending_items_leave_the_drop_reserve_free() {
+    let mut scenario = Scenario::default();
+    scenario.state.actors.insert(A, actor(Presence::Active));
+    scenario.body(BodyId::Actor(A), body(-200.0));
+    let held = ItemId(5);
+    scenario.state.actors.get_mut(&A).unwrap().inventory.slots[0] = Some(CarriedItem {
+        id: held,
+        lineage: held,
+        equipment: Equipment {
+            kind: EquipmentKind::Cell { charge: 0 },
+            quality: 1,
+        },
+    });
+    let waiting = [ItemId(20), ItemId(21), ItemId(22)];
+    for (i, &id) in waiting.iter().enumerate() {
+        scenario.state.items.insert(
+            id,
+            GroundItem {
+                unplaced_at: Some([100.0 * (i as f64 + 1.0), 0.0]),
+                ..pending_item()
+            },
+        );
+    }
+    keep_open(&mut scenario);
+    let mut game = scenario.start(50, 10);
+    let mut rules = Combat::default();
+    // Four dynamic bodies, one held back for drops: the actor and two items fill the rest.
+    rules.items.drops.body_capacity = 4;
+    rules.items.drops.drop_reserve = 1;
+    game.step(&rules).unwrap();
+    let unplaced = |game: &Match| {
+        waiting
+            .iter()
+            .filter(|id| game.state().items[id].unplaced_at.is_some())
+            .count()
+    };
+    assert_eq!(unplaced(&game), 1);
+    submit(
+        &mut game,
+        A,
+        2,
+        2,
+        Input {
+            drop: Some(DropSlot::Slot(0)),
+            ..Input::default()
+        },
+    );
+    game.step(&rules).unwrap();
+    assert!(game.state().actors[&A].inventory.slots[0].is_none());
+    assert!(game.position(BodyId::Item(held)).is_some());
+    assert_eq!(unplaced(&game), 1);
 }

@@ -37,7 +37,9 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 42;
+///
+/// 43: the new tick's live adapter (`match_*`, 27.2 3d.1) and its word layout (`tick/codec.rs`).
+pub const ADAPTER_VERSION: u32 = 43;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -2043,6 +2045,192 @@ fn phase_seven_call(w: &mut world::World) {
             }
         }
     }
+}
+
+// The new tick's live adapter (27.2 "Live adapter (3d.1)"). A match is built once from a setup
+// buffer and the map's existing handles, then driven by whole ticks. Every word layout is
+// `tick/codec.rs`'s. Output buffers belong to the match and are valid until its next call.
+
+/// Builds a match from `setup_len` words at `setup` (a `core_alloc` buffer JavaScript filled and
+/// frees itself), copying the map's handles: the core never aliases JavaScript's gate mask or
+/// polygon buffers. `swept`, the sight pair and the discovery triple are each null when absent.
+/// Returns null for a malformed setup, or for a sight or discovery group with only some of its
+/// handles.
+///
+/// # Safety
+/// `setup` holds `setup_len` `f64`s, and each handle is null or live.
+#[unsafe(no_mangle)]
+#[allow(clippy::too_many_arguments)]
+pub unsafe extern "C" fn match_new(
+    setup: *const f64,
+    setup_len: usize,
+    swept: *const swept::SweptMap,
+    sight_index: *const sight::SightIndex,
+    gate_set: *const sight::GateSet,
+    discovery_map: *const discovery::DiscoveryMap,
+    discovery_index: *const sight::SightIndex,
+    discovery_gates: *const sight::GateSet,
+) -> *mut tick::codec::LiveMatch {
+    // SAFETY: the caller's contract; a null handle is `None`.
+    let (swept, sight_index, gate_set, discovery_map, discovery_index, discovery_gates) = unsafe {
+        (
+            swept.as_ref(),
+            sight_index.as_ref(),
+            gate_set.as_ref(),
+            discovery_map.as_ref(),
+            discovery_index.as_ref(),
+            discovery_gates.as_ref(),
+        )
+    };
+    let sight = match (sight_index, gate_set) {
+        (Some(index), Some(gates)) => Some((index, gates)),
+        (None, None) => None,
+        _ => return std::ptr::null_mut(),
+    };
+    let discovery = match (discovery_map, discovery_index, discovery_gates) {
+        (Some(map), Some(index), Some(gates)) => Some((map, index, gates)),
+        (None, _, _) => None,
+        _ => return std::ptr::null_mut(),
+    };
+    let handles = tick::codec::Handles {
+        swept,
+        sight,
+        discovery,
+    };
+    // SAFETY: the caller's contract.
+    match tick::codec::LiveMatch::new(unsafe { items(setup, setup_len) }, handles) {
+        Ok(game) => Box::into_raw(Box::new(game)),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// # Safety
+/// `game` came from `match_new` and is freed once.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_free(game: *mut tick::codec::LiveMatch) {
+    // SAFETY: the caller's contract.
+    drop(unsafe { Box::from_raw(game) });
+}
+
+/// The inbound buffer, resized to `words` `f64`s: `match_submit`'s rows. Setup needs no such
+/// buffer, since `match_new` reads a `core_alloc` buffer the caller owns.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_input(game: *mut tick::codec::LiveMatch, words: usize) -> *mut f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*game).input(words).as_mut_ptr() }
+}
+
+/// Submits the first `count` inbound rows of the input buffer for `tick` and returns how many
+/// the match queued. One flag byte per row is at `match_submit_flags`.
+///
+/// # Safety
+/// `game` is live and its input buffer holds `count` rows.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_submit(
+    game: *mut tick::codec::LiveMatch,
+    tick: u32,
+    count: usize,
+) -> u32 {
+    // SAFETY: the caller's contract.
+    unsafe { (*game).submit(tick, count) }
+}
+
+/// The last submit's flags, one byte per row: 1 when queued. Its length is that call's `count`.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_submit_flags(game: *const tick::codec::LiveMatch) -> *const u8 {
+    // SAFETY: the caller's contract.
+    unsafe { (*game).flags().as_ptr() }
+}
+
+/// Steps one tick and returns its encoded `CompletedTick`, or null once the match is over. The
+/// words are `match_output_len` long.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_step(game: *mut tick::codec::LiveMatch) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        if (*game).step() {
+            (*game).output().as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    }
+}
+
+/// The word count of the last `match_step`, `match_snapshot`, `match_memory` or `match_heard`.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_output_len(game: *const tick::codec::LiveMatch) -> usize {
+    // SAFETY: the caller's contract.
+    unsafe { (*game).output().len() }
+}
+
+/// The encoded `Snapshot` of the last completed tick.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_snapshot(game: *mut tick::codec::LiveMatch) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        (*game).snapshot();
+        (*game).output().as_ptr()
+    }
+}
+
+/// The contestant's encoded discovery memory: the word 0 for none.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_memory(
+    game: *mut tick::codec::LiveMatch,
+    actor_word: f64,
+) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        (*game).memory(actor_word);
+        (*game).output().as_ptr()
+    }
+}
+
+/// The listener's encoded cues (a count word, then rows): the word 0 for none.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_heard(
+    game: *mut tick::codec::LiveMatch,
+    actor_word: f64,
+) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        (*game).heard(actor_word);
+        (*game).output().as_ptr()
+    }
+}
+
+/// The last command sequence spent for the actor, or -1.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_acknowledged(
+    game: *const tick::codec::LiveMatch,
+    actor_word: f64,
+) -> f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*game).acknowledged(actor_word) }
 }
 
 #[cfg(test)]

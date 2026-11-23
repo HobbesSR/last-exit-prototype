@@ -254,7 +254,7 @@ pub struct Transit {
 }
 
 /// Geometry belongs to the map and physics. These tables hold discrete match state.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct State {
     pub actors: BTreeMap<ActorId, Actor>,
     pub items: BTreeMap<ItemId, GroundItem>,
@@ -265,24 +265,8 @@ pub struct State {
     pub stations: BTreeMap<StationId, Station>,
     pub extraction: Option<Extraction>,
     pub sensors: Vec<Point>,
-    pub hazard_x: f64,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            actors: BTreeMap::new(),
-            items: BTreeMap::new(),
-            projectiles: BTreeMap::new(),
-            hooks: BTreeMap::new(),
-            gates: BTreeMap::new(),
-            traps: BTreeMap::new(),
-            stations: BTreeMap::new(),
-            extraction: None,
-            sensors: Vec::new(),
-            hazard_x: f64::NEG_INFINITY,
-        }
-    }
+    /// The advancing wall's x, or none for a match without a wall.
+    pub hazard_x: Option<f64>,
 }
 
 impl State {

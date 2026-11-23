@@ -28,6 +28,7 @@ pub(crate) fn or_zero(v: f64) -> f64 {
 
 /// A shape readied for disk tests: SAT's `Circle`, or its `Polygon` with the calculated points
 /// and edges (`_recalc`, at angle 0 and offset 0).
+#[derive(Clone)]
 pub(crate) enum Body {
     Circle {
         x: f64,

@@ -48,3 +48,16 @@ pub fn actor_word(actor: ActorId) -> u64 {
     };
     (kind << 32) | u64::from(actor.seat)
 }
+
+/// The inverse of [`actor_word`]: none for a word no actor has.
+pub fn actor_from_word(word: u64) -> Option<ActorId> {
+    let kind = match word >> 32 {
+        0 => ActorKind::Contestant,
+        1 => ActorKind::Gladiator,
+        _ => return None,
+    };
+    Some(ActorId {
+        kind,
+        seat: (word & 0xffff_ffff) as u32,
+    })
+}

@@ -103,7 +103,8 @@ fn pending_from(row: &[f64]) -> Pending {
             map_geometry: v(2) != 0.0,
             pose: [v(6), v(7), v(8), v(9), v(10), v(11)],
             material: [v(12), v(13), v(14)],
-            damping: [v(15), v(16)],
+            // world.ts's row marks an unset damping NaN.
+            damping: [v(15), v(16)].map(|value| (!value.is_nan()).then_some(value)),
             groups: v(17) as u32,
         },
         shape: v(3) as u32,

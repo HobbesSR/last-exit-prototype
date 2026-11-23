@@ -156,7 +156,7 @@ impl HazardRules {
             .filter_map(|(&id, _)| Some((id, view.solved.position(BodyId::Actor(id))?)))
             .collect();
         for &(id, position) in &actors {
-            if wall_due && position[0] < start.state.hazard_x {
+            if wall_due && start.state.hazard_x.is_some_and(|wall| position[0] < wall) {
                 hit(effects, Entity::Match, id, WALL_DAMAGE);
             }
             if area_due && start.hazard_map.touches_area(position) {

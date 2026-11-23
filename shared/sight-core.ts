@@ -55,6 +55,8 @@ export interface CoreSight extends SightCaster {
    */
   sampleDiscovery<M extends DiscoveryMap>(map: M, tables: (map: M) => DiscoveryTables, lineOfSight: boolean, words: number,
     fill: (input: Float64Array) => void): Uint32Array;
+  /** The map's discovery upload (built the first time the map is met), for the new tick's match setup (`shared/simulation/tick-match.ts`), which the core copies. */
+  discoveryHandle<M extends DiscoveryMap>(map: M, tables: (map: M) => DiscoveryTables): Handle;
   /** `roofAt`'s interned id at a point as the core reads the map's roofs, or -1: for the parity check only. */
   roofIdAt<M extends DiscoveryMap>(map: M, tables: (map: M) => DiscoveryTables, x: World, y: World): number;
   /** `canOccupy` (`shared/movement.ts`) in the core, with the gates as they stand now. */
@@ -279,6 +281,9 @@ export function coreSight(core: CoreExports): CoreSight {
       const out = core.discovery_sample(handle, index, gates) >>> 0;
       // The output's length follows from its own counts, so the view runs to the end of memory.
       return new Uint32Array(core.memory.buffer, out, (core.memory.buffer.byteLength - out) >>> 2);
+    },
+    discoveryHandle(map, tables) {
+      return discoveryMapFor(map, tables);
     },
     roofIdAt(map, tables, x, y) {
       return core.discovery_roof_at(discoveryMapFor(map, tables), x, y);

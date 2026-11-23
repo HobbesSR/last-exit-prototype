@@ -4,6 +4,7 @@ import { physicsRuntime } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GroundItem, MatchContent, GameMap, Vec2 } from '../types.ts';
 import type { PhysicsWorld } from '../physics/world.ts';
+import type { BodySpec } from '../physics/types.ts';
 import { hypot } from '../math.ts';
 import { groundItem, replaceItem } from './ground-items.ts';
 
@@ -40,13 +41,17 @@ export function validateWorldPhysics(content: MatchContent, map: Omit<GameMap, '
     && (!Number.isFinite(surface.drag) || surface.drag < 0 || surface.drag > 1)) throw new RangeError('invalid floor drag');
 }
 
-export function addAuthoredProps(s: Game, r: PhysicsRuntime): void {
+/** The authored props' body specs in admission (ID) order, each with its authored label: one builder for the old world's admission and the new tick's loader. */
+export function authoredProps(s: Game): Array<{ label: string; spec: BodySpec }> {
   const profile = s.content.worldPhysics;
-  for (const prop of [...s.map.physicsProps ?? []].sort((a, b) => order(a.id, b.id))) {
-    r.world.queueAddBody({ id: `prop:${prop.id}`, kind: 'prop', shape: { kind: 'box', hx: profile.prop.hx, hy: profile.prop.hy },
+  return [...s.map.physicsProps ?? []].sort((a, b) => order(a.id, b.id)).map(prop => ({ label: prop.id,
+    spec: { id: `prop:${prop.id}`, kind: 'prop', shape: { kind: 'box', hx: profile.prop.hx, hy: profile.prop.hy },
       x: prop.x, y: prop.y, angle: prop.angle ?? 0, mass: profile.prop.mass, friction: profile.prop.friction,
-      linearDamping: profile.prop.linearDamping, angularDamping: profile.prop.angularDamping });
-  }
+      linearDamping: profile.prop.linearDamping, angularDamping: profile.prop.angularDamping } }));
+}
+
+export function addAuthoredProps(s: Game, r: PhysicsRuntime): void {
+  for (const { spec } of authoredProps(s)) r.world.queueAddBody(spec);
   r.world.commitMutations();
 }
 

@@ -2,6 +2,7 @@ use super::*;
 use crate::physics::{BodyParams, KIND_ACTOR, SHAPE_CIRCLE};
 
 mod admission_tests;
+mod codec_tests;
 mod combat_tests;
 mod hazard_tests;
 mod hazard_trap_tests;
@@ -167,7 +168,7 @@ fn body(x: f64) -> BodySpec {
             map_geometry: false,
             pose: [x, 0.0, 0.0, 0.0, 0.0, 0.0],
             material: [1.0, 0.0, 0.0],
-            damping: [0.0; 2],
+            damping: [Some(0.0); 2],
             groups: 0xffff_ffff,
         },
         shape: SHAPE_CIRCLE,

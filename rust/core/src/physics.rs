@@ -153,6 +153,16 @@ fn vector(x: f64, y: f64) -> Vector {
     Vector::new(metres(x), metres(y))
 }
 
+/// Whether a body of this shape can be added: a hull needs a non-degenerate point set.
+pub(crate) fn shape_valid(kind: u32, a: f64, b: f64, vertices: &[f64]) -> bool {
+    // The hull routine asserts on fewer than two points, and a hull needs three to enclose area.
+    let hull = kind != SHAPE_CIRCLE && kind != SHAPE_BOX;
+    if (hull && vertices.len() < 6) || a < 0.0 || b < 0.0 {
+        return false;
+    }
+    shape(kind, a, b, vertices).is_some()
+}
+
 fn shape(kind: u32, a: f64, b: f64, vertices: &[f64]) -> Option<ColliderBuilder> {
     match kind {
         SHAPE_CIRCLE => Some(ColliderBuilder::ball(metres(a))),
@@ -206,7 +216,8 @@ pub struct BodyParams {
     pub map_geometry: bool,
     pub pose: [f64; 6],
     pub material: [f64; 3],
-    pub damping: [f64; 2],
+    /// `[linear, angular]`; none leaves Rapier's default.
+    pub damping: [Option<f64>; 2],
     pub groups: u32,
 }
 
@@ -285,11 +296,11 @@ impl World {
                 .rotation(angle as Real)
                 .linvel(vector(vx, vy))
                 .angvel(omega as Real);
-            if !params.damping[0].is_nan() {
-                builder = builder.linear_damping(params.damping[0] as Real);
+            if let Some(linear) = params.damping[0] {
+                builder = builder.linear_damping(linear as Real);
             }
-            if !params.damping[1].is_nan() {
-                builder = builder.angular_damping(params.damping[1] as Real);
+            if let Some(angular) = params.damping[1] {
+                builder = builder.angular_damping(angular as Real);
             }
             if params.kind != KIND_STATIC {
                 builder = builder.ccd_enabled(true);
@@ -324,13 +335,12 @@ impl World {
         } else {
             floor_drag::Class::Prop
         };
-        let unset = |value: f64| if value.is_nan() { 0.0 } else { value };
         let entry = Some(Slot {
             body,
             collider,
             map_geometry: params.map_geometry,
             drag,
-            damping: [unset(params.damping[0]), unset(params.damping[1])],
+            damping: params.damping.map(|value| value.unwrap_or(0.0)),
         });
         if slot as usize == self.slots.len() {
             self.slots.push(entry);
@@ -842,7 +852,7 @@ mod tests {
             map_geometry: false,
             pose: [x, 0.0, 0.0, vx, 0.0, 0.0],
             material: [1.0, 0.5, 0.0],
-            damping: [f64::NAN; 2],
+            damping: [None; 2],
             groups: (0x0004 << 16) | 0x0007,
         };
         world
@@ -902,7 +912,7 @@ mod tests {
             map_geometry: false,
             pose: [0.0; 6],
             material: [1.0, 0.5, 0.0],
-            damping: [f64::NAN; 2],
+            damping: [None; 2],
             groups: 0,
         };
         assert!(

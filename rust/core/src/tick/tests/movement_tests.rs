@@ -362,7 +362,7 @@ fn indexed_floor_drag_and_stable_rapier_contacts_reach_the_tick() {
         let mut prop = body(5.0);
         prop.params.kind = KIND_PROP;
         prop.params.pose[3] = 20.0;
-        prop.params.damping = [20.0; 2];
+        prop.params.damping = [Some(20.0); 2];
         scenario.body(static_id, wall);
         scenario.body(prop_id, prop);
         scenario.body(actor_id, body(50.0));

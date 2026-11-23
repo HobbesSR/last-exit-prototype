@@ -12,6 +12,9 @@ import { castersInCore, damageInCore } from './phase-five.ts';
 import { UTILITY_RULES } from './action-records.ts';
 import type { Game, Player, InventoryItem, StackItem } from '../types.ts';
 
+/** How long Striker's Overdrive boosts, in ticks: the record-level skill's value, which the new tick's loader hands its tuning (`tick-match.ts`). */
+export const OVERDRIVE_TICKS = 55;
+
 type UtilityState = Pick<Player, 'hp' | 'maxHp' | 'shield'>;
 
 /** Whether this utility can change the current health/shield state. */
@@ -48,7 +51,7 @@ export function skill(s: Game, p: Player): void {
   if (p.kit === 'specter') {
     effect(s, p, 'scan', 450);
     for (const t of s.players) if (t.role !== p.role && distance(p, t) < 450) t.revealed = 110;
-  } else { p.boost = 55; effect(s, p, 'upgrade', 75); }
+  } else { p.boost = OVERDRIVE_TICKS; effect(s, p, 'upgrade', 75); }
 }
 /**
  * An attack outside the tick, for scenarios. A gladiator's runs as phase 5's caster run in the core; a contestant's is
