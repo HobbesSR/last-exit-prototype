@@ -179,7 +179,7 @@ test('retained numeric captures and their clones keep body and tether identities
 });
 
 test('physics recording floor is explicit and stamped by the room writer', async () => {
-  assert.equal(SCHEMA, 20);
+  assert.equal(SCHEMA, 21);
   // Lines with delta frames (#901) need a reader of at least schema 17; this build still reads from MIN_SCHEMA.
   assert.equal(minimumReaderForMatch(), 20);
   assert.equal(MIN_SCHEMA, 10);

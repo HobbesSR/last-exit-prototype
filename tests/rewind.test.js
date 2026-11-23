@@ -7,6 +7,7 @@ import { viewLagFrom, MAX_REWIND_TICKS } from '../shared/simulation/rewind.ts';
 import { HZ, INTERPOLATION_DELAY_TICKS } from '../shared/simulation/rules.ts';
 import { createMatch } from '../server/match.js';
 import { openField } from './helpers/arena.js';
+import { roomHarness } from './helpers/room-harness.js';
 
 // On the shipped content and its engine (#920). A gladiator facing +x on open ground, a contestant in reach
 // to hit, and a second contestant to the south; `away` is out of the 86 unit reach. The engine pins the map
@@ -131,8 +132,15 @@ test('a player who leaves stops being compensated', async () => {
     const { s, attacker, target } = seat(match.diagnosticState);
     settle(s);
     target.x = away;
-    assert.ok(match.setViewLag(attacker.id, 1000 / HZ * 2));
+    const observed = match.setViewLag(attacker.id, 1000 / HZ * 2);
     assert.ok(attacker.viewLagTicks > 0, 'compensated while connected');
+    // The measurement is recorded as observations, as the new tick's inbound queue takes them (schema 21).
+    assert.deepEqual(observed, [
+      { type: 'viewLag', id: attacker.id, ticks: attacker.viewLagTicks },
+      { type: 'inputLead', id: attacker.id, ticks: attacker.inputLeadTicks },
+    ]);
+    assert.deepEqual(match.setViewLag(attacker.id, 1000 / HZ * 2), [], 'an unchanged measurement records nothing');
+    assert.equal(match.setViewLag('nobody', 1000 / HZ * 2), null);
     attacker.attackCd = 0;
     attack(s, attacker);
     assert.ok(target.hp < 100, 'so a swing at where the target was lands');
@@ -146,4 +154,18 @@ test('a player who leaves stops being compensated', async () => {
     attack(s, attacker);
     assert.equal(target.hp, 100, 'and the same swing now resolves against the present');
   } finally { match.dispose(); }
+});
+
+test('a room records each changed lag measurement as observation commands', async () => {
+  // Schema 21 (26): the recording holds what the new tick's inbound queue takes (27.2 Boundary).
+  const h = roomHarness({ reuseMaps: true }), { room, owner, writer } = await h.live();
+  try {
+    const id = owner.session.playerId, connection = owner.session.connectionId;
+    assert.equal(room.setViewLag(connection, 1000 / HZ * 3), true);
+    assert.equal(room.setViewLag(connection, 1000 / HZ * 3), true);
+    h.wake(50);
+    const observed = writer.frames.at(-1).commands.filter(c => c.type === 'viewLag' || c.type === 'inputLead');
+    assert.deepEqual(observed.map(c => [c.type, c.id]), [['viewLag', id], ['inputLead', id]], 'once, while unchanged');
+    assert.ok(observed.every(c => Number.isInteger(c.ticks) && c.ticks > 0));
+  } finally { await h.service.close(); }
 });

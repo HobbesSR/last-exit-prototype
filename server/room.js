@@ -608,7 +608,10 @@ export function createRoom({
     if (!isCurrent() || !state.match) return false;
     const client = clientMap.get(clientId);
     if (!client?.playerId) return false;
-    return state.match.setViewLag(client.playerId, rttMs);
+    const observed = state.match.setViewLag(client.playerId, rttMs);
+    // Nothing is recorded before the start; a measurement then is the waiting area's.
+    if (observed && state.started) state.inputs.push(...observed);
+    return !!observed;
   }
 
   /**

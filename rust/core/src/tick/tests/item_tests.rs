@@ -72,7 +72,7 @@ fn nominate(game: &mut Match, actor: ActorId, item: ItemId) {
 }
 
 fn has(tick: &CompletedTick, fact: Fact) -> bool {
-    tick.events.iter().any(|event| event.fact == fact)
+    tick.changes.events.iter().any(|event| event.fact == fact)
 }
 
 #[test]
@@ -112,6 +112,7 @@ fn a_killed_claimant_cannot_take_loot_and_death_drops_enter_on_the_next_tick() {
     ));
     assert!(
         !tick
+            .changes
             .events
             .iter()
             .any(|event| matches!(event.fact, Fact::Pickup { actor: A, .. }))
@@ -401,6 +402,7 @@ fn a_successful_swap_reuses_capacity_and_locks_out_only_the_dropper() {
     ));
     assert!(
         !tick
+            .changes
             .events
             .iter()
             .any(|event| matches!(event.fact, Fact::Pickup { item, .. } if item == outgoing))
@@ -678,6 +680,7 @@ fn mandatory_death_drops_keep_value_when_geometry_refuses_body_admission() {
     let next = game.step(&rules).unwrap();
     assert!(
         !next
+            .changes
             .events
             .iter()
             .any(|event| matches!(event.fact, Fact::Pickup { .. }))

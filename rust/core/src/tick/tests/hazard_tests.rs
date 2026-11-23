@@ -20,7 +20,7 @@ fn trap(position: Point, kind: TrapKind) -> Trap {
 }
 
 fn has(tick: &CompletedTick, fact: Fact) -> bool {
-    tick.events.iter().any(|event| event.fact == fact)
+    tick.changes.events.iter().any(|event| event.fact == fact)
 }
 
 fn charged_cell(id: ItemId) -> CarriedItem {
@@ -50,6 +50,7 @@ fn wall_advances_on_the_match_clock_and_uses_strict_solved_exposure() {
         let tick = game.step(&rules).unwrap();
         assert!(
             !tick
+                .changes
                 .events
                 .iter()
                 .any(|event| matches!(event.fact, Fact::Hit { .. }))
@@ -133,7 +134,8 @@ fn wall_area_and_flame_merge_before_extraction_and_turret_keeps_its_s0_target() 
     );
     let tick = game.step(&rules).unwrap();
     assert_eq!(
-        tick.events
+        tick.changes
+            .events
             .iter()
             .filter(|event| event.fact
                 == Fact::Hit {

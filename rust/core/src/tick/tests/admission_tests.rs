@@ -32,7 +32,7 @@ fn pending_gladiator(scenario: &mut Scenario, id: ActorId, due: Tick) {
 }
 
 fn has(tick: &CompletedTick, fact: Fact) -> bool {
-    tick.events.iter().any(|event| event.fact == fact)
+    tick.changes.events.iter().any(|event| event.fact == fact)
 }
 
 #[test]

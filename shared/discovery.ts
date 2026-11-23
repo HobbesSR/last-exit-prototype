@@ -207,8 +207,21 @@ export function observeGate(memory: DiscoveryMemory, gate: Pick<Gate, 'id' | 'op
 }
 
 /**
+ * A contestant's place in the canonical order (27.2 A6): its rank among the frame's contestants by roster
+ * seat, falling back to their order in the frame. The new tick's discovery stagger rotates over it
+ * (`rust/core/src/tick/discovery.rs`). With contestants listed first in seat order, as every shipped roster is,
+ * it equals the roster index the old tick staggers by, so recordings of either fold the same.
+ */
+function canonicalContestantIndex(players: ReadonlyArray<{ role?: Role; seat?: number }>, player: object): number {
+  const contestants = players.map((p, at) => ({ p, at })).filter(({ p }) => p.role !== 'gladiator');
+  contestants.sort((a, b) => (a.p.seat ?? a.at) - (b.p.seat ?? b.at) || a.at - b.at);
+  return contestants.findIndex(({ p }) => p === player);
+}
+
+/**
  * Reconstruct a player's discovery state by folding `discover` over recorded frames.
  * Gladiators have no discovery memory and return an empty set. `sight` is the core binding samples run through.
+ * Samples follow the canonical stagger index unless `playerIndex` overrides it.
  */
 export function foldDiscovery(
   sight: CoreSight,
@@ -217,7 +230,7 @@ export function foldDiscovery(
     tick?: number;
     gates?: Array<Partial<Gate> & { gateIdx?: number }>;
     bodies?: Array<{ owner?: { kind: string; playerIdx?: number }; x: number; y: number }>;
-    players: Array<{ id: PlayerId; playerIdx?: number; x?: World; y?: World; role?: Role; status?: string }>;
+    players: Array<{ id: PlayerId; playerIdx?: number; seat?: number; x?: World; y?: World; role?: Role; status?: string }>;
   }>,
   playerId: PlayerId,
   options?: { interval?: number; playerIndex?: number }
@@ -234,7 +247,7 @@ export function foldDiscovery(
     if (p.role === 'gladiator') continue;
     if (p.status && p.status !== 'active') continue;
 
-    const playerIndex = options?.playerIndex ?? idx;
+    const playerIndex = options?.playerIndex ?? canonicalContestantIndex(frame.players, p);
     const shouldSample = frame.tick === undefined || frame.tick === 0 || (frame.tick + playerIndex) % interval === 0;
     if (!shouldSample) continue;
 

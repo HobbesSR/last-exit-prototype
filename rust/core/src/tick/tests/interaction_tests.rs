@@ -38,7 +38,7 @@ fn interact(game: &mut Match, actor: ActorId, tick: Tick, target: Option<Target>
 }
 
 fn has(tick: &CompletedTick, fact: Fact) -> bool {
-    tick.events.iter().any(|event| event.fact == fact)
+    tick.changes.events.iter().any(|event| event.fact == fact)
 }
 
 #[test]

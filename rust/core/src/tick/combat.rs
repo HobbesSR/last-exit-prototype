@@ -30,6 +30,8 @@ pub struct CombatRules {
     pub warden_cooldown: Tick,
     pub specter_cooldown: Tick,
     pub respawn_ticks: Tick,
+    /// Absent for content without heard gunfire.
+    pub hearing: Option<Hearing>,
 }
 
 impl Default for CombatRules {
@@ -62,6 +64,7 @@ impl Default for CombatRules {
             warden_cooldown: 110,
             specter_cooldown: 150,
             respawn_ticks: 400,
+            hearing: None,
         }
     }
 }
@@ -242,6 +245,9 @@ impl Combat {
                 | CombatIntent::Interaction(..) => {}
                 CombatIntent::Fire(actor, weapon) => {
                     effects.facts.push(Fact::ShotFired { actor, weapon });
+                    if let Some(hearing) = &self.rules.hearing {
+                        hearing.resolve_into(view, effects, actor, weapon);
+                    }
                     effects
                         .statuses
                         .push((actor, Status::Cloak, StatusEffect::Clear));
