@@ -372,7 +372,9 @@ impl InteractionRules {
         let mut ahead = state.stations.iter().filter(|&(&id, station)| {
             id != source
                 && station.kind == StationKind::Transit
-                && station.position[0] > state.hazard_x + TILE
+                && state
+                    .hazard_x
+                    .is_none_or(|wall| station.position[0] > wall + TILE)
         });
         let (&destination, station) = if let Some(id) = nominated {
             ahead.find(|&(&dest, _)| dest == id)?

@@ -261,7 +261,7 @@ fn rich_state() -> State {
         slots: 3,
     });
     state.sensors = vec![[1.0, 2.0], [3.0, 4.0]];
-    state.hazard_x = 123.0;
+    state.hazard_x = Some(123.0);
     state
 }
 
@@ -278,8 +278,8 @@ fn every_row_has_its_documented_stride() {
     let state = rich_state();
     let base = encoded(|w| put_state(w, &State::default())).len();
     // An empty state is seven empty sections, the extraction option, an empty sensor section
-    // and the hazard wall's word.
-    assert_eq!(base, 7 + EXTRACTION_WORDS + 1 + 1);
+    // and the hazard wall's option (present, x).
+    assert_eq!(base, 7 + EXTRACTION_WORDS + 1 + 2);
     let mut one = State::default();
     one.actors.insert(A, state.actors[&A].clone());
     assert_eq!(encoded(|w| put_state(w, &one)).len() - base, ACTOR_STRIDE);
@@ -564,7 +564,7 @@ fn changes_round_trip_every_field() {
         gates: state.gates.clone(),
         traps: state.traps.clone(),
         extraction: state.extraction,
-        hazard_x: Some(f64::NEG_INFINITY),
+        hazard_x: Some(-80.0),
         removed: vec![
             Entity::Item(ItemId(1)),
             Entity::Projectile(ProjectileId(2)),
@@ -989,7 +989,7 @@ fn sample_setup() -> Setup {
     let mut loot = body(5.0);
     loot.params.kind = crate::physics::KIND_PROP;
     loot.params.groups = crate::physics::LOOT_GROUP << 16 | 1;
-    loot.params.damping = [f64::NAN, 0.5];
+    loot.params.damping = [None, Some(0.5)];
     Setup {
         seed: 0x0000_0001_8000_0002,
         time_limit: 25,
@@ -1116,8 +1116,7 @@ fn malformed_setup_is_an_error_and_never_a_panic() {
 }
 
 /// A NaN or an infinity in any word either fails to decode or is dropped as padding: whatever
-/// decodes re-encodes to finite words. The one exception is the state's last word, `hazard_x`,
-/// whose negative infinity means no wall.
+/// decodes re-encodes to finite words, since no value stands for absence.
 #[test]
 fn non_finite_words_never_decode_into_a_value() {
     type Decode = fn(&[f64]) -> Option<Vec<f64>>;
@@ -1130,13 +1129,13 @@ fn non_finite_words_never_decode_into_a_value() {
         let inbound = get_inbound(&mut Reader::new(words)).ok()?;
         Some(encoded(|w| put_inbound(w, &inbound)))
     };
-    let mut rows = vec![(state, decode_state, true)];
+    let mut rows = vec![(state, decode_state)];
     rows.extend(
         every_inbound()
             .iter()
-            .map(|inbound| (encoded(|w| put_inbound(w, inbound)), decode_inbound, false)),
+            .map(|inbound| (encoded(|w| put_inbound(w, inbound)), decode_inbound)),
     );
-    for (words, decode, wall_last) in rows {
+    for (words, decode) in rows {
         for at in 0..words.len() {
             for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
                 let mut mutated = words.clone();
@@ -1144,10 +1143,9 @@ fn non_finite_words_never_decode_into_a_value() {
                 let Some(again) = decode(&mutated) else {
                     continue;
                 };
-                let last = again.len() - 1;
                 for (i, word) in again.iter().enumerate() {
                     assert!(
-                        word.is_finite() || wall_last && i == last && *word == f64::NEG_INFINITY,
+                        word.is_finite(),
                         "word {at} as {bad} decoded into word {i} = {word}"
                     );
                 }

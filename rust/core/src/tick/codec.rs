@@ -11,6 +11,8 @@
 //! - A row is fixed length per kind, with a `pub const` stride. An absent optional or enum payload
 //!   is zero padded, so a reader steps by stride.
 //! - An **Option** is a presence word, then its words (zeros when absent).
+//! - Every word is finite. No NaN or infinity stands for a missing value, and a decoder refuses
+//!   one wherever it appears.
 //! - An **enum** is a tag word, then its payload padded to the widest variant. The tag numbers are
 //!   the variants' declaration order, except where a table below says otherwise.
 //! - A **section** is a count word, then that many rows.
@@ -47,16 +49,16 @@
 //!
 //! The one table encoding, shared by setup, the change list and the snapshot: actors, ground
 //! items, projectiles, hooks, gates, traps and stations (each a section), the extraction option,
-//! the sensors (a section of points) and `hazard_x`. A snapshot's tables therefore decode as a
+//! the sensors (a section of points) and the `hazard_x` option. A snapshot's tables therefore decode as a
 //! valid setup's tables.
 //!
 //! # Setup
 //!
 //! `seed_high, seed_low` (two `u32` words), `time_limit`, the state tables, then
-//! - **bodies**, a section of rows: body (2 words), then `queue_add_body`'s row without its key:
-//!   kind, map geometry, shape, a, b, `x, y, angle, vx, vy, omega`, mass, friction, restitution,
-//!   linear and angular damping (NaN for unset), groups, loot, speed limit, tip radius, vertex
-//!   count, then the vertices' `x, y`. This is the one variable-length row ([`BODY_HEADER`] 23
+//! - **bodies**, a section of rows: body (2 words), kind, map geometry, shape, a, b,
+//!   `x, y, angle, vx, vy, omega`, mass, friction, restitution, the linear and angular damping
+//!   options (2 each), groups, loot, speed limit, tip radius, vertex count, then the vertices'
+//!   `x, y`. This is the one variable-length row ([`BODY_HEADER`] 25
 //!   words before the vertices), so a reader steps by its own count. The loot word is derived on
 //!   encode (a prop in the loot group) and ignored on decode, which derives it again;
 //! - **motor surfaces**, a section of [`SURFACE_ROW`] 11 words: key, priority, origin, size, speed,
@@ -151,8 +153,8 @@ pub const SAMPLE_STRIDE: usize = 3;
 pub const REMEMBERED_ITEM_STRIDE: usize = 2 + ITEM_STRIDE;
 pub const DOOR_MEMORY_STRIDE: usize = 3;
 pub const CUE_STRIDE: usize = 4;
-/// A body row's words before its vertices: the body (2) and `queue_add_body`'s row after its key.
-pub const BODY_HEADER: usize = 2 + 21;
+/// A body row's words before its vertices: the body (2), then 23 words up to the vertex count.
+pub const BODY_HEADER: usize = 2 + 23;
 pub const SURFACE_ROW: usize = 11;
 pub const MAX_SPREAD: usize = 8;
 const WEAPON_TUNING_WORDS: usize = 5 + MAX_SPREAD;
@@ -246,28 +248,6 @@ impl<'a> Reader<'a> {
 
     fn point(&mut self) -> Result<Point> {
         Ok([self.finite()?, self.finite()?])
-    }
-
-    /// The wall's x: finite, or negative infinity when there is no wall.
-    fn wall_x(&mut self) -> Result<f64> {
-        let word = self.word()?;
-        if word.is_finite() || word == f64::NEG_INFINITY {
-            Ok(word)
-        } else {
-            self.at -= 1;
-            self.fail("not a wall position")
-        }
-    }
-
-    /// A damping word: finite, or NaN for unset.
-    fn damping(&mut self) -> Result<f64> {
-        let word = self.word()?;
-        if word.is_finite() || word.is_nan() {
-            Ok(word)
-        } else {
-            self.at -= 1;
-            self.fail("not a damping")
-        }
     }
 
     /// A section's count, checked against the words left so a bad count cannot allocate.
@@ -1003,7 +983,7 @@ pub fn put_state(w: &mut Vec<f64>, state: &State) {
     for &sensor in &state.sensors {
         w.point(sensor);
     }
-    w.push(state.hazard_x);
+    put_option(w, 1, state.hazard_x, |w, x| w.push(x));
 }
 
 pub fn get_state(r: &mut Reader) -> Result<State> {
@@ -1027,7 +1007,7 @@ pub fn get_state(r: &mut Reader) -> Result<State> {
         stations,
         extraction,
         sensors,
-        hazard_x: r.wall_x()?,
+        hazard_x: r.option(1, |r| r.finite())?,
     })
 }
 
@@ -1473,7 +1453,7 @@ pub fn get_changes(r: &mut Reader) -> Result<Changes> {
     let gates = get_table(r, GATE_STRIDE, get_gate)?;
     let traps = get_table(r, TRAP_STRIDE, get_trap)?;
     let extraction = get_extraction(r)?;
-    let hazard_x = r.option(1, |r| r.wall_x())?;
+    let hazard_x = r.option(1, |r| r.finite())?;
     let count = r.count(2)?;
     let removed = (0..count).map(|_| r.entity()).collect::<Result<Vec<_>>>()?;
     let poses = get_poses(r)?;
@@ -1956,7 +1936,9 @@ fn put_body(w: &mut Vec<f64>, id: BodyId, spec: &BodySpec) {
     w.extend(spec.dimensions);
     w.extend(p.pose);
     w.extend(p.material);
-    w.extend(p.damping);
+    for damping in p.damping {
+        put_option(w, 1, damping, |w, value| w.push(value));
+    }
     w.int(p.groups);
     w.flag(p.kind == KIND_PROP && p.groups >> 16 == LOOT_GROUP);
     w.push(spec.speed_limit);
@@ -1979,8 +1961,7 @@ fn get_body_spec(r: &mut Reader) -> Result<(BodyId, BodySpec)> {
     for word in &mut material {
         *word = r.finite()?;
     }
-    // NaN means unset.
-    let damping = [r.damping()?, r.damping()?];
+    let damping = [r.option(1, |r| r.finite())?, r.option(1, |r| r.finite())?];
     let groups = r.u32()?;
     r.bool()?;
     let speed_limit = r.finite()?;

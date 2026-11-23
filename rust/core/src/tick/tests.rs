@@ -168,7 +168,7 @@ fn body(x: f64) -> BodySpec {
             map_geometry: false,
             pose: [x, 0.0, 0.0, 0.0, 0.0, 0.0],
             material: [1.0, 0.0, 0.0],
-            damping: [0.0; 2],
+            damping: [Some(0.0); 2],
             groups: 0xffff_ffff,
         },
         shape: SHAPE_CIRCLE,

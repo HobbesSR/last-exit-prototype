@@ -45,7 +45,7 @@ fn wall_advances_on_the_match_clock_and_uses_strict_solved_exposure() {
     scenario.body(BodyId::Actor(C), boundary);
     let rules = Combat::default();
     let mut game = scenario.start(1, 10);
-    assert_eq!(game.state().hazard_x, -80.0);
+    assert_eq!(game.state().hazard_x, Some(-80.0));
     for expected_wall in [-80.0, -80.0, -40.0, 0.0] {
         let tick = game.step(&rules).unwrap();
         assert!(
@@ -55,10 +55,10 @@ fn wall_advances_on_the_match_clock_and_uses_strict_solved_exposure() {
                 .iter()
                 .any(|event| matches!(event.fact, Fact::Hit { .. }))
         );
-        assert_eq!(game.state().hazard_x, expected_wall);
+        assert_eq!(game.state().hazard_x, Some(expected_wall));
     }
     let tick = game.step(&rules).unwrap();
-    assert_eq!(game.state().hazard_x, 40.0);
+    assert_eq!(game.state().hazard_x, Some(40.0));
     assert!(has(
         &tick,
         Fact::Hit {
@@ -90,7 +90,7 @@ fn wall_area_and_flame_merge_before_extraction_and_turret_keeps_its_s0_target() 
     claimant.max_hp = 129.0;
     claimant.shield = 5.0;
     claimant.inventory.slots[0] = Some(charged_cell(cell));
-    scenario.state.hazard_x = 100.0;
+    scenario.state.hazard_x = Some(100.0);
     scenario.hazard_area([39.0, -10.0, 20.0, 20.0]);
     scenario.hazard_area([30.0, -5.0, 20.0, 10.0]);
     scenario.state.extraction = Some(Extraction {

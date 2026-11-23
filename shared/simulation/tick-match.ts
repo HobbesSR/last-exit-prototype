@@ -13,7 +13,7 @@ import { sightOf } from './sight-runtime.ts';
 import { discoveryTables } from '../discovery.ts';
 import { authoredProps } from './world-physics.ts';
 import { SLOT_COUNT, actorWord, decodeCompleted, decodeCues, decodeMemory, decodeSnapshot, encodeInbound, encodeSetup } from './tick-codec.ts';
-import type { Actor, ActorEntry, Presence, Window, BodyRow, DecodedTick, Equipment, GateEntry, GroundEntry, Inbound, Loot, MatchSetup, Memory, MotorSurface, Cue,
+import type { Actor, ActorEntry, Presence, Window, BodyRow, SetupBody, DecodedTick, Equipment, GateEntry, GroundEntry, Inbound, Loot, MatchSetup, Memory, MotorSurface, Cue,
   Point, Snapshot, State, StationEntry, Tick, TrapEntry, TrapKind, Tuning, WeaponTuning } from './tick-codec.ts';
 import type { CoreExports } from '../core.ts';
 import type { ChargerId, Game, GateId, InventoryItem, Kit, Player, PlayerId, PlayerStatus, StationId, TrapId, WeaponType } from '../types.ts';
@@ -169,9 +169,16 @@ function tuningOf(s: Game): Tuning {
   };
 }
 
-function bodyRow(spec: BodySpec): Float64Array {
-  // `templateRow` keys the row 0 in its first word, which the new tick has no use for.
-  return templateRow(spec).slice(1);
+/**
+ * A spec as the setup carries it. `templateRow` validates the spec and derives its row (shape dimensions, collision
+ * groups, loot flag) as the old world admits it; this is the one place that reads that row's layout (`world.rs`
+ * `pending_from`: the key, 21 words, then the vertices), and an unset damping, NaN there, becomes null.
+ */
+function setupBody(spec: BodySpec): SetupBody {
+  const row = templateRow(spec), v = (i: number) => row[i]!, unset = (x: number) => Number.isNaN(x) ? null : x;
+  return { kind: v(1), mapGeometry: v(2) !== 0, shape: v(3), a: v(4), b: v(5), pose: [v(6), v(7), v(8), v(9), v(10), v(11)],
+    material: [v(12), v(13), v(14)], damping: [unset(v(15)), unset(v(16))], groups: v(17), loot: v(18) !== 0,
+    speedLimit: v(19), tipRadius: v(20), vertices: Array.from(row.subarray(22, 22 + 2 * v(21))) };
 }
 
 /**
@@ -244,7 +251,7 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
       statuses,
     };
     // Every actor's spec: the core gives only active ones a body now, and admits the rest from it on a respawn or arrival.
-    bodies.push({ id: { kind: 'actor', id: word }, row: bodyRow({ ...t.actor[p.role], x: p.x, y: p.y }) });
+    bodies.push({ id: { kind: 'actor', id: word }, body: setupBody({ ...t.actor[p.role], x: p.x, y: p.y }) });
     return { kind: p.role, seat: word % 2 ** 32, word, actor };
   }).sort((a, b) => a.word - b.word);
 
@@ -266,10 +273,10 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
   if (s.itemSerial !== undefined && s.itemSerial !== top + 1) refuse(`the next item ID ${s.itemSerial} is not one past the largest held, ${top}`);
 
   // --- Props, gates, geometry --------------------------------------------
-  props.forEach(({ spec }, i) => bodies.push({ id: { kind: 'prop', id: i }, row: bodyRow(spec) }));
+  props.forEach(({ spec }, i) => bodies.push({ id: { kind: 'prop', id: i }, body: setupBody(spec) }));
   // A gate's body is its closed shape, as `uploadGateBodies` builds it; the new tick removes an open gate's.
-  s.gates.forEach((gate, i) => bodies.push({ id: { kind: 'gate', id: i }, row: bodyRow(physicsGate({ ...gate, open: false })) }));
-  geometry.forEach((g, i) => bodies.push({ id: { kind: 'geometry', id: i }, row: bodyRow({ ...g, mapGeometry: true }) }));
+  s.gates.forEach((gate, i) => bodies.push({ id: { kind: 'gate', id: i }, body: setupBody(physicsGate({ ...gate, open: false })) }));
+  geometry.forEach((g, i) => bodies.push({ id: { kind: 'geometry', id: i }, body: setupBody({ ...g, mapGeometry: true }) }));
 
   // --- Records -----------------------------------------------------------
   const gates: GateEntry[] = s.gates.map((g, id) => ({ id, gate: { open: g.open, locked: g.locked, door: g.kind === 'door', position: pointOf(g) } }));

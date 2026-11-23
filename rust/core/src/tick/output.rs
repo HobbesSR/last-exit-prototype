@@ -74,7 +74,7 @@ impl Snapshot {
             state.extraction = changes.extraction;
         }
         if let Some(x) = changes.hazard_x {
-            state.hazard_x = x;
+            state.hazard_x = Some(x);
         }
         for removed in &changes.removed {
             match *removed {
@@ -107,7 +107,7 @@ pub(super) struct Before {
     projectiles: BTreeMap<ProjectileId, Projectile>,
     hooks: BTreeMap<HookId, Hook>,
     extraction: Option<Extraction>,
-    hazard_x: f64,
+    hazard_x: Option<f64>,
     #[cfg(test)]
     whole: State,
 }
@@ -281,7 +281,7 @@ pub(super) fn changes(
         extraction: (state.extraction != before.extraction)
             .then_some(state.extraction)
             .flatten(),
-        hazard_x: (state.hazard_x != before.hazard_x).then_some(state.hazard_x),
+        hazard_x: state.hazard_x.filter(|_| state.hazard_x != before.hazard_x),
         removed,
         poses,
         events,

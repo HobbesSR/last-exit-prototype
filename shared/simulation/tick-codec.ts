@@ -123,7 +123,8 @@ export interface State {
   stations: StationEntry[];
   extraction: Extraction | null;
   sensors: Point[];
-  hazardX: number;
+  /** The advancing wall's x, or null for a match without a wall. */
+  hazardX: number | null;
 }
 
 export interface PoseEntry { body: BodyRef; at: Point }
@@ -245,11 +246,28 @@ export interface Cue { at: Point; tick: Tick; until: Tick }
 
 // --- The setup ----------------------------------------------------------------
 
-/**
- * `row` is the old world's body row (`world.rs` `pending_from`'s layout, 21 words then the convex vertices) WITHOUT its
- * leading key word: it starts at the body kind. The new tick names a body by `BodyRef`.
- */
-export interface BodyRow { id: BodyRef; row: Float64Array }
+/** A body's spec as the setup carries it: `BodySpec` (`rust/core/src/tick/solve.rs`) and its `BodyParams`. */
+export interface SetupBody {
+  kind: number;
+  mapGeometry: boolean;
+  shape: number;
+  /** The shape's two dimensions: a circle's radius, or a box's half extents. */
+  a: number;
+  b: number;
+  /** `x, y, angle, vx, vy, omega`. */
+  pose: [number, number, number, number, number, number];
+  /** Mass, friction, restitution. */
+  material: [number, number, number];
+  /** `[linear, angular]`; null leaves the engine's default. */
+  damping: [number | null, number | null];
+  groups: number;
+  loot: boolean;
+  speedLimit: number;
+  tipRadius: number;
+  /** A convex outline's `x, y` pairs, empty for other shapes. */
+  vertices: number[];
+}
+export interface BodyRow { id: BodyRef; body: SetupBody }
 
 /** `MotorSurface`, with `id` replaced by its rank among all surfaces' IDs in UTF-16 code-unit order. */
 export interface MotorSurface {
@@ -341,7 +359,7 @@ export const REMEMBERED_ITEM_STRIDE = 2 + ITEM_STRIDE;
 export const DOOR_MEMORY_STRIDE = 3;
 export const CUE_STRIDE = 4;
 /** A body row's words before its vertices: the body (2) and `queue_add_body`'s row after its key. */
-export const BODY_HEADER = 2 + 21;
+export const BODY_HEADER = 2 + 23;
 export const SURFACE_ROW = 11;
 export const MAX_SPREAD = 8;
 const WEAPON_TUNING_WORDS = 5 + MAX_SPREAD;
@@ -392,9 +410,12 @@ export class Writer {
     if (!Number.isSafeInteger(value) || value < 0 || value >= 2 ** 32) bad(`${value} does not fit a u32`);
     this.words.push(value);
   }
-  raw(...values: number[]): void { for (const v of values) this.words.push(v); }
+  /** Float words. Every word is finite: no NaN or infinity stands for a missing value (an option does). */
+  raw(...values: number[]): void {
+    for (const v of values) { if (!Number.isFinite(v)) bad(`${v} is not a finite word`); this.words.push(v); }
+  }
   flag(value: boolean): void { this.words.push(value ? 1 : 0); }
-  point(value: Point): void { this.words.push(value[0], value[1]); }
+  point(value: Point): void { this.raw(value[0], value[1]); }
   actor(word: number): void { if (!actorOfWord(word)) bad(`${word} is not an actor word`); this.int(word); }
   entity(value: Entity): void { this.u32(pickIndex(ENTITIES, value.kind, 'entity')); this.int(value.id); }
   body(value: BodyRef): void {
@@ -505,7 +526,7 @@ export function putState(w: Writer, s: State): void {
   putExtraction(w, s.extraction);
   w.u32(s.sensors.length);
   for (const p of s.sensors) w.point(p);
-  w.raw(s.hazardX);
+  w.option(1, s.hazardX, x => w.raw(x));
 }
 
 function putTuning(w: Writer, t: Tuning): void {
@@ -552,11 +573,15 @@ export function encodeSetup(setup: MatchSetup): Float64Array {
   w.u32(setup.timeLimit);
   putState(w, setup.state);
   w.u32(setup.bodies.length);
-  for (const { id, row } of setup.bodies) {
-    w.body(id);
-    // The row is complete: 21 words, with its vertex count at word 20 (`BODY_HEADER` less the body).
-    if (row.length < BODY_HEADER - 2 || row.length !== BODY_HEADER - 2 + 2 * row[BODY_HEADER - 3]!) bad(`body row of ${id.kind} ${id.id} has the wrong length`);
-    for (const word of row) w.raw(word);
+  for (const { id, body: b } of setup.bodies) {
+    const start = w.length;
+    w.body(id); w.u32(b.kind); w.flag(b.mapGeometry); w.u32(b.shape); w.raw(b.a, b.b, ...b.pose, ...b.material);
+    for (const damping of b.damping) w.option(1, damping, value => w.raw(value));
+    w.u32(b.groups); w.flag(b.loot); w.raw(b.speedLimit, b.tipRadius);
+    if (b.vertices.length % 2) bad(`body ${id.kind} ${id.id} has an odd vertex word count`);
+    w.u32(b.vertices.length / 2);
+    if (w.length - start !== BODY_HEADER) bad('a body header overran its layout');
+    w.raw(...b.vertices);
   }
   w.u32(setup.motorSurfaces.length);
   for (const f of setup.motorSurfaces) {
@@ -653,7 +678,13 @@ export class Reader {
     if (word !== 0 && word !== 1) { this.at--; this.fail('not a bool'); }
     return word === 1;
   }
-  point(): Point { return [this.word(), this.word()]; }
+  /** A float word, which must be finite. */
+  finite(): number {
+    const word = this.word();
+    if (!Number.isFinite(word)) { this.at--; this.fail('not finite'); }
+    return word;
+  }
+  point(): Point { return [this.finite(), this.finite()]; }
   count(stride: number): number {
     const count = this.u32();
     if (count * stride > this.words.length - this.at) { this.at--; this.fail('count exceeds the buffer'); }
@@ -727,7 +758,7 @@ function getActor(r: Reader): ActorEntry {
   const word = r.actor(), id = actorOfWord(word)!;
   const presence = r.pick(PRESENCE), kit = r.option(1, () => r.pick(KITS));
   const level = r.u32(), kills = r.u32();
-  const hp = r.word(), maxHp = r.word(), shield = r.word(), maxShield = r.word(), aim = r.word();
+  const hp = r.finite(), maxHp = r.finite(), shield = r.finite(), maxShield = r.finite(), aim = r.finite();
   const sneak = r.bool(), viewLag = r.u32(), inventory = getInventory(r);
   const charging = r.option(2, () => ({ station: r.u32(), cell: r.u32() }));
   const respawnAt = r.option(1, () => r.u32());
@@ -749,17 +780,17 @@ function getItem(r: Reader): GroundEntry {
     droppedBy: r.option(1, () => r.actor()), pickupReadyAt: r.u32() } };
 }
 function getProjectile(r: Reader): ProjectileEntry {
-  return { id: r.u32(), projectile: { source: r.entity(), position: r.point(), velocity: r.point(), damage: r.word(), activeFrom: r.u32(), expiresAt: r.u32() } };
+  return { id: r.u32(), projectile: { source: r.entity(), position: r.point(), velocity: r.point(), damage: r.finite(), activeFrom: r.u32(), expiresAt: r.u32() } };
 }
 function getHook(r: Reader): HookEntry {
   const id = r.u32(), owner = r.actor(), tag = r.u32();
-  const phase = r.padded<HookPhase>(5, () => tag === 0 ? { kind: 'flying', position: r.point(), direction: r.point(), travelled: r.word() }
-    : tag === 1 ? { kind: 'pulling', target: r.actor(), length: r.word() } : r.fail('unknown hook phase'));
+  const phase = r.padded<HookPhase>(5, () => tag === 0 ? { kind: 'flying', position: r.point(), direction: r.point(), travelled: r.finite() }
+    : tag === 1 ? { kind: 'pulling', target: r.actor(), length: r.finite() } : r.fail('unknown hook phase'));
   return { id, hook: { owner, phase, expiresAt: r.u32() } };
 }
 function getGate(r: Reader): GateEntry { return { id: r.u32(), gate: { open: r.bool(), locked: r.bool(), door: r.bool(), position: r.point() } }; }
 function getTrap(r: Reader): TrapEntry {
-  const id = r.u32(), position = r.point(), heading = r.word(), readyAt = r.u32(), tag = r.u32();
+  const id = r.u32(), position = r.point(), heading = r.finite(), readyAt = r.u32(), tag = r.u32();
   const kind = r.padded<TrapKind>(4, () => tag === 0 ? { kind: 'mine', spent: r.bool() } : tag === 1 ? { kind: 'turret', aiming: r.bool() }
     : tag === 2 ? { kind: 'flame', offset: r.u32(), warning: r.bool(), firing: r.bool() }
       : tag === 3 ? { kind: 'spider', home: r.point(), target: r.option(1, () => r.actor()) } : r.fail('unknown trap kind'));
@@ -784,7 +815,7 @@ export function getState(r: Reader): State {
   const stations = getTable(r, STATION_STRIDE, () => getStation(r)), extraction = getExtraction(r);
   const count = r.count(2), sensors: Point[] = [];
   for (let i = 0; i < count; i++) sensors.push(r.point());
-  return { actors, items, projectiles, hooks, gates, traps, stations, extraction, sensors, hazardX: r.word() };
+  return { actors, items, projectiles, hooks, gates, traps, stations, extraction, sensors, hazardX: r.option(1, () => r.finite()) };
 }
 export function decodeSnapshot(words: ArrayLike<number>): Snapshot {
   const r = new Reader(words), tick = r.u32(), state = getState(r), poses = getPoses(r);
@@ -864,7 +895,7 @@ function getChanges(r: Reader): Changes {
   const actors = getTable(r, ACTOR_STRIDE, () => getActor(r)), items = getTable(r, ITEM_STRIDE, () => getItem(r));
   const projectiles = getTable(r, PROJECTILE_STRIDE, () => getProjectile(r)), hooks = getTable(r, HOOK_STRIDE, () => getHook(r));
   const gates = getTable(r, GATE_STRIDE, () => getGate(r)), traps = getTable(r, TRAP_STRIDE, () => getTrap(r));
-  const extraction = getExtraction(r), hazardX = r.option(1, () => r.word());
+  const extraction = getExtraction(r), hazardX = r.option(1, () => r.finite());
   let count = r.count(2);
   const removed: Entity[] = [];
   for (let i = 0; i < count; i++) removed.push(r.entity());
@@ -876,7 +907,7 @@ function getChanges(r: Reader): Changes {
 }
 
 function getInput(r: Reader): Input {
-  return { movement: r.point(), aim: r.option(1, () => r.word()), sneak: r.bool(), attack: r.bool(), utilitySlot: r.option(1, () => r.u32()),
+  return { movement: r.point(), aim: r.option(1, () => r.finite()), sneak: r.bool(), attack: r.bool(), utilitySlot: r.option(1, () => r.u32()),
     skill: r.bool(), interact: r.bool(), target: r.option(2, () => getTarget(r)), slot: r.option(1, () => r.u32()),
     moveSlot: r.option(2, () => [r.u32(), r.u32()] as const),
     drop: r.option(2, (): DropSlot => { const tag = r.u32(), slot = r.u32(); return tag === 0 ? { kind: 'selected' } : tag === 1 ? { kind: 'slot', slot } : r.fail('unknown drop tag'); }),

@@ -64,8 +64,12 @@ test('a game maps to a setup whose IDs and bodies match the old world', async ()
     assert.equal(kinds.get('geometry'), ids.geometryIds.length);
     const old = physicsRuntime(s).world.snapshot().bodies.filter(b => !b.spec.id.startsWith('item:')).length;
     assert.equal(setup.bodies.length - s.gates.filter(g => g.open).length, old);
-    // Rows are the old row without its key word: the body kind first, the vertex count at word 20.
-    for (const { row } of setup.bodies) assert.equal(row.length, 21 + 2 * row[20]);
+    // Bodies carry their spec's fields: whole vertex pairs, and an unset damping is null, never NaN.
+    for (const { body } of setup.bodies) {
+      assert.equal(body.vertices.length % 2, 0);
+      for (const d of body.damping) assert.ok(d === null || Number.isFinite(d));
+    }
+    assert.ok(setup.bodies.some(b => b.id.kind === 'actor' && b.body.damping[0] === null));
   } finally { disposePhysics(s); }
 });
 

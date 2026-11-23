@@ -181,7 +181,7 @@ fn due_arrivals_contend_for_a_single_site_then_retry_after_it_is_vacated() {
 #[test]
 fn respawn_uses_westmost_eligible_transit_station_and_waits_for_deadline() {
     let mut scenario = Scenario::default();
-    scenario.state.hazard_x = 0.0;
+    scenario.state.hazard_x = Some(0.0);
     station(&mut scenario, 1, 350.0, StationKind::Transit);
     station(&mut scenario, 2, 450.0, StationKind::Charging);
     station(&mut scenario, 3, 600.0, StationKind::Transit);
@@ -229,7 +229,7 @@ fn respawn_uses_westmost_eligible_transit_station_and_waits_for_deadline() {
 fn respawn_and_arrival_share_placement_reservations() {
     for seed in [1, 2, 3, 4, 50] {
         let mut scenario = Scenario::default();
-        scenario.state.hazard_x = 0.0;
+        scenario.state.hazard_x = Some(0.0);
         let destination = station(&mut scenario, 1, 600.0, StationKind::Transit);
         pending_gladiator(&mut scenario, B, 1);
         rider(&mut scenario, C, destination, 1);

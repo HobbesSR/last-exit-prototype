@@ -319,7 +319,7 @@ impl Scenario {
             .map(|&id| (id, Memory::default()))
             .collect();
         let mut state = self.state;
-        state.hazard_x = hazard_map.wall_at(0).unwrap_or(state.hazard_x);
+        state.hazard_x = hazard_map.wall_at(0).or(state.hazard_x);
         #[allow(unused_mut)]
         let mut game = Match {
             state,
@@ -503,7 +503,7 @@ impl Match {
             }
         }
         if let Some(wall_x) = self.hazard_map.wall_at(tick) {
-            self.state.hazard_x = wall_x;
+            self.state.hazard_x = Some(wall_x);
         }
         let impulses = apply::impulses(inbound.iter().filter_map(|entry| match *entry {
             Inbound::Carried(Carried::Impulse { body, impulse }) => Some((body, impulse)),

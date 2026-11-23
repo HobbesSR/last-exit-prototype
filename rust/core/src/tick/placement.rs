@@ -199,7 +199,10 @@ fn resting_pose([x, y]: Point, angle: f64) -> [f64; 6] {
 
 fn respawn_position(field: &Field<'_>, radius: f64) -> Option<Point> {
     let safe = |point: Point| {
-        point[0] > field.state.hazard_x + RESPAWN_WALL_MARGIN
+        field
+            .state
+            .hazard_x
+            .is_none_or(|wall| point[0] > wall + RESPAWN_WALL_MARGIN)
             && field
                 .contestants
                 .iter()
@@ -522,7 +525,7 @@ fn loot_body([x, y]: Point, [vx, vy]: Point) -> BodySpec {
             map_geometry: false,
             pose: [x, y, 0.0, vx, vy, 0.0],
             material: [0.2, 0.0, 0.0],
-            damping: [5.0, 5.0],
+            damping: [Some(5.0); 2],
             groups: (LOOT_GROUP << 16) | 1,
         },
         shape: SHAPE_CIRCLE,
