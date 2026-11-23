@@ -29,6 +29,7 @@ pub mod registry;
 pub mod scatter;
 pub mod sight;
 pub mod swept;
+pub mod tick;
 pub mod world;
 
 use std::alloc::{Layout, alloc, dealloc};
