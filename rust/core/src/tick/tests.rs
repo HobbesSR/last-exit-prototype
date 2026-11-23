@@ -1,6 +1,7 @@
 use super::*;
 use crate::physics::{BodyParams, KIND_ACTOR, SHAPE_CIRCLE};
 
+mod combat_tests;
 mod movement_tests;
 
 const A: ActorId = ActorId {
@@ -104,12 +105,17 @@ fn actor(presence: Presence) -> Actor {
         presence,
         kit: None,
         level: 1,
+        kills: 0,
         hp: 90.0,
         max_hp: 100.0,
         shield: 0.0,
         max_shield: 15.0,
         aim: 0.0,
         sneak: false,
+        view_lag: 0,
+        selected_slot: 0,
+        equipped_weapon: None,
+        aggression: None,
         deadlines: Deadlines::default(),
         statuses: BTreeMap::new(),
     }
@@ -255,11 +261,19 @@ fn apply_merges_simultaneous_hits_and_status_before_survivor_claims() {
                 target: B
             },
             Fact::Eliminated { actor: A },
+            Fact::KillCredited {
+                actor: A,
+                target: B
+            },
             Fact::Hit {
                 source: Entity::Actor(B),
                 target: A
             },
             Fact::Eliminated { actor: B },
+            Fact::KillCredited {
+                actor: B,
+                target: A
+            },
         ],
     );
     assert_eq!(game.state().actors[&C].hp, 98.0);

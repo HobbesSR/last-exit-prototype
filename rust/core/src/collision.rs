@@ -467,6 +467,16 @@ pub fn line_clear(
     a: (f64, f64),
     b: (f64, f64),
 ) -> (bool, u32) {
+    line_clear_with_gates(index, gates, a, b, |i| gates.open[i] != 0)
+}
+
+pub(crate) fn line_clear_with_gates(
+    index: &SightIndex,
+    gates: &GateSet,
+    a: (f64, f64),
+    b: (f64, f64),
+    open: impl Fn(usize) -> bool,
+) -> (bool, u32) {
     let length = hypot(b.0 - a.0, b.1 - a.1);
     if length < 0.01 {
         return (true, 0);
@@ -492,7 +502,7 @@ pub fn line_clear(
     }) || some_along(a, b, SIGHT_PAD, BUCKET, |col, row| {
         gates.grid.at(col, row).iter().any(|&i| {
             let i = i as usize;
-            if gates.open[i] != 0 {
+            if open(i) {
                 return false;
             }
             let [x, y, w, h] = gates.boxes[i];

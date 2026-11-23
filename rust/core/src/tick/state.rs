@@ -105,14 +105,40 @@ pub struct Actor {
     pub presence: Presence,
     pub kit: Option<Kit>,
     pub level: u8,
+    pub kills: u32,
     pub hp: f64,
     pub max_hp: f64,
     pub shield: f64,
     pub max_shield: f64,
     pub aim: f64,
     pub sneak: bool,
+    pub view_lag: Tick,
+    pub selected_slot: u8,
+    pub equipped_weapon: Option<EquippedWeapon>,
+    pub aggression: Option<Aggression>,
     pub deadlines: Deadlines,
     pub statuses: BTreeMap<Status, Window>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum WeaponKind {
+    Pistol,
+    Rifle,
+    Scattergun,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct EquippedWeapon {
+    pub kind: WeaponKind,
+    pub rounds: u32,
+    pub damage_multiplier: f64,
+    pub reloading_until: Option<Tick>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Aggression {
+    pub source: ActorId,
+    pub expires_at: Tick,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -130,11 +156,12 @@ pub struct GroundItem {
     pub pickup_ready_at: Tick,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Projectile {
-    pub owner: Option<ActorId>,
+    pub source: Entity,
     pub position: Point,
     pub velocity: Point,
+    pub damage: f64,
     pub active_from: Tick,
     pub expires_at: Tick,
 }
