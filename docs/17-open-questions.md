@@ -21,6 +21,7 @@ Use the smallest relevant record. Preserve answers in that record, including the
 | [17.4](17.4-live-service.md) | Live-service policy |
 | [17.5](17.5-playtests.md) | Open playtest questions |
 | [17.6](17.6-foundation-pass.md) | Foundation Pass and README design answers behind [33.1](33.1-foundation-pass.md) and [33.2](33.2-readme-design.md) |
+| [17.7](17.7-tick-resolution.md) | Tick resolution answers behind #1282's governing tick design (D01–D27 of [27.1](27.1-tick-mechanic-inventory.md)) |
 
 ## Earlier heading links
 
