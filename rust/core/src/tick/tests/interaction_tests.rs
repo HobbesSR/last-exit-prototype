@@ -651,14 +651,10 @@ fn gates_and_full_inventory_swaps_share_the_distance_tier() {
         scenario.state.items.insert(
             item,
             GroundItem {
-                unplaced_at: None,
+                unplaced_at: Some([20.0, 0.0]),
                 ..pending_item()
             },
         );
-        let mut spec = body(20.0);
-        spec.params.kind = crate::physics::KIND_PROP;
-        spec.params.groups = crate::physics::LOOT_GROUP << 16 | 1;
-        scenario.body(BodyId::Item(item), spec);
 
         let mut game = scenario.start(50, 10);
         interact(&mut game, A, 1, None);

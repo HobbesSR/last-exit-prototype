@@ -299,10 +299,14 @@ test('bot intent maps onto the core input', async () => {
     assert.equal(command.source, 'bot');
     assert.equal(command.seq, 0);
     assert.deepEqual(command.input.movement, [1, -1]);
+    assert.equal(command.input.slot, 1);
     assert.equal(command.input.utilitySlot, 1);
     // The discard outranks the selected-slot drop; transit is sent only under selectable content.
     assert.deepEqual(command.input.drop, { kind: 'slot', slot: 3 });
     assert.equal(command.input.transit, null);
+    const attack = botCommand(s, match, c, { input: { slot: 0, attack: true } }, 1);
+    assert.equal(attack.input.slot, null);
+    assert.equal(attack.input.attack, true);
   });
   await run((s, match) => {
     assert.equal(botCommand(s, match, s.players[2], { input: { transit: 's1' } }, 1).input.transit, match.ids.transitIndex.get('s1'));

@@ -263,14 +263,16 @@ fn respawn_and_arrival_share_placement_reservations() {
 }
 
 #[test]
-fn pending_item_waits_for_clearance_and_can_be_claimed_only_after_admission() {
+fn pending_item_retries_body_placement_after_clearance_changes() {
     let mut scenario = Scenario::default();
     for (id, x) in [(A, 0.0), (C, 20.0)] {
         scenario.state.actors.insert(id, actor(Presence::Active));
         scenario.body(BodyId::Actor(id), body(x));
     }
     let cell = ItemId(10);
-    scenario.state.actors.get_mut(&A).unwrap().inventory.slots[0] = Some(CarriedItem {
+    let extractor = scenario.state.actors.get_mut(&A).unwrap();
+    extractor.bot = true; // A bot carrying a cell leaves the ground cell alone.
+    extractor.inventory.slots[0] = Some(CarriedItem {
         id: cell,
         lineage: cell,
         equipment: Equipment {
@@ -283,7 +285,14 @@ fn pending_item_waits_for_clearance_and_can_be_claimed_only_after_admission() {
         slots: 2, // spending the last slot would end the match (R12)
     });
     let item = ItemId(20);
-    scenario.state.items.insert(item, pending_item());
+    scenario.state.items.insert(
+        item,
+        GroundItem {
+            dropped_by: Some(C),
+            pickup_ready_at: 3,
+            ..pending_item()
+        },
+    );
     keep_open(&mut scenario);
     let mut game = scenario.start(50, 10);
     let rules = Combat::default();
@@ -314,12 +323,11 @@ fn pending_item_waits_for_clearance_and_can_be_claimed_only_after_admission() {
     );
     let admission = game.step(&rules).unwrap();
     assert!(escaped(&admission, A, cell));
-    assert!(!has(
+    assert!(has(
         &admission,
-        Fact::Pickup {
+        Fact::Rejected {
             actor: C,
-            item,
-            count: 1
+            reason: Rejection::Pickup(item)
         }
     ));
     assert_eq!(game.state().items[&item].unplaced_at, None);

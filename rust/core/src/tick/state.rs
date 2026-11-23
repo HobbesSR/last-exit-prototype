@@ -151,10 +151,16 @@ pub struct GroundItem {
     pub loot: Loot,
     /// If absent, the ground item's own ID is the root.
     pub lineage: Option<ItemId>,
-    /// The fallback position while a body is awaiting admission.
+    /// The stored position while the item has no body.
     pub unplaced_at: Option<Point>,
     pub dropped_by: Option<ActorId>,
     pub pickup_ready_at: Tick,
+}
+
+impl GroundItem {
+    pub(super) fn position(&self, body_position: Option<Point>) -> Option<Point> {
+        body_position.or(self.unplaced_at)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

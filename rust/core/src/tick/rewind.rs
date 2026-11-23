@@ -141,12 +141,16 @@ impl<'a> Rewound<'a> {
     }
 
     pub fn item_position(&self, target: ItemId) -> Option<Point> {
+        let item = self.view.state.items.get(&target)?;
+        let body_position = self.solved.position(BodyId::Item(target));
+        // A bodiless drop can reuse an ID with history from an earlier time on the ground.
         self.target
+            .filter(|_| body_position.is_some())
             .and_then(|(tick, _)| {
                 self.history
                     .value_at(tick, target, |f| &f.items, |f| &f.items_before)
             })
-            .or_else(|| self.solved.position(BodyId::Item(target)))
+            .or_else(|| item.position(body_position))
     }
     /// The target's historical pose, or its current post-solve pose if absent.
     pub fn position(&self, target: ActorId) -> Option<Point> {

@@ -130,12 +130,27 @@ fn a_killed_claimant_cannot_take_loot_and_death_drops_enter_on_the_next_tick() {
 }
 
 #[test]
-fn a_nominated_claim_outranks_a_closer_automatic_pickup() {
+fn a_nominated_bodiless_claim_outranks_a_closer_automatic_pickup() {
     let mut scenario = Scenario::default();
     add_actor(&mut scenario, A, 29.0);
     add_actor(&mut scenario, C, 0.0);
     let item = ItemId(40);
-    add_loot(&mut scenario, item, 7.0, loot(pistol(5)));
+    scenario.state.items.insert(
+        item,
+        GroundItem {
+            loot: loot(pistol(5)),
+            unplaced_at: Some([7.0, 0.0]),
+            ..pending_item()
+        },
+    );
+    scenario.state.actors.get_mut(&A).unwrap().view_lag = 1;
+    scenario.history.insert(
+        0,
+        RewindFrame {
+            items: BTreeMap::from([(item, [200.0, 0.0])]),
+            ..RewindFrame::default()
+        },
+    );
     let mut game = scenario.start(30, 10);
     nominate(&mut game, A, item);
     let tick = game.step(&Combat::default()).unwrap();
@@ -620,7 +635,7 @@ fn a_swap_reserves_its_body_slot_before_a_due_arrival() {
 }
 
 #[test]
-fn mandatory_death_drops_keep_value_when_geometry_refuses_body_admission() {
+fn bodiless_death_drops_keep_value_and_are_claimable_next_tick() {
     let mut scenario = Scenario::default();
     scenario.bounds([-5.0, -5.0], [5.0, 5.0]);
     add_actor(&mut scenario, A, 0.0);
@@ -678,14 +693,17 @@ fn mandatory_death_drops_keep_value_when_geometry_refuses_body_admission() {
     );
     assert_eq!(game.state().actors[&A].inventory, Inventory::default());
     let next = game.step(&rules).unwrap();
-    assert!(
-        !next
-            .changes
-            .events
-            .iter()
-            .any(|event| matches!(event.fact, Fact::Pickup { .. }))
-    );
-    assert_eq!(game.state().items.len(), 2);
+    for (item, count) in [(ItemId(20), 1), (ItemId(21), 5)] {
+        assert!(has(
+            &next,
+            Fact::Pickup {
+                actor: C,
+                item,
+                count
+            }
+        ));
+    }
+    assert!(game.state().items.is_empty());
 }
 
 #[test]
