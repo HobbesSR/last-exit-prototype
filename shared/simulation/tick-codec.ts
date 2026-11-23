@@ -195,7 +195,8 @@ export type Fact =
   | { kind: 'reloadStarted'; actor: number; readyAt: Tick }
   | { kind: 'reloaded'; actor: number; weapon: WeaponKind; rounds: number }
   | { kind: 'pickup'; actor: number; item: number; count: number }
-  | { kind: 'escaped'; actor: number; cell: number }
+  /** `slots` is what remains after this escape's slot. */
+  | { kind: 'escaped'; actor: number; cell: number; slots: number }
   | { kind: 'chargingStarted'; actor: number; station: number }
   | { kind: 'chargingStopped'; actor: number; station: number }
   | { kind: 'cellCharged'; actor: number; station: number }
@@ -866,7 +867,7 @@ function getFact(r: Reader): Fact {
       case 10: return { kind: 'reloadStarted', actor: r.actor(), readyAt: r.u32() };
       case 11: return { kind: 'reloaded', actor: r.actor(), weapon: r.pick(WEAPONS), rounds: r.u32() };
       case 12: return { kind: 'pickup', actor: r.actor(), item: r.u32(), count: r.u32() };
-      case 13: return { kind: 'escaped', actor: r.actor(), cell: r.u32() };
+      case 13: return { kind: 'escaped', actor: r.actor(), cell: r.u32(), slots: r.u32() };
       case 14: return { kind: 'chargingStarted', actor: r.actor(), station: r.u32() };
       case 15: return { kind: 'chargingStopped', actor: r.actor(), station: r.u32() };
       case 16: return { kind: 'cellCharged', actor: r.actor(), station: r.u32() };

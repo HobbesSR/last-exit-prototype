@@ -9,6 +9,7 @@ import { effect, event, participant } from './event-records.ts';
 import { addItemsFromCore, groundItem, removeItem, replaceItem } from './ground-items.ts';
 import { sightOf } from './sight-runtime.ts';
 import { botCommand, rollMargin } from './tick-boundary.ts';
+import type { TickBoundary } from './tick-boundary.ts';
 import type { Actor, ActorEntry, CarriedItem, Cue, DecodedTick, Equipment, Fact, GroundItem as CoreGround, Hook, Inbound, Loot,
   Memory, Point, PoseEntry, Projectile as CoreProjectile, Snapshot, Tick, Trap as CoreTrap, Window } from './tick-codec.ts';
 import type { MatchIds, TickMatch } from './tick-match.ts';
@@ -45,6 +46,8 @@ interface Shape { inventory: boolean; reserves: boolean }
 interface Context {
   ids: MatchIds; metadata: ReadonlyMap<number, Metadata>; shapes: ReadonlyMap<PlayerId, Shape>; blast: number;
   grid: { cols: number; rows: number };
+  /** Whether the content keeps discovery. Off, the mirror keeps no memory, as the old game attaches none. */
+  discovery: boolean;
 }
 
 const remaining = (deadline: Tick, tick: Tick): Tick => Math.max(0, deadline - tick);
@@ -206,7 +209,8 @@ export class TickMirror {
     const metadata = new Map<number, Metadata>();
     for (const item of s.items) metadata.set(item.id, { buildingId: item.buildingId, nodeId: item.nodeId, tier: item.tier });
     const shapes = new Map(s.players.map(p => [p.id, { inventory: p.inventory !== undefined, reserves: p.reserves !== undefined }] as const));
-    this.ctx = { ids: match.ids, metadata, shapes, blast: s.content.traps.mine.blast, grid: discoveryGrid(s.map) };
+    this.ctx = { ids: match.ids, metadata, shapes, blast: s.content.traps.mine.blast, grid: discoveryGrid(s.map),
+      discovery: s.content.discovery === true };
     this.#load(match.snapshot());
   }
 
@@ -241,7 +245,7 @@ export class TickMirror {
   #serial(id: number): void { if (this.s.itemSerial === undefined || this.s.itemSerial <= id) this.s.itemSerial = id + 1; }
   /** Refresh a contestant's memory from the match; `fresh` starts it over, as at the start, where the core's holds nothing yet. */
   #memory(p: Player, fresh = false): void {
-    if (p.role !== 'contestant') return;
+    if (p.role !== 'contestant' || !this.ctx.discovery) return;
     const memory = this.match.memory(p.id);
     if (!memory) return;
     if (fresh || !p.discovery) attachDiscovery(p, emptyMemory(this.ctx));
@@ -325,7 +329,7 @@ export class TickMirror {
     for (const f of facts) if (f.kind === 'killCredited') credited.set(f.target, f.actor);
     for (const f of facts) {
       switch (f.kind) {
-        case 'escaped': event(s, { kind: 'pod_powered', actor: participant(s, player(f.actor)), slotsRemaining: s.slots }); break;
+        case 'escaped': event(s, { kind: 'pod_powered', actor: participant(s, player(f.actor)), slotsRemaining: f.slots }); break;
         case 'cellCharged': { const p = player(f.actor); event(s, { kind: 'cell_charged', actor: participant(s, p) }); effect(s, p, 'charge', EFFECT.charge); break; }
         case 'eliminated': {
           const source = credited.get(f.actor);
@@ -395,7 +399,7 @@ export class TickMirror {
       props: snap.poses.filter(p => p.body.kind === 'prop').map(p => [p.body.id, p.at] as [number, Point]),
       // The match's own, as of its last completed tick: the snapshot's.
       knowledge: this.s.players.map(p => {
-        const memory = p.role === 'contestant' ? this.match.memory(p.id) : null;
+        const memory = p.role === 'contestant' && ctx.discovery ? this.match.memory(p.id) : null;
         return { memory: memory ? writeMemory(ctx, emptyMemory(ctx), memory) : null, heard: this.match.heard(p.id).map(heardOf) };
       }),
     };
@@ -410,19 +414,20 @@ function byId(list: readonly Projectile[]): Map<number, Projectile> { return new
 /**
  * The test-only runner entry (27.2 "Node adapter (3d.2)"): one tick of `s` on the new path. Each active bot's intent is
  * read from the mirror as T−1 left it (R11), in roster order as today until #1215, and submitted for T; the match steps;
- * the mirror applies the result. Player input reaches the match through `TickBoundary` between calls. The game itself
- * still plays on the old tick: nothing in play calls this. Returns the completed tick, or null once the match is over.
+ * the mirror applies the result. Player input waits in `boundary`'s buffers between calls, and each player's input for T
+ * is submitted with the bots'. The game itself still plays on the old tick: nothing in play calls this. Returns the
+ * completed tick, or null once the match is over.
  */
-export function stepMirror(mirror: TickMirror): DecodedTick | null {
+export function stepMirror(mirror: TickMirror, boundary?: TickBoundary): DecodedTick | null {
   const { s, match } = mirror;
   if (s.phase !== 'live') return null;
-  const tick = s.tick + 1, rows: Inbound[] = [];
+  const tick = s.tick + 1, rows: Inbound[] = boundary?.due(tick) ?? [];
   beginDynamicNavigationCollection(s);
   try {
     for (const p of s.players) if (p.bot && p.status === 'active')
       rows.push({ type: 'command', command: botCommand(s, match, p, collectBotIntent(s, p), tick) });
   } finally { endDynamicNavigationCollection(s); }
-  if (rows.length && !match.submit(tick, rows).every(Boolean)) throw new Error(`tick-mirror: the match refused a bot command for ${tick}`);
+  if (rows.length && !match.submit(tick, rows).every(Boolean)) throw new Error(`tick-mirror: the match refused a command for ${tick}`);
   const completed = match.step();
   if (completed) mirror.apply(completed);
   return completed;

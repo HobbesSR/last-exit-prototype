@@ -313,7 +313,7 @@ fn pending_item_waits_for_clearance_and_can_be_claimed_only_after_admission() {
         },
     );
     let admission = game.step(&rules).unwrap();
-    assert!(has(&admission, Fact::Escaped { actor: A, cell }));
+    assert!(escaped(&admission, A, cell));
     assert!(!has(
         &admission,
         Fact::Pickup {

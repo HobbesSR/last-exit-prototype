@@ -99,7 +99,7 @@ fn the_final_tick_completes_its_claims_then_strands_the_rest() {
     let last = game.step(&rules).unwrap();
     assert_eq!(last.tick, 10);
     // The time limit ends the match only after the final tick's own claims commit.
-    assert!(has(&last, Fact::Escaped { actor: A, cell }));
+    assert!(escaped(&last, A, cell));
     assert_eq!(last.changes.events.last().unwrap().fact, Fact::Finished);
     assert_eq!(game.state().actors[&A].presence, Presence::Escaped);
     assert_eq!(game.state().actors[&C].presence, Presence::Stranded);
@@ -128,7 +128,7 @@ fn spending_the_last_slot_or_losing_the_last_contestant_ends_the_match_early() {
     let mut game = scenario.start(50, 100);
     interact(&mut game, A, 1, Some(Target::Extraction));
     let tick = game.step(&Combat::default()).unwrap();
-    assert!(has(&tick, Fact::Escaped { actor: A, cell }));
+    assert!(escaped(&tick, A, cell));
     assert!(has(&tick, Fact::Finished));
     assert_eq!(game.state().actors[&C].presence, Presence::Stranded);
     assert_eq!(game.state().actors[&B].presence, Presence::Active);
@@ -219,7 +219,7 @@ fn rewind_captures_admissions_warps_and_removals_from_the_committed_state() {
         },
     );
     let tick = game.step(&Combat::default()).unwrap();
-    assert!(has(&tick, Fact::Escaped { actor: A, cell }));
+    assert!(escaped(&tick, A, cell));
     assert!(has(
         &tick,
         Fact::TransitLanded {

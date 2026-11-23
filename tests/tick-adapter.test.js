@@ -55,9 +55,10 @@ test('a bot match on the new path holds the mirror equal to the match snapshot e
   });
 });
 
-test('player input is admitted on stamp, lead and sequence, and acknowledged once spent', async () => {
+test('player input waits in its buffer under 24, and only the tick about to run is submitted', async () => {
   await run((s, match, mirror) => {
     const [c] = s.players, boundary = new TickBoundary(s, match), actor = match.ids.actorOfPlayer.get(c.id);
+    const spent = t => t.inbound.filter(r => r.type === 'command' && r.command.actor === actor).map(r => r.command.seq);
     boundary.seat(c.id, 'join');
     c.inputLeadTicks = 3;
     // A late stamp and one beyond the lead are refused; so is a sequence at or below the last received.
@@ -65,52 +66,118 @@ test('player input is admitted on stamp, lead and sequence, and acknowledged onc
     assert.equal(boundary.input(c.id, { seq: 2, tick: 5, x: 1 }), null);
     assert.equal(c.inputMarginNext, -1);
     assert.ok(boundary.input(c.id, { seq: 3, tick: 2, x: 1 }));
-    // A newer input stamped earlier supersedes it (24): tick 1 spends 4, and 3 is never spent after it.
+    // A newer input stamped earlier supersedes what is queued for its tick or later (24), on arrival, so the core never
+    // sees seq 3, however the actor's activity turns out.
     assert.ok(boundary.input(c.id, { seq: 4, tick: 1, x: 1, aim: 0.25 }));
+    assert.deepEqual(c.inputQueue.map(q => q.seq), [4]);
     assert.equal(boundary.input(c.id, { seq: 4, tick: 3 }), null);
     const x0 = c.x;
-    const first = stepMirror(mirror);
-    assert.deepEqual(first.inbound.filter(r => r.type === 'command' && r.command.actor === actor).map(r => r.command.seq), [4]);
+    assert.deepEqual(spent(stepMirror(mirror, boundary)), [4]);
     assert.equal(c.lastSeq, 4);
     assert.equal(c.inputMargin, -1);
-    const second = stepMirror(mirror);
-    assert.deepEqual(second.inbound.filter(r => r.type === 'command' && r.command.actor === actor).map(r => r.command.seq), [3]);
-    assert.equal(c.lastSeq, 4);
+    assert.deepEqual(spent(stepMirror(mirror, boundary)), []);
     // Held movement repeats, so the player keeps moving east.
     assert.ok(c.x > x0, `${c.x} did not move from ${x0}`);
     assert.equal(c.heading, 0.25);
   });
 });
 
+test('unstamped input is spent one a tick in arrival order, the oldest dropped on overflow', async () => {
+  await run((s, match, mirror) => {
+    const [c] = s.players, boundary = new TickBoundary(s, match), actor = match.ids.actorOfPlayer.get(c.id);
+    boundary.seat(c.id, 'join');
+    for (let seq = 1; seq <= 5; seq++) assert.ok(boundary.input(c.id, { seq, x: 1 }));
+    const seqs = [];
+    for (let i = 0; i < 5; i++) {
+      const t = stepMirror(mirror, boundary);
+      seqs.push(...t.inbound.filter(r => r.type === 'command' && r.command.actor === actor).map(r => r.command.seq));
+    }
+    assert.deepEqual(seqs, [2, 3, 4, 5]);
+  });
+});
+
+test('a seat handoff never spends what the previous connection queued', async () => {
+  await run((s, match, mirror) => {
+    const [c] = s.players, boundary = new TickBoundary(s, match), actor = match.ids.actorOfPlayer.get(c.id);
+    const commands = t => t.inbound.filter(r => r.type === 'command' && r.command.actor === actor).map(r => r.command);
+    boundary.seat(c.id, 'join');
+    // The first connection queues for the handoff tick and a later one, with high sequences.
+    assert.ok(boundary.input(c.id, { seq: 90, tick: 1, attack: true }));
+    assert.ok(boundary.input(c.id, { seq: 91, tick: 3, interact: true }));
+    // A resume before tick 1: the new connection numbers from the start.
+    boundary.seat(c.id, 'join');
+    assert.ok(boundary.input(c.id, { seq: 1, tick: 1, x: 1 }));
+    assert.deepEqual(commands(stepMirror(mirror, boundary)).map(x => x.seq), [1]);
+    for (let i = 0; i < 3; i++) assert.deepEqual(commands(stepMirror(mirror, boundary)), []);
+    assert.equal(match.acknowledged(c.id), 1);
+    assert.equal(c.lastSeq, 1);
+    // Leaving with input queued: only the bot's command is spent.
+    assert.ok(boundary.input(c.id, { seq: 50, tick: s.tick + 1, attack: true }));
+    boundary.seat(c.id, 'leave');
+    assert.deepEqual(commands(stepMirror(mirror, boundary)).map(x => x.source), ['bot']);
+    assert.equal(c.bot, true);
+  });
+});
+
 test('the mirror takes acknowledgment, margins and observations from the match', async () => {
   await run((s, match, mirror) => {
-    const [c] = s.players, boundary = new TickBoundary(s, match);
+    const [c, other] = s.players, boundary = new TickBoundary(s, match);
+    const lagOf = rows => rows.find(r => r.observation.kind === 'viewLag')?.observation.ticks;
     // Hand the seat to a connection: the join is an observation, and the core clears the bot flag.
     assert.deepEqual(boundary.seat(c.id, 'join'), { type: 'observation', observation: { kind: 'join', actor: match.ids.actorOfPlayer.get(c.id) } });
-    const rows = boundary.roundTrip(c.id, 200);
+    const rows = boundary.roundTrip(c.id, 200), committed = lagOf(rows);
     assert.deepEqual(rows.map(r => r.observation.kind), ['viewLag', 'inputLead']);
     assert.ok(boundary.input(c.id, { seq: 0, tick: 1, x: 1 }));
-    stepMirror(mirror);
+    stepMirror(mirror, boundary);
     assert.equal(c.bot, false);
     assert.equal(c.lastSeq, 0);
     assert.equal(c.inputMargin, 0);
-    assert.equal(c.viewLagTicks, rows[0].observation.ticks);
-    // An unchanged measurement records nothing.
+    assert.equal(c.viewLagTicks, committed);
+    // An unchanged measurement records nothing. A change and its correction before the next tick are both rows, since
+    // each is compared with the last reported, not the committed, lag.
     assert.deepEqual(boundary.roundTrip(c.id, 200), []);
-    // A dev teleport warps the body before T's solve.
+    const raised = lagOf(boundary.roundTrip(c.id, 400));
+    assert.ok(raised > committed);
+    assert.equal(lagOf(boundary.roundTrip(c.id, 200)), committed);
+    stepMirror(mirror, boundary);
+    assert.equal(c.viewLagTicks, committed);
+    // A dev teleport warps the body before T's solve; one onto another player is refused, as the old dev rule refused it.
     boundary.teleport(c.id, [250, 500]);
-    const t = stepMirror(mirror);
+    let t = stepMirror(mirror, boundary);
     assert.ok(t.discontinuities.some(d => d.kind === 'warped' && d.body.kind === 'actor'));
     assert.ok(Math.abs(c.x - 250) < 20 && Math.abs(c.y - 500) < 20, `${c.x},${c.y}`);
-    // Leaving hands the seat back: the core forgets the connection's sequence at intake, and the bot's first command,
-    // numbered from it, is spent on the leave's own tick.
-    boundary.seat(c.id, 'leave');
-    const left = stepMirror(mirror), actor = match.ids.actorOfPlayer.get(c.id);
-    const bot = left.inbound.find(r => r.type === 'command' && r.command.actor === actor).command;
-    assert.equal(bot.source, 'bot');
-    assert.equal(c.bot, true);
-    assert.equal(match.acknowledged(c.id), bot.seq);
+    const before = [c.x, c.y];
+    boundary.teleport(c.id, [other.x, other.y]);
+    t = stepMirror(mirror, boundary);
+    assert.ok(!t.discontinuities.some(d => d.kind === 'warped'));
+    assert.ok(Math.abs(c.x - before[0]) < 20 && Math.abs(c.y - before[1]) < 20, `${c.x},${c.y}`);
   });
+});
+
+test('each escape event reports the slots left after it', async () => {
+  await run((s, match, mirror) => {
+    const [a, b] = s.players.map(p => match.ids.actorOfPlayer.get(p.id)), tick = s.tick + 1;
+    const fact = (actor, slots) => ({ id: 0, tick, fact: { kind: 'escaped', actor, cell: 1, slots } });
+    // The tick's extraction record holds the final count; each event keeps its own.
+    mirror.apply({ tick, inbound: [], discontinuities: [], discovery: { gates: [], samples: [] },
+      changes: { actors: [], items: [], projectiles: [], hooks: [], gates: [], traps: [], extraction: { position: [0, 0], slots: 1 },
+        hazardX: null, removed: [], poses: [], events: [fact(a, 2), fact(b, 1)] } });
+    assert.deepEqual(s.events.filter(e => e.kind === 'pod_powered').map(e => [e.actor.name, e.slotsRemaining]),
+      [[s.players[0].name, 2], [s.players[1].name, 1]]);
+  });
+});
+
+test('with discovery off the mirror keeps no memory, as the old game keeps none', async () => {
+  await run((s, match, mirror) => {
+    assert.ok(s.players.every(p => p.discovery === undefined));
+    for (let i = 0; i < 40; i++) {
+      const t = stepMirror(mirror);
+      const expected = mirror.mirrorOf(match.snapshot());
+      assert.deepEqual(mirror.view(expected), expected, `tick ${t.tick}`);
+    }
+    // The bots keep the old game's full-map knowledge: no memory is attached.
+    assert.ok(s.players.every(p => p.discovery === undefined));
+  }, c => { c.discovery = false; });
 });
 
 test('bot intent maps onto the core input', async () => {

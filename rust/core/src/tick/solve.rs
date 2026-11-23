@@ -237,6 +237,10 @@ impl Bodies {
             .collect()
     }
 
+    pub(super) fn dynamic_radius(&self, id: BodyId) -> Option<f64> {
+        self.dynamic.get(&id).map(|body| body.radius)
+    }
+
     pub(super) fn is_dynamic(&self, id: BodyId) -> bool {
         self.dynamic.contains_key(&id)
     }

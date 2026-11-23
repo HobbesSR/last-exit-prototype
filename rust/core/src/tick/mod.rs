@@ -593,6 +593,9 @@ impl Match {
                     }
                 }
                 Observation::Teleport { body, to } => {
+                    if !self.teleport_clear(body, to) {
+                        continue;
+                    }
                     if let Some(angle) = self.bodies.angle(body) {
                         self.bodies.warp(body, to, angle);
                         teleported.push(body);
@@ -601,6 +604,54 @@ impl Match {
             }
         }
         teleported
+    }
+
+    /// A dev teleport's destination (24). An actor moves only while active, and only to a point inside
+    /// the bounds, clear of geometry, closed gates and solid props, and of every other active
+    /// actor, as the old dev operation's occupancy rule refused. Any other body is a scenario's
+    /// arrangement and moves unchecked, as before.
+    fn teleport_clear(&mut self, body: BodyId, to: Point) -> bool {
+        let BodyId::Actor(actor) = body else {
+            return true;
+        };
+        let Some(radius) = self.bodies.dynamic_radius(body) else {
+            return false;
+        };
+        if !self.state.active(actor) || !to[0].is_finite() || !to[1].is_finite() {
+            return false;
+        }
+        let [x, y] = to;
+        if self.bounds.is_some_and(|[min_x, min_y, max_x, max_y]| {
+            x - radius < min_x || x + radius > max_x || y - radius < min_y || y + radius > max_y
+        }) {
+            return false;
+        }
+        let before = self.bodies.before_solve();
+        let gates = &self.state.gates;
+        if self
+            .geometry
+            .contact_with_gates(false, to, to, radius, &before.solid_props, |index| {
+                gates
+                    .get(&GateId(index as u32))
+                    .is_some_and(|gate| gate.open)
+            })
+            .is_finite()
+        {
+            return false;
+        }
+        let others: Vec<_> = self
+            .state
+            .actors
+            .keys()
+            .filter(|&&other| other != actor && self.state.active(other))
+            .map(|&other| BodyId::Actor(other))
+            .collect();
+        others.into_iter().all(|other| {
+            match (before.position(other), self.bodies.dynamic_radius(other)) {
+                (Some([ox, oy]), Some(r)) => crate::math::hypot(x - ox, y - oy) >= radius + r,
+                _ => true,
+            }
+        })
     }
 
     /// R12: discovery samples after the terminal check and rewind capture, so a stranded,
