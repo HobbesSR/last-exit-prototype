@@ -82,7 +82,7 @@ pub(super) fn resolve_into<C, P>(view: &ResolveView<'_>, effects: &mut Effects<C
             effects.new_projectiles.insert(
                 SpawnKey {
                     source: Entity::Actor(actor),
-                    ordinal,
+                    ordinal: u64::from(ordinal),
                 },
                 projectile,
             );

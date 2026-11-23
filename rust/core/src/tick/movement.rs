@@ -150,7 +150,7 @@ impl Movement {
             if input.skill && id.kind == ActorKind::Gladiator && !consumed_skill.contains(&id) {
                 match actor.kit {
                     Some(Kit::Striker | Kit::Hook) if tick < actor.deadlines.skill_ready_at => {
-                        writes.rejections.push(Fact::Rejected {
+                        writes.facts.push(Fact::Rejected {
                             actor: id,
                             reason: Rejection::SkillCooldown,
                         });
@@ -228,7 +228,7 @@ impl Movement {
                     .insert(launch.owner, tick.saturating_add(self.hook.cooldown));
                 intents.push(MovementIntent::Launch(launch));
             } else {
-                writes.rejections.push(Fact::Rejected {
+                writes.facts.push(Fact::Rejected {
                     actor: launch.owner,
                     reason: Rejection::HookCapacity,
                 });
@@ -342,7 +342,8 @@ impl Mechanics for Movement {
 
     fn place(
         &self,
-        _view: ResolveView<'_>,
+        _state: &mut State,
+        _view: ClaimView<'_>,
         placement: Placement<Self::Placement>,
         _commit: &mut Commit,
     ) -> BTreeMap<SpawnKey, Spawn> {

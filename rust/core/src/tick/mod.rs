@@ -5,9 +5,12 @@ mod apply;
 mod combat;
 mod hook;
 mod input;
+mod inventory;
+mod items;
 mod motor;
 mod movement;
 mod order;
+mod placement;
 mod projectile;
 mod rewind;
 mod solve;
@@ -23,9 +26,14 @@ pub use hook::HookTuning;
 pub use input::{
     AmmoFamily, Carried, Command, CommandSource, DropSlot, Inbound, Input, Observation, Target,
 };
+pub use inventory::{
+    CarriedItem, Equipment, EquipmentKind, Inventory, Loot, Reload, SLOT_COUNT, Utility,
+};
+pub use items::{DropRequest, ItemClaim, ItemIntent, ItemRules};
 pub use motor::{MotorSurface, MotorTuning};
 pub use movement::{Movement, MovementIntent};
 pub use order::{actor_word, contest_score, scatter_score};
+pub use placement::DropTuning;
 pub use rewind::{RewindFrame, RewindHistory, Rewound};
 pub use solve::{BeforeSolve, BodySpec, Contact, ContactKind, Motor, Path, Solved, Tether};
 pub use state::*;
@@ -74,12 +82,12 @@ pub struct Intake {
     pub boosts: BTreeMap<ActorId, Window>,
     pub skill_ready_at: BTreeMap<ActorId, Tick>,
     pub weapon_ready_at: BTreeMap<ActorId, Tick>,
-    pub rounds: BTreeMap<ActorId, u32>,
+    pub inventories: BTreeMap<ActorId, Inventory>,
     pub projectiles: BTreeMap<(ActorId, u32), Projectile>,
     pub motors: BTreeMap<BodyId, Motor>,
     pub tethers: BTreeMap<HookId, Tether>,
     pub hooks: BTreeMap<HookId, Option<Hook>>,
-    pub rejections: Vec<Fact>,
+    pub facts: Vec<Fact>,
 }
 
 pub struct ResolveView<'a> {
@@ -90,6 +98,10 @@ pub struct ResolveView<'a> {
 }
 
 impl<'a> ResolveView<'a> {
+    pub fn current(&self) -> Rewound<'a> {
+        Rewound::new(self.start, self.solved, self.history, 0)
+    }
+
     pub fn rewound(&self, viewer: ActorId) -> Rewound<'a> {
         let lag = self
             .start
@@ -101,10 +113,13 @@ impl<'a> ResolveView<'a> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct ClaimView<'a> {
     pub tick: Tick,
     pub seed: u64,
     pub solved: &'a Solved,
+    pub geometry: &'a SweptMap,
+    pub bounds: Option<[f64; 4]>,
 }
 
 /// One rule set, called at fixed points by the runner. A mechanic contributes through
@@ -149,7 +164,8 @@ pub trait Mechanics {
 
     fn place(
         &self,
-        after_claims: ResolveView<'_>,
+        state: &mut State,
+        view: ClaimView<'_>,
         placement: Placement<Self::Placement>,
         commit: &mut Commit,
     ) -> BTreeMap<SpawnKey, Spawn>;
@@ -179,6 +195,7 @@ pub struct Scenario {
     pub history: RewindHistory,
     body_specs: BTreeMap<BodyId, BodySpec>,
     geometry: Option<Arc<SweptMap>>,
+    bounds: Option<[f64; 4]>,
     sight: Option<(Arc<SightIndex>, Arc<GateSet>)>,
     floor: Option<Floor>,
 }
@@ -194,6 +211,11 @@ impl Scenario {
 
     pub fn geometry(&mut self, geometry: Arc<SweptMap>) -> &mut Self {
         self.geometry = Some(geometry);
+        self
+    }
+
+    pub fn bounds(&mut self, min: Point, max: Point) -> &mut Self {
+        self.bounds = Some([min[0], min[1], max[0], max[1]]);
         self
     }
 
@@ -230,6 +252,7 @@ impl Scenario {
             geometry: self
                 .geometry
                 .unwrap_or_else(|| Arc::new(SweptMap::new(vec![], vec![], vec![]))),
+            bounds: self.bounds,
             sight,
             sight_gates,
             seed,
@@ -249,6 +272,7 @@ pub struct Match {
     history: RewindHistory,
     bodies: Bodies,
     geometry: Arc<SweptMap>,
+    bounds: Option<[f64; 4]>,
     sight: Arc<SightIndex>,
     sight_gates: Arc<GateSet>,
     seed: u64,
@@ -339,9 +363,12 @@ impl Match {
                 .deadlines
                 .weapon_ready_at = ready_at;
         }
-        for (id, rounds) in writes.rounds {
-            let actor = self.state.actors.get_mut(&id).expect("weapon user");
-            actor.equipped_weapon.as_mut().expect("fired weapon").rounds = rounds;
+        for (id, inventory) in writes.inventories {
+            self.state
+                .actors
+                .get_mut(&id)
+                .expect("inventory owner")
+                .inventory = inventory;
         }
         for (id, change) in writes.hooks {
             if let Some(hook) = change {
@@ -364,7 +391,7 @@ impl Match {
             },
             &intents,
         );
-        intake_facts.extend(writes.rejections);
+        intake_facts.extend(writes.facts);
         let events = self.apply(tick, mechanics, &solved, effects, intake_facts);
         self.tick = tick;
         Some(CompletedTick {
@@ -455,27 +482,21 @@ impl Match {
             pending: effects.placements,
             reserved: BTreeMap::new(),
         };
+        let view = ClaimView {
+            tick,
+            seed: self.seed,
+            solved,
+            geometry: &self.geometry,
+            bounds: self.bounds,
+        };
         mechanics.claims(
             &mut self.state,
-            ClaimView {
-                tick,
-                seed: self.seed,
-                solved,
-            },
+            view,
             effects.claims,
             &mut placement,
             &mut commit,
         );
-        let placed = mechanics.place(
-            ResolveView {
-                start: self.view(tick),
-                solved,
-                launched_projectiles: &BTreeMap::new(),
-                history: &self.history,
-            },
-            placement,
-            &mut commit,
-        );
+        let placed = mechanics.place(&mut self.state, view, placement, &mut commit);
         let hooks = effects.new_hooks.into_iter().filter_map(|(owner, hook)| {
             let lost_target = matches!(hook.phase, HookPhase::Pulling { target, .. } if !self.state.active(target));
             if !self.state.active(owner) || lost_target {

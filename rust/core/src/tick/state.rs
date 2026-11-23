@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use super::inventory::{Inventory, Loot};
+
 pub type Tick = u32;
 pub type Point = [f64; 2];
 
@@ -113,8 +115,8 @@ pub struct Actor {
     pub aim: f64,
     pub sneak: bool,
     pub view_lag: Tick,
-    pub selected_slot: u8,
-    pub equipped_weapon: Option<EquippedWeapon>,
+    pub inventory: Inventory,
+    pub bot: bool,
     pub aggression: Option<Aggression>,
     pub deadlines: Deadlines,
     pub statuses: BTreeMap<Status, Window>,
@@ -125,14 +127,6 @@ pub enum WeaponKind {
     Pistol,
     Rifle,
     Scattergun,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct EquippedWeapon {
-    pub kind: WeaponKind,
-    pub rounds: u32,
-    pub damage_multiplier: f64,
-    pub reloading_until: Option<Tick>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -149,10 +143,14 @@ pub enum Kit {
     Hook,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct GroundItem {
+    pub loot: Loot,
+    /// If absent, the ground item's own ID is the root.
+    pub lineage: Option<ItemId>,
     /// The fallback position while a body is awaiting admission.
     pub unplaced_at: Option<Point>,
+    pub dropped_by: Option<ActorId>,
     pub pickup_ready_at: Tick,
 }
 
