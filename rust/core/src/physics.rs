@@ -153,6 +153,16 @@ fn vector(x: f64, y: f64) -> Vector {
     Vector::new(metres(x), metres(y))
 }
 
+/// Whether a body of this shape can be added: a hull needs a non-degenerate point set.
+pub(crate) fn shape_valid(kind: u32, a: f64, b: f64, vertices: &[f64]) -> bool {
+    // The hull routine asserts on fewer than two points, and a hull needs three to enclose area.
+    let hull = kind != SHAPE_CIRCLE && kind != SHAPE_BOX;
+    if (hull && vertices.len() < 6) || a < 0.0 || b < 0.0 {
+        return false;
+    }
+    shape(kind, a, b, vertices).is_some()
+}
+
 fn shape(kind: u32, a: f64, b: f64, vertices: &[f64]) -> Option<ColliderBuilder> {
     match kind {
         SHAPE_CIRCLE => Some(ColliderBuilder::ball(metres(a))),

@@ -45,9 +45,9 @@ const E_NO_PLACEMENT = -17, E_DISCONTINUITY_CAPACITY = -18, E_UNREPRESENTABLE = 
 const ITEM_PREFIX = 'item:';
 
 /** The specs a game's queued bodies are built from, and their rows: fixed by the match's pinned content. */
-interface Templates { actor: Record<'contestant' | 'gladiator', BodySpec>; loot: BodySpec; rows: Float64Array[] }
+export interface Templates { actor: Record<'contestant' | 'gladiator', BodySpec>; loot: BodySpec; rows: Float64Array[] }
 const templates = new WeakMap<Game['content'], Templates>();
-function templatesOf(s: Game): Templates {
+export function templatesOf(s: Game): Templates {
   let cached = templates.get(s.content);
   if (!cached) {
     const actor = (role: 'contestant' | 'gladiator'): BodySpec => ({ id: 'template', kind: 'actor',

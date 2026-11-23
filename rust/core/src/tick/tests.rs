@@ -2,6 +2,7 @@ use super::*;
 use crate::physics::{BodyParams, KIND_ACTOR, SHAPE_CIRCLE};
 
 mod admission_tests;
+mod codec_tests;
 mod combat_tests;
 mod hazard_tests;
 mod hazard_trap_tests;

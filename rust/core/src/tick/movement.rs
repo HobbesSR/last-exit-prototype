@@ -51,6 +51,10 @@ pub enum MovementIntent {
 }
 
 impl Movement {
+    pub(super) fn surfaces(&self) -> &[MotorSurface] {
+        &self.surfaces
+    }
+
     pub fn with_surfaces(mut self, mut surfaces: Vec<MotorSurface>) -> Self {
         surfaces.sort_unstable_by(surface_order);
         self.surface_index = Grid::for_bounds(surfaces.iter().map(|surface| {

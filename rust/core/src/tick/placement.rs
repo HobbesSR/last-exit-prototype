@@ -80,13 +80,16 @@ pub(super) fn place(
         .iter()
         .filter_map(|(&id, item)| item.unplaced_at.map(|at| Request::PendingItem(id, at)))
         .peekable();
-    // Claims have finished freeing slots. Placement can only fill them or move a body.
-    let mut full = awaiting.peek().is_some()
-        && Field::new(state, view, &reserved, commit, None).dynamic_count
-            >= items.drops.body_limit();
-    if !full {
+    // Claims have finished freeing slots. Placement can only fill them or move a body. Pending
+    // item bodies stop short of the drop reserve and a slot for every actor that may return, so
+    // map loot never takes the room drops and arrivals need (#523).
+    let item_limit = items.drops.item_limit(state);
+    let mut items_full = awaiting.peek().is_some()
+        && Field::new(state, view, &reserved, commit, None).dynamic_count >= item_limit;
+    if !items_full {
         requests.extend(awaiting);
     }
+    let mut full = false;
     requests.extend(
         std::mem::take(&mut commit.instant_rails)
             .into_iter()
@@ -97,7 +100,8 @@ pub(super) fn place(
         let key = request.key();
         match request {
             Request::Drop(request) => items.place_drop(state, view, request, &mut reserved, commit),
-            Request::Activate(_, _) | Request::PendingItem(_, _) if full => (),
+            Request::Activate(_, _) if full => (),
+            Request::PendingItem(_, _) if full || items_full => (),
             Request::Activate(id, arrival) => {
                 let field = Field::new(state, view, &reserved, commit, None);
                 full = field.dynamic_count >= items.drops.body_limit();
@@ -165,8 +169,8 @@ pub(super) fn place(
             }
             Request::PendingItem(id, at) => {
                 let field = Field::new(state, view, &reserved, commit, None);
-                full = field.dynamic_count >= items.drops.body_limit();
-                if !full && field.clear(at, LOOT_RADIUS) {
+                items_full = field.dynamic_count >= item_limit;
+                if !items_full && field.clear(at, LOOT_RADIUS) {
                     reserved.insert(
                         key,
                         Spawn::AdmitItem {
@@ -395,6 +399,8 @@ pub struct DropTuning {
     pub ground_capacity: usize,
     pub optional_body_capacity: usize,
     pub body_capacity: usize,
+    /// Body slots a pending item's admission leaves free for drops (`worldPhysics.dropReserve`).
+    pub drop_reserve: usize,
 }
 
 impl Default for DropTuning {
@@ -403,6 +409,7 @@ impl Default for DropTuning {
             ground_capacity: 65_536,
             optional_body_capacity: MAX_DYNAMIC,
             body_capacity: MAX_DYNAMIC,
+            drop_reserve: 0,
         }
     }
 }
@@ -427,6 +434,19 @@ pub(super) struct DropSpot {
 impl DropTuning {
     fn body_limit(&self) -> usize {
         self.body_capacity.min(MAX_DYNAMIC)
+    }
+
+    /// The dynamic body count at which pending items stop being admitted: the body limit less
+    /// the drop reserve and one slot for each actor awaiting a respawn or an arrival.
+    fn item_limit(&self, state: &State) -> usize {
+        let returning = state
+            .actors
+            .values()
+            .filter(|actor| matches!(actor.presence, Presence::Pending | Presence::Transit))
+            .count();
+        self.body_limit()
+            .saturating_sub(self.drop_reserve)
+            .saturating_sub(returning)
     }
 
     pub(super) fn plan(&self, plan: DropPlan<'_>) -> Option<Vec<DropSpot>> {

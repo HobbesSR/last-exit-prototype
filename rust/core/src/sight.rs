@@ -31,6 +31,7 @@ pub(crate) type Edge = [f64; 4];
 /// Lists of edges, one per owner (a gate, a see-through obstacle): owner `i`'s edges are
 /// `edges[offsets[i]..offsets[i + 1]]`. Uploaded as `[ax, ay, bx, by]` per edge and `count + 1`
 /// offsets.
+#[derive(Clone)]
 pub(crate) struct EdgeLists {
     edges: Vec<Edge>,
     offsets: Vec<u32>,
@@ -56,6 +57,7 @@ impl EdgeLists {
 ///
 /// Uploaded as one `i32` array: `col0, row0, cols, rows`, then `cols * rows + 1` offsets into the
 /// entries, then the entries.
+#[derive(Clone)]
 pub(crate) struct Grid {
     col0: i64,
     row0: i64,
@@ -155,6 +157,7 @@ impl Grid {
 }
 
 /// Which indices a query has already met: `Visited` in `shared/buckets.ts`.
+#[derive(Clone)]
 pub(crate) struct Visited {
     marks: Vec<u32>,
     mark: u32,
@@ -184,6 +187,7 @@ impl Visited {
 }
 
 /// The edges that block sight, from the obstacle list, with the polygon's output buffer.
+#[derive(Clone)]
 pub struct SightIndex {
     pub(crate) segments: Vec<Edge>,
     pub(crate) grid: Grid,
@@ -229,6 +233,7 @@ impl SightIndex {
 }
 
 /// A gate list's edges, boxes and cells, and which gates are open now.
+#[derive(Clone)]
 pub struct GateSet {
     pub(crate) edges: EdgeLists,
     /// Each gate's box (`gateShape`) as `[x, y, w, h]`, and the body collision tests it as.

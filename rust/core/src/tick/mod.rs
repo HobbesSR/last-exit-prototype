@@ -2,6 +2,7 @@
 //! The WASM adapter still calls the seven-phase tick.
 
 mod apply;
+pub mod codec;
 mod combat;
 mod discovery;
 mod hazards;
@@ -44,7 +45,7 @@ pub use inventory::{
 pub use items::{DropRequest, ItemClaim, ItemIntent, ItemRules};
 pub use motor::{MotorSurface, MotorTuning};
 pub use movement::{Movement, MovementIntent};
-pub use order::{actor_word, contest_score, scatter_score};
+pub use order::{actor_from_word, actor_word, contest_score, scatter_score};
 pub use output::{Changes, Discontinuity, Snapshot};
 pub use placement::DropTuning;
 pub use rewind::{RewindFrame, RewindHistory, Rewound};

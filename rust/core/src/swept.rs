@@ -319,6 +319,7 @@ const CELL: f64 = 200.0;
 const MAX_CELLS: f64 = 4096.0;
 
 /// Shapes in a uniform grid. A shape with a box the grid cannot hold goes in `always`.
+#[derive(Clone)]
 pub(crate) struct Grid {
     cells: BTreeMap<(i64, i64), Vec<u32>>,
     always: Vec<u32>,
@@ -430,6 +431,7 @@ pub fn impact(
 }
 
 /// A map's sweep geometry, uploaded once (`staticIndex` and `gateIndex` in `shared/simulation/swept.ts`).
+#[derive(Clone)]
 pub struct SweptMap {
     statics: Vec<Shape>,
     /// False for a see-through static, which shots pass.

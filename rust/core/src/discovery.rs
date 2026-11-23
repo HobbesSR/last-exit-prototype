@@ -28,6 +28,7 @@ const ROOF_BUCKET: f64 = 160.0;
 pub const HEADER: usize = 11;
 
 /// A roof as `roofAt` in `shared/view.ts` reads it.
+#[derive(Clone)]
 struct Roof {
     id: u32,
     bounds: [f64; 4],
@@ -38,6 +39,7 @@ struct Roof {
 
 /// `roofAt`'s index: roofs, then the buildings no roof declares, each listed per bucket in map
 /// order. Roof and building ids are interned to integers by the adapter, so equal ids stay equal.
+#[derive(Clone)]
 struct Roofs {
     roofs: Vec<Roof>,
     buildings: Vec<(u32, [f64; 4])>,
@@ -176,6 +178,7 @@ pub fn lit_point(points: &[f64], ox: f64, oy: f64, x: f64, y: f64) -> bool {
 }
 
 /// What one map gives discovery, with the sample's input and output buffers.
+#[derive(Clone)]
 pub struct DiscoveryMap {
     cols: f64,
     rows: f64,
