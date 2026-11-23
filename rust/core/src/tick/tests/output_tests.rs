@@ -199,6 +199,42 @@ fn a_teleport_onto_another_actor_is_refused() {
     assert!(game.position(BodyId::Actor(C)).unwrap()[0] > 250.0);
 }
 
+#[test]
+fn a_teleport_tangent_to_a_wall_stands_and_one_into_it_is_refused() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 10.0);
+    // A wall whose west face is at x = 100; the test bodies have radius 1.
+    scenario.geometry(Arc::new(SweptMap::new(
+        vec![Shape::Rect {
+            x: 100.0,
+            y: -50.0,
+            w: 20.0,
+            h: 100.0,
+        }],
+        vec![false],
+        vec![],
+    )));
+    let mut game = scenario.start(50, 10);
+    let warp = |game: &mut Match, tick: Tick, x: f64| {
+        observe(
+            game,
+            tick,
+            Observation::Teleport {
+                body: BodyId::Actor(A),
+                to: [x, 0.0],
+            },
+        );
+        !game
+            .step(&Combat::default())
+            .unwrap()
+            .discontinuities
+            .is_empty()
+    };
+    // Exactly one radius from the face is legal, as `canOccupy` allows; half a radius in is not.
+    assert!(warp(&mut game, 1, 99.0));
+    assert!(!warp(&mut game, 2, 99.5));
+}
+
 fn discovery_scenario(scenario: &mut Scenario, gate_box: [f64; 4]) {
     let empty_grid = [0, 0, 0, 0, 0];
     let [x, y, w, h] = gate_box;

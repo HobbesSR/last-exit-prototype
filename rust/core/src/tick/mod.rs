@@ -355,6 +355,10 @@ impl Scenario {
     }
 }
 
+/// How far a teleported body may sit inside static geometry: `canOccupy`'s tolerance
+/// (`shared/movement.ts`), so a point exactly one radius from a wall stays legal.
+const STATIC_TOLERANCE: f64 = 0.01;
+
 pub struct Match {
     state: State,
     history: RewindHistory,
@@ -607,8 +611,9 @@ impl Match {
     }
 
     /// A dev teleport's destination (24). An actor moves only while active, and only to a point inside
-    /// the bounds, clear of geometry, closed gates and solid props, and of every other active
-    /// actor, as the old dev operation's occupancy rule refused. Any other body is a scenario's
+    /// the bounds where it can stand: static geometry within `STATIC_TOLERANCE`, closed gates and
+    /// solid props touched but not entered, and clear of every other active actor, as the old dev
+    /// operation's occupancy rule refused. Any other body is a scenario's
     /// arrangement and moves unchecked, as before.
     fn teleport_clear(&mut self, body: BodyId, to: Point) -> bool {
         let BodyId::Actor(actor) = body else {
@@ -628,14 +633,13 @@ impl Match {
         }
         let before = self.bodies.before_solve();
         let gates = &self.state.gates;
-        if self
+        if !self
             .geometry
-            .contact_with_gates(false, to, to, radius, &before.solid_props, |index| {
+            .disk_clear(to, radius, STATIC_TOLERANCE, &before.solid_props, |index| {
                 gates
                     .get(&GateId(index as u32))
                     .is_some_and(|gate| gate.open)
             })
-            .is_finite()
         {
             return false;
         }

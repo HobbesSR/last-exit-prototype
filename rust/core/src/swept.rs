@@ -469,6 +469,33 @@ impl SweptMap {
         })
     }
 
+    /// Whether a disk of `radius` may stand at `at`, the occupancy rule of movement's `canOccupy`
+    /// (`shared/movement.ts`): static geometry may be penetrated by up to `static_tolerance`, while
+    /// closed gates and `extra` shapes (solid props) may be touched but not entered.
+    pub fn disk_clear(
+        &self,
+        at: [f64; 2],
+        radius: f64,
+        static_tolerance: f64,
+        extra: &[Shape],
+        open: impl Fn(usize) -> bool,
+    ) -> bool {
+        let [x, y] = at;
+        let (left, top, right, bottom) = (x - radius, y - radius, x + radius, y + radius);
+        let clear =
+            |shape: &Shape, margin: f64| Prepared::new(shape).distance(at, at) >= radius - margin;
+        self.static_grid
+            .candidates(left, top, right, bottom)
+            .iter()
+            .all(|&i| clear(&self.statics[i as usize], static_tolerance))
+            && self
+                .gate_grid
+                .candidates(left, top, right, bottom)
+                .iter()
+                .all(|&i| open(i as usize) || clear(&self.gates[i as usize], 0.0))
+            && extra.iter().all(|shape| clear(shape, 0.0))
+    }
+
     /// Look up openness only for candidate gates, from the caller's authoritative state.
     pub fn contact_with_gates(
         &self,
