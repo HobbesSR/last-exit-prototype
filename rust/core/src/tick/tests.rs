@@ -2,6 +2,7 @@ use super::*;
 use crate::physics::{BodyParams, KIND_ACTOR, SHAPE_CIRCLE};
 
 mod combat_tests;
+mod interaction_tests;
 mod item_tests;
 mod movement_tests;
 
@@ -117,6 +118,8 @@ fn actor(presence: Presence) -> Actor {
         sneak: false,
         view_lag: 0,
         inventory: Inventory::default(),
+        charging: None,
+        transit: None,
         bot: false,
         aggression: None,
         deadlines: Deadlines::default(),

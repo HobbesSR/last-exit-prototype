@@ -4,7 +4,7 @@ use super::state::{ActorId, BodyId, GateId, ItemId, Point, StationId, Tick};
 
 const REPEAT_TICKS: Tick = 10;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Target {
     Extraction,
     Station(StationId),
@@ -80,8 +80,19 @@ pub enum Observation {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Carried {
-    Impulse { body: BodyId, impulse: Point },
-    KillReward { actor: ActorId },
+    Impulse {
+        body: BodyId,
+        impulse: Point,
+    },
+    KillReward {
+        actor: ActorId,
+    },
+    GateObserved {
+        actor: ActorId,
+        gate: GateId,
+        open: bool,
+        locked: bool,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

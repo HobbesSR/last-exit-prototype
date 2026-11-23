@@ -9,8 +9,9 @@ use crate::physics::{
 use crate::swept::Shape;
 use crate::world::PropShape;
 
-use super::state::{BodyId, HookId, Point};
+use super::state::{BodyId, GateId, HookId, Point};
 
+#[derive(Clone)]
 pub struct BodySpec {
     pub params: BodyParams,
     pub shape: u32,
@@ -107,6 +108,7 @@ pub(super) struct Bodies {
     names: BTreeMap<u32, BodyId>,
     dynamic: BTreeMap<BodyId, DynamicBody>,
     solid_props: BTreeMap<BodyId, PropShape>,
+    gate_specs: BTreeMap<GateId, BodySpec>,
 }
 
 struct DynamicBody {
@@ -116,6 +118,42 @@ struct DynamicBody {
 }
 
 impl Bodies {
+    pub(super) fn gate(&mut self, id: GateId, spec: BodySpec, open: bool) {
+        self.gate_specs.insert(id, spec);
+        self.sync_gate(id, open);
+    }
+
+    pub(super) fn sync_gate(&mut self, id: GateId, open: bool) {
+        let body = BodyId::Gate(id);
+        if open {
+            self.remove(body);
+        } else if !self.slots.contains_key(&body)
+            && let Some(spec) = self.gate_specs.get(&id)
+        {
+            self.insert(body, spec.clone());
+        }
+    }
+
+    pub(super) fn gate_box(&self, id: GateId) -> Option<[f64; 4]> {
+        let spec = self.gate_specs.get(&id)?;
+        let [x, y, ..] = spec.params.pose;
+        let [hx, hy] = spec.dimensions;
+        (spec.shape == physics::SHAPE_BOX).then_some([x - hx, y - hy, hx * 2.0, hy * 2.0])
+    }
+
+    pub(super) fn props_overlap_box(&self, [x, y, w, h]: [f64; 4]) -> bool {
+        self.solid_props.keys().any(|id| {
+            self.engine.intersects(
+                self.slots[id],
+                physics::SHAPE_BOX,
+                w / 2.0,
+                h / 2.0,
+                x + w / 2.0,
+                y + h / 2.0,
+            )
+        })
+    }
+
     pub(super) fn insert(&mut self, id: BodyId, spec: BodySpec) {
         assert!(!self.slots.contains_key(&id), "body ID already in use");
         let [a, b] = spec.dimensions;

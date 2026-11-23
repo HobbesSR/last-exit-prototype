@@ -46,6 +46,7 @@ pub struct CarriedItem {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Loot {
+    AccessKey,
     Equipment(Equipment),
     Ammo { family: AmmoFamily, count: u32 },
 }
@@ -62,6 +63,7 @@ pub struct Inventory {
     pub slots: [Option<CarriedItem>; SLOT_COUNT],
     pub selected: u8,
     pub reserves: [u32; 3],
+    pub keys: u32,
     pub reload: Option<Reload>,
 }
 
@@ -253,6 +255,10 @@ impl Inventory {
         reloading: bool,
     ) -> Option<Transfer> {
         let equipment = match loot {
+            Loot::AccessKey => {
+                self.keys = self.keys.checked_add(1)?;
+                return Some(Transfer::whole(1));
+            }
             Loot::Ammo { family, count } => {
                 let taken = self.take_reserve(family, count, reloading)?;
                 return Some(if taken == count {

@@ -62,12 +62,21 @@ impl<'a> Rewound<'a> {
 
     /// Test sight using static edges and the gate state at the requested tick.
     pub fn line_clear(&self, from: Point, to: Point) -> bool {
+        self.line_clear_ignoring(from, to, None)
+    }
+
+    pub(super) fn line_clear_ignoring(
+        &self,
+        from: Point,
+        to: Point,
+        ignore: Option<GateId>,
+    ) -> bool {
         crate::collision::line_clear_with_gates(
             self.view.sight,
             self.view.sight_gates,
             (from[0], from[1]),
             (to[0], to[1]),
-            |index| self.gate_open(index),
+            |index| ignore == Some(GateId(index as u32)) || self.gate_open(index),
         )
         .0
     }
@@ -83,7 +92,7 @@ impl<'a> Rewound<'a> {
         .0
     }
 
-    fn gate_open(&self, index: usize) -> bool {
+    pub(super) fn gate_open(&self, index: usize) -> bool {
         let id = GateId(index as u32);
         self.frame
             .and_then(|frame| frame.gates.get(&id).copied())

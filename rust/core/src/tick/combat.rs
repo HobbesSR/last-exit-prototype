@@ -64,18 +64,20 @@ impl Default for CombatRules {
     }
 }
 
-/// The stage 3b.2 rules, including the motor and hook rules from 3b.1.
+/// The staged tick's movement, combat, inventory and interaction rules.
 #[derive(Default)]
 pub struct Combat {
     pub movement: Movement,
     pub rules: CombatRules,
     pub items: ItemRules,
+    pub interactions: InteractionRules,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub enum CombatIntent {
     Movement(MovementIntent),
     Items(ItemIntent),
+    Interaction(ActorId, InteractionIntent),
     Fire(ActorId, WeaponKind),
     Melee(ActorId, Kit),
     Warden(ActorId),
@@ -101,6 +103,9 @@ impl Combat {
         for command in commands {
             let id = command.actor;
             let actor = &view.start.state.actors[&id];
+            if let Some(interaction) = InteractionIntent::from_input(command.input) {
+                intents.push(CombatIntent::Interaction(id, interaction));
+            }
             let Some(position) = view.bodies.position(BodyId::Actor(id)) else {
                 continue;
             };
@@ -201,7 +206,7 @@ impl Combat {
         &self,
         view: &ResolveView<'_>,
         intents: &[CombatIntent],
-        effects: &mut Effects<ItemClaim, DropRequest>,
+        effects: &mut Effects<InteractionClaim, DropRequest>,
     ) {
         let movement = intents.iter().filter_map(|intent| match *intent {
             CombatIntent::Movement(movement) => Some(movement),
@@ -216,10 +221,21 @@ impl Combat {
             }),
             effects,
         );
+        self.interactions.resolve_into(
+            view,
+            intents.iter().filter_map(|intent| match *intent {
+                CombatIntent::Interaction(actor, interaction) => Some((actor, interaction)),
+                _ => None,
+            }),
+            &self.items,
+            effects,
+        );
         projectile::resolve_into(view, effects);
         for intent in intents {
             match *intent {
-                CombatIntent::Movement(_) | CombatIntent::Items(_) => {}
+                CombatIntent::Movement(_)
+                | CombatIntent::Items(_)
+                | CombatIntent::Interaction(..) => {}
                 CombatIntent::Fire(actor, weapon) => {
                     effects.facts.push(Fact::ShotFired { actor, weapon });
                     effects
@@ -360,16 +376,32 @@ pub(super) fn hit<C, P>(effects: &mut Effects<C, P>, source: Entity, target: Act
 
 impl Mechanics for Combat {
     type Intent = CombatIntent;
-    type Claim = ItemClaim;
+    type Claim = InteractionClaim;
     type Placement = DropRequest;
 
     fn intake(
         &self,
         view: IntakeView<'_>,
-        _inbound: &[Inbound],
+        inbound: &[Inbound],
         commands: &[Command],
         writes: &mut Intake,
     ) -> Vec<Self::Intent> {
+        for entry in inbound {
+            if let Inbound::Carried(Carried::GateObserved {
+                actor,
+                gate,
+                open,
+                locked,
+            }) = *entry
+            {
+                writes.facts.push(Fact::GateObserved {
+                    actor,
+                    gate,
+                    open,
+                    locked,
+                });
+            }
+        }
         self.prepare(&view, commands, writes)
     }
 
@@ -401,8 +433,9 @@ impl Mechanics for Combat {
         placement: &mut Placement<Self::Placement>,
         commit: &mut Commit,
     ) {
-        self.items
-            .settle_claims(state, view, claims, placement, commit);
+        commit.charging =
+            self.interactions
+                .settle(state, view, claims, &self.items, placement, commit);
     }
 
     fn place(
@@ -412,6 +445,9 @@ impl Mechanics for Combat {
         placement: Placement<Self::Placement>,
         commit: &mut Commit,
     ) -> BTreeMap<SpawnKey, Spawn> {
-        self.items.place_drops(state, view, placement, commit)
+        let spawns = self.items.place_drops(state, view, placement, commit);
+        let charging = std::mem::take(&mut commit.charging);
+        self.interactions.charge(state, charging, commit);
+        spawns
     }
 }

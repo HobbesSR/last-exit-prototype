@@ -8,6 +8,7 @@ use super::state::{
     ItemId, Point, Presence, Projectile, ProjectileId, State, Status, Tick, WeaponKind, Window,
 };
 use super::{AmmoFamily, actor_word, contest_score};
+use super::{GateId, StationId, Target};
 
 const KILL_CREDIT_CONTEST: u64 = 0x6b69_6c6c_0000_0000;
 const AGGRESSION_CONTEST: u64 = 0x6167_6772_0000_0000;
@@ -33,6 +34,7 @@ pub enum Lifecycle {
         presence: Presence,
     },
     RemoveItem(ItemId),
+    SyncGate(GateId),
     RemoveProjectile(ProjectileId),
     UpdateProjectile {
         id: ProjectileId,
@@ -83,6 +85,11 @@ pub enum Rejection {
     MoveSlot,
     Pickup(ItemId),
     Swap(ItemId),
+    Interaction(Option<Target>),
+    GateLocked(GateId),
+    GateOccupied(GateId),
+    GateContested(GateId),
+    Transit(StationId),
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -147,6 +154,41 @@ pub enum Fact {
         item: ItemId,
         count: u32,
     },
+    Escaped {
+        actor: ActorId,
+        cell: ItemId,
+    },
+    ChargingStarted {
+        actor: ActorId,
+        station: StationId,
+    },
+    ChargingStopped {
+        actor: ActorId,
+        station: StationId,
+    },
+    CellCharged {
+        actor: ActorId,
+        station: StationId,
+    },
+    GateChanged {
+        actor: ActorId,
+        gate: GateId,
+        open: bool,
+    },
+    GateObserved {
+        actor: ActorId,
+        gate: GateId,
+        open: bool,
+        locked: bool,
+    },
+    TransitDeparted {
+        actor: ActorId,
+        destination: StationId,
+    },
+    TransitLanded {
+        actor: ActorId,
+        destination: StationId,
+    },
     UtilityUsed {
         actor: ActorId,
         utility: Utility,
@@ -189,6 +231,14 @@ impl Fact {
             | Self::ReloadStarted { actor, .. }
             | Self::Reloaded { actor, .. }
             | Self::Pickup { actor, .. }
+            | Self::Escaped { actor, .. }
+            | Self::ChargingStarted { actor, .. }
+            | Self::ChargingStopped { actor, .. }
+            | Self::CellCharged { actor, .. }
+            | Self::GateChanged { actor, .. }
+            | Self::GateObserved { actor, .. }
+            | Self::TransitDeparted { actor, .. }
+            | Self::TransitLanded { actor, .. }
             | Self::UtilityUsed { actor, .. }
             | Self::MeleeSwung { actor }
             | Self::WardenPulsed { actor }
@@ -245,6 +295,7 @@ pub struct Commit {
     pub deadlines: BTreeMap<ActorId, Deadlines>,
     pub carried: Vec<Carried>,
     pub facts: Vec<Fact>,
+    pub(super) charging: super::interaction::ChargeChanges,
 }
 
 #[derive(Debug)]
@@ -568,6 +619,7 @@ pub(super) fn sync(
                 state.items.remove(&id);
                 removed.insert(BodyId::Item(id));
             }
+            Lifecycle::SyncGate(id) => bodies.sync_gate(id, state.gates[&id].open),
             Lifecycle::RemoveProjectile(id) => {
                 state.projectiles.remove(&id);
             }
@@ -600,6 +652,7 @@ pub(super) fn sync(
             record.presence = presence;
             if presence != Presence::Active {
                 record.inventory.reload = None;
+                record.charging = None;
                 deactivated.insert(actor);
                 removed.insert(BodyId::Actor(actor));
             }

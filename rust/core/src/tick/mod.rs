@@ -5,6 +5,7 @@ mod apply;
 mod combat;
 mod hook;
 mod input;
+mod interaction;
 mod inventory;
 mod items;
 mod motor;
@@ -26,6 +27,7 @@ pub use hook::HookTuning;
 pub use input::{
     AmmoFamily, Carried, Command, CommandSource, DropSlot, Inbound, Input, Observation, Target,
 };
+pub use interaction::{InteractionClaim, InteractionIntent, InteractionRules};
 pub use inventory::{
     CarriedItem, Equipment, EquipmentKind, Inventory, Loot, Reload, SLOT_COUNT, Utility,
 };
@@ -56,6 +58,7 @@ pub struct View<'a> {
     pub geometry: &'a SweptMap,
     pub sight: &'a SightIndex,
     pub sight_gates: &'a GateSet,
+    sites: &'a interaction::Sites,
 }
 
 impl View<'_> {
@@ -120,6 +123,8 @@ pub struct ClaimView<'a> {
     pub solved: &'a Solved,
     pub geometry: &'a SweptMap,
     pub bounds: Option<[f64; 4]>,
+    sight_gates: &'a GateSet,
+    bodies: &'a Bodies,
 }
 
 /// One rule set, called at fixed points by the runner. A mechanic contributes through
@@ -231,9 +236,16 @@ impl Scenario {
 
     pub fn start(self, seed: u64, time_limit: Tick) -> Match {
         let ids = Ids::from_state(&self.state);
+        let sites = interaction::Sites::new(&self.state);
         let mut bodies = Bodies::default();
         for (id, spec) in self.body_specs {
-            bodies.insert(id, spec);
+            if let BodyId::Gate(gate) = id
+                && let Some(record) = self.state.gates.get(&gate)
+            {
+                bodies.gate(gate, spec, record.open);
+            } else {
+                bodies.insert(id, spec);
+            }
         }
         if let Some(floor) = self.floor {
             bodies.use_floor(floor);
@@ -255,6 +267,7 @@ impl Scenario {
             bounds: self.bounds,
             sight,
             sight_gates,
+            sites,
             seed,
             time_limit,
             tick: 0,
@@ -275,6 +288,7 @@ pub struct Match {
     bounds: Option<[f64; 4]>,
     sight: Arc<SightIndex>,
     sight_gates: Arc<GateSet>,
+    sites: interaction::Sites,
     seed: u64,
     time_limit: Tick,
     tick: Tick,
@@ -410,6 +424,7 @@ impl Match {
             geometry: &self.geometry,
             sight: &self.sight,
             sight_gates: &self.sight_gates,
+            sites: &self.sites,
         }
     }
 
@@ -488,6 +503,8 @@ impl Match {
             solved,
             geometry: &self.geometry,
             bounds: self.bounds,
+            sight_gates: &self.sight_gates,
+            bodies: &self.bodies,
         };
         mechanics.claims(
             &mut self.state,

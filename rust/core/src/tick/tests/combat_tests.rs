@@ -275,6 +275,7 @@ fn rewind_uses_historical_target_and_gate_with_current_caster() {
             Gate {
                 open: !gate_open,
                 locked: false,
+                ..Gate::default()
             },
         );
         scenario.history.insert(
