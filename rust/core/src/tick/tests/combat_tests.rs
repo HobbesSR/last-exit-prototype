@@ -17,11 +17,14 @@ fn add(scenario: &mut Scenario, id: ActorId, x: f64, hp: f64, kit: Option<Kit>) 
 
 fn equip(scenario: &mut Scenario, id: ActorId, kind: WeaponKind, rounds: u32) {
     let actor = scenario.state.actors.get_mut(&id).unwrap();
-    actor.equipped_weapon = Some(EquippedWeapon {
-        kind,
-        rounds,
-        damage_multiplier: 1.0,
-        reloading_until: None,
+    let item = ItemId(id.seat + 1);
+    actor.inventory.slots[0] = Some(CarriedItem {
+        id: item,
+        lineage: item,
+        equipment: Equipment {
+            kind: EquipmentKind::Firearm { kind, rounds },
+            quality: 1,
+        },
     });
 }
 
@@ -85,7 +88,17 @@ fn firing_tick_and_lethal_melee_trade_both_award_credit() {
         assert!(has(&first, fact), "missing {fact:?}");
     }
     let actors = &game.state().actors;
-    assert_eq!(actors[&A].equipped_weapon.unwrap().rounds, 1);
+    assert!(actors[&A].inventory.selected_weapon().is_none());
+    assert_eq!(
+        game.state().items[&ItemId(A.seat + 1)].loot,
+        Loot::Equipment(Equipment {
+            kind: EquipmentKind::Firearm {
+                kind: WeaponKind::Pistol,
+                rounds: 1
+            },
+            quality: 1,
+        })
+    );
     assert_eq!(actors[&A].deadlines.weapon_ready_at, 9);
     assert!(!actors[&A].statuses.contains_key(&Status::Cloak));
     assert_eq!(
@@ -269,6 +282,7 @@ fn rewind_uses_historical_target_and_gate_with_current_caster() {
             RewindFrame {
                 poses: BTreeMap::from([(A, [60.0, 0.0]), (B, [500.0, 0.0])]),
                 gates: BTreeMap::from([(gate, gate_open)]),
+                ..RewindFrame::default()
             },
         );
         let empty_grid = &[0, 0, 0, 0, 0];
@@ -434,7 +448,14 @@ fn projectile_allocation_and_expiry_use_the_firing_tick_and_spread_order() {
             weapon: WeaponKind::Scattergun
         }
     ));
-    assert_eq!(game.state().actors[&A].equipped_weapon.unwrap().rounds, 2);
+    assert_eq!(
+        game.state().actors[&A]
+            .inventory
+            .selected_weapon()
+            .unwrap()
+            .1,
+        2
+    );
     let launched = game.step(&rules).unwrap();
     assert!(has(
         &launched,
@@ -462,7 +483,14 @@ fn projectile_allocation_and_expiry_use_the_firing_tick_and_spread_order() {
         .map(|shot| shot.position[1])
         .collect();
     assert!(positions.windows(2).all(|pair| pair[0] < pair[1]));
-    assert_eq!(game.state().actors[&A].equipped_weapon.unwrap().rounds, 1);
+    assert_eq!(
+        game.state().actors[&A]
+            .inventory
+            .selected_weapon()
+            .unwrap()
+            .1,
+        1
+    );
     game.step(&rules).unwrap();
     assert!(game.state().projectiles.is_empty());
 }

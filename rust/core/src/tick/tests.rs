@@ -2,6 +2,7 @@ use super::*;
 use crate::physics::{BodyParams, KIND_ACTOR, SHAPE_CIRCLE};
 
 mod combat_tests;
+mod item_tests;
 mod movement_tests;
 
 const A: ActorId = ActorId {
@@ -76,21 +77,23 @@ impl Mechanics for Rules {
 
     fn place(
         &self,
-        view: ResolveView<'_>,
+        state: &mut State,
+        view: ClaimView<'_>,
         mut placement: Placement<ActorId>,
         _commit: &mut Commit,
     ) -> BTreeMap<SpawnKey, Spawn> {
         for actor in placement.pending {
-            assert!(view.start.state.active(actor));
+            assert!(state.active(actor));
             placement.reserved.insert(
                 SpawnKey {
                     source: Entity::Actor(actor),
                     ordinal: 0,
                 },
                 Spawn::Item {
+                    id: None,
                     item: GroundItem {
-                        unplaced_at: Some([0.0; 2]),
-                        pickup_ready_at: view.start.tick + 1,
+                        pickup_ready_at: view.tick + 1,
+                        ..pending_item()
                     },
                     body: None,
                 },
@@ -113,11 +116,24 @@ fn actor(presence: Presence) -> Actor {
         aim: 0.0,
         sneak: false,
         view_lag: 0,
-        selected_slot: 0,
-        equipped_weapon: None,
+        inventory: Inventory::default(),
+        bot: false,
         aggression: None,
         deadlines: Deadlines::default(),
         statuses: BTreeMap::new(),
+    }
+}
+
+fn pending_item() -> GroundItem {
+    GroundItem {
+        loot: Loot::Equipment(Equipment {
+            kind: EquipmentKind::Cell { charge: 0 },
+            quality: 1,
+        }),
+        lineage: None,
+        unplaced_at: Some([0.0; 2]),
+        dropped_by: None,
+        pickup_ready_at: 0,
     }
 }
 
@@ -394,13 +410,7 @@ fn successful_placements_allocate_ids_and_publish_in_canonical_order() {
     for id in [B, A, C] {
         scenario.state.actors.insert(id, actor(Presence::Active));
     }
-    scenario.state.items.insert(
-        ItemId(12),
-        GroundItem {
-            unplaced_at: Some([0.0; 2]),
-            pickup_ready_at: 0,
-        },
-    );
+    scenario.state.items.insert(ItemId(12), pending_item());
     let mut game = scenario.start(4217, 20);
     let result = game
         .step(&Rules(|_, _| TestEffects {

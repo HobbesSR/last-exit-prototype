@@ -524,7 +524,17 @@ pub fn reach_clear(
     a: (f64, f64),
     b: (f64, f64),
 ) -> (bool, u32) {
-    let (clear, tests) = line_clear(index, gates, a, b);
+    reach_clear_with_gates(index, gates, a, b, |i| gates.open[i] != 0)
+}
+
+pub(crate) fn reach_clear_with_gates(
+    index: &SightIndex,
+    gates: &GateSet,
+    a: (f64, f64),
+    b: (f64, f64),
+    open: impl Fn(usize) -> bool,
+) -> (bool, u32) {
+    let (clear, tests) = line_clear_with_gates(index, gates, a, b, open);
     if !clear {
         return (false, tests);
     }

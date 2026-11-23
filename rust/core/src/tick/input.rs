@@ -12,7 +12,7 @@ pub enum Target {
     Item(ItemId),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum AmmoFamily {
     Pistol,
     Rifle,
@@ -31,6 +31,7 @@ pub struct Input {
     pub aim: Option<f64>,
     pub sneak: bool,
     pub attack: bool,
+    pub utility_slot: Option<u8>,
     pub skill: bool,
     pub interact: bool,
     pub target: Option<Target>,

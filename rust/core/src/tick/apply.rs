@@ -1,12 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::input::{Carried, Inbound};
+use super::inventory::Utility;
 use super::solve::{Bodies, BodySpec, Contact};
 use super::state::{
     ActorId, ActorKind, Aggression, BodyId, Deadlines, Entity, GroundItem, Hook, HookId, HookPhase,
     ItemId, Point, Presence, Projectile, ProjectileId, State, Status, Tick, WeaponKind, Window,
 };
-use super::{actor_word, contest_score};
+use super::{AmmoFamily, actor_word, contest_score};
 
 const KILL_CREDIT_CONTEST: u64 = 0x6b69_6c6c_0000_0000;
 const AGGRESSION_CONTEST: u64 = 0x6167_6772_0000_0000;
@@ -51,8 +52,13 @@ pub enum Lifecycle {
 
 pub enum Spawn {
     Item {
+        id: Option<ItemId>,
         item: GroundItem,
         body: Option<BodySpec>,
+    },
+    SplitItem {
+        actor: ActorId,
+        slot: usize,
     },
     Projectile(Projectile),
     Hook(Hook),
@@ -63,13 +69,20 @@ pub enum Spawn {
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct SpawnKey {
     pub source: Entity,
-    pub ordinal: u32,
+    pub ordinal: u64,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Rejection {
     SkillCooldown,
     HookCapacity,
+    Drop,
+    DropAmmo(AmmoFamily),
+    Reload,
+    SelectSlot,
+    MoveSlot,
+    Pickup(ItemId),
+    Swap(ItemId),
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -87,21 +100,77 @@ pub enum HookRelease {
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Fact {
-    Hit { source: Entity, target: ActorId },
-    Rejected { actor: ActorId, reason: Rejection },
-    Eliminated { actor: ActorId },
-    KillCredited { actor: ActorId, target: ActorId },
-    Assisted { actor: ActorId, target: ActorId },
-    KillRewarded { actor: ActorId },
-    Placed { source: Entity, placed: Entity },
-    Boosted { actor: ActorId },
-    ShotFired { actor: ActorId, weapon: WeaponKind },
-    MeleeSwung { actor: ActorId },
-    WardenPulsed { actor: ActorId },
-    SpecterScanned { actor: ActorId },
-    HookFired { owner: ActorId },
-    HookAttached { owner: ActorId, target: ActorId },
-    HookReleased { owner: ActorId, reason: HookRelease },
+    Hit {
+        source: Entity,
+        target: ActorId,
+    },
+    Rejected {
+        actor: ActorId,
+        reason: Rejection,
+    },
+    Eliminated {
+        actor: ActorId,
+    },
+    KillCredited {
+        actor: ActorId,
+        target: ActorId,
+    },
+    Assisted {
+        actor: ActorId,
+        target: ActorId,
+    },
+    KillRewarded {
+        actor: ActorId,
+    },
+    Placed {
+        source: Entity,
+        placed: Entity,
+    },
+    Boosted {
+        actor: ActorId,
+    },
+    ShotFired {
+        actor: ActorId,
+        weapon: WeaponKind,
+    },
+    ReloadStarted {
+        actor: ActorId,
+        ready_at: Tick,
+    },
+    Reloaded {
+        actor: ActorId,
+        weapon: WeaponKind,
+        rounds: u32,
+    },
+    Pickup {
+        actor: ActorId,
+        item: ItemId,
+        count: u32,
+    },
+    UtilityUsed {
+        actor: ActorId,
+        utility: Utility,
+    },
+    MeleeSwung {
+        actor: ActorId,
+    },
+    WardenPulsed {
+        actor: ActorId,
+    },
+    SpecterScanned {
+        actor: ActorId,
+    },
+    HookFired {
+        owner: ActorId,
+    },
+    HookAttached {
+        owner: ActorId,
+        target: ActorId,
+    },
+    HookReleased {
+        owner: ActorId,
+        reason: HookRelease,
+    },
     Contact(Contact),
     Finished,
 }
@@ -117,6 +186,10 @@ impl Fact {
             | Self::KillRewarded { actor }
             | Self::Boosted { actor }
             | Self::ShotFired { actor, .. }
+            | Self::ReloadStarted { actor, .. }
+            | Self::Reloaded { actor, .. }
+            | Self::Pickup { actor, .. }
+            | Self::UtilityUsed { actor, .. }
             | Self::MeleeSwung { actor }
             | Self::WardenPulsed { actor }
             | Self::SpecterScanned { actor } => Entity::Actor(actor),
@@ -381,8 +454,20 @@ pub(super) struct Ids {
 
 impl Ids {
     pub(super) fn from_state(state: &State) -> Self {
+        let ground = state
+            .items
+            .iter()
+            .flat_map(|(&id, item)| [id, item.lineage.unwrap_or(id)]);
+        let held = state.actors.values().flat_map(|actor| {
+            actor
+                .inventory
+                .slots
+                .iter()
+                .flatten()
+                .flat_map(|item| [item.id, item.lineage])
+        });
         Self {
-            item: state.items.last_key_value().map_or(0, |(id, _)| id.0),
+            item: ground.chain(held).map(|id| id.0).max().unwrap_or(0),
             projectile: state.projectiles.last_key_value().map_or(0, |(id, _)| id.0),
             hook: state.hooks.last_key_value().map_or(0, |(id, _)| id.0),
             event: 0,
@@ -398,12 +483,27 @@ impl Ids {
     ) {
         for (key, spawn) in spawns {
             let placed = match spawn {
-                Spawn::Item { item, body } => {
-                    let id = ItemId(next(&mut self.item));
+                Spawn::SplitItem { actor, slot } => {
+                    let item = state
+                        .actors
+                        .get_mut(&actor)
+                        .expect("pickup winner")
+                        .inventory
+                        .slots[slot]
+                        .as_mut()
+                        .expect("split pickup");
+                    item.id = ItemId(next(&mut self.item));
+                    continue;
+                }
+                Spawn::Item { id, item, body } => {
+                    let id = id.unwrap_or_else(|| ItemId(next(&mut self.item)));
                     if let Some(body) = body {
                         bodies.insert(BodyId::Item(id), body);
                     }
-                    state.items.insert(id, item);
+                    assert!(
+                        state.items.insert(id, item).is_none(),
+                        "item identity already on ground"
+                    );
                     Entity::Item(id)
                 }
                 Spawn::Projectile(projectile) => {
@@ -499,6 +599,7 @@ pub(super) fn sync(
         if let Some(record) = state.actors.get_mut(&actor) {
             record.presence = presence;
             if presence != Presence::Active {
+                record.inventory.reload = None;
                 deactivated.insert(actor);
                 removed.insert(BodyId::Actor(actor));
             }

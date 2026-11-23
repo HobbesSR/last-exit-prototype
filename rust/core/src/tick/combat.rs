@@ -1,8 +1,5 @@
 //! Fire and casts write spends in intake, then resolve against S0 and solved paths.
 
-use std::collections::BTreeMap;
-use std::convert::Infallible;
-
 use crate::math::{atan2, cos, hypot, sin};
 
 use super::*;
@@ -72,11 +69,13 @@ impl Default for CombatRules {
 pub struct Combat {
     pub movement: Movement,
     pub rules: CombatRules,
+    pub items: ItemRules,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub enum CombatIntent {
     Movement(MovementIntent),
+    Items(ItemIntent),
     Fire(ActorId, WeaponKind),
     Melee(ActorId, Kit),
     Warden(ActorId),
@@ -96,6 +95,8 @@ impl Combat {
             .into_iter()
             .map(CombatIntent::Movement)
             .collect();
+        let (items, attacks) = self.items.prepare(view, commands, writes);
+        intents.extend(items.into_iter().map(CombatIntent::Items));
         let tick = view.start.tick;
         for command in commands {
             let id = command.actor;
@@ -116,7 +117,7 @@ impl Combat {
                         .insert(id, tick.saturating_add(MELEE_COOLDOWN));
                     intents.push(CombatIntent::Melee(id, kit));
                 }
-            } else {
+            } else if attacks.contains(&id) {
                 intents.extend(self.prepare_fire(command, actor, position, writes));
             }
         }
@@ -137,7 +138,7 @@ impl Combat {
         };
         let tick = command.tick;
         if tick < actor.deadlines.skill_ready_at {
-            writes.rejections.push(Fact::Rejected {
+            writes.facts.push(Fact::Rejected {
                 actor: id,
                 reason: Rejection::SkillCooldown,
             });
@@ -158,22 +159,26 @@ impl Combat {
         position: Point,
         writes: &mut Intake,
     ) -> Option<CombatIntent> {
-        let tick = command.tick;
         let input = command.input;
-        if !input.attack
-            || tick < actor.deadlines.weapon_ready_at
-            || !fire_wins(input, actor.selected_slot)
-        {
-            return None;
-        }
-        let equipped = actor.equipped_weapon?;
-        if equipped.rounds == 0 || equipped.reloading_until.is_some_and(|until| tick < until) {
-            return None;
-        }
+        let tick = command.tick;
         let id = command.actor;
-        let weapon = &self.rules.weapons[equipped.kind as usize];
+        let inventory = writes.inventories.get(&id).unwrap_or(&actor.inventory);
+        let (kind, rounds, quality) = inventory.selected_weapon()?;
+        if rounds == 0 {
+            return None;
+        }
+        let multiplier = if self.items.quality_damage {
+            [1.0, 1.08, 1.16, 1.24, 1.32][usize::from(quality.clamp(1, 5) - 1)]
+        } else {
+            1.0
+        };
+        let weapon = &self.rules.weapons[kind as usize];
         let aim = input.aim.unwrap_or(actor.aim);
-        writes.rounds.insert(id, equipped.rounds - 1);
+        writes
+            .inventories
+            .entry(id)
+            .or_insert(actor.inventory)
+            .spend_round();
         writes
             .weapon_ready_at
             .insert(id, tick.saturating_add(weapon.cooldown));
@@ -183,30 +188,38 @@ impl Combat {
                 source: Entity::Actor(id),
                 position,
                 velocity: [cos(angle) * weapon.speed, sin(angle) * weapon.speed],
-                damage: weapon.damage * equipped.damage_multiplier,
+                damage: weapon.damage * multiplier,
                 active_from: tick,
                 expires_at: tick.saturating_add(weapon.life.saturating_sub(1)),
             };
             writes.projectiles.insert((id, ordinal as u32), projectile);
         }
-        Some(CombatIntent::Fire(id, equipped.kind))
+        Some(CombatIntent::Fire(id, kind))
     }
 
-    pub fn resolve_into<C, P>(
+    pub fn resolve_into(
         &self,
         view: &ResolveView<'_>,
         intents: &[CombatIntent],
-        effects: &mut Effects<C, P>,
+        effects: &mut Effects<ItemClaim, DropRequest>,
     ) {
         let movement = intents.iter().filter_map(|intent| match *intent {
             CombatIntent::Movement(movement) => Some(movement),
             _ => None,
         });
         self.movement.resolve_into(view, movement, effects);
+        self.items.resolve_into(
+            view,
+            intents.iter().filter_map(|intent| match *intent {
+                CombatIntent::Items(item) => Some(item),
+                _ => None,
+            }),
+            effects,
+        );
         projectile::resolve_into(view, effects);
         for intent in intents {
             match *intent {
-                CombatIntent::Movement(_) => {}
+                CombatIntent::Movement(_) | CombatIntent::Items(_) => {}
                 CombatIntent::Fire(actor, weapon) => {
                     effects.facts.push(Fact::ShotFired { actor, weapon });
                     effects
@@ -271,20 +284,6 @@ impl Combat {
             hit(effects, Entity::Actor(caster), target, damage);
         }
     }
-}
-
-fn fire_wins(input: Input, selected_slot: u8) -> bool {
-    let drops_selected = match input.drop {
-        Some(DropSlot::Selected) => true,
-        Some(DropSlot::Slot(slot)) => slot == selected_slot,
-        None => false,
-    };
-    !drops_selected
-        && !input.reload
-        && input.slot.is_none()
-        && input
-            .move_slot
-            .is_none_or(|(from, to)| from != selected_slot && to != selected_slot)
 }
 
 fn opponents<'a>(view: &'a ResolveView<'_>, caster: ActorId) -> impl Iterator<Item = ActorId> + 'a {
@@ -361,8 +360,8 @@ pub(super) fn hit<C, P>(effects: &mut Effects<C, P>, source: Entity, target: Act
 
 impl Mechanics for Combat {
     type Intent = CombatIntent;
-    type Claim = Infallible;
-    type Placement = Infallible;
+    type Claim = ItemClaim;
+    type Placement = DropRequest;
 
     fn intake(
         &self,
@@ -384,22 +383,35 @@ impl Mechanics for Combat {
         effects
     }
 
-    fn claims(
+    fn eliminations(
         &self,
-        _state: &mut State,
-        _view: ClaimView<'_>,
-        _claims: Vec<(ActorId, Self::Claim)>,
-        _placement: &mut Placement<Self::Placement>,
+        state: View<'_>,
+        deaths: &[Elimination],
+        placements: &mut Vec<Self::Placement>,
         _commit: &mut Commit,
     ) {
+        self.items.deaths(state, deaths, placements);
+    }
+
+    fn claims(
+        &self,
+        state: &mut State,
+        view: ClaimView<'_>,
+        claims: Vec<(ActorId, Self::Claim)>,
+        placement: &mut Placement<Self::Placement>,
+        commit: &mut Commit,
+    ) {
+        self.items
+            .settle_claims(state, view, claims, placement, commit);
     }
 
     fn place(
         &self,
-        _view: ResolveView<'_>,
+        state: &mut State,
+        view: ClaimView<'_>,
         placement: Placement<Self::Placement>,
-        _commit: &mut Commit,
+        commit: &mut Commit,
     ) -> BTreeMap<SpawnKey, Spawn> {
-        placement.reserved
+        self.items.place_drops(state, view, placement, commit)
     }
 }

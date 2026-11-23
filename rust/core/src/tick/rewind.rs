@@ -4,12 +4,13 @@ use std::collections::BTreeMap;
 
 use crate::phase_seven::MAX_REWIND_TICKS;
 
-use super::{ActorId, BodyId, GateId, Point, Solved, Tick, View};
+use super::{ActorId, BodyId, GateId, ItemId, Point, Solved, Tick, View};
 
 /// A post-apply snapshot of the data used for eligibility.
 #[derive(Default)]
 pub struct RewindFrame {
     pub poses: BTreeMap<ActorId, Point>,
+    pub items: BTreeMap<ItemId, Point>,
     /// Gate ID to open state.
     pub gates: BTreeMap<GateId, bool>,
 }
@@ -66,14 +67,33 @@ impl<'a> Rewound<'a> {
             self.view.sight_gates,
             (from[0], from[1]),
             (to[0], to[1]),
-            |index| {
-                let id = GateId(index as u32);
-                self.frame
-                    .and_then(|frame| frame.gates.get(&id).copied())
-                    .unwrap_or_else(|| self.view.state.gates.get(&id).is_some_and(|gate| gate.open))
-            },
+            |index| self.gate_open(index),
         )
         .0
+    }
+
+    pub fn reach_clear(&self, from: Point, to: Point) -> bool {
+        crate::collision::reach_clear_with_gates(
+            self.view.sight,
+            self.view.sight_gates,
+            (from[0], from[1]),
+            (to[0], to[1]),
+            |index| self.gate_open(index),
+        )
+        .0
+    }
+
+    fn gate_open(&self, index: usize) -> bool {
+        let id = GateId(index as u32);
+        self.frame
+            .and_then(|frame| frame.gates.get(&id).copied())
+            .unwrap_or_else(|| self.view.state.gates.get(&id).is_some_and(|gate| gate.open))
+    }
+
+    pub fn item_position(&self, target: ItemId) -> Option<Point> {
+        self.frame
+            .and_then(|frame| frame.items.get(&target).copied())
+            .or_else(|| self.solved.position(BodyId::Item(target)))
     }
     /// The target's historical pose, or its current post-solve pose if absent.
     pub fn position(&self, target: ActorId) -> Option<Point> {

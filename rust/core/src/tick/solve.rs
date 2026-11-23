@@ -67,15 +67,28 @@ impl BeforeSolve {
 
 #[derive(Default)]
 pub struct Solved {
-    paths: BTreeMap<BodyId, Path>,
+    bodies: BTreeMap<BodyId, SolvedBody>,
     broken: BTreeSet<HookId>,
     pub contacts: Vec<Contact>,
     pub solid_props: Vec<Shape>,
 }
 
+struct SolvedBody {
+    path: Path,
+    radius: f64,
+}
+
 impl Solved {
+    pub(super) fn bodies(&self) -> impl Iterator<Item = BodyId> + '_ {
+        self.bodies.keys().copied()
+    }
+
+    pub(super) fn radius(&self, id: BodyId) -> Option<f64> {
+        self.bodies.get(&id).map(|body| body.radius)
+    }
+
     pub fn path(&self, id: BodyId) -> Option<&Path> {
-        self.paths.get(&id)
+        self.bodies.get(&id).map(|body| &body.path)
     }
 
     pub fn position(&self, id: BodyId) -> Option<Point> {
@@ -92,8 +105,14 @@ pub(super) struct Bodies {
     engine: physics::World,
     slots: BTreeMap<BodyId, u32>,
     names: BTreeMap<u32, BodyId>,
-    dynamic: BTreeMap<BodyId, [f64; 2]>,
+    dynamic: BTreeMap<BodyId, DynamicBody>,
     solid_props: BTreeMap<BodyId, PropShape>,
+}
+
+struct DynamicBody {
+    speed_limit: f64,
+    tip_radius: f64,
+    radius: f64,
 }
 
 impl Bodies {
@@ -107,7 +126,19 @@ impl Bodies {
         self.slots.insert(id, slot);
         self.names.insert(slot, id);
         if spec.params.kind != KIND_STATIC {
-            self.dynamic.insert(id, [spec.speed_limit, spec.tip_radius]);
+            let radius = if spec.shape == physics::SHAPE_CIRCLE {
+                a
+            } else {
+                crate::math::hypot(a, b)
+            };
+            self.dynamic.insert(
+                id,
+                DynamicBody {
+                    speed_limit: spec.speed_limit,
+                    tip_radius: spec.tip_radius,
+                    radius,
+                },
+            );
         }
         if spec.params.kind == KIND_PROP && spec.params.groups >> 16 != LOOT_GROUP {
             self.solid_props.insert(
@@ -182,7 +213,7 @@ impl Bodies {
         let mut input = std::mem::take(self.engine.input_vec());
         input.clear();
         input.reserve(self.dynamic.len() * DYNAMIC_STRIDE + impulses.len() * PUSH_STRIDE);
-        for (&id, &[limit, tip]) in &self.dynamic {
+        for (&id, body) in &self.dynamic {
             let (enabled, x, y, acceleration) =
                 motors.get(&id).map_or((0.0, 0.0, 0.0, 0.0), |motor| {
                     (
@@ -198,8 +229,8 @@ impl Bodies {
                 x,
                 y,
                 acceleration,
-                limit,
-                tip,
+                body.speed_limit,
+                body.tip_radius,
             ]);
         }
         let mut impulse_count = 0;
@@ -238,16 +269,22 @@ impl Bodies {
         let count = self.dynamic.len();
         let out = self.engine.step(count, 0, impulse_count, constraints.len());
         assert_eq!(out[0], 0.0, "Rapier rejected the tick's inputs");
-        let paths = self
+        let bodies = self
             .dynamic
-            .keys()
+            .iter()
             .enumerate()
-            .map(|(index, &id)| {
+            .map(|(index, (&id, body))| {
                 let path = std::array::from_fn(|substep| {
                     let at = HEADER + (substep * count + index) * 2;
                     [out[at], out[at + 1]]
                 });
-                (id, path)
+                (
+                    id,
+                    SolvedBody {
+                        path,
+                        radius: body.radius,
+                    },
+                )
             })
             .collect();
         let event_start = HEADER + (SUBSTEPS + 1) * count * 2;
@@ -277,7 +314,7 @@ impl Bodies {
             .map(|&i| constraints[i as usize])
             .collect();
         Solved {
-            paths,
+            bodies,
             broken,
             contacts,
             solid_props: self.props(),
