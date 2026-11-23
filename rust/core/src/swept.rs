@@ -319,7 +319,7 @@ const CELL: f64 = 200.0;
 const MAX_CELLS: f64 = 4096.0;
 
 /// Shapes in a uniform grid. A shape with a box the grid cannot hold goes in `always`.
-struct Grid {
+pub(crate) struct Grid {
     cells: BTreeMap<(i64, i64), Vec<u32>>,
     always: Vec<u32>,
     count: usize,
@@ -343,13 +343,17 @@ fn cell_range(left: f64, top: f64, right: f64, bottom: f64) -> Option<(i64, i64,
 
 impl Grid {
     fn new(shapes: &[Shape]) -> Grid {
+        Self::for_bounds(shapes.iter().map(Shape::bounds))
+    }
+
+    pub(crate) fn for_bounds(bounds: impl IntoIterator<Item = [f64; 4]>) -> Self {
         let mut grid = Grid {
             cells: BTreeMap::new(),
             always: Vec::new(),
-            count: shapes.len(),
+            count: 0,
         };
-        for (i, shape) in shapes.iter().enumerate() {
-            let [x, y, w, h] = shape.bounds();
+        for (i, [x, y, w, h]) in bounds.into_iter().enumerate() {
+            grid.count += 1;
             match cell_range(x, y, x + w, y + h) {
                 Some((c0, c1, r0, r1)) => {
                     for c in c0..=c1 {
@@ -362,6 +366,10 @@ impl Grid {
             }
         }
         grid
+    }
+
+    pub(crate) fn at(&self, x: f64, y: f64) -> Vec<u32> {
+        self.candidates(x, y, x, y)
     }
 
     /// Indices of every shape whose box may meet the query box, ascending and once each. A superset
@@ -454,6 +462,21 @@ impl SweptMap {
         radius: f64,
         extra: &[Shape],
     ) -> f64 {
+        self.contact_with_gates(pass_see_through, a, b, radius, extra, |i| {
+            gates.open.get(i).copied().unwrap_or(0) != 0
+        })
+    }
+
+    /// Look up openness only for candidate gates, from the caller's authoritative state.
+    pub fn contact_with_gates(
+        &self,
+        pass_see_through: bool,
+        a: [f64; 2],
+        b: [f64; 2],
+        radius: f64,
+        extra: &[Shape],
+        open: impl Fn(usize) -> bool,
+    ) -> f64 {
         let left = js_min(a[0], b[0]) - radius;
         let right = js_max(a[0], b[0]) + radius;
         let top = js_min(a[1], b[1]) - radius;
@@ -468,7 +491,7 @@ impl SweptMap {
             }
         }
         for &i in &gate_ids {
-            if gates.open.get(i as usize).copied().unwrap_or(0) == 0 {
+            if !open(i as usize) {
                 shapes.push(&self.gates[i as usize]);
             }
         }

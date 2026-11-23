@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::input::Carried;
-use super::solve::{Bodies, BodySpec};
+use super::solve::{Bodies, BodySpec, Contact};
 use super::state::{
-    ActorId, BodyId, Deadlines, Entity, GroundItem, Hook, HookEnd, HookId, ItemId, Point, Presence,
-    Projectile, ProjectileId, State, Status, Tick, Window,
+    ActorId, BodyId, Deadlines, Entity, GroundItem, Hook, HookId, HookPhase, ItemId, Point,
+    Presence, Projectile, ProjectileId, State, Status, Tick, Window,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -26,6 +26,7 @@ pub enum Lifecycle {
     RemoveItem(ItemId),
     RemoveProjectile(ProjectileId),
     RemoveHook(HookId),
+    UpdateHook { id: HookId, hook: Hook },
     Warp { body: BodyId, to: Point, angle: f64 },
 }
 
@@ -47,23 +48,35 @@ pub struct SpawnKey {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum Rejection {
+    SkillCooldown,
+    HookCapacity,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum HookRelease {
+    Cancelled,
+    Expired,
+    Obstructed,
+    FriendlyContact,
+    Range,
+    Standoff,
+    Separation,
+    EndpointGone,
+    Relocated,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Fact {
-    Hit {
-        source: Entity,
-        target: ActorId,
-    },
-    Rejected {
-        actor: ActorId,
-        action: u16,
-        reason: u16,
-    },
-    Eliminated {
-        actor: ActorId,
-    },
-    Placed {
-        source: Entity,
-        placed: Entity,
-    },
+    Hit { source: Entity, target: ActorId },
+    Rejected { actor: ActorId, reason: Rejection },
+    Eliminated { actor: ActorId },
+    Placed { source: Entity, placed: Entity },
+    Boosted { actor: ActorId },
+    HookFired { owner: ActorId },
+    HookAttached { owner: ActorId, target: ActorId },
+    HookReleased { owner: ActorId, reason: HookRelease },
+    Contact(Contact),
     Finished,
 }
 
@@ -71,7 +84,13 @@ impl Fact {
     fn source(self) -> Entity {
         match self {
             Self::Hit { source, .. } | Self::Placed { source, .. } => source,
-            Self::Rejected { actor, .. } | Self::Eliminated { actor } => Entity::Actor(actor),
+            Self::Rejected { actor, .. } | Self::Eliminated { actor } | Self::Boosted { actor } => {
+                Entity::Actor(actor)
+            }
+            Self::HookFired { owner }
+            | Self::HookAttached { owner, .. }
+            | Self::HookReleased { owner, .. } => Entity::Actor(owner),
+            Self::Contact(contact) => Entity::from(contact.a),
             Self::Finished => Entity::Match,
         }
     }
@@ -92,6 +111,7 @@ pub struct Effects<C, P> {
     pub impulses: Vec<(BodyId, Point)>,
     pub claims: Vec<(ActorId, C)>,
     pub placements: Vec<P>,
+    pub new_hooks: BTreeMap<ActorId, Hook>,
     pub lifecycle: Vec<Lifecycle>,
     pub facts: Vec<Fact>,
 }
@@ -104,6 +124,7 @@ impl<C, P> Default for Effects<C, P> {
             impulses: Vec::new(),
             claims: Vec::new(),
             placements: Vec::new(),
+            new_hooks: BTreeMap::new(),
             lifecycle: Vec::new(),
             facts: Vec::new(),
         }
@@ -311,6 +332,7 @@ pub(super) fn sync(
     bodies: &mut Bodies,
     lifecycle: Vec<Lifecycle>,
     deaths: &[Elimination],
+    facts: &mut Vec<Fact>,
 ) -> BTreeSet<ActorId> {
     let mut presence_changes = BTreeMap::new();
     let mut warps = BTreeMap::new();
@@ -333,6 +355,11 @@ pub(super) fn sync(
             }
             Lifecycle::RemoveHook(id) => {
                 state.hooks.remove(&id);
+            }
+            Lifecycle::UpdateHook { id, hook } => {
+                if let Some(current) = state.hooks.get_mut(&id) {
+                    *current = hook;
+                }
             }
             Lifecycle::Warp { body, to, angle } => {
                 let old = warps.insert(body, (to, angle));
@@ -357,18 +384,35 @@ pub(super) fn sync(
     for &id in &removed {
         bodies.remove(id);
     }
-    for (id, (to, angle)) in warps {
+    for (&id, &(to, angle)) in &warps {
         if !removed.contains(&id) {
             bodies.warp(id, to, angle);
         }
     }
+    let actors = &state.actors;
     state.hooks.retain(|_, hook| {
-        !deactivated.contains(&hook.owner)
-            && match hook.end {
-                HookEnd::Attached(body) => !removed.contains(&body),
-                HookEnd::Flying(tip) => state.projectiles.contains_key(&tip),
-                HookEnd::Anchored(_) => true,
-            }
+        let target = match hook.phase {
+            HookPhase::Flying { .. } => None,
+            HookPhase::Pulling { target, .. } => Some(target),
+        };
+        let active = |id| {
+            actors
+                .get(&id)
+                .is_some_and(|actor| actor.presence == Presence::Active)
+        };
+        let warped = |id| warps.contains_key(&BodyId::Actor(id));
+        let reason = if !active(hook.owner) || target.is_some_and(|target| !active(target)) {
+            HookRelease::EndpointGone
+        } else if warped(hook.owner) || target.is_some_and(warped) {
+            HookRelease::Relocated
+        } else {
+            return true;
+        };
+        facts.push(Fact::HookReleased {
+            owner: hook.owner,
+            reason,
+        });
+        false
     });
     deactivated
 }

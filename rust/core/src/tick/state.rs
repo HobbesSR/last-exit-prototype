@@ -45,7 +45,21 @@ pub enum Entity {
     Gate(GateId),
     Trap(TrapId),
     Station(StationId),
+    Prop(u32),
+    Geometry(u32),
     Match,
+}
+
+impl From<BodyId> for Entity {
+    fn from(id: BodyId) -> Self {
+        match id {
+            BodyId::Actor(id) => Self::Actor(id),
+            BodyId::Item(id) => Self::Item(id),
+            BodyId::Prop(id) => Self::Prop(id),
+            BodyId::Gate(id) => Self::Gate(id),
+            BodyId::Geometry(id) => Self::Geometry(id),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -89,13 +103,24 @@ pub struct Deadlines {
 #[derive(Clone, Debug)]
 pub struct Actor {
     pub presence: Presence,
+    pub kit: Option<Kit>,
+    pub level: u8,
     pub hp: f64,
     pub max_hp: f64,
     pub shield: f64,
     pub max_shield: f64,
     pub aim: f64,
+    pub sneak: bool,
     pub deadlines: Deadlines,
     pub statuses: BTreeMap<Status, Window>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Kit {
+    Warden,
+    Specter,
+    Striker,
+    Hook,
 }
 
 #[derive(Clone, Debug)]
@@ -114,17 +139,23 @@ pub struct Projectile {
     pub expires_at: Tick,
 }
 
-#[derive(Clone, Debug)]
-pub enum HookEnd {
-    Flying(ProjectileId),
-    Anchored(Point),
-    Attached(BodyId),
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum HookPhase {
+    Flying {
+        position: Point,
+        direction: Point,
+        travelled: f64,
+    },
+    Pulling {
+        target: ActorId,
+        length: f64,
+    },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Hook {
     pub owner: ActorId,
-    pub end: HookEnd,
+    pub phase: HookPhase,
     pub expires_at: Tick,
 }
 

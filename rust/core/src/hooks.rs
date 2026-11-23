@@ -111,7 +111,7 @@ fn lerp(a: [f64; 2], b: [f64; 2], t: f64) -> [f64; 2] {
 }
 
 /// `bodyShape` (`shared/physics/presentation-geometry.ts`) of a solid prop at its pose.
-fn prop_shape(shape: &PropShape, x: f64, y: f64, angle: f64) -> Shape {
+pub(crate) fn prop_shape(shape: &PropShape, x: f64, y: f64, angle: f64) -> Shape {
     if shape.shape == SHAPE_CIRCLE {
         return Shape::Circle { x, y, r: shape.a };
     }
