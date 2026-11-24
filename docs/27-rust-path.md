@@ -512,12 +512,8 @@ agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 1838
 5. **Destruction (#794) is out of scope.** Changed geometry would need its own design for replacing derived layers at
    a tick boundary.
 
-**Discovery authority (#1319).** The #1283 cutover already moved the live pass into `tick/discovery.rs` and removed
-Node’s `advanceDiscovery` call. Rust applies the previous tick’s gate-attempt observations, then samples eligible
-contestants after terminal resolution and rewind capture. Bots survey geometry through the view window and learn
-sighted cells, items and doors through sight and see-through polygons, with roof concealment and fallback building
-footprints. Remembered ground records carry their building slot. Node mirrors the resulting memory for projection
-and the current bot planner. Discovery uses the same rule tables with either map handoff.
+Discovery uses the same rule tables with either map handoff. [27.2](27.2-tick-architecture.md#terminal-rewind-and-discovery-3b7)
+owns the live tick’s discovery order and memory (#1319).
 
 **Parity.** #1215 holds the characterization fixture that the cutover (#1283 3d.4d) re-baselines, bot traces
 included. The contract leaves both bot options on #1215 open: bots in the core, or outside it driving a seat.
