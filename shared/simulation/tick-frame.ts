@@ -55,7 +55,7 @@ export class TickFrames {
   /** The physics presentation of the mirror's last tick, in body order. */
   presentation(): FramePresentation {
     const s = this.mirror.s, ids = this.mirror.ctx.ids;
-    const roster = new Map(s.players.map((p, i) => [ids.actorOfPlayer.get(p.id)!, i as PlayerIdx] as const));
+    const roster = ids.slotOfActor;
     const bodies: NumericPhysicsBody[] = [], actorBody = new Map<number, BodyId>();
     for (const pose of [...this.mirror.poses.values()].sort((a, b) => bodyOrder(a.body, b.body))) {
       const key = bodyKey(pose.body), life = this.mirror.lives.get(key);

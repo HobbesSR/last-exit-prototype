@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { waitingYard } from '../shared/waiting-yard.ts';
-import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView, waitingSeats, waitingConstants } from '../shared/simulation/waiting.ts';
+import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, waitingSanitizedInput, stepWaiting, waitingView, waitingSeats, waitingConstants } from '../shared/simulation/waiting.ts';
 import { canOccupy } from '../shared/movement.ts';
+import { CLIENT_MESSAGE, validateClientMessage } from '../shared/protocol.ts';
 
 const frames = peer => peer.messages.filter(m => m.type === 'state').map(m => m.state);
 
@@ -243,5 +244,26 @@ test('waiting slots last for the yard: a leaver leaves a gap and the next arriva
     enterWaiting(w, 'd', 'contestant', 'warden', 'D');
     assert.deepEqual(slots(), { a: 0, d: 1, c: 2 }, 'the newcomer takes the freed slot');
     assert.deepEqual(waitingSeats(w).map(s => s.playerIdx), [0, 1, 2], 'the roster is ordered by slot');
+  } finally { w.dispose(); }
+});
+
+test('waiting admission distinguishes raw markers from validated failed nominations', async () => {
+  const w = createWaiting(waitingYard());
+  await w.ready;
+  try {
+    const p = enterWaiting(w, 'a', 'contestant', 'warden', 'Ada');
+    assert.equal(waitingInput(w, 'a', { seq: NaN }), false);
+    assert.equal(waitingInput(w, 'a', { seq: 0, target: { kind: 'unresolved' }, transit: 's1' }), true);
+    assert.equal(p.inputQueue[0].target, undefined);
+    assert.equal(p.inputQueue[0].interact, false);
+    assert.equal(p.inputQueue[0].transit, undefined);
+    const validated = validateClientMessage({ type: CLIENT_MESSAGE.INPUT, seq: 1, tick: 1, interact: true, target: { kind: 'unresolved' }, transit: 's1' });
+    assert.equal(validated.ok, true);
+    const { type: _type, ...input } = validated.message;
+    assert.equal(waitingSanitizedInput(w, 'a', input), true);
+    assert.deepEqual(p.inputQueue[0].target, { kind: 'unresolved' });
+    assert.equal(p.inputQueue[0].interact, false);
+    assert.equal(p.inputQueue[0].transit, undefined);
+    assert.equal(waitingSanitizedInput(w, 'a', input), false);
   } finally { w.dispose(); }
 });

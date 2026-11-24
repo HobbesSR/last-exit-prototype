@@ -97,10 +97,10 @@
 //! | Event | id, tick, fact tag, fact payload ([`FACT_PAYLOAD`] 6) |
 //! | Inbound | [`INBOUND_STRIDE`] 32: tag (Command 0, Observation 1, Carried 2), payload (31) |
 //! | Command payload | actor, source, tick, seq, input ([`INPUT_WORDS`] 27) |
-//! | Observation payload | tag (ViewLag 0, InputLead 1, Join 2, Leave 3, Teleport 4), then actor and ticks; actor; actor; body and `to` |
+//! | Observation payload | tag (ViewLag 0, InputLead 1, Join 2, Leave 3, Teleport 4), then actor and ticks; actor and kit option (2); actor; body and `to` |
 //! | Carried payload | tag (Impulse 0, KillReward 1, GateObserved 2), then body and impulse; actor; actor, gate, open, locked |
 //! | Input | movement, aim option (2), sneak, attack, utility slot option (2), skill, interact, target option (present, tag Extraction 0, Station 1, Gate 2, Item 3, value), slot option (2), move slot option (present, from, to), drop option (present, tag Selected 0 or Slot 1, slot), reload, drop-ammo option (present, family, count), transit option (2) |
-//! | Discontinuity | [`DISCONTINUITY_STRIDE`] 3: tag (Placed 0, Warped 1, Removed 2), body |
+//! | Discontinuity | [`DISCONTINUITY_STRIDE`] 4: tag (Placed 0, Warped 1, Removed 2, DevWarped 3), body, request (zero padding except DevWarped) |
 //! | Gate observation | [`GATE_OBSERVATION_STRIDE`] 4: actor, gate, open, locked |
 //! | Discovery sample | [`SAMPLE_STRIDE`] 3: actor, eye |
 //! | Discovery | a section of gate observations, a section of samples |
@@ -147,7 +147,7 @@ pub const FACT_PAYLOAD: usize = 6;
 pub const EVENT_STRIDE: usize = 3 + FACT_PAYLOAD;
 pub const INPUT_WORDS: usize = 27;
 pub const INBOUND_STRIDE: usize = 1 + 4 + INPUT_WORDS;
-pub const DISCONTINUITY_STRIDE: usize = 3;
+pub const DISCONTINUITY_STRIDE: usize = 4;
 pub const GATE_OBSERVATION_STRIDE: usize = 4;
 pub const SAMPLE_STRIDE: usize = 3;
 pub const REMEMBERED_ITEM_STRIDE: usize = 2 + ITEM_STRIDE;
@@ -1602,9 +1602,10 @@ pub fn put_inbound(w: &mut Vec<f64>, inbound: &Inbound) {
                     w.actor(actor);
                     w.int(ticks);
                 }
-                Observation::Join { actor } => {
+                Observation::Join { actor, kit } => {
                     w.int(2u32);
                     w.actor(actor);
+                    put_option(w, 1, kit, |w, kit| put_pick(w, &KITS, &kit));
                 }
                 Observation::Leave { actor } => {
                     w.int(3u32);
@@ -1667,7 +1668,10 @@ pub fn get_inbound(r: &mut Reader) -> Result<Inbound> {
                     actor: r.actor()?,
                     ticks: r.u32()?,
                 },
-                2 => Observation::Join { actor: r.actor()? },
+                2 => Observation::Join {
+                    actor: r.actor()?,
+                    kit: r.option(1, |r| r.pick(&KITS))?,
+                },
                 3 => Observation::Leave { actor: r.actor()? },
                 4 => Observation::Teleport {
                     body: r.body()?,
@@ -1697,22 +1701,26 @@ pub fn get_inbound(r: &mut Reader) -> Result<Inbound> {
 // ---- Discontinuities, discovery, memory and cues
 
 pub fn put_discontinuity(w: &mut Vec<f64>, marker: Discontinuity) {
-    let (tag, body) = match marker {
-        Discontinuity::Placed(body) => (0u32, body),
-        Discontinuity::Warped(body) => (1, body),
-        Discontinuity::Removed(body) => (2, body),
+    let (tag, body, request) = match marker {
+        Discontinuity::Placed(body) => (0u32, body, 0),
+        Discontinuity::Warped(body) => (1, body, 0),
+        Discontinuity::Removed(body) => (2, body, 0),
+        Discontinuity::DevWarped { body, request } => (3, body, request),
     };
     w.int(tag);
     w.body(body);
+    w.int(request);
 }
 
 pub fn get_discontinuity(r: &mut Reader) -> Result<Discontinuity> {
     let tag = r.u32()?;
     let body = r.body()?;
+    let request = r.u32()?;
     Ok(match tag {
-        0 => Discontinuity::Placed(body),
-        1 => Discontinuity::Warped(body),
-        2 => Discontinuity::Removed(body),
+        0 if request == 0 => Discontinuity::Placed(body),
+        1 if request == 0 => Discontinuity::Warped(body),
+        2 if request == 0 => Discontinuity::Removed(body),
+        3 => Discontinuity::DevWarped { body, request },
         _ => return r.fail("unknown discontinuity tag"),
     })
 }

@@ -2,14 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { DEFAULT_KIT, HZ, ROLES } from '../shared/simulation/rules.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
-import { SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
+import { minimumReaderForMatch } from '../shared/recording.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createMatch, createLobby } from './match.js';
 import { randomWireIdKey } from './wire-key.js';
 import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, broadcastWaiting, spectatorFrame, remember, rosterRevision, viewEncoders, SPECTATOR_DELAY_TICKS } from './room-views.js';
-import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView, waitingSeats, waitingConstants } from '../shared/simulation/waiting.ts';
+import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, waitingSanitizedInput, stepWaiting, waitingView, waitingSeats, waitingConstants } from '../shared/simulation/waiting.ts';
 import { waitingYard } from '../shared/waiting-yard.ts';
 import { JSON_STATE_REFUSED } from '../shared/protocol.ts';
 import {
@@ -64,6 +64,7 @@ export function createRoom({
   setTimer = setTimeout,
   clearTimer = clearTimeout,
   matchFactory = createMatch,
+  tick: tickEngine = 'old',
   // How this room keys its match's and waiting yard's outward IDs (#1164): 'random' draws a fresh key for
   // each (createArenaServer's default), a literal key is used as given (tests), and null keeps internal IDs.
   wireKey = null,
@@ -77,6 +78,8 @@ export function createRoom({
   // Drawn here, per match and per yard, so a room on its own thread draws its own.
   const drawWireKey = () => wireKey === 'random' ? randomWireIdKey() : wireKey;
   const clientMap = new Map();
+  const pendingTeleports = [];
+  const newTick = tickEngine === 'new';
   let resolveDeferredMap, rejectDeferredMap;
 
   const isCurrent = () => Boolean(state && !state.finished && !state.disposed && !state.closing);
@@ -210,7 +213,7 @@ export function createRoom({
 
   function openMatch(map) {
     if (!state || state.match || !isCurrent()) return;
-    const match = matchFactory(state.seed, state.size, map, state.content, { wireKey: drawWireKey() });
+    const match = matchFactory(state.seed, state.size, map, state.content, { wireKey: drawWireKey(), tick: tickEngine });
     if (typeof match?.then === 'function') {
       return state.initializing = match.then(ready => recordingOpened(ready)).then(ready => adoptMatch(ready), error => abandonGeneration(error));
     }
@@ -241,8 +244,8 @@ export function createRoom({
     match.seat(state.inputs);
     // `game` stays the tests' and benchmarks' escape hatch; nothing here reads it.
     Object.assign(state, { match, seats: match, game: match.diagnosticState });
-    // Players stay in the waiting area, so only those watching are shown the new map now.
-    for (const client of state.clients) if (!client.playerId) sendEnvelope(client, readyMessage({ ...described(), ...view(client) }));
+    // Legacy watchers get the prepared map now. Opt-in watchers receive it with core tick 0.
+    if (!newTick) for (const client of state.clients) if (!client.playerId) sendEnvelope(client, readyMessage({ ...described(), ...view(client) }));
     broadcastLobby(state);
     if (state.startRequested) startMatch();
   }
@@ -268,7 +271,7 @@ export function createRoom({
   function viewOf(client) {
     // `constants` come with the map they belong to: the yard's, then the match's in the start's `ready` (24.3).
     if (client.playerId && state.waiting) return { map: state.waiting.map, state: waitingView(state.waiting, client.playerId), roster: waitingSeats(state.waiting), constants: waitingConstants() };
-    if (!state.match) return { map: null, state: null, roster: state.seats.seatMetadata(), constants: null };
+    if (!state.match || (newTick && !state.started)) return { map: null, state: null, roster: state.seats.seatMetadata(), constants: null };
     const constants = state.match.constants();
     if (client.playerId) { const frame = state.match.snapshot(); return { map: state.match.payloadMap('live'), state: state.match.project(frame, client.playerId), roster: state.match.seatMetadata(frame), constants }; }
     // A spectator is shown the delayed frame; the dev view the present one.
@@ -292,12 +295,12 @@ export function createRoom({
     reportError(state.recordingError);
   }
 
-  function record(frame) {
+  function record(frame, spent) {
     const commands = state.inputs.splice(0);
     if (state.recordingError) return;
     try {
       if (state.writer.failed) return failRecording(state.writer.failed);
-      const accepted = state.writer.append(frame, commands);
+      const accepted = state.writer.append(frame, spent?.length ? commands.concat(spent) : commands);
       if (state.writer.failed) failRecording(state.writer.failed);
       else if (accepted === false || state.writer.droppedFrames > 0) replayStatus('partial');
     } catch (error) { failRecording(error); }
@@ -332,7 +335,7 @@ export function createRoom({
       const map = match.payloadMap('recording');
       let writer;
       writer = state.writer = replays.start({
-        version: match.version, schema: SCHEMA, minSchema: minimumReaderForMatch(),
+        version: match.version, schema: match.recordingSchema, minSchema: minimumReaderForMatch(),
         contentId: match.contentId, presentation: state.presentation, id: state.id,
         seed: match.seed, hz: HZ, createdAt: state.createdAt, map,
       }, { onError: error => { if (!writer || state.writer === writer) failRecording(error); } });
@@ -349,29 +352,28 @@ export function createRoom({
     catch { /* Recording cleanup cannot stop the room. */ }
   }
 
-  function startRecording() {
-    openRecording(state.match);
-    record(state.match.snapshot());
-  }
-
   /** Explicit `waiting` -> `match` handoff once the match map exists and play begins. */
   function startMatch() {
+    try { state.match.start(); } catch (error) { abandonGeneration(error); return; }
     state.started = true;
     state.inputs.push({ type: 'start' });
     state.waiting?.dispose();
     state.waiting = null;
     state.waitingDebt = 0;
-    startRecording();
-    remember(state, state.match.snapshot());
-    // Out of the waiting area and onto the match map, each from their own spawn.
-    for (const client of state.clients) if (client.playerId) sendEnvelope(client, readyMessage({ ...described(), ...view(client) }));
+    const frame = state.match.snapshot();
+    openRecording(state.match);
+    record(frame);
+    remember(state, frame);
+    // Leave the waiting area and give opt-in watchers their initial map and frame.
+    for (const client of state.clients) if (client.playerId || newTick) sendEnvelope(client, readyMessage({ ...described(), ...view(client) }));
     broadcastLobby(state);
-    broadcast(state, state.match.snapshot());
+    broadcast(state, frame);
   }
 
   function finish() {
     if (state.finalization) return state.finalization;
     state.finished = true;
+    answerTeleports(() => false);
     settlePause();
     state.waiting?.dispose();
     state.waiting = null;
@@ -520,7 +522,26 @@ export function createRoom({
     return true;
   }
 
-  /** Handle a validated inbound client message belonging to this room. */
+  function admitInput(client, input, sanitized) {
+    if (!client?.playerId) return;
+    // Walking in the waiting area is never a match command.
+    if (state.waiting) {
+      const accept = sanitized ? waitingSanitizedInput : waitingInput;
+      accept(state.waiting, client.playerId, input);
+    } else if (state.started) {
+      const match = state.match;
+      const accepted = sanitized && match.acceptSanitizedInput
+        ? match.acceptSanitizedInput(client.playerId, input) : match.acceptInput(client.playerId, input);
+      if (!newTick && accepted) state.inputs.push(accepted);
+    }
+  }
+
+  /** @param {import('../shared/simulation/input.ts').SanitizedInput} input */
+  function onInput(clientId, input) {
+    if (isCurrent()) admitInput(clientMap.get(clientId), input, true);
+  }
+
+  /** Handle a room message, including raw input from in-process callers. */
   function onMessage(clientId, data) {
     if (!isCurrent()) return;
     const client = clientMap.get(clientId);
@@ -541,28 +562,15 @@ export function createRoom({
       broadcastLobby(state);
       return;
     }
-    // Walking about before the start: the waiting area's own, never a match command, never recorded.
-    if (data.type === CLIENT_MESSAGE.INPUT && client.playerId && state.waiting) {
-      waitingInput(state.waiting, client.playerId, data);
-      return;
-    }
+    if (data.type === CLIENT_MESSAGE.INPUT) return admitInput(client, data, false);
     if (!state.started) return;
     // Dev controls: any client the server's dev tools policy admits, never a later-joining one it does not.
     if (data.type === CLIENT_MESSAGE.DEV && client.devTools) {
-      if (data.action === 'pause' || data.action === 'resume') setPaused(data.action === 'pause');
-      if (data.action === 'teleport') {
-        const moved = state.match.teleport(data.id, data.x, data.y);
-        send(client, moved ? teleportReplyMessage(true, moved.id) : teleportReplyMessage(false, data.id));
-        if (!moved) return;
-        // Recorded with the next tick's frame, like any command between ticks.
-        state.inputs.push(moved);
-        // A paused room sends no frames, so show the move now rather than on resume.
-        if (state.pausedAt != null) {
-          const snapshot = state.match.snapshot();
-          remember(state, snapshot);
-          broadcast(state, snapshot);
-        }
+      if (data.action === 'pause' || data.action === 'resume') {
+        setPaused(data.action === 'pause');
+        if (state.pausedAt != null && pendingTeleports.length) advancePausedTeleport();
       }
+      if (data.action === 'teleport') teleportPlayer(client, data);
       return;
     }
     if (data.type === CLIENT_MESSAGE.DIAGNOSTIC && client.playerId) {
@@ -576,11 +584,6 @@ export function createRoom({
       markDiagnostic(marker);
       return;
     }
-    if (data.type === CLIENT_MESSAGE.INPUT && client.playerId) {
-      const accepted = state.match.acceptInput(client.playerId, data);
-      if (accepted) state.inputs.push(accepted);
-      return;
-    }
     if (data.type === CLIENT_MESSAGE.FINISH && client.owner) {
       state.match.end({ strand: true });
       const snapshot = state.match.snapshot();
@@ -589,6 +592,49 @@ export function createRoom({
       broadcast(state, snapshot);
       void finish();
     }
+  }
+
+  function teleportPlayer(client, { id, x, y }) {
+    const admitted = state.match.teleport(id, x, y);
+    if (!admitted) return send(client, teleportReplyMessage(false, id));
+    if (newTick) {
+      // The order is the core's request ordinal among T's teleport observations.
+      pendingTeleports.push({ client, id });
+      if (state.pausedAt != null) advancePausedTeleport();
+      return;
+    }
+    send(client, teleportReplyMessage(true, id));
+    state.inputs.push(admitted);
+    if (state.pausedAt != null) {
+      const frame = state.match.snapshot();
+      remember(state, frame);
+      broadcast(state, frame);
+    }
+  }
+
+  function answerTeleports(succeeded) {
+    let warped = false;
+    for (const [request, { client, id }] of pendingTeleports.splice(0).entries()) {
+      const ok = succeeded(request);
+      warped ||= ok;
+      if (clientMap.get(client.connectionId) === client) send(client, teleportReplyMessage(ok, id));
+    }
+    return warped;
+  }
+
+  function advanceFrame() {
+    const frame = state.match.advance();
+    profiler.start('loop.record'); record(frame, newTick ? state.match.spent() : undefined); profiler.stop('loop.record');
+    remember(state, frame);
+    return frame;
+  }
+
+  function advancePausedTeleport() {
+    // Resolve the explicit dev request in one tick. Scheduler wakes still leave the match paused.
+    const frame = advanceFrame();
+    const warped = answerTeleports(state.match.teleportSucceeded), finished = frame.phase === 'finished';
+    if (warped || finished) broadcast(state, frame);
+    if (finished) void finish();
   }
 
   /** Send room-contextual refusal replies when schema validation rejects a message. */
@@ -610,7 +656,7 @@ export function createRoom({
     if (!client?.playerId) return false;
     const observed = state.match.setViewLag(client.playerId, rttMs);
     // Nothing is recorded before the start; a measurement then is the waiting area's.
-    if (observed && state.started) state.inputs.push(...observed);
+    if (observed && state.started && !newTick) state.inputs.push(...observed);
     return !!observed;
   }
 
@@ -680,10 +726,9 @@ export function createRoom({
     // Only the newest state reaches clients after a catch-up batch.
     let frame, simulated = 0;
     for (let i = 0; i < ticks; i++) {
-      frame = state.match.advance();
+      frame = advanceFrame();
       simulated++;
-      profiler.start('loop.record'); record(frame); profiler.stop('loop.record');
-      remember(state, frame);
+      if (pendingTeleports.length) answerTeleports(state.match.teleportSucceeded);
       if (state.match.phase === 'finished') break;
     }
     // The sim fell behind wall time; tick numbers stay continuous, so only this marker shows it.
@@ -768,6 +813,7 @@ export function createRoom({
     onJoin,
     onLeave,
     onMessage,
+    onInput,
     onInvalidMessage,
     onDispose,
     adoptMap,

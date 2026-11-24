@@ -84,7 +84,7 @@ export class BodyLives {
 
 /** What the applier needs besides the game: the IDs and what the start fixed. */
 interface Context {
-  ids: MatchIds; metadata: ReadonlyMap<number, Metadata>; shapes: ReadonlyMap<PlayerId, Shape>; blast: number;
+  ids: MatchIds; metadata: ReadonlyMap<number, Metadata>; shapes: ReadonlyMap<number, Shape>; blast: number;
   grid: { cols: number; rows: number };
   /** Whether the content keeps discovery. Off, the mirror keeps no memory, as the old game attaches none. */
   discovery: boolean;
@@ -132,8 +132,8 @@ export function groundOf(ctx: Context, id: number, item: CoreGround, at: Point):
 }
 
 /** The player fields an actor record stands for, at tick `tick`, written onto `p` (a player, or a blank for the oracle). */
-function writeActor(ctx: Context, p: Partial<Player>, id: PlayerId, a: Actor, tick: Tick): void {
-  const ids = ctx.ids, shape = ctx.shapes.get(id)!;
+function writeActor(ctx: Context, p: Partial<Player>, word: number, a: Actor, tick: Tick): void {
+  const ids = ctx.ids, shape = ctx.shapes.get(word)!;
   p.status = STATUS[a.presence];
   p.level = a.level; p.kills = a.kills; p.hp = a.hp; p.maxHp = a.maxHp; p.shield = a.shield; p.heading = a.aim; p.bot = a.bot;
   set(p, 'viewLagTicks', a.viewLag > 0 ? a.viewLag : undefined);
@@ -250,7 +250,7 @@ export class TickMirror {
     this.s = s; this.match = match;
     const metadata = new Map<number, Metadata>();
     for (const item of s.items) metadata.set(item.id, { buildingId: item.buildingId, nodeId: item.nodeId, tier: item.tier });
-    const shapes = new Map(s.players.map(p => [p.id, { inventory: p.inventory !== undefined, reserves: p.reserves !== undefined }] as const));
+    const shapes = new Map(s.players.map((p, slot) => [match.ids.actorAtSlot[slot]!, { inventory: p.inventory !== undefined, reserves: p.reserves !== undefined }] as const));
     this.ctx = { ids: match.ids, metadata, shapes, blast: s.content.traps.mine.blast, grid: discoveryGrid(s.map),
       discovery: s.content.discovery === true };
     this.#load(match.snapshot());
@@ -271,12 +271,19 @@ export class TickMirror {
     for (const p of s.players) this.#memory(p, true);
   }
 
-  #player(word: number): Player { return this.s.players.find(q => q.id === this.ctx.ids.playerOfActor.get(word))!; }
+  #player(word: number): Player { return this.s.players[this.ctx.ids.slotOfActor.get(word)!]!; }
+  /** Keep live references to a roster place when its outward label changes. */
+  relabel(previous: PlayerId, next: PlayerId): void {
+    for (const p of this.s.players) if (p.aggressor === previous) p.aggressor = next;
+    for (const shot of this.s.projectiles) if (!shot.trap && shot.owner === previous) shot.owner = next;
+    for (const trap of this.s.traps) if (trap.kind === 'spider' && trap.targetId === previous) trap.targetId = next;
+    for (const item of this.s.items) if (item.droppedBy === previous) replaceItem(this.s, item, { ...item, droppedBy: next }, true);
+  }
   /** An actor's record, and its pose when given (at the start; a tick's poses are written apart, moved or not). */
   #actor(e: ActorEntry, tick: Tick, at?: Point): void {
-    const id = this.ctx.ids.playerOfActor.get(e.word)!, p = this.#player(e.word);
+    const p = this.#player(e.word);
     this.#actors.set(e.word, e.actor);
-    writeActor(this.ctx, p, id, e.actor, tick);
+    writeActor(this.ctx, p, e.word, e.actor, tick);
     p.input = { ...p.input, sneak: e.actor.sneak };
     if (at) { p.x = at[0]; p.y = at[1]; }
     for (const slot of e.actor.inventory.slots) if (slot) this.#serial(slot.id);
@@ -426,9 +433,9 @@ export class TickMirror {
    */
   mirrorOf(snap: Snapshot, remembers: (p: Player) => boolean = () => true): MirrorView {
     const ctx = this.ctx, at = poseMap(snap.poses), tick = snap.tick;
-    const players = this.s.players.map(p => {
-      const e = snap.state.actors.find(x => x.word === ctx.ids.actorOfPlayer.get(p.id))!, out: Partial<Player> = {};
-      writeActor(ctx, out, p.id, e.actor, tick);
+    const players = this.s.players.map((p, slot) => {
+      const e = snap.state.actors.find(x => x.word === ctx.ids.actorAtSlot[slot])!, out: Partial<Player> = {};
+      writeActor(ctx, out, e.word, e.actor, tick);
       const pose = at.get(`actor:${e.word}`);
       if (pose) { out.x = pose[0]; out.y = pose[1]; }
       out.input = { ...p.input, sneak: e.actor.sneak };
@@ -462,10 +469,10 @@ function poseMap(poses: readonly PoseEntry[]): Map<string, Point> {
 function byId(list: readonly Projectile[]): Map<number, Projectile> { return new Map(list.map(p => [p.id, p] as const)); }
 
 /**
- * The test-only runner entry (27.2 "Node adapter (3d.2)"): one tick of `s` on the new path. Each active bot's intent is
+ * Run one tick of `s` on the new path (27.2 "Node adapter (3d.2)"). Each active bot's intent is
  * read from the mirror as T−1 left it (R11), in roster order as today until #1215, and submitted for T; the match steps;
  * the mirror applies the result. Player input waits in `boundary`'s buffers between calls, and each player's input for T
- * is submitted with the bots'. The game itself still plays on the old tick: nothing in play calls this. Returns the
+ * is submitted with the bots'. Returns the
  * completed tick, or null once the match is over.
  */
 export function stepMirror(mirror: TickMirror, boundary?: TickBoundary): DecodedTick | null {

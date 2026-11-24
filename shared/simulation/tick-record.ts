@@ -1,7 +1,7 @@
 import { emptyInput } from './tick-codec.ts';
 import type { BodyRef, Carried, Command, Inbound, Input, Observation, Target } from './tick-codec.ts';
 import type { MatchIds } from './tick-match.ts';
-import type { PlayerId, Tick } from '../types.ts';
+import type { Kit, PlayerId, Tick } from '../types.ts';
 
 // What a frame on the new tick's path records as its `commands` (docs/26 "Schema 22", 27.2 Boundary): T's inbound queue as
 // the core spent it, one recorded command per row, in the queue's order, less the first-class bots' commands. The three
@@ -25,7 +25,8 @@ export type RecordedInput = Partial<Omit<Input, 'target' | 'transit'>> & { targe
 export type RecordedCommand =
   | Recorded<'command', { id: PlayerId; source: Command['source']; tick: Tick; seq: number; input: RecordedInput }>
   | Recorded<'observation', { kind: 'viewLag' | 'inputLead'; id: PlayerId; ticks: Tick }>
-  | Recorded<'observation', { kind: 'join' | 'leave'; id: PlayerId }>
+  | Recorded<'observation', { kind: 'join'; id: PlayerId; kit?: Kit }>
+  | Recorded<'observation', { kind: 'leave'; id: PlayerId }>
   | Recorded<'observation', { kind: 'teleport'; body: RecordedBody; x: number; y: number }>
   | Recorded<'carried', { kind: 'impulse'; body: RecordedBody; x: number; y: number }>
   | Recorded<'carried', { kind: 'killReward'; id: PlayerId }>
@@ -61,7 +62,8 @@ export function recordedInbound(ids: MatchIds, inbound: readonly Inbound[]): Rec
   const observation = (o: Observation): RecordedCommand => {
     switch (o.kind) {
       case 'viewLag': case 'inputLead': return { type: 'observation', kind: o.kind, id: player(o.actor), ticks: o.ticks };
-      case 'join': case 'leave': return { type: 'observation', kind: o.kind, id: player(o.actor) };
+      case 'join': return { type: 'observation', kind: o.kind, id: player(o.actor), ...(o.kit === undefined ? {} : { kit: o.kit }) };
+      case 'leave': return { type: 'observation', kind: o.kind, id: player(o.actor) };
       case 'teleport': return { type: 'observation', kind: 'teleport', body: body(o.body), x: o.to[0], y: o.to[1] };
     }
   };

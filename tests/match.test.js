@@ -116,7 +116,7 @@ test('room welcomes and recording start use prepared maps without changing start
   const service = createRoomService({ devTools: 'all', content,
     matchFactory: async (...args) => {
       match = await createMatch(...args);
-      return { ...match, map() { throw new Error('full map clone'); } };
+      return { ...match, acceptSanitizedInput: undefined, map() { throw new Error('full map clone'); } };
     },
     replays: { start(value) { header = structuredClone(value); return {
       append(state, commands) { frames.push(structuredClone({ state, commands })); return true; }, finish() { return {}; }
@@ -135,6 +135,10 @@ test('room welcomes and recording start use prepared maps without changing start
     assert.deepEqual(header.map, match.map());
     assert.deepEqual(frames[0].commands.map(command => command.type), ['join', 'start']);
     assert.equal(frames[0].state.tick, 0);
+    service.receive(player, { type: 'input', tick: 1, seq: 0, x: 1 });
+    service.advance(50, 50);
+    assert.deepEqual(frames.at(-1).commands.map(command => [command.type, command.seq]), [['input', 0]],
+      'a factory with only acceptInput still admits and records input');
     const watcher = service.connect({ deliver(message) { messages.push(readServerMessage(message)); return true; }, close() {} });
     service.receive(watcher, { type: 'join', room: room.id, mode: 'dev' });
     assert.deepEqual(messages.at(-1).map, match.payloadMap('spectator', match.snapshot()));

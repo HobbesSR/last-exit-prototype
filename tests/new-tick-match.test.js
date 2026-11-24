@@ -7,8 +7,8 @@ import { inputLeadFrom } from '../shared/simulation/input.ts';
 import { viewLagFrom } from '../shared/simulation/rewind.ts';
 import { arena } from './helpers/arena.js';
 
-// The room-facing match on the new tick's path (27.2 "Frames (3d.3)"), which no room uses until the cutover: what it
-// records with each frame, and that its frames record and project. The adapter's own checks are tick-adapter.test.js.
+// The new tick's room-facing match (27.2 "The room-facing match (3d.3)"): what it records with each frame,
+// and that its frames record and project. The adapter's own checks are tick-adapter.test.js.
 
 async function newMatch() {
   const { map } = arena({ cols: 6, rows: 4, seed: 5, spawns: [{ x: 150, y: 300 }, { x: 200, y: 300 }], hunterSpawns: [{ x: 500, y: 300 }],

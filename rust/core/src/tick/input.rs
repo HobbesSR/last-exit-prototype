@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use super::state::{ActorId, BodyId, GateId, ItemId, Point, StationId, Tick};
+use super::state::{ActorId, BodyId, GateId, ItemId, Kit, Point, StationId, Tick};
 
 const REPEAT_TICKS: Tick = 10;
 
@@ -77,7 +77,7 @@ pub struct Command {
 pub enum Observation {
     ViewLag { actor: ActorId, ticks: Tick },
     InputLead { actor: ActorId, ticks: Tick },
-    Join { actor: ActorId },
+    Join { actor: ActorId, kit: Option<Kit> },
     Leave { actor: ActorId },
     Teleport { body: BodyId, to: Point },
 }

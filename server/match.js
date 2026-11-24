@@ -1,8 +1,9 @@
 import { mergeGateGeometry } from '../shared/relational-frame.ts';
+import { SCHEMA, TICK_RECORDING_SCHEMA } from '../shared/recording.ts';
 import { playerSlot, seatMetadata } from '../shared/simulation/relations.ts';
 import { createGameRecord, createGame, disposePhysics, joinGame, playerView, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { inputLeadFrom, resetInput } from '../shared/simulation/input.ts';
-import { changeSeat, wholeMap } from '../shared/simulation/state.ts';
+import { changeSeat, setSanitizedInput, wholeMap } from '../shared/simulation/state.ts';
 import { viewLagFrom } from '../shared/simulation/rewind.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { clearRoute } from '../shared/simulation/geometry.ts';
@@ -102,7 +103,7 @@ export function createLobby(content = defaultContent()) {
 // `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
 // `wireKey` keys the match's outward IDs (#1164, 24.4): drawn by the server's composition root, never
 // recorded, logged or sent. Without one the outward IDs are the internal ones. `tick: 'new'` runs the match on the
-// new tick's path (27.2 "Frames (3d.3)"), which no room asks for until the cutover (3d.4).
+// new tick's path (27.2 "The opt-in room tick (3d.4c)").
 export async function createMatch(seed, size, map, content = defaultContent(), { wireKey = null, tick = 'old' } = {}) {
   const wire = wireIds(wireKey);
   const game = await createGame(seed, map ?? generateLiveMap(seed, content, size), content,
@@ -121,11 +122,13 @@ export async function createMatch(seed, size, map, content = defaultContent(), {
 function matchOf(game, payloads, wire) {
   // Outward IDs for live payload items; recordings keep internal IDs (26).
   const outward = items => { const mapped = wireItemRecords(items, wire); if (mapped !== items) shareItemPublication(items, mapped); return mapped; };
+  const recordedInput = (id, accepted) => accepted ? { type: 'input', id, input: structuredClone(accepted), seq: accepted.seq } : null;
   let disposedFrame;
   return {
     get version() { return game.version; },
     get tick() { return game.tick; },
     get phase() { return game.phase; },
+    recordingSchema: SCHEMA,
     get seed() { return game.seed; },
     /** Which content set this match was pinned to, for the recording header to name. */
     get contentId() { return game.content.id; },
@@ -137,10 +140,9 @@ function matchOf(game, payloads, wire) {
     acceptInput(id, command) {
       // The recording carries the input exactly as it was queued, not whichever one a tick has most
       // recently spent: those are no longer the same thing.
-      const accepted = setInput(game, id, command);
-      if (!accepted) return null;
-      return { type: 'input', id, input: structuredClone(accepted), seq: command.seq };
+      return recordedInput(id, setInput(game, id, command));
     },
+    acceptSanitizedInput: (id, command) => recordedInput(id, setSanitizedInput(game, id, command)),
     /**
      * Tell the simulation how far behind this player's view runs, and how far ahead its input may be
      * stamped, from a round trip the server measured itself. The conversions belong to the
@@ -198,11 +200,11 @@ function matchOf(game, payloads, wire) {
 
 /**
  * The match on the new tick's path (27.2 "The room-facing match (3d.3)"), with the room-facing interface of `matchOf`,
- * unwired. `start()` sets up the core from the game `createGame` built, after the lobby's seats are taken and before the
+ * `start()` sets up the core from the game `createGame` built, after the lobby's seats are taken and before the
  * room records or publishes the first frame, which is then the core's tick 0 (review 1049). Until then the seats and a
  * measured lag are the old match's, which the setup reads; after it, a measurement is an observation for the next tick.
  *
- * What it records differs, and the cutover's room (3d.4) follows it:
+ * The opt-in room records this path as schema 22:
  * - `acceptInput`, `setViewLag` and `teleport` queue what arrives at the receive boundary and record nothing. They return
  *   the admitted input, the observation rows (an array, possibly empty) and the queued teleport row, or null when
  *   refused. A teleport's outcome is the next frame's (review 1041).
@@ -213,14 +215,29 @@ function matchOf(game, payloads, wire) {
 function newTickMatchOf(game, payloads, wire) {
   const base = matchOf(game, payloads, wire);
   // The old match's own operations, kept before they are replaced: before the first tick they are this one's.
-  const old = { resume: base.resume, leave: base.leave, setViewLag: base.setViewLag, snapshot: base.snapshot, dispose: base.dispose };
-  let live, spent = [], disposedFrame;
+  const old = { join: base.join, resume: base.resume, leave: base.leave, setViewLag: base.setViewLag, snapshot: base.snapshot, dispose: base.dispose };
+  let live, spent = [], discontinuities = [], disposedFrame;
   const started = () => live ??= (() => {
-    const match = createTickMatch(game), mirror = new TickMirror(game, match);
-    return { match, mirror, boundary: new TickBoundary(game, match, wire), frames: new TickFrames(mirror) };
+    const match = createTickMatch(game);
+    try {
+      const mirror = new TickMirror(game, match);
+      return { match, mirror, boundary: new TickBoundary(game, match, wire), frames: new TickFrames(mirror) };
+    } catch (error) { match.dispose(); throw error; }
   })();
   const frame = () => disposedFrame ? structuredClone(disposedFrame) : live ? live.frames.frame() : old.snapshot();
   return Object.assign(base, {
+    recordingSchema: TICK_RECORDING_SCHEMA,
+    join(id, role, kit, name) {
+      if (!live) return old.join(id, role, kit, name);
+      const p = joinGame(game, id, role, kit, name);
+      if (!p) return null;
+      const slot = playerSlot(game, id), ids = live.match.ids;
+      const previous = ids.playerOfActor.get(ids.actorAtSlot[slot]);
+      ids.bindPlayer(slot, id);
+      live.mirror.relabel(previous, id);
+      live.boundary.seat(id, 'join', p.role === 'gladiator' ? p.kit : undefined);
+      return identity(p);
+    },
     resume(id) {
       if (!live) return old.resume(id);
       const p = connectionPlayer(game, id);
@@ -231,6 +248,10 @@ function newTickMatchOf(game, payloads, wire) {
     leave(id) { return live ? !!live.boundary.seat(id, 'leave') : old.leave(id); },
     // Detached, as the interface promises: the admitted input stays in the receive buffer untouched.
     acceptInput(id, input) { const admitted = started().boundary.input(id, input); return admitted && structuredClone(admitted); },
+    acceptSanitizedInput(id, input) {
+      const admitted = started().boundary.sanitizedInput(id, input);
+      return admitted && structuredClone(admitted);
+    },
     start() { started(); },
     // Before the start the player's own fields hold the measurement, which the core's setup reads.
     setViewLag(id, roundTripMs) { return live ? live.boundary.roundTrip(id, roundTripMs) : old.setViewLag(id, roundTripMs); },
@@ -240,8 +261,10 @@ function newTickMatchOf(game, payloads, wire) {
       const { match, mirror, boundary, frames } = started();
       const t = stepMirror(mirror, boundary);
       spent = t ? recordedInbound(match.ids, t.inbound) : [];
+      discontinuities = t?.discontinuities ?? [];
       return frames.frame();
     },
+    teleportSucceeded: request => discontinuities.some(marker => marker.kind === 'devWarped' && marker.request === request),
     /** The last tick's inbound queue as the commands its frame records: a detached copy. */
     spent: () => structuredClone(spent),
     snapshot: frame,

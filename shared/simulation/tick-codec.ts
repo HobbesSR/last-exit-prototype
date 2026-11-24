@@ -158,7 +158,7 @@ export interface Command { actor: number; source: CommandSource; tick: Tick; seq
 export type Observation =
   | { kind: 'viewLag'; actor: number; ticks: Tick }
   | { kind: 'inputLead'; actor: number; ticks: Tick }
-  | { kind: 'join'; actor: number }
+  | { kind: 'join'; actor: number; kit?: Kit }
   | { kind: 'leave'; actor: number }
   | { kind: 'teleport'; body: BodyRef; to: Point };
 export type Carried =
@@ -237,7 +237,7 @@ export interface Changes {
   events: GameEvent[];
 }
 
-export type Discontinuity = { kind: 'placed' | 'warped' | 'removed'; body: BodyRef };
+export type Discontinuity = { kind: 'placed' | 'warped' | 'removed'; body: BodyRef } | { kind: 'devWarped'; body: BodyRef; request: number };
 export interface GateObservation { actor: number; gate: number; open: boolean; locked: boolean }
 export interface DiscoverySample { actor: number; eye: Point }
 export interface Discovery { gates: GateObservation[]; samples: DiscoverySample[] }
@@ -356,7 +356,7 @@ export const FACT_PAYLOAD = 6;
 export const EVENT_STRIDE = 3 + FACT_PAYLOAD;
 export const INPUT_WORDS = 27;
 export const INBOUND_STRIDE = 1 + 4 + INPUT_WORDS;
-export const DISCONTINUITY_STRIDE = 3;
+export const DISCONTINUITY_STRIDE = 4;
 export const GATE_OBSERVATION_STRIDE = 4;
 export const SAMPLE_STRIDE = 3;
 export const REMEMBERED_ITEM_STRIDE = 2 + ITEM_STRIDE;
@@ -629,7 +629,7 @@ function putInbound(w: Writer, inbound: Inbound): void {
     switch (o.kind) {
       case 'viewLag': w.u32(0); w.actor(o.actor); w.u32(o.ticks); break;
       case 'inputLead': w.u32(1); w.actor(o.actor); w.u32(o.ticks); break;
-      case 'join': w.u32(2); w.actor(o.actor); break;
+      case 'join': w.u32(2); w.actor(o.actor); w.option(1, o.kit ?? null, kit => w.pick(KITS, kit, 'kit')); break;
       case 'leave': w.u32(3); w.actor(o.actor); break;
       case 'teleport': w.u32(4); w.body(o.body); w.point(o.to); break;
     }
@@ -925,7 +925,7 @@ function getInbound(r: Reader): Inbound {
       const kind = r.u32();
       const observation: Observation = kind === 0 ? { kind: 'viewLag', actor: r.actor(), ticks: r.u32() }
         : kind === 1 ? { kind: 'inputLead', actor: r.actor(), ticks: r.u32() }
-          : kind === 2 ? { kind: 'join', actor: r.actor() } : kind === 3 ? { kind: 'leave', actor: r.actor() }
+          : kind === 2 ? getJoin(r) : kind === 3 ? { kind: 'leave', actor: r.actor() }
             : kind === 4 ? { kind: 'teleport', body: r.body(), to: r.point() } : r.fail('unknown observation tag');
       return { type: 'observation', observation };
     }
@@ -939,8 +939,15 @@ function getInbound(r: Reader): Inbound {
     return r.fail('unknown inbound tag');
   });
 }
+function getJoin(r: Reader): Observation {
+  const actor = r.actor(), kit = r.option(1, () => r.pick(KITS));
+  return kit === null ? { kind: 'join', actor } : { kind: 'join', actor, kit };
+}
 function getDiscontinuity(r: Reader): Discontinuity {
   const tag = r.u32(), body = r.body();
+  const request = r.u32();
+  if (tag === 3) return { kind: 'devWarped', body, request };
+  if (request !== 0) return r.fail('invalid discontinuity padding');
   return { kind: tag === 0 ? 'placed' : tag === 1 ? 'warped' : tag === 2 ? 'removed' : r.fail('unknown discontinuity tag'), body };
 }
 function getDiscovery(r: Reader): Discovery {

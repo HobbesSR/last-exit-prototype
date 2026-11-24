@@ -50,7 +50,8 @@ const asText = bytes => {
  */
 export function createRoomService({ replays, devTools = 'none', wallNow = Date.now, reportError = console.error,
   reportReject = console.warn, strictProtocol = false, threads = false,
-  replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout, content = defaultContent, matchFactory = createMatch, wireKey = null }) {
+  replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout, content = defaultContent, matchFactory = createMatch, wireKey = null, tick = 'old' }) {
+  if (tick !== 'old' && tick !== 'new') throw new RangeError(`Unknown room tick: ${tick}`);
   if (threads && (matchFactory !== createMatch || !replays?.threadOptions)) {
     throw new TypeError('A room on its own thread records into a file store and builds its own match; run rooms here for an injected writer or match');
   }
@@ -150,7 +151,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   function makeThreadedRoom(id, ownerKey, seed, matchmade, size, map, name) {
     return createRoomThread({
       id, ownerKey, seed, matchmade, size, map, name, content: content(), createdAt: wallNow(), devTools,
-      replays: replays.threadOptions, replayFinishTimeoutMs, profile: profiler.profiling(), wireKey,
+      replays: replays.threadOptions, replayFinishTimeoutMs, profile: profiler.profiling(), wireKey, tick,
       hooks: {
         deliver: (clientId, payload, binary) => sessions.get(clientId)?.deliver(payload, false, binary),
         datagram: (clientId, payload) => sessions.get(clientId)?.datagram?.(payload),
@@ -197,6 +198,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       clearTimer,
       matchFactory,
       wireKey,
+      tick,
       // A room here writes text as strings, so its bytes are always a binary state message.
       deliver: (clientId, payload, droppable) => sessions.get(clientId)?.deliver(payload, droppable, payload instanceof Uint8Array),
       datagram: (clientId, payload) => sessions.get(clientId)?.datagram?.(payload),
@@ -253,7 +255,11 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       return;
     }
     if (!session.roomId) return;
-    rooms.get(session.roomId)?.onMessage(session.connectionId, data);
+    const room = rooms.get(session.roomId);
+    if (data.type === CLIENT_MESSAGE.INPUT) {
+      const { type, ...input } = data;
+      room?.onInput(session.connectionId, input);
+    } else room?.onMessage(session.connectionId, data);
   }
 
   /**

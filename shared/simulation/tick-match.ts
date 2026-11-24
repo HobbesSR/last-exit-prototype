@@ -16,7 +16,7 @@ import { SLOT_COUNT, actorWord, decodeCompleted, decodeCues, decodeMemory, decod
 import type { Actor, ActorEntry, Presence, Window, BodyRow, SetupBody, DecodedTick, Equipment, GateEntry, GroundEntry, Inbound, Loot, MatchSetup, Memory, MotorSurface, Cue,
   Point, Snapshot, State, StationEntry, Tick, TrapEntry, TrapKind, Tuning, WeaponTuning } from './tick-codec.ts';
 import type { CoreExports } from '../core.ts';
-import type { ChargerId, Game, GateId, InventoryItem, Kit, Player, PlayerId, PlayerStatus, StationId, TrapId, WeaponType } from '../types.ts';
+import type { ChargerId, Game, GateId, InventoryItem, Kit, Player, PlayerId, PlayerIdx, PlayerStatus, StationId, TrapId, WeaponType } from '../types.ts';
 
 // The loader half of the live adapter (docs/27.2 "Live adapter (3d.1)"): a freshly created `Game` mapped into the new
 // tick's record shapes (`rust/core/src/tick/state.rs`) and the setup a `tick::Match` starts from. It produces plain
@@ -25,8 +25,12 @@ import type { ChargerId, Game, GateId, InventoryItem, Kit, Player, PlayerId, Pla
 
 /** What the setup's numbers stand for, both ways. */
 export interface MatchIds {
+  /** Core actor identities stay tied to their roster slots when a new connection takes over. */
+  actorAtSlot: readonly number[];
+  slotOfActor: ReadonlyMap<number, PlayerIdx>;
   actorOfPlayer: ReadonlyMap<PlayerId, number>;
   playerOfActor: ReadonlyMap<number, PlayerId>;
+  bindPlayer(slot: PlayerIdx, id: PlayerId): void;
   gateIndex: ReadonlyMap<GateId, number>;
   gateIds: readonly GateId[];
   trapIndex: ReadonlyMap<TrapId, number>;
@@ -199,6 +203,7 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
   const tick = s.tick;
   // --- Identities --------------------------------------------------------
   const actorOfPlayer = new Map<PlayerId, number>(), playerOfActor = new Map<number, PlayerId>();
+  const actorAtSlot: number[] = [], slotOfActor = new Map<number, PlayerIdx>();
   let contestants = 0, gladiators = 0;
   for (const p of s.players) {
     const kind = p.role, seat = kind === 'contestant' ? p.seat ?? contestants : gladiators;
@@ -206,8 +211,16 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
     if (!Number.isSafeInteger(seat) || seat < 0) refuse(`${p.id} has an invalid seat ${seat}`);
     const word = actorWord(kind, seat);
     if (playerOfActor.has(word)) refuse(`${p.id} shares its seat with ${playerOfActor.get(word)}`);
+    slotOfActor.set(word, actorAtSlot.length as PlayerIdx);
+    actorAtSlot.push(word);
     actorOfPlayer.set(p.id, word); playerOfActor.set(word, p.id);
   }
+  const bindPlayer = (slot: PlayerIdx, id: PlayerId) => {
+    const word = actorAtSlot[slot]!;
+    actorOfPlayer.delete(playerOfActor.get(word)!);
+    actorOfPlayer.set(id, word);
+    playerOfActor.set(word, id);
+  };
   const gateIds = s.gates.map(g => g.id), gateIndex = new Map(gateIds.map((id, i) => [id, i] as const));
   const trapIds = s.traps.map(t => t.id), trapIndex = new Map(trapIds.map((id, i) => [id, i] as const));
   const stationList: MatchIds['stations'][number][] = [
@@ -311,7 +324,7 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
       // Actors and spots lie inside the map's box (the old collision test's first condition).
       bounds: [0, 0, s.map.width, s.map.height],
       tuning: tuningOf(s) },
-    ids: { actorOfPlayer, playerOfActor, gateIndex, gateIds, trapIndex, trapIds, chargerIndex, transitIndex, stations: stationList,
+    ids: { actorAtSlot, slotOfActor, actorOfPlayer, playerOfActor, bindPlayer, gateIndex, gateIds, trapIndex, trapIds, chargerIndex, transitIndex, stations: stationList,
       propNumber, propLabels: props.map(p => p.label), geometryNumber, geometryIds: geometry.map(g => g.id) },
   };
 }
