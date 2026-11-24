@@ -435,10 +435,9 @@ The backend has three natural cuts. They move in this order:
 transferable package (`server/map-pack.js`, #1089). Its format does not suit Rust yet.
 - **What the package holds today.** The map and its portal graph are `node:v8`-serialized, which is V8's private
   object-graph format. The free-space tiles are separate typed arrays.
-- **What the core needs.** A language-neutral form of the map. The tiles' flat arrays nearly are one already; the
-  map and its portal graph need a schema'd flat encoding, as D gave the state.
-- **When.** That format is part of the core's first consumer that needs the map itself, not of the math port, and not
-  of a derived index such as sight's segments (port order, below).
+- **What the core needs.** A language-neutral form of what it reads of the map, [below](#the-runtime-map-contract-1312).
+- **When.** That format is part of the core's first consumer that needs the map itself (#1215), not of the math port,
+  and not of a derived index such as sight's segments (port order, below).
 - **Otherwise unchanged.** `map/` moves only if a later reason appears.
 
 Review 907 on PR #1172 found the format gap.
@@ -446,6 +445,51 @@ Review 907 on PR #1172 found the format gap.
 **Colyseus is retired as a candidate.** Its value was architectural guidance for rooms and lobby management,
 never the running game. Lobbies keep an edge where an external lobby service could still attach if nothing better
 fits (17.4 #18).
+
+### The runtime map contract (#1312)
+
+**Accepted (Corey, 2026-11-23: "I'm pretty sure on all of those I'm inclined to accept your recommendations").** The
+agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 18381).
+
+1. **The core reads the final live map's rule data plus named derived layers, never the chain's intermediate
+   objects.**
+   - The rule data is what setup and the uploaded handles carry today (swept collision, sight, the gate set, the
+     discovery tables), plus what bots read: the exit, stations, chargers, gates and the bounds.
+   - The derived layers are the portal graph (`shared/navigation/portal-graph.ts`), for content that plans hunters by
+     portals, and the discovery-grid free-space tiles (`shared/free-space.ts`, `shared/navigation/knowledge.ts`) for
+     both clearances. The per-region meshes (`mesh-level.ts`) are tools' and tests' and are not shipped.
+   - Roof concealment and fallback building footprints are rule data, since they bound what a bot may know. They are
+     not presentation. Cosmetic presentation (decals, appearance, roof styling) reaches clients through the payload,
+     not the core.
+   - A rule that later needs something from an earlier step of the chain gets a new named runtime table, never the
+     chain's objects.
+   - #1215 starts with an inventory of every map read by bots, discovery and the tick, against what setup carries.
+2. **Node derives the layers once, and they cross in a project-owned flat format.**
+   - The format has explicitly sized typed sections: `f64` geometry, and `i32` or `u32` indices, offsets, adjacency,
+     the owner grid and gate membership.
+   - Variable lists (portals per region, stands, gate sets) are offset and count rows over flat arrays. Byte order,
+     lengths and absence are defined, and references are checked at load.
+   - Gates are slots in the match's order (`MatchIds.gateIndex`), keeping each gate set's order. Today's tiles name
+     gates by ID string.
+   - The format has its own version in its header, independent of `ADAPTER_VERSION` (the ABI), `LIVE_MAP_VERSION` and
+     the Map Lab's save domains.
+   - The `node:v8` envelope stays as Node's worker handoff, and still carries presentation.
+   - Node-built tiles keep their triangle numbering, which search ties depend on.
+3. **What each seat knows, door state, keys and search stay dynamic in the core.** Geometry is static for the match.
+   Tiles assume gates open and tag triangles with gate sets, so a gate change needs no retriangulation.
+4. **Every tile the core may request exists before tick 1, for both clearances.** Building on demand would need a call
+   back into JavaScript mid-tick, or would make plans depend on timing. Tiles may still be decoded on demand. Today the
+   map worker prebuilds only the gladiator clearance.
+   - **Before #1215 is staged,** measure at the live sizes (`LIVE_ZONE_SIZES`: 12x6, 24x12 and 36x18, the bound):
+     generation and packing time, package size, peak and retained memory (Node and WASM copies), and the first
+     plan's cost.
+   - If the cost is too high, revisit the design. A Rust builder for the contestant clearance is one option, with its
+     numbering parity.
+5. **Destruction (#794) is out of scope.** Changed geometry would need its own design for replacing derived layers at
+   a tick boundary.
+
+**Parity.** #1215 holds the characterization fixture that the cutover (#1283 3d.4d) re-baselines, bot traces
+included. The contract leaves both bot options on #1215 open: bots in the core, or outside it driving a seat.
 
 ## The edge
 
@@ -600,7 +644,8 @@ tuned, so now is the time."
 - **Rapier first (D2).** Rapier compiling into the crate (#1192) is the first step, before the flip
   ([Physics](#physics)).
 - **Phase 2 stays in Node across the flip (D3).** Bots and human input consumption only read the pre-movement
-  state and produce one intent per actor. They move into the core later, with the map format (#1215).
+  state and produce one intent per actor. They move into the core later, with the map format (#1215,
+  [contract](#the-runtime-map-contract-1312)).
 - **After the flip, two calls a tick (D4).**
   1. `tick_begin()` runs phase 1 and returns a change list.
   2. Node runs phase 2 against its mirror.
