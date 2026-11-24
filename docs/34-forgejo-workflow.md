@@ -101,15 +101,22 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
    Post the verdict with `submit_pull_request_review`
    (`APPROVED`, `REQUEST_CHANGES` or `COMMENT`);
    if it reports a pending review, post the verdict with `create_comment`
-   instead. Use `create_comment` for discussion.
+   instead. Use `create_comment` for discussion. When using `COMMENT` because
+   you need the author's rationale or answers before finishing the review, start
+   the review body with `**Status: Awaiting author response to continue review.**`
+   and list the specific questions needed to reach `APPROVED` or
+   `REQUEST_CHANGES`. Authors and other agents treat an unanswered `COMMENT`
+   review with that status as an active, incomplete review and answer it before
+   expecting approval or merge.
 
    **Say how you would have built it.** Corey (2026-11-18, verbatim, in the session behind PRs #1182 and
    #1188): "asking reviewers to not only critique the work as is, but consider how they would do it
    differently, to add as suggestion for the original implementer to consider, because it can make
    solutions better at implementation time rather than later." Add design notes, labelled as suggestions
    and kept apart from findings. #1188 took both of review 924's. Choose the verdict by what the notes need:
-   `REQUEST_CHANGES` (or `COMMENT`) when the author should answer them before merge, since an approval lets a
-   human merge first (#1182 was approved before its notes were answered); `APPROVED` when they are optional follow-ups.
+   `REQUEST_CHANGES` (or `COMMENT` with `**Status: Awaiting author response to continue review.**`) when
+   the author should answer them before merge, since an approval lets a human merge first (#1182 was
+   approved before its notes were answered); `APPROVED` when they are optional follow-ups.
 
    **The author answers each design note in the reply.** Either take it into this PR, or defer it with a
    stated reason: it can move results (the frozen fixture, the chain sweep, wire bytes), it needs a
