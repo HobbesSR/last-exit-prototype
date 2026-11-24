@@ -515,6 +515,14 @@ agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 1838
 Discovery uses the same rule tables with either map handoff. [27.2](27.2-tick-architecture.md#terminal-rewind-and-discovery-3b7)
 owns the live tick’s discovery order and memory (#1319).
 
+Stage 4d (#1320) adds the Rust route queries over those flat packages. A search freezes the seat's
+surveyed and discovered cells, observed door bits and key count. It reads tiles only after checking
+their full support, and can resume under an expansion limit with the same order as a single query.
+The hunter corridor uses the optional flat portal graph and uses the original target on graphless
+maps. The WASM diagnostics compare the queries directly with the JavaScript planner. Live bot
+planning still uses the JavaScript views, with their startup validation, until #1321 moves bot
+intent and phase-2 input.
+
 **Parity.** #1215 holds the characterization fixture that the cutover (#1283 3d.4d) re-baselines, bot traces
 included. The contract leaves both bot options on #1215 open: bots in the core, or outside it driving a seat.
 

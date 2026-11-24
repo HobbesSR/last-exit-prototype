@@ -1,5 +1,6 @@
 //! Room-owned storage for the validated flat navigation packages (27, #1318).
 
+use crate::navigation::Grid;
 use crate::runtime_map::{Graph, Layer, RuntimeMap, RuntimeMapLayout, ValidationOptions};
 use std::{ptr::NonNull, rc::Rc, slice};
 
@@ -30,7 +31,7 @@ impl Drop for Package {
 pub struct RuntimeNavigation {
     primary: Package,
     contestant: Option<Package>,
-    bounds: [f64; 4],
+    grid: Grid,
     gate_count: usize,
 }
 
@@ -48,7 +49,20 @@ impl RuntimeNavigation {
     }
 
     pub(crate) fn matches(&self, bounds: Option<[f64; 4]>, gate_count: usize) -> bool {
-        bounds == Some(self.bounds) && gate_count == self.gate_count
+        bounds == Some([0.0, 0.0, self.grid.width, self.grid.height])
+            && gate_count == self.gate_count
+    }
+
+    pub(crate) fn grid(&self) -> Grid {
+        self.grid
+    }
+
+    pub(crate) fn cell_count(&self) -> usize {
+        self.grid.cols * self.grid.rows
+    }
+
+    pub(crate) fn gate_count(&self) -> usize {
+        self.gate_count
     }
 }
 
@@ -135,7 +149,13 @@ pub unsafe extern "C" fn runtime_navigation_new(
             layout: primary_view.into_layout(),
         },
         contestant,
-        bounds: [0.0, 0.0, width, height],
+        grid: Grid {
+            width,
+            height,
+            size: grid_size,
+            cols: grid_cols,
+            rows: grid_rows,
+        },
         gate_count,
     })))
 }

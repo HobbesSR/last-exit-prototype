@@ -18,6 +18,7 @@ pub mod hazards;
 pub mod hooks;
 pub mod item_allocation;
 pub mod math;
+pub mod navigation;
 pub mod phase_seven;
 pub mod phase_six;
 pub mod phase_three;

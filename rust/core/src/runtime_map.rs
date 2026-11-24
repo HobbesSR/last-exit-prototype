@@ -326,6 +326,10 @@ impl<'a> RuntimeMap<'a> {
 }
 
 impl<'a> Graph<'a> {
+    pub(crate) fn portal_count(&self) -> usize {
+        self.rows.u32(3) as usize
+    }
+
     pub fn grid(&self) -> (f64, usize, usize) {
         (
             self.geometry.f64(0),
@@ -349,7 +353,7 @@ impl<'a> Graph<'a> {
     }
 
     pub fn portal(&self, index: usize) -> Option<Portal<'a>> {
-        if index >= self.rows.u32(3) as usize {
+        if index >= self.portal_count() {
             return None;
         }
         let regions = self.rows.u32(2) as usize;
