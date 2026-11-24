@@ -72,8 +72,8 @@ from fresh `forgejo/main`.
    (`stat` for the file list, `file` or `offset`/`limit` for parts). **Review reads
    widely and runs narrowly.** Reviewers once checked out PR branches and re-ran
    suites the author had already run, one starting a full chain sweep (#885); the
-   fix, read literally as "judge only the hunks", then missed callers, duplicated
-   owners and absent version bumps (#1113). Read the diff, the issue it closes,
+   fix's wording, read literally as "judge only the hunks", would let a reviewer
+   miss callers, duplicated owners and required version bumps (#1113). Read the diff, the issue it closes,
    and the repository around it: the callers and users of anything it changes,
    the module that already owns any new helper (a duplicate is a finding), and the
    numbered documents and AGENTS.md invariants it touches. Look for what the diff
@@ -155,6 +155,10 @@ in context and are re-read every turn, so:
 - Rely on the handoff comment and `/clear` at task boundaries rather than a
   session that grows without end.
 
+## Setting up a worktree
+
+Moved to [34.1](34.1-worktree-setup-and-github.md#setting-up-a-worktree).
+
 ## Shared machine resources
 
 Worktrees isolate files, not the machine. Agents run gates at the same time, so
@@ -194,3 +198,7 @@ The rules that bind agents stay here:
   before merging is a branch-protection setting the human administers.
 - **No standing access to the host.** When a task needs it (upgrades, logs,
   runners), the human grants access for that task and revokes it afterwards.
+
+## GitHub
+
+Moved to [34.1](34.1-worktree-setup-and-github.md#github). Agents never push to `gh`.
