@@ -56,7 +56,8 @@ looking them up.
 
 - Run test scripts through the thin reporter, `npm run brief -- <script>`. Start long
   runs in the background and wait for them to finish; do not check their output
-  repeatedly. Where the harness gives no exit notification, wait in long intervals.
+  repeatedly. Without an exit notification, wait on the running command with the
+  longest wait the tool allows.
 - Choose checks by changed area from
   [31's table](docs/31-verification.md#choosing-checks-by-changed-area), not by
   default: never `test:all`, `test:browser` or the benchmarks unless your area calls

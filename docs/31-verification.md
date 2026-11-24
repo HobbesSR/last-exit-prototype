@@ -37,9 +37,10 @@ outside any test, and a closing count; a failing TODO counts as TODO, as in node
 is the script's. The wrapper replaces any reporter already set in `NODE_OPTIONS`, and
 `test:times` drops the inherited one because it parses spec output. Agents start long runs in
 the background and wait for them to finish instead of checking the output repeatedly. Where the
-harness gives no exit notification (Codex), they wait in long intervals: every check re-sends the
-whole conversation. `--test-reporter` cannot simply be appended
-(`npm test -- --test-reporter=...`): node ignores it after the file globs.
+harness gives no exit notification, they wait on the running command or session with the longest
+wait the tool allows, since every check adds to the context cost.
+`--test-reporter` cannot simply be appended (`npm test -- --test-reporter=...`): node ignores it
+after the file globs.
 
 <a id="recorded-test-times"></a>
 
