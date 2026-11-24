@@ -358,7 +358,7 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | Tier | When | Runs |
 | --- | --- | --- |
 | Inner loop | every edit | The narrowest check that fails when the edit is wrong: a test file, a `--test-name-pattern`, a set or `set:word` ([Test sets](#test-sets)), or a replay. Seconds |
-| Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and for a change under `map/macro/` also `npm run test:mapgen`, run from the repository root; for a change under `rust/`, what the `rust` workflow runs, from `rust/`; plus the area's extras |
+| Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and for a change under `map/macro/` also `npm run test:mapgen`, run from the repository root; for a change under `rust/`, what the `rust` workflow runs, from `rust/`; plus the area's extras. A PR that changes only documentation runs `npm run brief -- test:set tooling` instead and leaves the rest to CI's `verify` ([Test sets](#test-sets)) |
 | Integration | once per PR, where the area can move it | The members of [Integration checks per set](31.1-test-catalogue.md#integration-checks-per-set) the change can move, and no others |
 
 | Changed area | Inner loop | Integration | Alone, 2026-11-05 |
@@ -379,7 +379,8 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 
 The replay needs its cache captured before the first edit (53). Whatever the area, a fixture is
 never regenerated to make a check pass (below), and timing comparisons run sequentially.
-`npm test`, the gate, is not repeated by a set; the before-the-PR gates stay as above.
+`npm test`, the gate, is not repeated by a set; the before-the-PR gates stay as above, including the
+documentation-only exception.
 
 <a id="the-replay-or-the-full-sweep"></a>
 
