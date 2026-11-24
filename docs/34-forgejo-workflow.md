@@ -101,15 +101,32 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
    Post the verdict with `submit_pull_request_review`
    (`APPROVED`, `REQUEST_CHANGES` or `COMMENT`);
    if it reports a pending review, post the verdict with `create_comment`
-   instead. Use `create_comment` for discussion.
+   instead. Use `create_comment` for discussion. Corey (2026-11-24, verbatim,
+   in the session behind PR #1322): "I think the (or COMMENT) is a valid case.
+   Sometimes to finish a review, you need to understand what the implementer
+   was thinking. I think we need to change the COMMENT path such that it is
+   clear that the reviewer is awaiting a response so they can continue the
+   review." When pausing with `COMMENT`, start the review body with
+   `**Status: Awaiting author response to continue review.**` and list the
+   specific questions needed to reach `APPROVED` or `REQUEST_CHANGES`. Pause
+   only on questions whose answer could change the verdict. If the review also
+   finds a definite defect, use `REQUEST_CHANGES` and list the questions in it.
+   Authors and other agents treat a `COMMENT` review with that status as an
+   active, incomplete review until the author replies (via `create_comment` or
+   a new commit). After the author replies, the reviewer re-reads the PR at its
+   new head and posts a final `APPROVED` or `REQUEST_CHANGES` verdict; until
+   then, the status line stands.
 
    **Say how you would have built it.** Corey (2026-11-18, verbatim, in the session behind PRs #1182 and
    #1188): "asking reviewers to not only critique the work as is, but consider how they would do it
    differently, to add as suggestion for the original implementer to consider, because it can make
    solutions better at implementation time rather than later." Add design notes, labelled as suggestions
    and kept apart from findings. #1188 took both of review 924's. Choose the verdict by what the notes need:
-   `REQUEST_CHANGES` (or `COMMENT`) when the author should answer them before merge, since an approval lets a
-   human merge first (#1182 was approved before its notes were answered); `APPROVED` when they are optional follow-ups.
+   `REQUEST_CHANGES` when the author should answer them before merge and you want Forgejo's review state
+   to block merge (since an approval lets a human merge first, as #1182 was approved before its notes
+   were answered, and `COMMENT` does not block merge if another reviewer approves); `COMMENT` with
+   `**Status: Awaiting author response to continue review.**` when you only need the author's rationale
+   to finish your own review; `APPROVED` when the notes are optional follow-ups.
 
    **The author answers each design note in the reply.** Either take it into this PR, or defer it with a
    stated reason: it can move results (the frozen fixture, the chain sweep, wire bytes), it needs a
