@@ -2,10 +2,11 @@ import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
+import { startGame } from '../shared/simulation/tick.ts';
 import { collectBotIntent } from '../shared/simulation/bots.ts';
 import { joinRoute, passed, tickAllowance } from '../shared/simulation/bot-routes.ts';
 import { canOccupy, sweptClear } from '../shared/movement.ts';
-import { createDiscovery, discover, attachDiscovery, discoveryGrid, DISCOVERY_RADIUS } from '../shared/discovery.ts';
+import { cellIndexAt, createDiscovery, discover, attachDiscovery, discoveryGrid, DISCOVERY_RADIUS } from '../shared/discovery.ts';
 import { bounds, shapeOf } from '../shared/shape.ts';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { arena } from './helpers/arena.js';
@@ -89,6 +90,23 @@ test('a bot that knows of nothing it needs explores', async t => {
   for (let i = 0; i < 300; i++) step(s);
   assert.ok(p.discovery.discovered.size > before + 10, `discovered ${before} → ${p.discovery.discovered.size}`);
   assert.ok(Math.hypot(p.x - start.x, p.y - start.y) > 500, 'it went looking');
+});
+
+test('a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review)', async t => {
+  const cell = { id: 'indoor-cell', kind: 'cell', x: 864, y: 1632, charge: 0 };
+  const { map } = arena({ cols: 10, rows: 20, items: [cell], buildings: [{ id: 'room', x: 768, y: 1536, w: 192, h: 192 }] });
+  const roofedCell = cellIndexAt(map, cell.x, cell.y);
+  assert.ok(canOccupy(map, cell.x, cell.y, 14), 'the room is walkable');
+  const { s, players: [p] } = await stagePhysics(map, { content: defaultContent(),
+    actors: [{ role: 'contestant', x: 576, y: 1632 }, { role: 'contestant', bot: false, x: 1800, y: 3700 }] });
+  t.after(() => disposePhysics(s));
+  // Discovery comes from the authoritative match, including the initially concealed roofed cell.
+  startGame(s);
+  step(s);
+  assert.equal(p.discovery.seen.has(roofedCell), false, 'the roof conceals the frontier from outside');
+  for (let i = 0; i < 400 && !p.discovery.seen.has(roofedCell); i++) step(s);
+  assert.ok(p.discovery.seen.has(roofedCell), 'the roofed cell is seen by going in');
+  assert.ok(p.discovery.items.has(itemId(s, 'indoor-cell')) || p.inventory.some(item => item?.kind === 'cell'), 'the cell inside is seen, or already taken');
 });
 
 test('item, door and survey memory stay out of snapshots and every projection', async t => {

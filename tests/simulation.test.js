@@ -31,6 +31,19 @@ function input(s, p, values) { assert.ok(setInput(s, p.id, { seq: p.lastSeq + 1,
 /** The shipped content on the room arena, without its world: for cases that never step. */
 const still = () => createGameRecord(4217, generatedMap(), defaultContent());
 
+test('the committed frame shows a keyed door unlocked and open', async () => {
+  const map = openField(2400, { gates: [door('locked', 1200, Y, { locked: true })] }).map;
+  const { s, players: [keyless, holder] } = await scene([contestant(1150), contestant(1250)], map);
+  try {
+    holder.keys = 1;
+    input(s, keyless, { interact: true });
+    assert.deepEqual(snapshot(s).gates[0], { gateIdx: 0, open: false, locked: true });
+    input(s, holder, { interact: true });
+    assert.deepEqual(snapshot(s).gates[0], { gateIdx: 0, open: true, locked: false });
+    assert.equal(holder.keys, 0);
+  } finally { disposePhysics(s); }
+});
+
 test('a seeded match steps to identical complete frames', async () => {
   const [a, b] = await Promise.all([1, 2].map(() => createGame(11, generatedMap(), defaultContent())));
   try {

@@ -78,7 +78,7 @@ test('the core\'s placement search lands where the TypeScript\'s did, near crate
   } finally { disposePhysics(s); }
 });
 
-test('a respawn takes the westmost clear station, the clearance answered in phase 1', async () => {
+test('a respawn takes the westmost clear station', async () => {
   const stations = [{ id: 'st0', nodeId: 'n0', x: 1500, y: 150 }, { id: 'st1', nodeId: 'n1', x: 1800, y: 150 }];
   // The westmost station is walled in; it is ahead of the wall and far from every contestant, so only clearance refuses it.
   const { s, players: [, , g] } = await field({ stations, obstacles: [{ id: 'block', x: 1470, y: 120, w: 60, h: 60 }] });

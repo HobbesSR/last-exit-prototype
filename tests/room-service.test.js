@@ -148,13 +148,12 @@ test('room command recording owns each sanitized input independently of later ti
   owner.send({ type: 'input', seq: 1, interact: true, moveSlot: { from: 0, to: 5 }, hp: 999 });
   owner.send({ type: 'input', seq: 2, x: 1 }); h.wake(100);
   const inputs = writer.frames.slice(-2).flatMap(f => f.commands).filter(c => c.type === 'command');
-  // Both arrived before the tick and both are recorded on arrival, but each carries exactly what its
-  // own client message carried. Nothing is merged forward into the next one any more.
+  // Each committed tick records the sanitized input it spent, with the fields from its own client message.
   assert.equal(inputs.length, 2); assert.equal(inputs[0].input.interact, true);
   assert.deepEqual(inputs[0].input.moveSlot, [0, 5]);
   assert.equal(inputs[1].input.moveSlot, undefined); assert.equal(inputs[1].input.interact, undefined);
   assert.equal(inputs[0].input.hp, undefined, 'fields a client may not set are dropped');
-  // One tick spends one input, so only the first is acknowledged; the second waits for the next tick.
+  // Two ticks spend and acknowledge both inputs in order.
   assert.equal(writer.frames.at(-1).state.players.find(p => p.id === owner.session.playerId).lastSeq, 2);
   await h.service.close();
 });

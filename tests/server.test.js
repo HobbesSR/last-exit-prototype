@@ -127,12 +127,14 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     const welcomePlayer = next(player, 'welcome'); player.send(JSON.stringify({ type: 'join', room: room.id, role: 'contestant', name: 'P' }));
     const wp = await welcomePlayer;
     assert.ok(wp.state.self, 'a player view');
+    const game = server.rooms.get(room.id).game;
+    const playerCount = game.players.length, internal = game.items.map(item => item.id);
     const readyEye = next(eye, 'ready');
     eye.send(JSON.stringify({ type: 'start' }));
     const ready = await readyEye;
     assert.equal(ready.state.tick, 0);
-    assert.equal(ready.state.players.length, server.rooms.get(room.id).game.players.length);
-    const internal = server.rooms.get(room.id).game.items.map(item => item.id), sent = ready.map.items.map(item => item.id);
+    assert.equal(ready.state.players.length, playerCount);
+    const sent = ready.map.items.map(item => item.id);
     assert.equal(sent.length, internal.length);
     assert.notDeepEqual(sent, internal, 'createArenaServer draws a non-identity key');
     assert.equal(new Set(sent).size, sent.length);

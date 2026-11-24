@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, disposePhysics, step, snapshot } from '../shared/simulation.ts';
-import { attack, skill } from '../shared/simulation/combat.ts';
+import { createGame, disposePhysics, setInput, step, snapshot } from '../shared/simulation.ts';
+import { startGame } from '../shared/simulation/tick.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { viewLagFrom, MAX_REWIND_TICKS } from '../shared/simulation/rewind.ts';
 import { HZ, INTERPOLATION_DELAY_TICKS } from '../shared/simulation/rules.ts';
@@ -41,22 +41,31 @@ test('view lag is the half trip plus the delay the receive buffer holds a frame'
   assert.equal(viewLagFrom(10000), MAX_REWIND_TICKS, 'a hopeless connection is bounded, not believed');
 });
 
-test('without measured latency nothing is rewound', duel(({ s, attacker, target }) => {
-  settle(s);
-  target.x = away;
-  attacker.attackCd = 0;
-  attack(s, attacker);
-  assert.equal(target.hp, 100, 'a swing at empty space misses');
-}));
+async function swingAtPastPosition({ measured = false, obstacles = [] } = {}) {
+  let hp;
+  await duel(({ s, attacker, target }) => {
+    const { boundary } = startGame(s);
+    if (measured) assert.ok(boundary.roundTrip(attacker.id, 1000 / HZ * 2));
+    settle(s);
+    assert.ok(boundary.teleport(target.id, [away, y]));
+    step(s);
+    assert.ok(setInput(s, attacker.id, { seq: 1, attack: true, aim: 0 }));
+    step(s);
+    hp = target.hp;
+  }, obstacles)();
+  return hp;
+}
 
-test('cover is tested at the rewound position too', duel(({ s, attacker, target }) => {
-  settle(s);
-  target.x = away;
-  attacker.viewLagTicks = 3;
-  attacker.attackCd = 0;
-  attack(s, attacker);
-  assert.equal(target.hp, 100, 'a rewound hit still has to have had line of sight');
-}, [{ id: 'w', kind: 'container', x: 628, y: y - 100, w: 8, h: 200 }]));
+test('without measured latency nothing is rewound', async () => {
+  assert.equal(await swingAtPastPosition(), 100, 'a swing at empty space misses');
+  assert.ok(await swingAtPastPosition({ measured: true }) < 100, 'measured latency can hit the past position');
+});
+
+test('cover is tested at the rewound position too', async () => {
+  const wall = [{ id: 'w', kind: 'container', x: 628, y: y - 100, w: 8, h: 200 }];
+  assert.ok(await swingAtPastPosition({ measured: true }) < 100, 'the historical target is hittable without cover');
+  assert.equal(await swingAtPastPosition({ measured: true, obstacles: wall }), 100, 'cover blocks the historical hit');
+});
 
 test('the rewind history never reaches a snapshot or a recording', duel(({ s }) => {
   settle(s);

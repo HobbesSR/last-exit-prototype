@@ -105,6 +105,21 @@ test('movement continues while reloading, and the reload completes on the move',
   assert.deepEqual([p.inventory[0].ammo, p.reserves.pistol], [12, 18]);
 });
 
+test('switching slots interrupts a reload and dropping ammo publishes the reserve change and pickup', async t => {
+  const { s, p } = await fixture(t);
+  p.inventory[0] = pistol(5);
+  p.inventory[1] = pistol(12, 'spare');
+  p.reserves.pistol = 20;
+  tick(s, p, { reload: true });
+  assert.ok(snapshot(s).players[0].reload);
+  tick(s, p, { slot: 1, dropAmmo: { family: 'pistol', count: 4 } });
+  const frame = snapshot(s), owner = frame.players[0], pile = frame.items.find(item => item.kind === 'ammo');
+  assert.equal(owner.reload, null);
+  assert.equal(owner.inventory[0].ammo, 5);
+  assert.equal(owner.reserves.pistol, 16);
+  assert.deepEqual([pile.family, pile.count, pile.droppedBy], ['pistol', 4, p.id]);
+});
+
 test('death drops every reserve family and the magazines as recoverable pickups', async t => {
   const { s, p, q } = await fixture(t);
   p.inventory[0] = pistol(7); p.inventory[1] = { kind: 'weapon', weaponType: 'rifle', ammo: 3, instanceId: 'r', lineageId: 'r' };

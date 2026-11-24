@@ -34,6 +34,30 @@ test('motion mine ignores stationary players and damages either role when trigge
   } finally { disposePhysics(s); }
 });
 
+test('a turret exposes its aim and shot in the committed frame', async () => {
+  const { s } = await fixture('turret');
+  try {
+    step(s);
+    const frame = snapshot(s);
+    assert.equal(frame.traps[0].aiming, true);
+    assert.equal(frame.projectiles.length, 1);
+    assert.ok(frame.projectiles[0].dx < 0, 'the shot travels toward the contestant');
+  } finally { disposePhysics(s); }
+});
+
+test('a flame trap exposes warning and firing states in committed frames', async () => {
+  const { s, p } = await fixture('flame', { extra: { offset: 115 } });
+  try {
+    step(s);
+    let trap = snapshot(s).traps[0];
+    assert.deepEqual([trap.warning, trap.firing], [true, false]);
+    for (let i = 0; i < 4; i++) step(s);
+    trap = snapshot(s).traps[0];
+    assert.deepEqual([trap.warning, trap.firing], [false, true]);
+    assert.ok(p.hp + p.shield < 100, 'the firing cone damaged the contestant');
+  } finally { disposePhysics(s); }
+});
+
 test('spiders grapple either role, release targets beyond the leash, and keep target IDs private', async () => {
   const { s, p, g, trap } = await fixture('spider');
   try {
