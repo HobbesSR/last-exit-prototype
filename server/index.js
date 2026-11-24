@@ -52,7 +52,8 @@ function printListeningUrls(host, port, policy) {
  * thread: for tests and tools that reach into a live room through `rooms` (its `game`), which a threaded room
  * does not offer. `generateMap` replaces the worker, for tests that need to control generation. `mapPool` is how many maps
  * to keep ready per size (#266); none unless asked, so tests and benchmarks run without background generation.
- * `runtimeMap` selects an experimental worker navigation handoff, including `'deferred'` for #1317.
+ * `runtimeMap` selects an experimental worker navigation handoff. `'deferred'` builds contestant tiles
+ * synchronously during room preparation, on the host thread when `roomThreads` is false (#1317).
  * `edgeLink` is a loopback TCP port (0 for any) where the WebTransport edge connects (24.5); none unless given.
  * `content` supplies new rooms' content, for tests that need a set this build does not ship; never a request input.
  */

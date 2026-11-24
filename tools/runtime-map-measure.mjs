@@ -13,11 +13,12 @@ import { legGoal } from '../shared/simulation/bot-routes.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { acquireMachineLock } from '../tests/helpers/machine-lock.js';
 
-const [, , sizeName, seedArg] = process.argv;
+const [, , sizeName, seedArg, compactArg] = process.argv;
 const size = LIVE_ZONE_SIZES.find(candidate => zoneSizeName(candidate) === sizeName);
 const seed = Number(seedArg);
-assert.ok(size && Number.isSafeInteger(seed) && seed > 0 && globalThis.gc,
-  'usage: node --expose-gc tools/runtime-map-measure.mjs <live-size> <seed>');
+const measureCompact = compactArg === '--compact';
+assert.ok(size && Number.isSafeInteger(seed) && seed > 0 && globalThis.gc && (compactArg === undefined || measureCompact),
+  'usage: node --expose-gc tools/runtime-map-measure.mjs <live-size> <seed> [--compact]');
 
 function memory(core, collect = false) {
   if (collect) globalThis.gc();
@@ -94,9 +95,11 @@ try {
   let navigation = packRuntimeNavigation(map, builtLayers);
   ms.flatNavigation = performance.now() - started;
   const coordinates = coordinateSample(builtLayers);
-  builtLayers.length = 0;
   const bytes = { workerMap: envelope.bytes.byteLength, workerGladiator: tileBytes(layers[0]),
     workerContestant: tileBytes(layers[1]), flatNavigation: navigation.byteLength };
+  // Opt in because the extra pack affects peak RSS and the timing of later phases.
+  if (measureCompact) bytes.compactNavigation = packRuntimeNavigation(map, builtLayers, { compact: true }).byteLength;
+  builtLayers.length = 0;
   snapshots.builder = memory(core, true);
   map = null;
   snapshots.queued = memory(core, true);
