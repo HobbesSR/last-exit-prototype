@@ -72,6 +72,8 @@ const CREDENTIAL_KEY = /^credential\.(?:(.+)\.)?username$/;
  * scope the same way: among the scoped `credential.*username` entries, the last whose
  * URL pattern covers `url` and whose value is `value`. A pattern this does not
  * recognise (git's host wildcards) reads as `unrecognised`, which the hook refuses.
+ * Order, not git's most-specific-URL rule, picks among covering entries: they all
+ * carry the same username, so any pinned one already vouches for it.
  *
  * @param {{ scope: string, key: string, value: string }[]} entries in git's reading order
  * @returns {{ scope: string, value: string } | undefined}
@@ -91,15 +93,17 @@ export function credentialUsername(entries, value, url) {
   return { scope: source?.scope ?? 'unrecognised', value };
 }
 
+/** NUL-delimited, as `scope\0key\nvalue\0`, so a URL with a space or an empty value parses whole. */
 function scopedCredentialEntries() {
-  return git(['config', '--show-scope', '--get-regexp', '^credential\\..*username$'])
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map((line) => {
-      const tab = line.indexOf('\t');
-      const space = line.indexOf(' ', tab + 1);
-      return { scope: line.slice(0, tab), key: line.slice(tab + 1, space), value: line.slice(space + 1) };
-    });
+  const fields = git(['config', '--null', '--show-scope', '--get-regexp', '^credential\\..*username$']).split('\0');
+  const entries = [];
+  for (let i = 0; i + 1 < fields.length; i += 2) {
+    const record = fields[i + 1], newline = record.indexOf('\n');
+    entries.push(newline < 0
+      ? { scope: fields[i], key: record, value: '' }
+      : { scope: fields[i], key: record.slice(0, newline), value: record.slice(newline + 1) });
+  }
+  return entries;
 }
 
 const ZERO = /^0+$/;
