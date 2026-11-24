@@ -40,9 +40,11 @@ function mapOf(arena) {
 }
 
 /** One whole bot match: a digest per 100 ticks over every snapshot and three projections. */
-export async function botTrace(seed, arena, observe = () => {}) {
-  const s = await createGame(seed, mapOf(arena), content()), chunks = [];
+export async function botTrace(seed, arena, observe = () => {}, prepareMap = map => ({ map })) {
+  const { map, release } = await prepareMap(mapOf(arena)), chunks = [];
+  let s;
   try {
+    s = await createGame(seed, map, content());
     let digest = createHash('sha256');
     const { match } = startGame(s);
     digest.update(JSON.stringify(match.snapshot()));
@@ -59,7 +61,9 @@ export async function botTrace(seed, arena, observe = () => {}) {
       }
     }
     return chunks;
-  } finally { disposePhysics(s); }
+  } finally {
+    try { if (s) disposePhysics(s); } finally { release?.(); }
+  }
 }
 
 /**

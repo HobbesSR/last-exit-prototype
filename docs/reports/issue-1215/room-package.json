@@ -1,0 +1,437 @@
+{
+  "base": "f7df00e70638f4535275e6d083ba781110cb3bf0",
+  "commands": [
+    "node --expose-gc tools/runtime-map-room-measure.mjs current 4217 20",
+    "node --expose-gc tools/runtime-map-room-measure.mjs flat 4217 20"
+  ],
+  "samples": [
+    {
+      "variant": "current",
+      "seed": 4217,
+      "content": "content-12",
+      "node": "v24.15.0",
+      "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+      "smoke": false,
+      "size": "36x18",
+      "poolDepth": 2,
+      "initialStockMs": 257777.31519999998,
+      "initialStock": {
+        "counts": {
+          "12x6": 2,
+          "24x12": 2,
+          "36x18": 2
+        },
+        "bytes": {
+          "12x6": 15013322,
+          "24x12": 59736411,
+          "36x18": 134330181
+        }
+      },
+      "snapshots": {
+        "baseline": {
+          "rss": 130265088,
+          "maxRss": 332595200,
+          "heapUsed": 30776872,
+          "arrayBuffers": 251967,
+          "external": 32727454,
+          "wasmLinear": 1179648
+        },
+        "stocked": {
+          "rss": 1192931328,
+          "maxRss": 1206378496,
+          "heapUsed": 26906368,
+          "arrayBuffers": 251967,
+          "external": 241710756,
+          "wasmLinear": 1179648
+        }
+      },
+      "generations": [
+        {
+          "seed": 4217,
+          "size": "12x6",
+          "bytes": 7507517,
+          "ms": 8546.303300000001
+        },
+        {
+          "seed": 4217,
+          "size": "24x12",
+          "bytes": 29868684,
+          "ms": 32833.9001
+        },
+        {
+          "seed": 4217,
+          "size": "36x18",
+          "bytes": 67167096,
+          "ms": 89020.2289
+        },
+        {
+          "seed": 4217,
+          "size": "12x6",
+          "bytes": 7505805,
+          "ms": 8122.765699999989
+        },
+        {
+          "seed": 4217,
+          "size": "24x12",
+          "bytes": 29867727,
+          "ms": 33302.749700000015
+        },
+        {
+          "seed": 4217,
+          "size": "36x18",
+          "bytes": 67163085,
+          "ms": 85952.57790000003
+        },
+        {
+          "seed": 4217,
+          "size": "36x18",
+          "bytes": 67160017,
+          "ms": 85852.55040000001
+        },
+        {
+          "seed": 4217,
+          "size": "36x18",
+          "bytes": 67161813,
+          "ms": 86553.71419999999
+        }
+      ],
+      "rooms": [
+        {
+          "seed": 4217,
+          "createMs": 104.2162000000244,
+          "readyMs": 685.8729000000167,
+          "startMs": 310.06039999995846,
+          "ticks": 20,
+          "tickMs": 192.187900000019,
+          "stockAfterTake": {
+            "counts": {
+              "12x6": 2,
+              "24x12": 2,
+              "36x18": 1
+            },
+            "bytes": {
+              "12x6": 15013322,
+              "24x12": 59736411,
+              "36x18": 67163085
+            }
+          },
+          "live": {
+            "rss": 1554452480,
+            "maxRss": 1578348544,
+            "heapUsed": 246349840,
+            "arrayBuffers": 11244619,
+            "external": 347792324,
+            "wasmLinear": 95748096
+          },
+          "disposed": {
+            "rss": 1540321280,
+            "maxRss": 1578348544,
+            "heapUsed": 204411648,
+            "arrayBuffers": 11244619,
+            "external": 347272871,
+            "wasmLinear": 95748096
+          },
+          "refillMs": 84498.44949999999,
+          "stockAfterRefill": {
+            "counts": {
+              "12x6": 2,
+              "24x12": 2,
+              "36x18": 2
+            },
+            "bytes": {
+              "12x6": 15013322,
+              "24x12": 59736411,
+              "36x18": 134323102
+            }
+          },
+          "refilled": {
+            "rss": 1757872128,
+            "maxRss": 1797681152,
+            "heapUsed": 204444896,
+            "arrayBuffers": 11244619,
+            "external": 414402892,
+            "wasmLinear": 95748096
+          }
+        },
+        {
+          "seed": 4217,
+          "createMs": 139.58090000000084,
+          "readyMs": 552.9501000000164,
+          "startMs": 187.26699999999255,
+          "ticks": 20,
+          "tickMs": 140.4324000000488,
+          "stockAfterTake": {
+            "counts": {
+              "12x6": 2,
+              "24x12": 2,
+              "36x18": 1
+            },
+            "bytes": {
+              "12x6": 15013322,
+              "24x12": 59736411,
+              "36x18": 67160017
+            }
+          },
+          "live": {
+            "rss": 1738788864,
+            "maxRss": 1851166720,
+            "heapUsed": 252065304,
+            "arrayBuffers": 24401652,
+            "external": 373737786,
+            "wasmLinear": 117506048
+          },
+          "disposed": {
+            "rss": 1724542976,
+            "maxRss": 1851166720,
+            "heapUsed": 209107208,
+            "arrayBuffers": 24401652,
+            "external": 373370640,
+            "wasmLinear": 117506048
+          },
+          "refillMs": 85499.34399999998,
+          "stockAfterRefill": {
+            "counts": {
+              "12x6": 2,
+              "24x12": 2,
+              "36x18": 2
+            },
+            "bytes": {
+              "12x6": 15013322,
+              "24x12": 59736411,
+              "36x18": 134321830
+            }
+          },
+          "refilled": {
+            "rss": 1784832000,
+            "maxRss": 1851166720,
+            "heapUsed": 205457848,
+            "arrayBuffers": 13577419,
+            "external": 429678224,
+            "wasmLinear": 117506048
+          }
+        }
+      ],
+      "contention": {
+        "wallMs": 430431.85650000005,
+        "selfCpuMs": 508016,
+        "otherBusyShare": 0.0737,
+        "contended": false,
+        "threshold": 0.25
+      }
+    },
+    {
+      "variant": "flat",
+      "seed": 4217,
+      "content": "content-12",
+      "node": "v24.15.0",
+      "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+      "smoke": false,
+      "size": "36x18",
+      "poolDepth": 2,
+      "initialStockMs": 273539.3132999999,
+      "initialStock": {
+        "counts": {
+          "12x6": 2,
+          "24x12": 2,
+          "36x18": 2
+        },
+        "bytes": {
+          "12x6": 26021038,
+          "24x12": 103867915,
+          "36x18": 233736011
+        }
+      },
+      "snapshots": {
+        "baseline": {
+          "rss": 131719168,
+          "maxRss": 332451840,
+          "heapUsed": 31090608,
+          "arrayBuffers": 251967,
+          "external": 32727334,
+          "wasmLinear": 1179648
+        },
+        "stocked": {
+          "rss": 1991938048,
+          "maxRss": 1991938048,
+          "heapUsed": 26813320,
+          "arrayBuffers": 251967,
+          "external": 396349651,
+          "wasmLinear": 1179648
+        }
+      },
+      "generations": [
+        {
+          "seed": 4217,
+          "size": "12x6",
+          "bytes": 13011632,
+          "ms": 9029.803099999961
+        },
+        {
+          "seed": 4217,
+          "size": "24x12",
+          "bytes": 51934495,
+          "ms": 35681.37329999998
+        },
+        {
+          "seed": 4217,
+          "size": "36x18",
+          "bytes": 116868151,
+          "ms": 92600.29779999994
+        },
+        {
+          "seed": 4217,
+          "size": "12x6",
+          "bytes": 13009406,
+          "ms": 8455.621999999974
+        },
+        {
+          "seed": 4217,
+          "size": "24x12",
+          "bytes": 51933420,
+          "ms": 35680.69570000004
+        },
+        {
+          "seed": 4217,
+          "size": "36x18",
+          "bytes": 116867860,
+          "ms": 92001.23820000002
+        },
+        {
+          "seed": 4217,
+          "size": "36x18",
+          "bytes": 116869528,
+          "ms": 92940.50859999994
+        },
+        {
+          "seed": 4217,
+          "size": "36x18",
+          "bytes": 116870957,
+          "ms": 93129.321
+        }
+      ],
+      "rooms": [
+        {
+          "seed": 4217,
+          "createMs": 51.56060000008438,
+          "readyMs": 1197.1609999999637,
+          "startMs": 944.453300000052,
+          "ticks": 20,
+          "tickMs": 175.999199999962,
+          "stockAfterTake": {
+            "counts": {
+              "12x6": 2,
+              "24x12": 2,
+              "36x18": 1
+            },
+            "bytes": {
+              "12x6": 26021038,
+              "24x12": 103867915,
+              "36x18": 116867860
+            }
+          },
+          "live": {
+            "rss": 2139881472,
+            "maxRss": 2168442880,
+            "heapUsed": 245425496,
+            "arrayBuffers": 11146199,
+            "external": 503553027,
+            "wasmLinear": 207093760
+          },
+          "disposed": {
+            "rss": 2125746176,
+            "maxRss": 2168442880,
+            "heapUsed": 198803176,
+            "arrayBuffers": 11146199,
+            "external": 496292158,
+            "wasmLinear": 207093760
+          },
+          "refillMs": 90564.89689999993,
+          "stockAfterRefill": {
+            "counts": {
+              "12x6": 2,
+              "24x12": 2,
+              "36x18": 2
+            },
+            "bytes": {
+              "12x6": 26021038,
+              "24x12": 103867915,
+              "36x18": 233737388
+            }
+          },
+          "refilled": {
+            "rss": 2527768576,
+            "maxRss": 2536488960,
+            "heapUsed": 198803760,
+            "arrayBuffers": 11146199,
+            "external": 613161420,
+            "wasmLinear": 207093760
+          }
+        },
+        {
+          "seed": 4217,
+          "createMs": 54.724200000055134,
+          "readyMs": 745.3721999999834,
+          "startMs": 203.49659999995492,
+          "ticks": 20,
+          "tickMs": 132.25380000006407,
+          "stockAfterTake": {
+            "counts": {
+              "12x6": 2,
+              "24x12": 2,
+              "36x18": 1
+            },
+            "bytes": {
+              "12x6": 26021038,
+              "24x12": 103867915,
+              "36x18": 116869528
+            }
+          },
+          "live": {
+            "rss": 2471342080,
+            "maxRss": 2536488960,
+            "heapUsed": 250492496,
+            "arrayBuffers": 21970432,
+            "external": 529647346,
+            "wasmLinear": 229179392
+          },
+          "disposed": {
+            "rss": 2456944640,
+            "maxRss": 2536488960,
+            "heapUsed": 203499192,
+            "arrayBuffers": 21970432,
+            "external": 529203691,
+            "wasmLinear": 229179392
+          },
+          "refillMs": 91961.25790000008,
+          "stockAfterRefill": {
+            "counts": {
+              "12x6": 2,
+              "24x12": 2,
+              "36x18": 2
+            },
+            "bytes": {
+              "12x6": 26021038,
+              "24x12": 103867915,
+              "36x18": 233740485
+            }
+          },
+          "refilled": {
+            "rss": 2565029888,
+            "maxRss": 2606428160,
+            "heapUsed": 199836496,
+            "arrayBuffers": 11146199,
+            "external": 635250149,
+            "wasmLinear": 229179392
+          }
+        }
+      ],
+      "contention": {
+        "wallMs": 459854.8544,
+        "selfCpuMs": 539641,
+        "otherBusyShare": 0.0614,
+        "contended": false,
+        "threshold": 0.25
+      }
+    }
+  ]
+}

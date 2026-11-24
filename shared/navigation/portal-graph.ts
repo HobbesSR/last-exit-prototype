@@ -46,6 +46,9 @@ const attached = new WeakMap<object, PortalGraph>();
  * a worker arrives without it, and its receiver attaches what was posted alongside.
  */
 export function attachPortalGraph(map: object, graph: PortalGraph): void { attached.set(map, graph); }
+
+/** A borrowed graph's views expire when the match releases its navigation buffer. */
+export function detachPortalGraph(map: object): void { attached.delete(map); }
 /** The portal graph attached to a map, or undefined: a map without regions, such as `content-1`'s. */
 export function portalGraphOf(map: object): PortalGraph | undefined { return attached.get(map); }
 

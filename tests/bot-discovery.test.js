@@ -2,17 +2,18 @@ import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
-import { startGame } from '../shared/simulation/tick.ts';
+import { startGame, stepGame } from '../shared/simulation/tick.ts';
 import { collectBotIntent } from '../shared/simulation/bots.ts';
 import { joinRoute, passed, tickAllowance } from '../shared/simulation/bot-routes.ts';
 import { canOccupy, sweptClear } from '../shared/movement.ts';
-import { cellIndexAt, createDiscovery, discover, attachDiscovery, discoveryGrid, DISCOVERY_RADIUS } from '../shared/discovery.ts';
-import { bounds, shapeOf } from '../shared/shape.ts';
+import { cellIndexAt, createDiscovery, discover, attachDiscovery } from '../shared/discovery.ts';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { arena } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';
 import { stagePhysics } from './helpers/scenario.js';
 import { initCoreSight } from '../shared/sight-core.ts';
+import { adoptPackedTiles } from '../shared/free-space.ts';
+import { createKnowledgePlanner, packedTilesFor } from '../shared/navigation/knowledge.ts';
 
 // Bots observe through the core's sight, as a game's do (sightOf).
 const sight = await initCoreSight();
@@ -107,6 +108,65 @@ test('a bot enters a reachable roofed frontier cell rather than giving it up fro
   for (let i = 0; i < 400 && !p.discovery.seen.has(roofedCell); i++) step(s);
   assert.ok(p.discovery.seen.has(roofedCell), 'the roofed cell is seen by going in');
   assert.ok(p.discovery.items.has(itemId(s, 'indoor-cell')) || p.inventory.some(item => item?.kind === 'cell'), 'the cell inside is seen, or already taken');
+});
+
+test('a contestant routes over unknown ground with the same intent until it surveys a wall (#424)', async t => {
+  const cell = { id: 'far-cell', kind: 'cell', x: 5500, y: 960, charge: 0 };
+  const wall = { id: 'hidden-wall', x: 3320, y: 768, w: 80, h: 384 };
+  const worlds = [];
+  for (const obstacles of [[wall], []]) {
+    const { map } = arena({ cols: 32, rows: 10, items: [{ ...cell }], obstacles });
+    adoptPackedTiles(map, packedTilesFor(structuredClone(map), 'contestant'));
+    const { s, players: [bot] } = await stagePhysics(map, { actors: [
+      { role: 'contestant', x: 5200, y: 960 }, { role: 'contestant', bot: false, x: 6000, y: 1660 },
+    ] });
+    t.after(() => disposePhysics(s));
+    const { match, boundary } = startGame(s);
+    const support = createKnowledgePlanner(s.map, 'contestant').support(cellIndexAt(s.map, 3360, 960));
+    const learnedLayout = () => {
+      const { discovered, surveyed } = match.memory(bot.id);
+      return support.every(index => discovered.includes(index) || surveyed.includes(index));
+    };
+    const id = itemId(s, cell.id);
+    stepGame(s);
+    assert.ok(match.memory(bot.id).items.some(item => item.id === id), 'the core remembered the cell from its first view');
+    assert.ok(boundary.teleport(bot.id, [576, 960]));
+    worlds.push({ s, bot, match, boundary, learnedLayout });
+  }
+
+  const advance = ({ s, bot }) => {
+    const tick = stepGame(s);
+    const command = tick.inbound.find(row => row.type === 'command' && row.command.source === 'bot');
+    assert.ok(command, 'the tick spent a bot command');
+    return { position: [bot.x, bot.y], route: bot.route?.map(({ x, y }) => ({ x, y })), input: command.command.input };
+  };
+  const nearCell = route => {
+    const end = route?.at(-1);
+    return end && Math.hypot(end.x - cell.x, end.y - cell.y) < 20;
+  };
+  const [blocked, open] = worlds;
+  for (let i = 0; i < 120; i++) {
+    assert.deepEqual(advance(blocked), advance(open), `route and command agree on tick ${blocked.s.tick}`);
+    assert.deepEqual(blocked.match.memory(blocked.bot.id), open.match.memory(open.bot.id));
+    assert.ok(worlds.every(world => !world.learnedLayout()), 'the wall tile is outside the known support');
+  }
+  assert.ok(nearCell(blocked.bot.route), 'the speculative route targets the remembered cell across the unknown wall');
+  assert.ok(blocked.bot.route.some((point, i, route) => !sweptClear(blocked.s.map, i ? route[i - 1] : blocked.bot, point, 12)),
+    'the speculative route crosses the hidden wall');
+
+  for (const { boundary, bot } of worlds) assert.ok(boundary.teleport(bot.id, [2500, 960]));
+  let differentInput = false;
+  for (let i = 0; i < 40; i++) {
+    const a = advance(blocked), b = advance(open);
+    if (!worlds.every(world => world.learnedLayout())) continue;
+    differentInput ||= a.input.movement.some((value, axis) => value !== b.input.movement[axis]);
+    if (differentInput && a.route?.some(({ x, y }) => x >= wall.x && x <= wall.x + wall.w
+        && (y < wall.y || y > wall.y + wall.h))) {
+      assert.notDeepEqual(a.route, b.route, 'the surveyed wall changes the route');
+      return;
+    }
+  }
+  assert.fail('the surveyed wall should change the route and movement command');
 });
 
 test('item, door and survey memory stay out of snapshots and every projection', async t => {

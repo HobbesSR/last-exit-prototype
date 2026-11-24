@@ -11,6 +11,7 @@ import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { setImmediate as preparationPause } from 'node:timers/promises';
 import { prepareMapPayload } from './map-payload.js';
+import { prepareRuntimeNavigation } from './runtime-map.js';
 import { publishItems, itemsJson, prepareGroundItems, shareItemPublication } from '../shared/simulation/ground-items.ts';
 import { wireItemRecords } from '../shared/simulation/projection-contract.ts';
 import { wireIds } from '../shared/simulation/wire-ids.ts';
@@ -102,20 +103,25 @@ export function createLobby(content = defaultContent()) {
 // recorded, logged or sent. Without one the outward IDs are the internal ones.
 export async function createMatch(seed, size, map, content = defaultContent(), { wireKey = null } = {}) {
   const wire = wireIds(wireKey);
-  const game = await createGame(seed, map ?? generateLiveMap(seed, content, size), content,
-    () => preparationPause());
+  map ??= generateLiveMap(seed, content, size);
+  const releaseNavigation = await prepareRuntimeNavigation(map);
+  let game;
   try {
+    game = await createGame(seed, map, content, () => preparationPause());
     const payloads = await prepareMapPayload(game.map, () => preparationPause());
     // Publish the initial list during private preparation, ahead of its first
     // outward frame, so building its cells leaves no loose-record migration.
     const beforeGround = profiling() ? performance.now() : undefined;
     await prepareGroundItems(publishItems(game), () => preparationPause());
     if (beforeGround !== undefined) observe('prepare.ground', performance.now() - beforeGround);
-    return matchOf(game, payloads, wire);
-  } catch (error) { disposePhysics(game); throw error; }
+    return matchOf(game, payloads, wire, releaseNavigation);
+  } catch (error) {
+    try { if (game) disposePhysics(game); } finally { releaseNavigation?.(); }
+    throw error;
+  }
 }
 
-function matchOf(game, payloads, wire) {
+function matchOf(game, payloads, wire, releaseNavigation) {
   // Outward IDs for live payload items; recordings keep internal IDs (26).
   const outward = items => { const mapped = wireItemRecords(items, wire); if (mapped !== items) shareItemPublication(items, mapped); return mapped; };
   const seats = seatsOf(game, () => synchronizePhysics(game));
@@ -187,10 +193,14 @@ function matchOf(game, payloads, wire) {
     snapshot: frame,
     dispose() {
       if (disposedFrame) return;
-      disposedFrame = frame();
-      live?.match.dispose();
-      disposePhysics(game);
-      payloads = undefined;
+      try { disposedFrame = frame(); }
+      finally {
+        try { live?.match.dispose(); }
+        finally {
+          try { disposePhysics(game); }
+          finally { releaseNavigation?.(); payloads = undefined; }
+        }
+      }
     },
     project: (frame, id) => playerView(game, frame, id, wire),
     /** What a client predicts with that never changes in this match (24.3 proposal 3): sent with the map. */
