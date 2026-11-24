@@ -458,8 +458,14 @@ agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 1838
    - The derived layers are the portal graph (`shared/navigation/portal-graph.ts`), for content that plans hunters by
      portals, and the discovery-grid free-space tiles (`shared/free-space.ts`, `shared/navigation/knowledge.ts`) for
      both clearances. The per-region meshes (`mesh-level.ts`) are tools' and tests' and are not shipped.
+   - The portal graph may be absent: a map without regions has none. A decoder accepts its absence, and a hunter that
+     plans by portals then plans over the tiles toward its original target, as `legGoal` does today (review 1058).
    - Roof concealment and fallback building footprints are rule data, since they bound what a bot may know. They are
-     not presentation. Cosmetic presentation (decals, appearance, roof styling) reaches clients through the payload,
+     not presentation.
+   - So is the building relation: which building a gate and a ground item belong to. Contestants group gates by
+     building and skip a building's power cells while a door they last saw there was locked (`botGates`,
+     `shared/simulation/bots.ts`). Setup's gate rows don't carry it today. The #1215 inventory decides its encoding
+     (review 1058). Cosmetic presentation (decals, appearance, roof styling) reaches clients through the payload,
      not the core.
    - A rule that later needs something from an earlier step of the chain gets a new named runtime table, never the
      chain's objects.
@@ -476,7 +482,9 @@ agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 1838
    - The `node:v8` envelope stays as Node's worker handoff, and still carries presentation.
    - Node-built tiles keep their triangle numbering, which search ties depend on.
 3. **What each seat knows, door state, keys and search stay dynamic in the core.** Geometry is static for the match.
-   Tiles assume gates open and tag triangles with gate sets, so a gate change needs no retriangulation.
+   Tiles assume gates open and tag triangles with gate sets, so a gate change needs no retriangulation. Prebuilt tiles
+   hold geometry contestants have not discovered, so a contestant's planner reads a tile only once its whole support
+   is known ([22.6.2](22.6.2-knowledge-and-doors.md#knowledge-and-optimistic-planning), "Tiles and support").
 4. **Every tile the core may request exists before tick 1, for both clearances.** Building on demand would need a call
    back into JavaScript mid-tick, or would make plans depend on timing. Tiles may still be decoded on demand. Today the
    map worker prebuilds only the gladiator clearance.
