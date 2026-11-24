@@ -328,6 +328,7 @@ export function mapFreeSpace(map: CollisionMap, key: string, domain: readonly Bo
 }
 
 const spaces = new WeakMap<CollisionMap, { obstacles: CollisionMap['obstacles']; count: number; buckets: Map<string, number[]>; meshes: Map<string, { signature: string; space: FreeSpace }>; tiles: Map<string, FreeTile>; packed: PackedTiles[] }>();
+const tileSources = new WeakMap<CollisionMap, (box: Box, clearance: World) => FreeTile | undefined>();
 const OBSTACLE_BUCKET = 192;
 
 /** The map's derived-index cache, started afresh when its obstacle list has changed. */
@@ -379,7 +380,8 @@ export const tileReach = (clearance: World): World => clearance + ERODE_MARGIN +
  */
 export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World): FreeTile {
   const cache = cacheOf(map), key = `${box.x},${box.y},${box.w},${box.h}@${clearance}`;
-  const kept = cache.tiles.get(key) ?? cache.packed.reduce<FreeTile | undefined>((found, packed) => found ?? unpackTile(packed, box, clearance), undefined);
+  const kept = cache.tiles.get(key) ?? tileSources.get(map)?.(box, clearance)
+    ?? cache.packed.reduce<FreeTile | undefined>((found, packed) => found ?? unpackTile(packed, box, clearance), undefined);
   if (kept) { cache.tiles.set(key, kept); return kept; }
   const reach = tileReach(clearance);
   const window = { x: box.x - reach, y: box.y - reach, w: box.w + 2 * reach, h: box.h + 2 * reach };
@@ -445,6 +447,18 @@ export function packTiles(tiles: readonly FreeTile[], clearance: World, size: Wo
 
 /** Let a map's planners read tiles packed elsewhere, from the same map, rather than build them. */
 export function adoptPackedTiles(map: CollisionMap, packed: PackedTiles): void { cacheOf(map).packed.push(packed); }
+
+/** Borrow tiles for the life of a match. Releasing the source drops its cached views. */
+export function borrowFreeTiles(map: CollisionMap, read: (box: Box, clearance: World) => FreeTile | undefined): () => void {
+  if (tileSources.has(map)) throw new Error('the map already borrows free-space tiles');
+  spaces.get(map)?.tiles.clear();
+  tileSources.set(map, read);
+  return () => {
+    if (tileSources.get(map) !== read) return;
+    tileSources.delete(map);
+    spaces.get(map)?.tiles.clear();
+  };
+}
 
 const packedGates = new WeakMap<PackedTiles, Record<number, string[][]>>();
 /** The packed tile with exactly this box and clearance, as views of the packed buffers, or undefined. */

@@ -106,15 +106,18 @@ interface State {
   spent: GateId[];
 }
 
-/**
- * Every tile a planner for `role` can read, built and packed to cross a worker (22.6, "Bot
- * adoption"). A gladiator plans over the whole map, so its first plan would otherwise build them all
- * on one tick; the map worker builds them beside the map, and the room adopts them.
- */
-export function packedTilesFor(map: CollisionMap, role: Role): PackedTiles {
+/** Every discovery-grid tile for a clearance, in row-major order. */
+export function freeTilesFor(map: CollisionMap, role: Role) {
   const planner = createKnowledgePlanner(map, role), { cols, rows, size } = discoveryGrid(map);
   const all: Knowledge = { known: () => true, door: () => undefined, keys: 0, revision: 0 };
-  return packTiles(Array.from({ length: cols * rows }, (_, cell) => planner.tile(all, cell)!), navigationClearance(role), size, cols);
+  const tiles = Array.from({ length: cols * rows }, (_, cell) => planner.tile(all, cell)!);
+  return { clearance: navigationClearance(role), size, cols, tiles };
+}
+
+/** Keep the worker handoff used by the current room planner (22.6, "Bot adoption"). */
+export function packedTilesFor(map: CollisionMap, role: Role): PackedTiles {
+  const { tiles, clearance, size, cols } = freeTilesFor(map, role);
+  return packTiles(tiles, clearance, size, cols);
 }
 
 /** Plans for one body over the knowledge a caller supplies at each query; the map is read only through known tiles. */
