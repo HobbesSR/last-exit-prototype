@@ -91,6 +91,12 @@ from fresh `forgejo/main`.
      scripts: Node checks alone have approved a renderer change that threw every
      frame (PR #343).
 
+   Do not wait for CI. Review on the assumption that verify will pass; a pending
+   verify is not a finding. A failure is dealt with when it shows up, by the human
+   or in the review back-and-forth. Corey (2026-11-24, verbatim, on PR #1327):
+   "they should perform the review with the hope that it will pass and an
+   understanding that if it doesn't we'll address it at that time."
+
    Post the verdict with `submit_pull_request_review`
    (`APPROVED`, `REQUEST_CHANGES` or `COMMENT`);
    if it reports a pending review, post the verdict with `create_comment`
