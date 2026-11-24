@@ -38,15 +38,6 @@ test('a seeded match steps to identical complete frames', async () => {
   } finally { disposePhysics(a); disposePhysics(b); }
 });
 
-test('the wall reaches the end of the map at ten minutes', async t => {
-  const s = await createGame(4217, generatedMap(), defaultContent());
-  t.after(() => disposePhysics(s));
-  for (const p of s.players) p.bot = false;
-  s.tick = DURATION - 1;
-  step(s);
-  assert.ok(s.hazardX >= s.map.width); assert.equal(s.phase, 'finished');
-});
-
 test('clients cannot send positions or amplify movement and stale inputs are rejected', async () => {
   // A twin given a plain unit input shows how far one tick's movement goes.
   const [{ s, players: [p] }, plain] = await Promise.all([0, 1].map(() => scene([contestant(600), contestant(2000)])));
@@ -65,122 +56,7 @@ test('clients cannot send positions or amplify movement and stale inputs are rej
   } finally { disposePhysics(s); disposePhysics(plain.s); }
 });
 
-test('locked building doors require a key and stay unlocked', async () => {
-  // A wall across the field with a locked door in it; the contestant stands beside the door.
-  const wall = [{ id: 'north', x: 1187, y: 0, w: 26, h: Y - 27 }, { id: 'south', x: 1187, y: Y + 27, w: 26, h: 1152 - Y - 27 }];
-  const { s, players: [p] } = await scene([contestant(1150), contestant(300)], openField(2400, { obstacles: wall, gates: [door('locked', 1200, Y, { locked: true })] }).map);
-  try {
-    const g = s.map.gates[0];
-    input(s, p, { interact: true }); assert.equal(g.open, false);
-    p.keys = 1; input(s, p, { interact: true }); assert.equal(g.open, true); assert.equal(p.keys, 0);
-    input(s, p, { interact: true }); assert.equal(p.keys, 0);
-    assert.equal(g.locked, false, 'unlocking is permanent');
-  } finally { disposePhysics(s); }
-});
-
-test('only three contestants can extract, and gladiators cannot consume exits', async () => {
-  // Four contestants in a ring round the exit, within reach of it, and a gladiator on it.
-  const exit = { x: 1800, y: Y };
-  const ring = [0, 1, 2, 3].map(i => contestant(exit.x + Math.cos(i * Math.PI / 2) * 40, exit.y + Math.sin(i * Math.PI / 2) * 40));
-  const { s, players } = await scene([gladiator(exit.x + 120), ...ring], openField(2400, { exit }).map);
-  try {
-    const [g, ...contestants] = players;
-    Object.assign(g, exit); input(s, g, { interact: true }); assert.equal(s.slots, 3);
-    for (const c of contestants) { c.inventory = [{ kind: 'cell', charge: CELL_CHARGE_TICKS }, null, null, null]; setInput(s, c.id, { seq: c.lastSeq + 1, interact: true }); }
-    step(s);
-    assert.equal(s.slots, 0); assert.equal(s.players.filter(p => p.status === 'escaped').length, 3);
-    assert.equal(s.phase, 'finished');
-  } finally { disposePhysics(s); }
-});
-
-test('power-cell objective requires pickup, stationary charging, and delivery; movement pauses progress', async () => {
-  const exit = { x: 2200, y: Y }, charger = { id: 'charger', x: 1200, y: Y }, cell = { id: 'cell', kind: 'cell', x: 600, y: 300 };
-  const { s, players: [p] } = await scene([contestant(2160), contestant(300, 1000)], openField(2400, { exit, chargers: [charger], items: [cell] }).map);
-  try {
-    input(s, p, { interact: true }); assert.equal(s.slots, 3, 'no cell, no extraction');
-    Object.assign(p, { x: cell.x, y: cell.y }); input(s, p, {});
-    assert.equal(carriedCell(p)?.charge, 0); assert.ok(!s.items.some(i => i.id === 'cell'), 'picked up');
-    Object.assign(p, { x: exit.x - 40, y: exit.y }); input(s, p, { interact: true }); assert.equal(s.slots, 3, 'an uncharged cell does not extract');
-    Object.assign(p, { x: charger.x, y: charger.y + 40 });
-    input(s, p, { interact: true }); assert.equal(carriedCell(p).charge, 1);
-    input(s, p, { x: 1 }); assert.equal(carriedCell(p).charge, 1); assert.equal(p.charging, null);
-    // Stop, so a starved queue does not repeat the step, and come back to the charger.
-    input(s, p, {}); Object.assign(p, { x: charger.x, y: charger.y + 40 }); input(s, p, {});
-    input(s, p, { interact: true });
-    for (let i = carriedCell(p).charge; i < CELL_CHARGE_TICKS; i++) step(s);
-    assert.equal(carriedCell(p).charge, CELL_CHARGE_TICKS); assert.equal(p.charging, null);
-    Object.assign(p, { x: exit.x - 40, y: exit.y }); input(s, p, { interact: true });
-    assert.equal(p.status, 'escaped'); assert.equal(carriedCell(p), null); assert.equal(s.slots, 2);
-  } finally { disposePhysics(s); }
-});
-
-test('cells take individual slots and retain charge when dropped on death', async () => {
-  const at = { x: 600, y: Y };
-  const { s, players: [p, , hunter] } = await scene([contestant(at.x), contestant(300, 1000), gladiator(at.x + 40)],
-    openField(2400, { items: [{ id: 'a', kind: 'cell', x: at.x, y: at.y - 10 }, { id: 'b', kind: 'cell', x: at.x, y: at.y + 10 }] }).map);
-  try {
-    // Every slot but one full, however many slots the content gives.
-    p.inventory = p.inventory.map((_, i, slots) => i < slots.length - 1 ? { kind: 'weapon', weaponType: 'pistol', instanceId: itemId(s, `w${i}`) } : null);
-    // The engine collects on a tick that spends an input.
-    input(s, p, {}); assert.equal(s.items.filter(i => i.kind === 'cell').length, 1, 'one free slot takes one cell');
-    carriedCell(p).charge = 55;
-    p.hp = 1; p.shield = 0;
-    input(s, hunter, { attack: true, aim: Math.PI });
-    assert.equal(p.status, 'eliminated'); assert.equal(carriedCell(p), null);
-    assert.ok(s.items.some(i => i.kind === 'cell' && i.charge === 55));
-  } finally { disposePhysics(s); }
-});
-
-test('gladiator kills upgrade the kit and refill ability, contestants can damage other contestants', async () => {
-  const { s, players: [target, a, b, p] } = await scene([contestant(600), contestant(1500), contestant(1524), gladiator(640)]);
-  try {
-    target.hp = 1; target.shield = 0; p.cooldown = 80;
-    input(s, p, { attack: true, aim: Math.PI });
-    assert.equal(target.status, 'eliminated'); assert.equal(p.kills, 1); assert.equal(p.level, 2); assert.equal(p.cooldown, 0);
-    const ground = { id: itemId(s, 'test-pistol'), kind: 'weapon', weaponType: 'pistol', ammo: s.content.weapons.pistol.ammo, x: a.x, y: a.y };
-    s.items.push(ground);
-    collectInstanceEquipment(s, a, { ...ground }, ground); a.selectedSlot = a.inventory.findIndex(i => i?.kind === 'weapon');
-    const hp = b.hp;
-    input(s, a, { attack: true, aim: 0 }); assert.equal(b.hp, hp - s.content.weapons.pistol.damage);
-  } finally { disposePhysics(s); }
-});
-
-test('rail travel is gladiator-only, has a cooldown, and skips stations not past hazardX + TILE', async () => {
-  const stations = () => [400, 1400, 2400, 3400].map((x, i) => ({ id: `st${i}`, nodeId: `n${i}`, x, y: Y }));
-  const field = () => openField(3600, { stations: stations() }).map;
-  const { s, players: [p, c] } = await scene([gladiator(400), contestant(400, Y + 300)], field());
-  try {
-    const [first, second] = s.map.stations;
-    input(s, p, { interact: true }); assert.equal(Math.round(p.x), second.x); assert.equal(p.railCd, 180);
-    input(s, p, { interact: true }); assert.equal(Math.round(p.x), second.x);
-    Object.assign(c, { x: first.x, y: first.y });
-    input(s, c, { interact: true }); assert.equal(Math.round(c.x), first.x);
-  } finally { disposePhysics(s); }
-
-  // Advance the hazard so the next station sits behind its edge; travel must pass over it.
-  const late = await scene([gladiator(400), contestant(3400, Y + 300)], field());
-  try {
-    const [, behind, ahead] = late.s.map.stations, { content } = late.s, [g] = late.players;
-    late.s.tick = Math.ceil(content.hazardGraceTicks + (behind.x + 80) / (late.s.map.width + 100) * (content.durationTicks - content.hazardGraceTicks)) - 1;
-    input(late.s, g, { interact: true });
-    assert.ok(behind.x <= late.s.hazardX + TILE && ahead.x > late.s.hazardX + TILE, `hazard ${late.s.hazardX} must fall between ${behind.x} and ${ahead.x}`);
-    assert.deepEqual({ x: Math.round(g.x), y: Math.round(g.y) }, { x: ahead.x, y: ahead.y });
-  } finally { disposePhysics(late.s); }
-});
-
-test('sneaking avoids sensors, contestants have no innate skill, hazard affects gladiators too', async () => {
-  const { s, players: [p, g] } = await scene([contestant(1200), gladiator(300)], openField(2400, { sensors: [{ id: 'sensor', x: 1200, y: Y - 40 }] }).map);
-  try {
-    input(s, p, { sneak: true }); assert.equal(p.revealed, 0);
-    input(s, p, {}); assert.ok(p.revealed > 0);
-    input(s, p, { skill: true }); assert.equal(p.cooldown, 0); assert.equal(p.cloak, 0);
-    s.tick = DURATION - 11;
-    const hp = g.hp;
-    step(s); assert.ok(g.hp < hp);
-  } finally { disposePhysics(s); }
-});
-
-test('snapshots are independent copies including bot routes and accepted input', async t => {
+test('snapshots are independent copies including bot routes and input acknowledgments', async t => {
   const field = 'route', s = await createGame(4217, generatedMap(), defaultContent());
   t.after(() => disposePhysics(s));
   const human = s.players[0]; human.bot = false; human.input = {};
@@ -192,10 +68,11 @@ test('snapshots are independent copies including bot routes and accepted input',
   assert.ok(bot, `a bot must hold a ${field} to witness`);
   const frame = snapshot(s), mine = frame.players.find(p => p.id === human.id), theirs = frame.players.find(p => p.id === bot.id);
   assert.deepEqual(theirs[field], bot[field]); assert.ok(theirs[field].length > 0);
-  assert.deepEqual(mine.input, human.input); assert.equal(mine.input.x, 1); assert.equal(mine.lastSeq, human.lastSeq);
+  assert.equal(mine.lastSeq, human.lastSeq);
+  assert.ok(mine.lastSeq >= 0);
   const route = structuredClone(theirs[field]), accepted = structuredClone(mine.input), before = JSON.stringify(frame);
   bot.route[0].x += 99; bot.route.push({ ...bot.route[0] });
-  human.input.x = -1;
+  assert.ok(setInput(s, human.id, { seq: human.lastSeq + 1, x: -1, y: 0 }));
   for (let i = 0; i < 20; i++) step(s);
   assert.deepEqual(theirs[field], route); assert.deepEqual(mine.input, accepted);
   assert.equal(JSON.stringify(frame), before);

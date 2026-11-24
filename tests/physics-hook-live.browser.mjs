@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { contentById } from '../shared/simulation/content.ts';
-import { SCHEMA } from '../shared/recording.ts';
+import { TICK_RECORDING_SCHEMA } from '../shared/recording.ts';
 import { PHYSICS_VERSION } from '../shared/simulation.ts';
 import { readArchive } from './helpers/recordings.js';
 
@@ -107,7 +107,7 @@ try {
   const replay = readArchive(await readFile(path.join(replayDir, `${created.id}.json.gz`)));
   assert.equal(replay.version, PHYSICS_VERSION);
   assert.equal(replay.contentId, 'content-6');
-  assert.equal(replay.schema, SCHEMA);
+  assert.equal(replay.schema, TICK_RECORDING_SCHEMA);
   assert.equal(replay.minSchema, 20);
   assert.ok(replay.frames.some(frame => frame.state.hookFlights?.length), 'recording retains the flight display frame');
   console.log(JSON.stringify({ passed: true, browser: browser.version(), checks: [

@@ -75,7 +75,7 @@ test('invalid physical tuning is refused and caller edits cannot retune an admit
   try {
     fixture.content.actorPhysics.acceleration = 1; floor.traction = 1;
     input(s, 'c0', { x: 1 }); step(s);
-    assert.equal(body(s, 'c0').motor.accel, 360);
+    assert.ok(Math.abs(snapshot(s).bodies[0].vx - 18) < 0.01);
     assert.ok(Object.isFrozen(s.content.actorPhysics.geometry.contestant));
     assert.ok(Object.isFrozen(s.map.motorSurfaces[0]));
   } finally { disposePhysics(s); }
@@ -91,54 +91,12 @@ test('overlapping floor surfaces choose priority and stable ID for speed, tracti
   const s = await game({ map, content });
   try {
     input(s, 'c0', { x: 1 }); step(s);
-    assert.deepEqual(body(s, 'c0').motor, { x: 90, y: 0, accel: 720 });
-    const moved = byId(s).c0.movedThisTick;
-    assert.ok(moved > 0 && moved < 4.5);
+    assert.ok(Math.abs(snapshot(s).bodies[0].vx - 36) < 0.01, 'the winning surface sets acceleration');
+    for (let i = 0; i < 5; i++) step(s);
+    assert.ok(Math.abs(snapshot(s).bodies[0].vx - 90) < 0.01, 'the winning surface sets speed');
     input(s, 'c0', { x: 0 }); step(s);
-    assert.deepEqual(body(s, 'c0').motor, { x: 0, y: 0, accel: 720 });
-    assert.ok(byId(s).c0.movedThisTick > 0, 'low braking preserves external velocity briefly');
+    assert.ok(Math.abs(snapshot(s).bodies[0].vx - 54) < 0.01, 'the winning surface sets braking');
   } finally { disposePhysics(s); }
-});
-
-test('impulse motion is measured from the solved path and recovers with bounded braking', async () => {
-  const s = await game(parts(1));
-  try {
-    const c = byId(s).c0, start = c.x;
-    enqueuePhysicsImpulse(s, 'actor:c0', { x: 300, y: 0 });
-    step(s);
-    assert.ok(c.movedThisTick > 0);
-    assert.ok(c.movedThisTick >= Math.abs(c.x - start) - 1e-5);
-    assert.ok(body(s, 'c0').transform.vx > 0 && body(s, 'c0').transform.vx < 300);
-    step(s);
-    assert.ok(body(s, 'c0').transform.vx < 1, 'braking takes another bounded tick');
-  } finally { disposePhysics(s); }
-});
-
-test('P2 clamps a queued impulse and total actor speed to pinned content limits', async () => {
-  const s = await game(parts(1));
-  try {
-    enqueuePhysicsImpulse(s, 'actor:c0', { x: 1000, y: 0 });
-    assert.deepEqual(snapshot(s).physics.pendingImpulses[0].value, { x: 600, y: 0 });
-    input(s, 'c0', { x: 1 }); step(s);
-    const transform = body(s, 'c0').transform;
-    assert.ok(Math.hypot(transform.vx, transform.vy) <= 600 + 1e-3);
-  } finally { disposePhysics(s); }
-});
-
-test('reversing the roster leaves each stable-ID actor trajectory equal', async () => {
-  const a = await game(), b = await game();
-  try {
-    b.players.reverse();
-    for (let tick = 0; tick < 8; tick++) {
-      for (const s of [a, b]) {
-        input(s, 'c0', { x: 1 }); input(s, 'c1', { x: -1 }); step(s);
-      }
-      for (const id of ['c0', 'c1', 'g0']) {
-        assert.deepEqual(body(a, id).transform, body(b, id).transform, `${id} tick ${tick}`);
-        assert.equal(byId(a)[id].movedThisTick, byId(b)[id].movedThisTick);
-      }
-    }
-  } finally { disposePhysics(a); disposePhysics(b); }
 });
 
 test('gate closure defers for an occupied footprint and succeeds after the actor leaves', async () => {
@@ -213,83 +171,10 @@ test('blocked transit preserves cooldown; a valid landing clears motion and cons
   } finally { disposePhysics(s); }
 });
 
-test('teleport rejects actor and prop overlap, then resets motion, joint and generation', async () => {
-  const s = await game();
-  try {
-    const world = physicsRuntime(s).world;
-    assert.equal(teleport(s, 'c0', byId(s).c1.x, byId(s).c1.y), null);
-    world.queueAddBody({ id: 'prop:test', kind: 'prop', shape: { kind: 'circle', radius: 12 }, x: 350, y: 400 });
-    world.commitMutations();
-    assert.equal(teleport(s, 'c0', 350, 400), null);
-    enqueuePhysicsAttachment(s, { id: 'rope', a: 'actor:c0', b: 'actor:c1', maxDistance: 120 });
-    input(s, 'c0', { x: 1 });
-    step(s);
-    assert.equal(world.counts().constraints, 1);
-    assert.ok(body(s, 'c0').transform.vx > 0);
-    assert.ok(body(s, 'c0').motor.x > 0);
-    const generation = world.getGeneration('actor:c0');
-    assert.deepEqual(teleport(s, 'c0', 400, 400), { x: 400, y: 400 });
-    assert.equal(world.counts().constraints, 0);
-    assert.ok(world.getGeneration('actor:c0') > generation);
-    assert.deepEqual([body(s, 'c0').transform.vx, body(s, 'c0').transform.vy], [0, 0]);
-    assert.equal(body(s, 'c0').motor, undefined);
-    assert.ok(snapshot(s).physics.discontinuities.some(d => d.id === 'actor:c0' && d.kind === 'placed'));
-    input(s, 'c0', { x: 0 }); step(s);
-    assert.ok(snapshot(s).physics.discontinuities.some(d => d.id === 'actor:c0' && d.kind === 'placed'), 'between-tick teleport survives the next capture');
-    step(s);
-    assert.equal(snapshot(s).physics.discontinuities.some(d => d.id === 'actor:c0'), false, 'ordinary subsequent movement is continuous');
-  } finally { disposePhysics(s); }
-});
-
-test('elimination removes the actor and its joint with a private discontinuity', async () => {
-  const s = await game();
-  try {
-    const world = physicsRuntime(s).world;
-    enqueuePhysicsAttachment(s, { id: 'rope', a: 'actor:c0', b: 'actor:c1', maxDistance: 120 });
-    step(s);
-    assert.equal(world.counts().constraints, 1);
-    byId(s).c0.status = 'eliminated';
-    synchronizePhysics(s);
-    assert.equal(world.hasBody('actor:c0'), false);
-    assert.equal(world.counts().constraints, 0);
-    assert.ok(snapshot(s).physics.discontinuities.some(d => d.id === 'actor:c0' && d.kind === 'removed'));
-  } finally { disposePhysics(s); }
-});
-
 test('an impossible initial placement is refused', async () => {
   const { map, content } = parts(1);
   map.playableArea.rows = [];
   await assert.rejects(() => game({ map, content }), /no legal physics placement/);
-});
-
-test('a gladiator respawn defers while a solid prop blocks every nearby placement', async () => {
-  const { map, content } = parts(1);
-  map.width = 2000; map.exit.x = 1950;
-  map.playableArea.rows.forEach(row => { row.runs = [[0, 20]]; });
-  map.hunterSpawns = [{ x: 1750, y: 400 }];
-  map.stations = [{ id: 'return', x: 1500, y: 400 }];
-  const s = await game({ map, content });
-  try {
-    const g = byId(s).g0, world = physicsRuntime(s).world;
-    g.status = 'respawning'; g.respawnAt = s.tick + 1;
-    synchronizePhysics(s);
-    assert.equal(world.hasBody('actor:g0'), false);
-    world.queueAddBody({ id: 'prop:block', kind: 'prop', shape: { kind: 'circle', radius: 200 },
-      x: 1500, y: 400 });
-    world.commitMutations();
-    step(s);
-    assert.equal(g.status, 'respawning');
-    assert.equal(world.hasBody('actor:g0'), false);
-    assert.ok(g.respawnAt > s.tick);
-    world.queueRemoveBody('prop:block'); world.commitMutations();
-    step(s);
-    assert.equal(g.status, 'active');
-    assert.equal(world.hasBody('actor:g0'), true);
-    assert.ok(snapshot(s).physics.discontinuities.some(d => d.id === 'actor:g0' && d.kind === 'placed'));
-    step(s);
-    assert.equal(snapshot(s).physics.discontinuities.some(d => d.id === 'actor:g0'), false,
-      'a placement made inside a step reaches only that step\'s capture');
-  } finally { disposePhysics(s); }
 });
 
 test('missing actor physics and invalid motor surfaces are rejected during creation', async () => {

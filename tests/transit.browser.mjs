@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
-import { synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { transitOptions } from '../shared/simulation/transit.ts';
 
@@ -24,16 +23,16 @@ try {
   await page.waitForFunction(() => window.arenaDebug().phase === 'live' && window.arenaDebug().me?.id, null, { timeout: 120000 });
   const game = server.rooms.get(room).game, me = game.players.find(p => !p.bot);
   const from = game.map.stations.find(st => st.x > 1500);
-  Object.assign(me, { x: from.x, y: from.y, railCd: 0 }); synchronizePhysics(game);
+  assert.ok(server.rooms.get(room).match.teleport(me.id, from.x, from.y));
   await page.waitForFunction(({ x, y }) => Math.hypot(window.arenaDebug().me.x - x, window.arenaDebug().me.y - y) < 40, from, { timeout: 5000 });
-  const { ahead, next } = transitOptions(game, me), to = ahead.filter(st => st !== next).at(-1);
+  const { ahead, next } = transitOptions(game, { ...me, x: from.x, y: from.y }), to = ahead.filter(st => st !== next).at(-1);
   assert.ok(to, 'a station other than the default');
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.resolve('test-results/transit.png') });
   const box = await page.locator('#minimap').boundingBox();
   await page.mouse.click(box.x + to.x / game.map.width * box.width, box.y + to.y / game.map.height * box.height);
   await page.waitForFunction(({ x, y }) => Math.hypot(window.arenaDebug().me.x - x, window.arenaDebug().me.y - y) < 120, to, { timeout: 5000 });
-  assert.equal(me.railCd > 0, true, 'the transit spent the cooldown');
+  assert.ok(server.rooms.get(room).match.snapshot().players.find(p => p.id === me.id).railCd > 0, 'the transit spent the cooldown');
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true }));
 } finally {

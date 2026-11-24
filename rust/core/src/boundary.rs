@@ -24,7 +24,6 @@ use crate::collision::{CollisionMap, can_occupy, reach_clear};
 use crate::ground;
 use crate::hooks;
 use crate::math::hypot;
-use crate::phase_one::RESPAWNING;
 use crate::placement::{Disk, loot_fits, placement};
 use crate::scatter::scatter_point;
 use crate::sight::{GateSet, SightIndex};
@@ -372,7 +371,7 @@ fn apply_players(world: &mut World, log: &mut Log) {
                     world.players.rows.get_mut(i),
                     world.players.extra.get_mut(i),
                 ) {
-                    r.status = RESPAWNING;
+                    r.status = 2.0; // Respawning in the setup player store.
                     e.respawn_at = respawn_at;
                 }
             }

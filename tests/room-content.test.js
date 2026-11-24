@@ -51,14 +51,15 @@ test('a room describes the content it pins, on every welcome and ready and once 
     assert.equal(room.match.contentId, expected.contentId, 'the match runs the content the room described');
     assert.deepEqual(room.match.presentation, expected);
     assert.equal(room.game.content.weapons.pistol.ammo, 7);
-    for (const [peer, what] of [[spectator, 'spectator'], [dev, 'dev']]) carries(peer.messages.findLast(m => m.type === 'ready'), `${what} ready on the map`);
+    for (const peer of [spectator, dev]) assert.ok(!peer.messages.some(m => m.type === 'ready'));
     assert.ok(!owner.messages.some(m => m.type === 'ready'), 'a waiting player is not shown the match map yet');
 
     h.wake(50);
     const waiting = owner.messages.findLast(m => m.type === 'state');
     assert.equal(waiting.state.phase, 'waiting');
     owner.send({ type: 'start' });
-    carries(owner.messages.findLast(m => m.type === 'ready'), 'player ready at the start');
+    for (const [peer, what] of [[owner, 'player'], [spectator, 'spectator'], [dev, 'dev']])
+      carries(peer.messages.findLast(m => m.type === 'ready'), `${what} ready at the start`);
     const late = h.joined(room, { ownerKey: room.ownerKey, mode: 'spectator' });
     carries(late.messages.find(m => m.type === 'welcome'), 'a spectator joining a live match');
 

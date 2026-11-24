@@ -138,7 +138,8 @@ function tuningOf(s: Game): Tuning {
     const w = c.weapons[type];
     return { damage: w.damage, speed: w.speed, life: w.life, cooldown: w.cooldown, spread: [...w.spread] };
   };
-  const kit = (k: Kit) => c.kits[k];
+  // The fixed table includes codes for kits this content may not offer.
+  const kit = (k: Kit) => c.kits[k] ?? { damage: 0, cooldown: 0 };
   return {
     movement: {
       // The old motor's speeds are per tick times HZ (`action_combat.rs`'s `motor`).
@@ -210,6 +211,7 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
     if (kind === 'contestant') contestants++; else gladiators++;
     if (!Number.isSafeInteger(seat) || seat < 0) refuse(`${p.id} has an invalid seat ${seat}`);
     const word = actorWord(kind, seat);
+    if (actorOfPlayer.has(p.id)) refuse(`duplicate roster label ${p.id}`);
     if (playerOfActor.has(word)) refuse(`${p.id} shares its seat with ${playerOfActor.get(word)}`);
     slotOfActor.set(word, actorAtSlot.length as PlayerIdx);
     actorAtSlot.push(word);
@@ -292,7 +294,7 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
   geometry.forEach((g, i) => bodies.push({ id: { kind: 'geometry', id: i }, body: setupBody({ ...g, mapGeometry: true }) }));
 
   // --- Records -----------------------------------------------------------
-  const gates: GateEntry[] = s.gates.map((g, id) => ({ id, gate: { open: g.open, locked: g.locked, door: g.kind === 'door', position: pointOf(g) } }));
+  const gates: GateEntry[] = s.gates.map((g, id) => ({ id, gate: { open: g.open, locked: g.locked ?? g.kind !== 'door', door: g.kind === 'door', position: pointOf(g) } }));
   const traps: TrapEntry[] = s.traps.map((trap, id) => {
     const target = trap.targetId == null ? undefined : actorOfPlayer.get(trap.targetId);
     const kind: TrapKind = trap.kind === 'mine' ? { kind: 'mine', spent: trap.spent }

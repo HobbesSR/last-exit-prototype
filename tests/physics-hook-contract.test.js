@@ -1,3 +1,4 @@
+import { startGame } from '../shared/simulation/tick.ts';
 import { renderedSnapshot } from './helpers/relational.js';
 import { renderedPlayerView as playerView } from './helpers/relational.js';
 import test from 'node:test';
@@ -47,7 +48,7 @@ test('hook tuning rejects missing/invalid values and is detached from caller edi
   } finally { disposePhysics(s); }
 });
 
-test('the recording retains flight/pending/pull/cancel states through compressed recording and backward seek', async () => {
+test('the recording retains flight/pull/cancel states through compressed recording and backward seek', async t => {
   const { content, map } = fixture();
   const s = await createGame(446, map, content);
   const chunks = [], frames = [];
@@ -55,6 +56,8 @@ test('the recording retains flight/pending/pull/cancel states through compressed
     contentId: content.id, seed: 446, hz: 20, createdAt: 1, map: structuredClone(map) };
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
   const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => assert.fail(error.message) });
+  let finished = false;
+  t.after(() => { if (!finished) writer.abort(); });
   try {
     s.players.forEach(p => { p.bot = false; });
     const retain = () => {
@@ -62,12 +65,13 @@ test('the recording retains flight/pending/pull/cancel states through compressed
       frames.push(JSON.parse(JSON.stringify(frame)));
       assert.equal(writer.append(frame, []), true);
     };
-    retain();
+    startGame(s); retain();
     setInput(s, 'g0', { seq: 1, skill: true, aim: 0 }); step(s); retain();
     step(s); retain(); step(s); retain();
     setInput(s, 'g0', { seq: 4, skill: true }); step(s); retain();
-    assert.deepEqual(frames.map(f => f.physics.hooks.map(h => h.phase)), [[], ['flying'], ['pending'], ['pulling'], []]);
+    assert.deepEqual(frames.map(f => [f.hookFlights.length, f.tethers.length]), [[0, 0], [1, 0], [0, 1], [0, 1], [0, 0]]);
     await writer.finish({ ticks: s.tick, escaped: 0 });
+    finished = true;
     const archive = readArchive(chunks);
     assert.equal(archive.schema, SCHEMA);
     assert.equal(recordingFit(archive), 'ok');

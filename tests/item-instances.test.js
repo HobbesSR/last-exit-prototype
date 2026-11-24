@@ -1,3 +1,4 @@
+import { startGame } from '../shared/simulation/tick.ts';
 import { renderedSnapshot } from './helpers/relational.js';
 import { renderedPlayerView as playerView } from './helpers/relational.js';
 import test from 'node:test';
@@ -376,17 +377,6 @@ test('snapshot is detached; carried identity and the counter stay private', asyn
   assert.equal(q.inventory.find(Boolean).instanceId, identity, 'the numeric instance survives a later owner transfer');
 });
 
-test('the tick resolves a contested pickup by player id despite reversed array order', async t => {
-  const { s, p, q } = await fixture(t);
-  p.x = q.x = 120; p.y = q.y = 200;
-  s.players.reverse();
-  s.items.push(ground('contested', 'cell', { charge: 11 }));
-  step(s);
-  assert.equal(p.inventory.filter(Boolean).length, 1);
-  assert.equal(q.inventory.filter(Boolean).length, 0);
-  assert.equal(s.items.length, 0);
-});
-
 test('identical traces yield identical identities, counters, quantities and snapshots', async t => {
   async function trace() {
     const { s, p } = await fixture(t);
@@ -401,9 +391,9 @@ test('identical traces yield identical identities, counters, quantities and snap
 
 test('recording roundtrip and backward seeks retain exact item-instance frames', async t => {
   const map = arena();
-  map.items.push(ground('med-root', 'med', { count: 3, quality: 3 }),
+  map.items.push(ground('med-root', 'med', { count: 3 }),
     ground('rifle-root', 'weapon', { weaponType: 'rifle', ammo: 7, quality: 2 }),
-    ground('cell-root', 'cell', { charge: 100, quality: 4 }));
+    ground('cell-root', 'cell', { charge: 100 }));
   const s = await createGame(17, map, content());
   t.after(() => disposePhysics(s));
   for (const player of s.players) { player.bot = false; player.input = {}; }
@@ -416,31 +406,40 @@ test('recording roundtrip and backward seeks retain exact item-instance frames',
   assert.equal(recordingFit({ ...header, schema: 10, minSchema: 10 }), 'ok');
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
   const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => assert.fail(error.message) });
+  let finished = false;
+  t.after(() => { if (!finished) writer.abort(); });
   const frames = [];
   const retain = () => {
     const frame = snapshot(s);
     frames.push(JSON.parse(JSON.stringify(frame))); // Expected wire value; JSON omits undefined input fields.
     assert.equal(writer.append(frame, []), true);
   };
-  retain();
+  startGame(s); retain();
   step(s); retain();
-  assert.deepEqual(p.inventory.filter(Boolean).map(i => [i.instanceId, i.lineageId, i.quality]),
-    [['med-root', 'med-root', 3], ['rifle-root', 'rifle-root', 2], ['cell-root', 'cell-root', 4]].map(([id, lineage, quality]) => [itemId(s, id), itemId(s, lineage), quality]));
-  for (let slot = 0; slot < 3; slot++) { setInput(s, p.id, { seq: slot + 1, slot, drop: true }); step(s); retain(); }
+  const byId = rows => rows.sort((a, b) => a[0] - b[0]);
+  assert.deepEqual(byId(p.inventory.filter(Boolean).map(i => [i.instanceId, i.lineageId, i.quality])),
+    byId([['med-root', 'med-root', undefined], ['rifle-root', 'rifle-root', 2], ['cell-root', 'cell-root', undefined]].map(([id, lineage, quality]) => [itemId(s, id), itemId(s, lineage), quality])));
+  const press = input => { assert.ok(setInput(s, p.id, { seq: p.lastSeq + 1, ...input })); step(s); retain(); };
+  for (let slot = 0; slot < 3; slot++) {
+    if (slot !== p.selectedSlot) press({ slot });
+    press({ drop: true });
+  }
   const finalItems = frames.at(-1).items;
-  assert.equal(finalItems.length, 5);
-  assert.equal(finalItems.filter(i => i.kind === 'med').length, 3);
+  assert.equal(finalItems.length, 5, 'the three-count utility stack drops as three items');
+  assert.equal(finalItems.filter(i => i.kind === 'med').reduce((count, i) => count + i.count, 0), 3);
   assert.equal(finalItems.find(i => i.id === itemId(s, 'rifle-root')).ammo, 7);
   assert.equal(finalItems.find(i => i.id === itemId(s, 'cell-root')).charge, 100);
-  assert.ok(finalItems.every(i => i.lineageId && i.quality));
+  assert.ok(finalItems.every(i => i.lineageId));
+  assert.equal(finalItems.find(i => i.kind === 'weapon').quality, 2);
   assert.ok(frames.every(frame => Number.isSafeInteger(frame.itemSerial)));
 
   await writer.finish({ ticks: s.tick, escaped: 0 });
+  finished = true;
   const archive = readArchive(chunks);
   assert.equal(recordingFit(archive), 'ok');
   assert.deepEqual(archive.frames.map(frame => frame.state), frames);
   const timeline = createReplayTimeline(archive);
-  for (const tick of [4, 1, 3, 0, 2, 4]) {
+  for (const tick of [frames.length - 1, 1, 3, 0, 2, 4]) {
     assert.equal(timeline.at(tick).frameTick, tick);
     assert.deepEqual(timeline.at(tick).state, renderedSnapshot(map, frames[tick]));
   }

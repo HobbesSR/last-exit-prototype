@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createGame, disposePhysics, step } from '../shared/simulation.ts';
+import { startGame } from '../shared/simulation/tick.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { observedBlockers } from '../shared/simulation/dynamic-navigation.ts';
+import { attachSolidPropReader, observedBlockers } from '../shared/simulation/dynamic-navigation.ts';
 import { openArea } from './helpers/arena.js';
 
 test('bots share one prop query during collection, while same-tick external moves are observed freshly', async () => {
@@ -18,14 +19,15 @@ test('bots share one prop query during collection, while same-tick external move
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns: [{ x: 150, y: 400 }, { x: 150, y: 500 }] };
   const s = await createGame(448, map, content);
   try {
-    const world = physicsRuntime(s).world, query = world.solidPropStates.bind(world);
+    let props = physicsRuntime(s).world.solidPropStates();
+    startGame(s);
     let calls = 0;
-    world.solidPropStates = () => { calls++; return query(); };
+    attachSolidPropReader(s, () => { calls++; return props; });
     step(s);
     assert.equal(calls, 1, 'both bots consumed the same pre-movement prop list');
     const p = s.players[0], tick = s.tick;
     assert.ok(observedBlockers(s, p).some(shape => shape.kind === 'polygon'), 'nearby prop remains observed after the collection');
-    world.setTransform('prop:crate', { x: 650, y: 650, angle: 0 });
+    props = props.map(prop => ({ ...prop, transform: { x: 650, y: 650, angle: 0 } }));
     assert.equal(s.tick, tick);
     assert.equal(observedBlockers(s, p).some(shape => shape.kind === 'polygon'), false, 'no tick-keyed stale prop pose survives');
     assert.equal(calls, 3, 'outside collection each read is fresh');

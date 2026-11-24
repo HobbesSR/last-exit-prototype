@@ -269,6 +269,8 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
   const match = await createMatch(4217, undefined, generatedMap(), defaultContent());
   try {
     const c0 = match.diagnosticState.players[0];
+    c0.bot = false;
+    match.start();
 
     const delivered = [];
     let shouldDrop = false;
@@ -310,19 +312,15 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
     assert.deepEqual(decoder.known, c0.discovery.discovered);
 
     // 2. Advance ticks and simulate a dropped intermediate delta frame
-    for (let i = 0; i < 5; i++) {
-      c0.x += 25; // the body is placed where the player is set, on the next tick
-      match.advance();
-    }
+    for (let i = 0; i < 10; i++) match.advance();
     shouldDrop = true;
     broadcast(room, match.snapshot());
     assert.equal(delivered.length, 1, 'intermediate frame was dropped, delivered count unchanged');
 
     // Advance more ticks and broadcast
-    for (let i = 0; i < 5; i++) {
-      c0.x += 25; // the body is placed where the player is set, on the next tick
-      match.advance();
-    }
+    const exit = match.diagnosticState.map.exit;
+    assert.ok(match.teleport(c0.id, exit.x, exit.y));
+    for (let i = 0; i < 10; i++) match.advance();
     broadcast(room, match.snapshot());
     assert.equal(delivered.length, 2, 'subsequent frame delivered');
     const catchupFrame = delivered[1].state;
@@ -333,10 +331,7 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
     assert.deepEqual(decoder.known, c0.discovery.discovered, 'client decoder recovers all cells despite dropped delta frame');
 
     // 3. Catch-up batch: simulate room-service advance() stepping multiple ticks before broadcasting
-    for (let i = 0; i < 5; i++) {
-      c0.x += 25; // the body is placed where the player is set, on the next tick
-      match.advance();
-    }
+    for (let i = 0; i < 10; i++) match.advance();
     broadcast(room, match.snapshot());
     assert.equal(delivered.length, 3);
     const batchFrame = delivered[2].state;

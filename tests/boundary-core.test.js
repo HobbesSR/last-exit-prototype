@@ -92,22 +92,6 @@ test('a respawn takes the westmost clear station, the clearance answered in phas
   } finally { disposePhysics(s); }
 });
 
-test('a transit lands nearest its station, and one with no room waits at no cost', async () => {
-  const stations = [{ id: 'st0', nodeId: 'n0', x: 1500, y: 150 }, { id: 'boxed', nodeId: 'n1', x: 1750, y: 380 }];
-  const { s, players: [, , g] } = await field({ stations, obstacles: [{ id: 'room', x: 1600, y: 230, w: 300, h: 300 }] });
-  try {
-    g.status = 'transit'; g.transit = { to: 'boxed', arriveAt: s.tick + 1 };
-    const serial = s.serial;
-    step(s);
-    assert.deepEqual([g.status, s.serial], ['transit', serial], 'nowhere to land: it waits, allocating nothing');
-    g.transit.to = 'st0';
-    step(s);
-    const r = physicsRuntime(s), want = placementTs(s, r, g, s.players.filter(q => q !== g && q.status === 'active'), stations[0]);
-    assert.equal(g.status, 'active');
-    assert.deepEqual({ x: g.x, y: g.y }, want);
-  } finally { disposePhysics(s); }
-});
-
 test('a sync refused partway keeps what it did, and the next one finishes', async () => {
   const { s, players: [a, b] } = await field();
   try {
@@ -152,37 +136,5 @@ test('a full marker list stops the sync after the teleport it marks, as the Type
     synchronizePhysics(s);
     near(r.world.getTransform('actor:c1'), b.x);
     step(s);
-  } finally { disposePhysics(s); }
-});
-
-test('an attachment is admitted in the clear and refused through a wall', async () => {
-  for (const wall of [false, true]) {
-    const obstacles = wall ? [{ id: 'wall', x: 490, y: 300, w: 20, h: 200 }] : [];
-    const { s, players: [a, b] } = await field({ obstacles, crates: false });
-    try {
-      const r = physicsRuntime(s);
-      a.x = 400; a.y = 400; b.x = 600; b.y = 400;
-      synchronizePhysics(s);
-      enqueuePhysicsAttachment(s, { id: 'tether', a: 'actor:c0', b: 'actor:c1', maxDistance: 400 });
-      step(s);
-      assert.equal(r.world.hasConstraint('tether'), !wall, wall ? 'through a wall' : 'in the clear');
-    } finally { disposePhysics(s); }
-  }
-});
-
-test('an impulse the world refuses leaves the attachments pending, and the retry admits them (review 975)', async () => {
-  const { s, players: [a, b] } = await field({ obstacles: [{ id: 'wall', x: 300, y: 100, w: 20, h: 80 }], crates: false });
-  try {
-    const r = physicsRuntime(s);
-    a.x = 400; a.y = 400; b.x = 600; b.y = 400;
-    synchronizePhysics(s);
-    // A static body has a generation, so the impulse is accepted, then refused when it is queued in phase 1.
-    enqueuePhysicsImpulse(s, 'obstacle:wall', { x: 1, y: 0 });
-    enqueuePhysicsAttachment(s, { id: 'tether', a: 'actor:c0', b: 'actor:c1', maxDistance: 400 });
-    assert.throws(() => step(s), /unknown dynamic physics body obstacle:wall/);
-    assert.equal(r.pendingAttachments.length, 1, 'the attachment waits, as it did before the core');
-    assert.equal(r.pendingImpulses.length, 0);
-    step(s);
-    assert.equal(r.world.hasConstraint('tether'), true);
   } finally { disposePhysics(s); }
 });

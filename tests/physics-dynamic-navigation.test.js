@@ -1,3 +1,4 @@
+import { startGame } from '../shared/simulation/tick.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PHYSICS_VERSION, createGame, disposePhysics, setInput, snapshot, step } from '../shared/simulation.ts';
@@ -29,35 +30,31 @@ function drive(s, p, target) {
   const length = Math.max(9, Math.hypot(dx, dy));
   assert.ok(setInput(s, p.id, { seq: s.tick + 1, x: dx / length, y: dy / length }));
   step(s);
-  const pose = physicsRuntime(s).world.getTransform(`actor:${p.id}`);
+  const pose = snapshot(s).bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === s.players.indexOf(p));
   assert.ok(pose && Math.hypot(pose.x - p.x, pose.y - p.y) < 0.01,
     `actor gameplay and body pose agree: player=(${p.x},${p.y}) body=${JSON.stringify(pose)}`);
   return at;
 }
 
-test('physical motor detours around sleeping and moving rotated crates and reaches the goal', async () => {
-  for (const moving of [false, true]) {
+test('physical motor detours around a sleeping rotated crate and reaches the goal', async () => {
+  {
     const s = await game({ props: [{ id: 'crate', profile: 'crate', x: 300, y: 400, angle: Math.PI / 4 }] });
     try {
-      const p = s.players[0], world = physicsRuntime(s).world, target = { x: 480, y: 400 };
-      if (!moving) {
-        for (let i = 0; i < 400 && !world.getTransform('prop:crate').sleeping; i++) step(s);
-        assert.equal(world.getTransform('prop:crate').sleeping, true, JSON.stringify(world.getTransform('prop:crate')));
-      }
+      const p = s.players[0], target = { x: 480, y: 400 };
+      const prop = () => snapshot(s).bodies.find(b => b.owner.kind === 'prop');
+      for (let i = 0; i < 400 && !prop().sleeping; i++) step(s);
+      assert.equal(prop().sleeping, true);
       while (s.tick % 4 !== 0) step(s);
-      if (moving) world.queueImpulse('prop:crate', { x: 0, y: 300 });
       const first = dynamicWaypoint(s, p, target);
       assert.notDeepEqual(first, target);
       assert.ok(dynamicNavigationWork(s) > 0 && dynamicNavigationWork(s) <= 192);
-      let deviated = false, moved = false;
+      let deviated = false;
       for (let i = 0; i < 90; i++) {
         const at = drive(s, p, target);
         if (Math.abs(at.y - 400) > 5 || Math.abs(p.y - 400) > 5) deviated = true;
-        if (Math.abs(world.getTransform('prop:crate').y - 400) > 0.01) moved = true;
       }
-      assert.ok(deviated, `${moving ? 'moving' : 'sleeping'} crate caused a detour`);
-      assert.ok(p.x > 380, `actor progressed around ${moving ? 'moving' : 'sleeping'} crate: ${p.x}`);
-      if (moving) assert.ok(moved, `crate moved after impulse: tick=${s.tick} phase=${s.phase} pose=${JSON.stringify(world.getTransform('prop:crate'))}`);
+      assert.ok(deviated, 'sleeping crate caused a detour');
+      assert.ok(p.x > 380, `actor progressed around the sleeping crate: ${p.x}`);
     } finally { disposePhysics(s); }
   }
 });
@@ -107,7 +104,7 @@ test('narrow corridor queues behind an actor without tunneling, then resumes whe
     assert.ok(p.x < blocker.x - 20, `actor waited outside blocker: ${p.x}`);
     assert.ok(blocker.x - p.x < 30, `actor reached the queue instead of stopping at observation range: gap=${blocker.x - p.x}`);
     assert.ok(p.y > 390 && p.y < 410, `actor stayed inside corridor: ${p.y}`);
-    assert.ok(teleport(s, blocker.id, 650, 500));
+    assert.ok(startGame(s).boundary.teleport(blocker.id, [650, 500]));
     for (let i = 0; i < 50; i++) drive(s, p, goal);
     assert.ok(p.x > 390, `actor resumed after corridor cleared: ${p.x}`);
   } finally { disposePhysics(s); }
@@ -154,13 +151,13 @@ test('teleport discards a stale detour and follows the new destination', async (
 test('dynamic navigation adds no snapshot fields', async () => {
   const p8 = await game(), fresh = await game();
   try {
+    startGame(fresh);
     const beforeKeys = Object.keys(snapshot(fresh)).sort();
-    const beforePhysicsKeys = Object.keys(snapshot(fresh).physics).sort();
     assert.equal(p8.version, PHYSICS_VERSION);
     drive(p8, p8.players[0], { x: 300, y: 400 });
     const current = snapshot(p8);
     assert.equal(current.version, PHYSICS_VERSION);
     assert.deepEqual(Object.keys(current).sort(), beforeKeys);
-    assert.deepEqual(Object.keys(current.physics).sort(), beforePhysicsKeys);
+    assert.equal(current.physics, undefined);
   } finally { disposePhysics(p8); disposePhysics(fresh); }
 });

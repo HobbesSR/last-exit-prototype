@@ -18,7 +18,7 @@ import { startScheduler } from './scheduler.js';
 import { fileReplayWriters } from './replay-store.js';
 import { mapHere } from './map-pack.js';
 
-const { room: options, devTools, replays: replayOptions, replayFinishTimeoutMs, profile, wireKey, tick } = workerData;
+const { room: options, devTools, replays: replayOptions, replayFinishTimeoutMs, profile, wireKey } = workerData;
 profiler.enable(!!profile);
 
 const encoder = new TextEncoder();
@@ -84,7 +84,6 @@ const room = createRoom({
   devTools,
   replayFinishTimeoutMs,
   wireKey,
-  tick,
   reportError: error => emit(['error', asPlainError(error)]),
   deliver,
   datagram,

@@ -1,3 +1,4 @@
+import { defaultContent } from '../shared/simulation/content.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
@@ -90,11 +91,10 @@ test('a catch-up past the cap leaves a server-stall marker on the recording, and
 });
 
 test('a stall marker counts the ticks actually simulated when the match ends mid catch-up', async () => {
-  const h = roomHarness({ reuseMaps: true });
+  const h = roomHarness({ reuseMaps: true, content: () => ({ ...defaultContent(), durationTicks: 3 }) });
   try {
     const { room, writer } = await h.live();
     h.wake(50);
-    room.game.tick = room.game.content.durationTicks - 1;
     const before = writer.frames.length;
     h.wake(50 * 9);
     const added = writer.frames.length - before, [mark] = writer.marks;

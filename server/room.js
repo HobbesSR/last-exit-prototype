@@ -64,7 +64,6 @@ export function createRoom({
   setTimer = setTimeout,
   clearTimer = clearTimeout,
   matchFactory = createMatch,
-  tick: tickEngine = 'old',
   // How this room keys its match's and waiting yard's outward IDs (#1164): 'random' draws a fresh key for
   // each (createArenaServer's default), a literal key is used as given (tests), and null keeps internal IDs.
   wireKey = null,
@@ -79,7 +78,6 @@ export function createRoom({
   const drawWireKey = () => wireKey === 'random' ? randomWireIdKey() : wireKey;
   const clientMap = new Map();
   const pendingTeleports = [];
-  const newTick = tickEngine === 'new';
   let resolveDeferredMap, rejectDeferredMap;
 
   const isCurrent = () => Boolean(state && !state.finished && !state.disposed && !state.closing);
@@ -213,7 +211,7 @@ export function createRoom({
 
   function openMatch(map) {
     if (!state || state.match || !isCurrent()) return;
-    const match = matchFactory(state.seed, state.size, map, state.content, { wireKey: drawWireKey(), tick: tickEngine });
+    const match = matchFactory(state.seed, state.size, map, state.content, { wireKey: drawWireKey() });
     if (typeof match?.then === 'function') {
       return state.initializing = match.then(ready => recordingOpened(ready)).then(ready => adoptMatch(ready), error => abandonGeneration(error));
     }
@@ -244,8 +242,6 @@ export function createRoom({
     match.seat(state.inputs);
     // `game` stays the tests' and benchmarks' escape hatch; nothing here reads it.
     Object.assign(state, { match, seats: match, game: match.diagnosticState });
-    // Legacy watchers get the prepared map now. Opt-in watchers receive it with core tick 0.
-    if (!newTick) for (const client of state.clients) if (!client.playerId) sendEnvelope(client, readyMessage({ ...described(), ...view(client) }));
     broadcastLobby(state);
     if (state.startRequested) startMatch();
   }
@@ -271,7 +267,7 @@ export function createRoom({
   function viewOf(client) {
     // `constants` come with the map they belong to: the yard's, then the match's in the start's `ready` (24.3).
     if (client.playerId && state.waiting) return { map: state.waiting.map, state: waitingView(state.waiting, client.playerId), roster: waitingSeats(state.waiting), constants: waitingConstants() };
-    if (!state.match || (newTick && !state.started)) return { map: null, state: null, roster: state.seats.seatMetadata(), constants: null };
+    if (!state.match || !state.started) return { map: null, state: null, roster: state.seats.seatMetadata(), constants: null };
     const constants = state.match.constants();
     if (client.playerId) { const frame = state.match.snapshot(); return { map: state.match.payloadMap('live'), state: state.match.project(frame, client.playerId), roster: state.match.seatMetadata(frame), constants }; }
     // A spectator is shown the delayed frame; the dev view the present one.
@@ -364,8 +360,8 @@ export function createRoom({
     openRecording(state.match);
     record(frame);
     remember(state, frame);
-    // Leave the waiting area and give opt-in watchers their initial map and frame.
-    for (const client of state.clients) if (client.playerId || newTick) sendEnvelope(client, readyMessage({ ...described(), ...view(client) }));
+    // Leave the waiting area and give watchers their initial map and frame.
+    for (const client of state.clients) sendEnvelope(client, readyMessage({ ...described(), ...view(client) }));
     broadcastLobby(state);
     broadcast(state, frame);
   }
@@ -530,9 +526,8 @@ export function createRoom({
       accept(state.waiting, client.playerId, input);
     } else if (state.started) {
       const match = state.match;
-      const accepted = sanitized && match.acceptSanitizedInput
-        ? match.acceptSanitizedInput(client.playerId, input) : match.acceptInput(client.playerId, input);
-      if (!newTick && accepted) state.inputs.push(accepted);
+      if (sanitized && match.acceptSanitizedInput) match.acceptSanitizedInput(client.playerId, input);
+      else match.acceptInput(client.playerId, input);
     }
   }
 
@@ -597,19 +592,9 @@ export function createRoom({
   function teleportPlayer(client, { id, x, y }) {
     const admitted = state.match.teleport(id, x, y);
     if (!admitted) return send(client, teleportReplyMessage(false, id));
-    if (newTick) {
-      // The order is the core's request ordinal among T's teleport observations.
-      pendingTeleports.push({ client, id });
-      if (state.pausedAt != null) advancePausedTeleport();
-      return;
-    }
-    send(client, teleportReplyMessage(true, id));
-    state.inputs.push(admitted);
-    if (state.pausedAt != null) {
-      const frame = state.match.snapshot();
-      remember(state, frame);
-      broadcast(state, frame);
-    }
+    // The core reports the request ordinal among T's teleport observations.
+    pendingTeleports.push({ client, id });
+    if (state.pausedAt != null) advancePausedTeleport();
   }
 
   function answerTeleports(succeeded) {
@@ -624,7 +609,7 @@ export function createRoom({
 
   function advanceFrame() {
     const frame = state.match.advance();
-    profiler.start('loop.record'); record(frame, newTick ? state.match.spent() : undefined); profiler.stop('loop.record');
+    profiler.start('loop.record'); record(frame, state.match.spent()); profiler.stop('loop.record');
     remember(state, frame);
     return frame;
   }
@@ -654,10 +639,7 @@ export function createRoom({
     if (!isCurrent() || !state.match) return false;
     const client = clientMap.get(clientId);
     if (!client?.playerId) return false;
-    const observed = state.match.setViewLag(client.playerId, rttMs);
-    // Nothing is recorded before the start; a measurement then is the waiting area's.
-    if (observed && state.started && !newTick) state.inputs.push(...observed);
-    return !!observed;
+    return !!state.match.setViewLag(client.playerId, rttMs);
   }
 
   /**

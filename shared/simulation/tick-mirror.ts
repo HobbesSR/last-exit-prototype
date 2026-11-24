@@ -1,10 +1,13 @@
+import { start as profileStart, stop as profileStop } from '../profiler.ts';
 import { attachDiscovery, discoveryGrid } from '../discovery.ts';
 import { ItemMemory, SeenCells } from './bot-memory.ts';
 import { WEAPONS as WEAPON_ORDER } from '../enum-tables.ts';
 import { cos, sin } from '../math.ts';
-import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
+import { attachSolidPropReader, beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
+import { authoredProps } from './world-physics.ts';
 import { collectBotIntent } from './bots.ts';
 import { writeDoor } from './doors.ts';
+import { clearRoute } from './geometry.ts';
 import { effect, event, participant } from './event-records.ts';
 import { addItemsFromCore, groundItem, removeItem, replaceItem } from './ground-items.ts';
 import { sightOf } from './sight-runtime.ts';
@@ -88,6 +91,8 @@ interface Context {
   grid: { cols: number; rows: number };
   /** Whether the content keeps discovery. Off, the mirror keeps no memory, as the old game attaches none. */
   discovery: boolean;
+  /** Tiered content displays weapon quality even at its base tier. */
+  weaponQuality: boolean;
 }
 
 const remaining = (deadline: Tick, tick: Tick): Tick => Math.max(0, deadline - tick);
@@ -103,26 +108,26 @@ function set<T extends object, K extends keyof T>(target: T, key: K, value: T[K]
   if (value === undefined) delete target[key]; else target[key] = value;
 }
 
-function equipmentFields(e: Equipment): Pick<InventoryItem, 'kind'> & Record<string, unknown> {
-  const quality = e.quality === 1 ? {} : { quality: e.quality };
+function equipmentFields(e: Equipment, weaponQuality: boolean): Pick<InventoryItem, 'kind'> & Record<string, unknown> {
+  const quality = e.quality === 1 && !(weaponQuality && e.kind.kind === 'firearm') ? {} : { quality: e.quality };
   switch (e.kind.kind) {
     case 'firearm': return { kind: 'weapon', weaponType: e.kind.weapon, ammo: e.kind.rounds, ...quality };
     case 'cell': return { kind: 'cell', charge: e.kind.charge, ...quality };
     case 'stack': return { kind: e.kind.utility === 'medkit' ? 'med' : 'shield', count: e.kind.count, ...quality };
   }
 }
-function lootFields(loot: Loot): Record<string, unknown> {
+function lootFields(loot: Loot, weaponQuality: boolean): Record<string, unknown> {
   switch (loot.kind) {
     case 'accessKey': return { kind: 'access' };
     case 'ammo': return { kind: 'ammo', family: loot.family, count: loot.count };
-    case 'equipment': return equipmentFields(loot.equipment);
+    case 'equipment': return equipmentFields(loot.equipment, weaponQuality);
   }
 }
-const carriedOf = (c: CarriedItem): InventoryItem => ({ ...equipmentFields(c.equipment), instanceId: c.id, lineageId: c.lineage }) as InventoryItem;
+const carriedOf = (c: CarriedItem, weaponQuality: boolean): InventoryItem => ({ ...equipmentFields(c.equipment, weaponQuality), instanceId: c.id, lineageId: c.lineage }) as InventoryItem;
 
 /** A ground record as the mirror holds it, at `at`: its body's pose when placed, else where it waits. */
 export function groundOf(ctx: Context, id: number, item: CoreGround, at: Point): GroundItem {
-  const record = { id, x: at[0], y: at[1], ...lootFields(item.loot) } as GroundItem & Record<string, unknown>;
+  const record = { id, x: at[0], y: at[1], ...lootFields(item.loot, ctx.weaponQuality) } as GroundItem & Record<string, unknown>;
   if (item.lineage !== null) record.lineageId = item.lineage as never;
   if (item.droppedBy !== null) record.droppedBy = ctx.ids.playerOfActor.get(item.droppedBy);
   if (item.pickupReadyAt > 0) record.pickupAfter = item.pickupReadyAt;
@@ -139,7 +144,7 @@ function writeActor(ctx: Context, p: Partial<Player>, word: number, a: Actor, ti
   set(p, 'viewLagTicks', a.viewLag > 0 ? a.viewLag : undefined);
   const inv = a.inventory;
   if (shape.inventory) {
-    p.inventory = inv.slots.map(slot => slot ? carriedOf(slot) : null);
+    p.inventory = inv.slots.map(slot => slot ? carriedOf(slot, ctx.weaponQuality) : null);
     p.selectedSlot = inv.selected;
     const item = p.inventory[inv.selected];
     p.weapon = item?.kind === 'weapon' ? WEAPON_ORDER.indexOf(item.weaponType) + 1 : 0;
@@ -252,8 +257,13 @@ export class TickMirror {
     for (const item of s.items) metadata.set(item.id, { buildingId: item.buildingId, nodeId: item.nodeId, tier: item.tier });
     const shapes = new Map(s.players.map((p, slot) => [match.ids.actorAtSlot[slot]!, { inventory: p.inventory !== undefined, reserves: p.reserves !== undefined }] as const));
     this.ctx = { ids: match.ids, metadata, shapes, blast: s.content.traps.mine.blast, grid: discoveryGrid(s.map),
-      discovery: s.content.discovery === true };
+      discovery: s.content.discovery === true, weaponQuality: s.content.lootTiers !== undefined };
     this.#load(match.snapshot());
+    const props = authoredProps(s);
+    attachSolidPropReader(s, () => props.flatMap(({ spec }, id) => {
+      const pose = this.poses.get(`prop:${id}`);
+      return pose ? [{ spec, transform: { x: pose.at[0], y: pose.at[1], angle: pose.angle } }] : [];
+    }));
   }
 
   /** Make the game the snapshot's, whole: once, at the start. */
@@ -296,10 +306,13 @@ export class TickMirror {
   /** Refresh a contestant's memory from the match; `fresh` starts it over, as at the start, where the core's holds nothing yet. */
   #memory(p: Player, fresh = false): void {
     if (p.role !== 'contestant' || !this.ctx.discovery) return;
-    const memory = this.match.memory(p.id);
-    if (!memory) return;
-    if (fresh || !p.discovery) attachDiscovery(p, emptyMemory(this.ctx));
-    writeMemory(this.ctx, p.discovery!, memory);
+    profileStart('sim.tick.memory');
+    try {
+      const memory = this.match.memory(p.id);
+      if (!memory) return;
+      if (fresh || !p.discovery) attachDiscovery(p, emptyMemory(this.ctx));
+      writeMemory(this.ctx, p.discovery!, memory);
+    } finally { profileStop('sim.tick.memory'); }
   }
 
   /** Write one completed tick onto the mirror. */
@@ -344,7 +357,10 @@ export class TickMirror {
     for (const e of c.projectiles) { projectiles!.set(e.id, projectileOf(ctx, e.id, e.projectile, tick)); this.#expires.set(e.id, e.projectile.expiresAt); }
     if (projectiles) s.projectiles = [...projectiles.values()].sort((a, b) => a.id - b.id);
     for (const e of c.hooks) this.hooks.set(e.id, e.hook);
-    for (const marker of t.discontinuities) if (marker.kind === 'removed') this.poses.delete(bodyKey(marker.body));
+    for (const marker of t.discontinuities) {
+      if (marker.kind === 'removed') this.poses.delete(bodyKey(marker.body));
+      else if (marker.kind === 'devWarped' && marker.body.kind === 'actor') clearRoute(this.#player(marker.body.id));
+    }
     this.lives.take(t.discontinuities);
     for (const pose of c.poses) {
       this.poses.set(bodyKey(pose.body), pose);
@@ -371,7 +387,13 @@ export class TickMirror {
         if (!p.heard) Object.defineProperty(p, 'heard', { value: [], writable: true, configurable: true, enumerable: false });
         p.heard = cues.map(heardOf);
       }
-      if (!p.bot) { p.lastSeq = this.match.acknowledged(p.id) ?? -1; rollMargin(p); }
+      if (!p.bot) {
+        const sequence = this.match.acknowledged(p.id) ?? -1;
+        if (sequence !== p.lastSeq) p.inputStalled = 0;
+        else if (p.status === 'active') p.inputStalled = (p.inputStalled ?? 0) + 1;
+        p.lastSeq = sequence;
+        rollMargin(p);
+      }
     }
   }
 

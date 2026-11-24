@@ -2,12 +2,13 @@
 export { TILE } from './movement.ts';
 export { VERSION, HZ, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS, KITS } from './simulation/rules.ts';
 export { createGameRecord, joinGame, setInput } from './simulation/state.ts';
-export { POTENTIAL, couldSee, visibleTo, playerView, snapshot } from './simulation/visibility.ts';
+export { POTENTIAL, couldSee, visibleTo, playerView } from './simulation/visibility.ts';
 import type { Game } from './types.ts';
 import { PHYSICS_VERSION } from './simulation/physics-runtime.ts';
 import { stepGame } from './simulation/tick.ts';
 export { createGame, synchronizePhysics } from './simulation/game.ts';
-export { disposePhysics, enqueuePhysicsImpulse, enqueuePhysicsAttachment, PHYSICS_VERSION } from './simulation/physics-runtime.ts';
+export { enqueuePhysicsImpulse, enqueuePhysicsAttachment, PHYSICS_VERSION } from './simulation/physics-runtime.ts';
+export { disposePhysics, snapshot } from './simulation/tick.ts';
 
 /**
  * Advance a match one tick. Only a physics game steps: `createGameRecord` builds the record a game

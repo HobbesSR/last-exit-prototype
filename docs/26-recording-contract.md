@@ -72,9 +72,8 @@ observations mark where a bot derives that seat's commands. On arena 9's eleven-
 add 41% to a gzipped recording (1.39 to 1.96 MB over 1800 ticks). The new path's frames also leave out `rng` and
 `scatterSerial`, which that tick does not keep.
 
-The room writes header schema 21 on the old path and schema 22 on the new path. Playback reads no command, so
-`minSchema` is unchanged. Moving the room's default to the new path and deleting the old tick is 3d.4d; until then
-the old path remains the default.
+Since 3d.4d the room writes header schema 22. Playback reads stored frames with the same `minSchema` 20, including
+archives written under schema 21.
 
 ## Schema 21: observations as commands (#1283)
 

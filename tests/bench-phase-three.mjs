@@ -1,11 +1,12 @@
 // Headless tick comparison for the core's per-tick work (42.69 onwards; #1214's step 6 bench, 6e.6). Run from the
 // repository root:
-// node --experimental-strip-types tests/bench-phase-three.mjs [--root=PATH] [--cache=PATH] [--rounds=N] [--traps]
+// node tests/bench-phase-three.mjs [--root=PATH] [--cache=PATH] [--rounds=N] [--traps] [--ground-fraction=1]
 // `--root` names the tree to time (a baseline is a `git archive` of a whole commit with its core built there by
 // `node tools/build-core.mjs`); the map cache is shared, so both sides tick the same map. `--traps` places a trap of
 // each kind on every third item, as the default map has none. Every `sim.*` label the tree records is reported as its
 // median of the rounds' means, so trees with different labels compare by the whole tick and by their own groups.
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import v8 from 'node:v8';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -19,6 +20,8 @@ const root = path.resolve(String(args.get('root') ?? process.cwd()));
 const rounds = Number(args.get('rounds') ?? 5);
 if (!Number.isInteger(rounds) || rounds < 1) throw new Error('--rounds must be a positive integer');
 const withTraps = args.has('traps');
+const groundFraction = Number(args.get('ground-fraction') ?? 1);
+if (!(groundFraction > 0 && groundFraction <= 1)) throw new Error('--ground-fraction must be in (0, 1]');
 const load = rel => import(pathToFileURL(path.join(root, rel)).href);
 const [simulation, profiler, live, contentModule, routes, freeSpace] = await Promise.all([
   load('shared/simulation.ts'), load('shared/profiler.ts'), load('map/live.ts'),
@@ -47,10 +50,12 @@ try {
   const results = [];
   for (let round = 0; round < rounds; round++) {
     const map = v8.deserialize(serialized);
+    map.items = map.items.slice(0, Math.floor(map.items.length * groundFraction));
     if (withTraps) {
       const kinds = ['mine', 'turret', 'flame', 'spider'];
       map.traps = map.items.filter((_, i) => i % 3 === 0).map((item, i) => {
-        const kind = kinds[i % 4], trap = { id: `trap-${i}`, kind, x: item.x, y: item.y };
+        const kind = kinds[i % 4], trap = { id: `trap-${i}`, kind, x: item.x, y: item.y,
+          homeX: item.x, homeY: item.y, heading: 0, offset: 0, cooldown: 0, spent: false };
         if (kind === 'spider') Object.assign(trap, { homeX: item.x, homeY: item.y });
         if (kind !== 'mine' && i % 3) trap.heading = (i * 0.7) % 6;
         if (kind === 'flame') trap.offset = i * 7;
@@ -59,18 +64,24 @@ try {
       });
     }
     const game = await createGame(seed, map, content);
+    const advance = () => { step(game); snapshot(game); };
     profiler.enable(true);
-    for (let i = 0; i < 300; i++) { step(game); snapshot(game); profiler.frame(); }
+    for (let i = 0; i < 300; i++) { advance(); profiler.frame(); }
     profiler.reset(); profiler.enable(true);
     const started = performance.now();
-    for (let i = 0; i < 600; i++) { step(game); snapshot(game); profiler.frame(); }
+    let activeSum = 0, groundSum = 0, samples = 0;
+    for (let i = 0; i < 600; i++) {
+      advance(); profiler.frame();
+      activeSum += game.players.filter(p => p.role === 'contestant' && p.status === 'active').length;
+      groundSum += game.items.length; samples++;
+    }
     const elapsedMs = performance.now() - started;
     const rows = profiler.report();
     const actions = rows.find(row => row.name === 'sim.actions');
     const coreActions = rows.find(row => row.name === 'sim.actions.core');
     const labels = Object.fromEntries(rows.filter(row => row.name.startsWith('sim.') && row.unit === 'ms')
       .map(row => [row.name, row.mean]));
-    results.push({ round: round + 1, meanTickAndSnapshotMs: elapsedMs / 600, labels, live: game.phase,
+    results.push({ round: round + 1, meanActive: activeSum / samples, meanGround: groundSum / samples, meanTickAndSnapshotMs: elapsedMs / 600, labels, live: game.phase,
       simActionsMeanMs: actions?.mean ?? null,
       simActionsCoreMeanMs: coreActions?.mean ?? null,
       simActionsMinusCoreMs: actions && coreActions ? actions.mean - coreActions.mean : null });
@@ -82,7 +93,7 @@ try {
   const names = [...new Set(results.flatMap(row => Object.keys(row.labels)))].sort();
   const medianLabels = Object.fromEntries(names.map(name => [name, middle(results.map(row => row.labels[name] ?? 0))]));
   console.log(JSON.stringify({ root, cache: cachePath, seed, size: '24x12', warmTicks: 300, timedTicks: 600,
-    rounds, withTraps, results, medianLabels, medianMeanTickAndSnapshotMs: median('meanTickAndSnapshotMs'),
+    rounds, withTraps, groundFraction, mapSha256: createHash('sha256').update(serialized).digest('hex'), results, medianLabels, medianMeanTickAndSnapshotMs: median('meanTickAndSnapshotMs'),
     medianSimActionsMeanMs: median('simActionsMeanMs'),
     medianSimActionsCoreMeanMs: median('simActionsCoreMeanMs'),
     medianSimActionsMinusCoreMs: median('simActionsMinusCoreMs'), contention: lock.contention() }, null, 2));

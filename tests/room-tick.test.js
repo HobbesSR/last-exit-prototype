@@ -15,7 +15,7 @@ async function optInRoom(durationTicks) {
   const content = structuredClone(contentById('content-ammo-1'));
   content.roster = { contestants: ['C0', 'C1'], gladiators: [{ name: 'G', kit: 'striker' }] };
   if (durationTicks !== undefined) content.durationTicks = durationTicks;
-  const h = roomHarness({ tick: 'new', devTools: 'owner', content: () => content, generateMap: seed => arena({
+  const h = roomHarness({ devTools: 'owner', content: () => content, generateMap: seed => arena({
     cols: 6, rows: 4, seed, spawns: [{ x: 150, y: 300 }, { x: 200, y: 300 }], hunterSpawns: [{ x: 500, y: 300 }],
     obstacles: [{ id: 'wall', x: 350, y: 480, w: 80, h: 80 }],
   }).map });
@@ -136,7 +136,7 @@ test('the opt-in room replies to each committed teleport and publishes a paused 
 test('the threaded host can opt into the new tick and save a schema 22 archive', { timeout: 10000 }, async t => {
   const dir = await mkdtemp(path.join(tmpdir(), 'room-tick-'));
   const replays = await createFileReplayStore(dir), errors = [];
-  const service = createRoomService({ replays, threads: true, tick: 'new', reportError: error => errors.push(error) });
+  const service = createRoomService({ replays, threads: true, reportError: error => errors.push(error) });
   try {
     const room = service.makeRoom(9, false, undefined, generatedMap(9));
     await room.ready;

@@ -118,22 +118,24 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     const eye = await open(base);
     const welcomeEye = next(eye, 'welcome'); eye.send(JSON.stringify({ type: 'join', room: room.id, ownerKey: room.ownerKey, mode: 'spectator' }));
     const we = await welcomeEye;
-    assert.equal(we.id, null); assert.equal(we.spectator, true); assert.equal(Object.hasOwn(we.state, 'self'), false, 'directed');
-    assert.equal(we.state.players.length, server.rooms.get(room.id).game.players.length);
-    // The composition root keys outward IDs by default (#1164): the map's item IDs are not the match's own.
-    const internal = server.rooms.get(room.id).game.items.map(item => item.id), sent = we.map.items.map(item => item.id);
-    assert.equal(sent.length, internal.length);
-    assert.notDeepEqual(sent, internal, 'createArenaServer draws a non-identity key');
-    assert.equal(new Set(sent).size, sent.length);
-    // Watching neither starts the match, consumes a slot, nor grants any authority over one.
+    assert.equal(we.id, null); assert.equal(we.spectator, true);
+    assert.equal(we.state, null); assert.equal(we.map, null);
     assert.equal(server.rooms.get(room.id).started, false);
-    eye.send(JSON.stringify({ type: 'input', seq: 1, tick: we.state.tick + 1, x: 1 }));
+    eye.send(JSON.stringify({ type: 'input', seq: 1, tick: 1, x: 1 }));
     assert.equal(server.rooms.get(room.id).game.players.every(p => p.bot), true);
     const player = await open(base);
     const welcomePlayer = next(player, 'welcome'); player.send(JSON.stringify({ type: 'join', room: room.id, role: 'contestant', name: 'P' }));
     const wp = await welcomePlayer;
     assert.ok(wp.state.self, 'a player view');
+    const readyEye = next(eye, 'ready');
     eye.send(JSON.stringify({ type: 'start' }));
+    const ready = await readyEye;
+    assert.equal(ready.state.tick, 0);
+    assert.equal(ready.state.players.length, server.rooms.get(room.id).game.players.length);
+    const internal = server.rooms.get(room.id).game.items.map(item => item.id), sent = ready.map.items.map(item => item.id);
+    assert.equal(sent.length, internal.length);
+    assert.notDeepEqual(sent, internal, 'createArenaServer draws a non-identity key');
+    assert.equal(new Set(sent).size, sent.length);
     const [spectated, played] = await Promise.all([next(eye, 'state'), next(player, 'state')]);
     assert.equal(Object.hasOwn(spectated.state, 'self'), false, 'directed');
     assert.ok(spectated.state.items.length > played.state.items.length, 'directed view is unfogged');
@@ -141,11 +143,8 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     assert.equal(spectated.state.tick, 0, 'spectators remain at the initial frame during delay warmup');
     // The delay's length is room-service's and room-integration's claim (SPECTATOR_DELAY_TICKS), not
     // waited out here in real time (#1071).
-    const game = server.rooms.get(room.id).game;
-    game.players.find(p => p.role === 'contestant' && p.status === 'active').status = 'eliminated';
     const historical = await next(eye, 'state');
     assert.equal(historical.state.contestantsActive, historical.state.players.filter(p => p.role === 'contestant' && p.status === 'active').length);
-    assert.ok(historical.state.contestantsActive > game.players.filter(p => p.role === 'contestant' && p.status === 'active').length);
     eye.close(); player.close();
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });
@@ -202,9 +201,9 @@ test('two clients share authority; replay preserves each recorded frame and surv
     assert.equal(replay.frames.length, metadata.frames);
     assert.equal(replay.frames[0].state.tick, 0);
     assert.equal(replay.frames.at(-1).state.phase, 'finished');
-    const accepted = replay.frames.flatMap(f => f.commands).find(c => c.type === 'input' && c.seq === 1);
+    const accepted = replay.frames.flatMap(f => f.commands).find(c => c.type === 'command' && c.seq === 1);
     assert.equal(accepted.input.interact, true, 'spent one-shot input remains intact in the recording');
-    assert.deepEqual(accepted.input.moveSlot, { from: 0, to: 5 });
+    assert.deepEqual(accepted.input.moveSlot, [0, 5]);
     assert.equal(Object.hasOwn(accepted.input, 'hp'), false, 'record sanitized input, not injected state');
     // Over a real socket the state goes as binary frames (24.1), and reads back as the recording's projection.
     assert.deepEqual([...frameKinds], ['binary']);

@@ -616,6 +616,9 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
 
 ## The state flip
 
+This section records the pre-cutover phases and their measurements. The live match has used
+[27.2's tick](27.2-tick-architecture.md#the-cutover-3d4d) since stage 3d.4d.
+
 **Decided 2026-11-19** (#1066). These were agent recommendations in brief 16852; Corey approved all nine
 (D1–D9) in comment 16861. The sequence is tracked under #1173.
 

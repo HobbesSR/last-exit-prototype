@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, disposePhysics, HZ, setInput, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics, HZ, setInput, snapshot, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { dynamicWaypoint } from '../shared/simulation/dynamic-navigation.ts';
-import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { openArea } from './helpers/arena.js';
 
 const walls = [
@@ -37,7 +36,7 @@ function move(s, p, target) {
 
 function checkedStep(s, p, before) {
   step(s);
-  const pose = physicsRuntime(s).world.getTransform(`actor:${p.id}`);
+  const pose = snapshot(s).bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === s.players.indexOf(p));
   assert.ok(pose && Math.hypot(pose.x - p.x, pose.y - p.y) < 0.01,
     `gameplay and body poses agree at tick ${s.tick}`);
   assert.ok(Math.hypot(p.x - before.x, p.y - before.y) <= s.content.actorPhysics.maxSpeed / HZ + 0.02,
@@ -76,19 +75,19 @@ test('a follower closes the gap in a 60-unit corridor and resumes when its leade
 test('the motor pushes a corridor-filling crate forward without tunneling or teleporting', async () => {
   const s = await game({ props: [{ id: 'crate', profile: 'crate', x: 350, y: 400, angle: Math.PI / 2 }] });
   try {
-    const p = s.players[0], world = physicsRuntime(s).world;
-    const startCrate = world.getTransform('prop:crate').x;
+    const p = s.players[0], prop = () => snapshot(s).bodies.find(b => b.owner.kind === 'prop');
+    const startCrate = prop().x;
     for (let i = 0; i < 400 && p.x < 650; i++) {
       const before = { x: p.x, y: p.y };
       move(s, p, { x: 750, y: 400 });
       checkedStep(s, p, before);
-      const crate = world.getTransform('prop:crate');
+      const crate = prop();
       const verticalExtent = Math.abs(Math.sin(crate.angle)) * 24 + Math.abs(Math.cos(crate.angle)) * 12;
       assert.ok(crate.y - verticalExtent >= 370 - 0.6 && crate.y + verticalExtent <= 430 + 0.6,
         `crate crossed corridor wall at tick ${s.tick}: pose=${JSON.stringify(crate)}`);
     }
-    assert.ok(world.getTransform('prop:crate').x > startCrate + 100,
-      `crate was not pushed: ${startCrate} -> ${world.getTransform('prop:crate').x}`);
+    assert.ok(prop().x > startCrate + 100,
+      `crate was not pushed: ${startCrate} -> ${prop().x}`);
     assert.ok(p.x >= 650, `actor did not reach x=650 after pushing: ${p.x}`);
   } finally { disposePhysics(s); }
 });

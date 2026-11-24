@@ -141,8 +141,8 @@ async function stagedScene(observe) {
     a.inventory[0] = pistol(5, 'a-gun'); a.reserves.pistol = 20;
     b.inventory[0] = pistol(12, 'b-gun');
     identifyItems(s);
-    setInput(s, a.id, { seq: a.lastSeq + 1, slot: 0, reload: true });
-    setInput(s, b.id, { seq: b.lastSeq + 1, slot: 0, attack: true, aim: 0 });
+    setInput(s, a.id, { seq: a.lastSeq + 1, reload: true });
+    setInput(s, b.id, { seq: b.lastSeq + 1, attack: true, aim: 0 });
     setInput(s, g.id, { seq: g.lastSeq + 1, skill: true, aim: atan2(a.y - g.y, a.x - g.x) });
     step(s); step(s);
     const frame = snapshot(s);

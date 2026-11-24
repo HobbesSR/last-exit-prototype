@@ -138,7 +138,7 @@ test('the simulation reads the pinned content, not the shipped constants', async
       s.items.push(ground);
       collectInstanceEquipment(s, shooter, { ...ground }, ground);
       shooter.selectedSlot = shooter.inventory.findIndex(i => i?.kind === 'weapon');
-      attack(s, shooter);
+      assert.ok(setInput(s, shooter.id, { seq: 1, attack: true, aim: 0 }));
       for (let i = 0; i < 6; i++) step(s);
       return target.hp;
     } finally { disposePhysics(s); }

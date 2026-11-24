@@ -24,7 +24,13 @@ async function until(condition, describe, timeout = 5000) {
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); watch(page);
   await page.goto(`${base}/?seed=4217`);
-  await page.getByRole('button', { name: 'Start match', exact: true }).click();
+  const startMatch = page.getByRole('button', { name: 'Start match', exact: true });
+  await startMatch.waitFor();
+  const prepared = server.rooms.get(new URL(page.url()).searchParams.get('room'));
+  await prepared.ready;
+  const preparedId = await (await page.waitForFunction(() => window.arenaDebug().me?.id)).jsonValue();
+  prepared.game.players.find(p => p.id === preparedId).cloak = 2000;
+  await startMatch.click();
   await page.waitForFunction(() => window.arenaDebug?.().phase === 'live' && window.arenaDebug().tick > 3);
   const { room: roomId, me } = await page.evaluate(() => window.arenaDebug());
   const room = server.rooms.get(roomId), subject = me.id;
@@ -177,7 +183,7 @@ try {
   await dev.waitForFunction(id => window.arenaDebug().follow === id && window.arenaDebug().viewer === id && window.arenaDebug().vision, subject);
   const followed = await dev.evaluate(id => ({ debug: window.arenaDebug(), subject: window.arenaDebug().actors.find(a => a.id === id) }), subject);
   // The followed player sees themselves even cloaked, as in their own view.
-  room.game.players.find(p => p.id === subject).cloak = 200;
+  assert.ok(room.match.snapshot().players.find(p => p.id === subject).cloak > 0);
   const cloakedAt = room.match.tick;
   const cloakFrame = await dev.waitForFunction(tick => {
     const shown = window.arenaDebug().tick;
@@ -187,7 +193,6 @@ try {
   await dev.waitForFunction(tick => window.arenaDebug().buffer.playhead >= tick, await cloakFrame.jsonValue());
   await cloakFrame.dispose();
   assert.equal(await dev.evaluate(id => window.arenaDebug().actors.find(a => a.id === id).visible, subject), true, 'a cloaked followed player stays visible');
-  room.game.players.find(p => p.id === subject).cloak = 0;
   assert.ok(Math.abs(followed.debug.camera.x + followed.debug.cameraWidth / 2 - followed.subject.x) < 60, 'following centres on the subject');
   await dev.keyboard.press('KeyV');
   await dev.waitForFunction(() => window.arenaDebug().viewer === null && window.arenaDebug().vision === null && window.arenaDebug().follow);
@@ -335,7 +340,26 @@ try {
   // must hide the death dialog, and stepping back must restore it.
   const currentRoom = server.rooms.get(await page.evaluate(() => window.arenaDebug().room));
   const currentMe = await page.evaluate(() => window.arenaDebug().me);
-  currentRoom.game.players.find(p => p.id === currentMe.id).status = 'eliminated';
+  const victim = currentRoom.game.players.find(p => p.id === currentMe.id);
+  const attacker = currentRoom.match.join('dev-view-attacker', 'gladiator', 'warden', 'Outcome witness');
+  assert.ok(attacker);
+  const { map, players, content } = currentRoom.game;
+  const radii = content.actorPhysics.geometry;
+  const ambush = map.chargers.flatMap(at => [[42, 0], [-42, 0], [0, 42], [0, -42]].map(([x, y]) => ({ at, from: { x: at.x + x, y: at.y + y } })))
+    .find(({ at, from }) => canOccupy(map, at.x, at.y, radii.contestant.bodyRadius)
+      && canOccupy(map, from.x, from.y, radii.gladiator.bodyRadius)
+      && players.every(p => p.status !== 'active' || Math.hypot(p.x - at.x, p.y - at.y) > 110));
+  assert.ok(ambush, 'an empty charger has space for the combat witness');
+  const { at, from } = ambush;
+  assert.ok(currentRoom.match.teleport(victim.id, at.x, at.y));
+  assert.ok(currentRoom.match.teleport(attacker.id, from.x, from.y));
+  await until(() => Math.hypot(victim.x - at.x, victim.y - at.y) < 1, () => 'the combat witness warps in');
+  for (let seq = 1; seq <= 8 && victim.status === 'active'; seq++) {
+    const before = currentRoom.match.tick;
+    assert.ok(currentRoom.match.acceptInput(attacker.id, { seq, attack: true, skill: seq === 1, aim: Math.atan2(at.y - from.y, at.x - from.x) }));
+    await until(() => victim.status === 'eliminated' || currentRoom.match.tick >= before + 14, () => 'the combat witness advances');
+  }
+  assert.equal(victim.status, 'eliminated');
   await page.waitForFunction(() => !document.getElementById('outcome').hidden && window.arenaDebug().view === 'outcome');
   assert.equal(await page.locator('#outcome-label').textContent(), 'CONTESTANT ELIMINATED');
   assert.equal(await page.locator('#outcome-title').textContent(), 'End of the line.');
@@ -367,7 +391,7 @@ finally { await close(); }
 // A watcher can join after preparation but before the opt-in core starts (#1314).
 // Keep the default-engine scenario above; this server uses the pregenerated arena to avoid a second build.
 const optInStartedAt = performance.now();
-const optIn = await serveDevWithBrowser({ roomThreads: false, tick: 'new', generateMap: reusedMap });
+const optIn = await serveDevWithBrowser({ roomThreads: false, generateMap: reusedMap });
 const optInErrors = [];
 try {
   const owner = await optIn.browser.newPage();

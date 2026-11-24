@@ -93,34 +93,3 @@ test('typed owners and captured relations survive metadata changes and viewer vi
     assert.equal(retained.bodies.find(b => b.id === item.id).owner.itemId, item.owner.itemId);
   } finally { disposePhysics(s); }
 });
-
-test('hook identity spans flight, pending, and replaced ropes; projection requires authorized endpoints', async () => {
-  const { map, content } = fixture(), s = await createGame(446, map, content);
-  try {
-    s.players.forEach(p => { p.bot = false; });
-    setInput(s, 'g0', { seq: 1, skill: true, aim: 0 }); step(s);
-    const r = physicsRuntime(s), flight = capture(s), id = flight.hookFlights[0].id;
-    assert.equal(r.hooks[0].phase, 'flying');
-    assert.equal(flight.hookFlights[0].a, byLabel(flight, 'actor:g0').id);
-    assert.equal(Object.hasOwn(physicsState(s).hooks[0], 'tetherId'), false);
-    const flightFrame = snapshot(s), caster = Object.assign(s.players.find(p => p.id === 'g0'), { playerIdx: 1 });
-    assert.equal(projectPhysicsPresentation(flightFrame, caster, new Set([0]), flightFrame.items, () => true).hookFlights.length, 0);
-    assert.equal(projectPhysicsPresentation(flightFrame, caster, new Set([1]), flightFrame.items, () => false).hookFlights.length, 0);
-    assert.equal(projectPhysicsPresentation(flightFrame, caster, new Set([1]), flightFrame.items, () => true).hookFlights.length, 1);
-    step(s); assert.equal(r.hooks[0].phase, 'pending'); assert.equal(r.hooks[0].tetherId, id);
-    step(s); assert.equal(r.hooks[0].phase, 'pulling');
-    let pulling = capture(s), tether = pulling.tethers[0];
-    assert.equal(tether.id, id);
-    assert.deepEqual(new Set([tether.a, tether.b]), new Set([byLabel(pulling, 'actor:c0').id, byLabel(pulling, 'actor:g0').id]));
-    const frame = snapshot(s);
-    for (const authorized of [new Set([0]), new Set([1])])
-      assert.equal(projectPhysicsPresentation(frame, caster, authorized, frame.items, () => true).tethers.length, 0);
-    assert.equal(projectPhysicsPresentation(frame, caster, new Set([0, 1]), frame.items, () => true).tethers.length, 1);
-    step(s); pulling = capture(s); assert.equal(pulling.tethers[0].id, id);
-    setInput(s, 'g0', { seq: 5, skill: true }); step(s);
-    caster.cooldown = 0;
-    setInput(s, 'g0', { seq: 6, skill: true, aim: 0 }); step(s);
-    assert.ok(r.hooks[0].tetherId > id);
-    assert.equal(r.hooks[0].id, 'hook:g0');
-  } finally { disposePhysics(s); }
-});

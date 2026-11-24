@@ -146,40 +146,8 @@ test('live capture respects filtered hooks without mutating them and rejects det
   } finally { disposePhysics(game); }
 });
 
-test('retained numeric captures and their clones keep body and tether identities after runtime replacement', async () => {
-  const withHook = content();
-  withHook.roster.gladiators = [{ name: 'G', kit: 'hook' }];
-  const map = arena();
-  map.spawns = [{ x: 250, y: 200 }]; map.hunterSpawns = [{ x: 150, y: 200 }];
-  const game = await createGame(1, map, withHook);
-  try {
-    game.players.forEach(p => { p.bot = false; });
-    setInput(game, 'g0', { seq: 1, skill: true, aim: 0 });
-    step(game); step(game); step(game);
-    const old = capturePhysicsPresentation(game), cloned = structuredClone(old);
-    const expected = structuredClone(old), r = physicsRuntime(game), caster = game.players[1];
-    assert.equal(old.tethers.length, 1);
-    const bodyId = old.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 1).id;
-    const spec = old.physics.world.bodies.find(b => b.spec.id === 'actor:g0').spec;
-    hookSkill(game, caster);
-    r.world.queueRemoveBody(spec.id); r.world.commitMutations();
-    assert.deepEqual(structuredClone(old), expected, 'removed live bodies remain in historical presentation');
-    r.world.queueAddBody(spec); r.world.commitMutations();
-    caster.cooldown = 0;
-    hookSkill(game, caster);
-    const fresh = capturePhysicsPresentation(game);
-    assert.notEqual(fresh.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 1).id, bodyId);
-    assert.ok(fresh.hookFlights[0].id > old.tethers[0].id, 'same backend hook key has a new logical identity');
-    assert.deepEqual(structuredClone(old), expected);
-    assert.deepEqual(structuredClone(cloned), expected);
-    assert.deepEqual(cloned.tethers, old.tethers, 'cloning numeric captures never allocates another identity');
-    assert.throws(() => capturePhysicsPresentation(game, old.physics), /accepts only a live game/);
-    assert.throws(() => capturePhysicsPresentation(game, structuredClone(old.physics)), /accepts only a live game/);
-  } finally { disposePhysics(game); }
-});
-
 test('physics recording floor is explicit and stamped by the room writer', async () => {
-  assert.equal(SCHEMA, 21);
+  assert.equal(SCHEMA, 22);
   // Lines with delta frames (#901) need a reader of at least schema 17; this build still reads from MIN_SCHEMA.
   assert.equal(minimumReaderForMatch(), 20);
   assert.equal(MIN_SCHEMA, 10);

@@ -14,7 +14,7 @@ const content = () => ({ ...structuredClone(contentById('content-6')),
 const map = () => ({ seed: 449, width: 5000, height: 600,
   playableArea: openArea(5000, 600, 100),
   obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [],
-  buildings: [], physicsProps: [], motorSurfaces: [],
+  buildings: [], physicsProps: [{ id: 'hidden-prop', profile: 'crate', x: 4200, y: 300 }], motorSurfaces: [],
   entry: { x: 50, y: 300 }, exit: { x: 4900, y: 300 }, spawns: [{ x: 200, y: 300 }], hunterSpawns: [] });
 
 function peer(service) {
@@ -43,10 +43,6 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
 
     const game = room.match.diagnosticState;
     const runtime = physicsRuntime(game);
-    runtime.world.queueAddBody({ id: 'hidden-prop', kind: 'prop', shape: { kind: 'circle', radius: 12 },
-      x: 4200, y: 300, vx: 0, vy: 0, angle: 0, omega: 0, mass: 1 });
-    runtime.world.commitMutations();
-
     // Mode/version fields are untrusted protocol data. The room's creation-time factory owns both.
     owner.send({ type: 'start', mode: 'legacy', version: 'forged-version', contentId: 'content-1' });
     assert.equal(room.started, true);
@@ -60,19 +56,18 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
       'out-of-range dynamics are not a local prediction dependency');
     assert.equal(JSON.stringify(directed).includes('hidden-prop'), false);
 
-    // Move a dynamic body as the server advances; an ordinary spectator must receive its retained pose.
-    let x = 4200;
+    // Move the owner midway through the spectator's delay window.
     for (let i = 0; i < SPECTATOR_DELAY_TICKS + 5; i++) {
-      x += 1;
-      runtime.world.setTransform('hidden-prop', { x, y: 300, angle: 0 });
+      if (i === 5) assert.ok(room.match.teleport(welcome.id, 400, 300));
       service.advance(50, (i + 1) * 50);
     }
     const eye = peer(service);
     eye.send({ type: 'join', room: room.id, ownerKey: room.ownerKey, mode: 'spectator' });
     const delayed = eye.messages.find(message => message.type === 'welcome').state;
     assert.equal(room.match.tick - delayed.tick, SPECTATOR_DELAY_TICKS, 'spectator joins on the retained delayed frame');
-    assert.equal(delayed.bodies.find(body => body.owner.kind === 'prop').x, 4205);
-    assert.equal(room.match.snapshot().bodies.find(body => body.owner.kind === 'prop').x, x);
+    assert.ok(Math.abs(delayed.bodies.find(body => body.owner.kind === 'prop').x - 4200) < 0.001);
+    assert.ok(Math.abs(delayed.bodies.find(body => body.owner.kind === 'actor').x - 200) < 0.001);
+    assert.ok(Math.abs(room.match.snapshot().bodies.find(body => body.owner.kind === 'actor').x - 400) < 0.001);
 
     const resumeKey = welcome.resumeKey;
     service.disconnect(owner.session);

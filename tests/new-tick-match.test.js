@@ -15,7 +15,7 @@ async function newMatch() {
     items: [{ id: 'i0', kind: 'med', x: 300, y: 400 }] });
   const c = structuredClone(contentById('content-ammo-1'));
   c.roster = { contestants: ['C0', 'C1'], gladiators: [{ name: 'G', kit: 'striker' }] };
-  return createMatch(5, 'small', map, c, { tick: 'new' });
+  return createMatch(5, 'small', map, c, {});
 }
 
 test('the new path records the inbound queue each tick spent, beside the room\'s own commands', async () => {

@@ -228,10 +228,14 @@ export async function checkContentPresentation(browser) {
     await dev.waitForFunction(() => document.getElementById('clock').textContent === '05:00');
     assert.deepEqual(await replayView(), expectedReplay, 'the recording\'s own labels, ammo and frame clock');
     release();
-    // The room's map arrives, and with it a ready carrying B, while the recording is shown.
+    // The room's map is prepared while the recording is shown; its ready arrives at start.
     for (let waited = 0; !(await (await fetch(`${base}/api/rooms`)).json()).find(r => r.id === pending.id)?.ready; waited += 100) {
       assert.ok(waited < 120000, 'the held map was generated'); await new Promise(resolve => setTimeout(resolve, 100));
     }
+    const pendingOwner = await open();
+    await pendingOwner.goto(`${base}/?room=${pending.id}&ownerKey=${encodeURIComponent(pending.ownerKey)}`);
+    await pendingOwner.getByRole('button', { name: 'Start match', exact: true }).click();
+    await pendingOwner.waitForFunction(() => window.arenaDebug().phase === 'live');
     await dev.waitForTimeout(1000);
     assert.equal(await dev.evaluate(() => window.arenaDebug().content), 'browser-content-a');
     assert.deepEqual(await replayView(), expectedReplay, 'a live update behind the recording leaves its labels');

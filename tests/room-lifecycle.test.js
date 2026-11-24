@@ -92,28 +92,28 @@ test('Room lifecycle covers deferred map adoption, waiting yard isolation, and w
   assert.equal(room.summary().ready, false);
   assert.deepEqual(room.metrics(), { live: false, emptyLive: false, fastDatagrams: 0, fastFragmentedDeltas: 0, fastStreamed: 0 });
 
-  const joined = room.onJoin('c1', { ownerKey: 'owner-1', role: 'contestant', name: 'Alice' });
+  const joined = room.onJoin('connection-1', { ownerKey: 'owner-1', role: 'contestant', name: 'Alice' });
   assert.equal(joined.ok, true);
   assert.equal(joined.owner, true);
 
-  const welcome = h.lastOfType('c1', 'welcome');
+  const welcome = h.lastOfType('connection-1', 'welcome');
   assert.equal(welcome.ready, false);
   assert.equal(welcome.started, false);
   assert.ok(welcome.map && Array.isArray(welcome.map.spawns), 'initial welcome uses waiting yard map');
 
   await room.waiting.ready;
   const startWaitingX = room.waiting.players[0].x;
-  room.onMessage('c1', { type: 'input', seq: 1, x: 1, y: 0 });
+  room.onMessage('connection-1', { type: 'input', seq: 1, x: 1, y: 0 });
   assert.equal(room.inputs.some(entry => entry.type === 'input'), false, 'waiting-yard movement is never recorded as match input');
 
   // Early start request queues until adoptMap resolves.
-  room.onMessage('c1', { type: 'start' });
+  room.onMessage('connection-1', { type: 'start' });
   assert.equal(room.started, false);
 
   // Step the waiting yard and verify state is broadcast without advancing any match.
   room.tick(TICK_MS * 2, 2000);
   assert.ok(room.waiting.players[0].x > startWaitingX, 'waiting simulation advances before match start');
-  assert.ok(h.lastOfType('c1', 'state')?.state?.tick >= 1, 'waiting frames reach seated clients');
+  assert.ok(h.lastOfType('connection-1', 'state')?.state?.tick >= 1, 'waiting frames reach seated clients');
 
   room.adoptMap(generatedMap());
   await descriptor.ready;
@@ -125,7 +125,7 @@ test('Room lifecycle covers deferred map adoption, waiting yard isolation, and w
   assert.deepEqual(room.metrics(), { live: true, emptyLive: false, fastDatagrams: 0, fastFragmentedDeltas: 0, fastStreamed: 0 });
   assert.equal(replays.started.length, 1, 'one recording, opened when the match was prepared');
   assert.equal(replays.started[0].frames[0].commands.at(-1).type, 'start', 'its first frame is the start');
-  assert.ok(h.lastOfType('c1', 'ready')?.map?.width > 0, 'ready payload notifies client of live match handoff');
+  assert.ok(h.lastOfType('connection-1', 'ready')?.map?.width > 0, 'ready payload notifies client of live match handoff');
 
   await room.close();
   assert.equal(replays.finished.length, 1);
@@ -135,22 +135,22 @@ test('Room lifecycle rejects join after failMap and forwards room-local validati
   const h = makeRoomHarness({ roomOptions: { reportError() {} } });
   const { room } = h;
   const descriptor = room.onCreate({ id: 'room-fail', ownerKey: 'owner-f', deferredMap: true, content: defaultContent() });
-  const join = room.onJoin('c1', { ownerKey: 'owner-f', role: 'contestant', name: 'Bob' });
+  const join = room.onJoin('connection-1', { ownerKey: 'owner-f', role: 'contestant', name: 'Bob' });
   assert.equal(join.ok, true);
 
-  room.onInvalidMessage('c1', { type: 'choose', reason: 'Invalid kit selection' });
-  assert.equal(h.lastOfType('c1', 'choose')?.ok, false);
-  assert.match(h.lastOfType('c1', 'choose')?.message ?? '', /Invalid kit/);
+  room.onInvalidMessage('connection-1', { type: 'choose', reason: 'Invalid kit selection' });
+  assert.equal(h.lastOfType('connection-1', 'choose')?.ok, false);
+  assert.match(h.lastOfType('connection-1', 'choose')?.message ?? '', /Invalid kit/);
 
   room.failMap(new Error('worker exited'));
   await descriptor.ready;
   assert.equal(room.summary(), null, 'failed map tears down unstarted room');
 
-  const lateJoin = room.onJoin('c2', { role: 'contestant', name: 'Late' });
+  const lateJoin = room.onJoin('connection-2', { role: 'contestant', name: 'Late' });
   assert.equal(lateJoin.ok, false);
-  assert.equal(h.lastOfType('c2', 'error')?.message, 'This arena has ended or no longer exists. Start a new match.');
+  assert.equal(h.lastOfType('connection-2', 'error')?.message, 'This arena has ended or no longer exists. Start a new match.');
   assert.equal(h.disposed.length, 1);
-  assert.deepEqual(h.disposed[0].clientIds, ['c1']);
+  assert.deepEqual(h.disposed[0].clientIds, ['connection-1']);
 });
 
 test('Room resumes handle both disconnected reconnects and live-socket takeovers while rotating resume keys', async () => {
@@ -164,43 +164,43 @@ test('Room resumes handle both disconnected reconnects and live-socket takeovers
   });
   await descriptor.ready;
 
-  const first = room.onJoin('c1', { ownerKey: 'owner-r', role: 'contestant', name: 'Runner' });
-  const firstKey = h.lastOfType('c1', 'welcome').resumeKey;
+  const first = room.onJoin('connection-1', { ownerKey: 'owner-r', role: 'contestant', name: 'Runner' });
+  const firstKey = h.lastOfType('connection-1', 'welcome').resumeKey;
   assert.ok(firstKey);
   await room.waiting.ready;
-  room.onMessage('c1', { type: 'input', seq: 1, x: 0, y: 1 });
+  room.onMessage('connection-1', { type: 'input', seq: 1, x: 0, y: 1 });
   room.tick(TICK_MS * 2, 1100);
   const waitingPos = { x: room.waiting.players[0].x, y: room.waiting.players[0].y };
 
   // Live takeover while c1 is still attached: closes old socket synchronously and rotates key.
-  const takeover = room.onJoin('c2', { ownerKey: 'owner-r', resumeKey: firstKey });
+  const takeover = room.onJoin('connection-2', { ownerKey: 'owner-r', resumeKey: firstKey });
   assert.equal(takeover.ok, true);
   assert.equal(takeover.playerId, first.playerId);
-  assert.equal(takeover.replacedClientId, 'c1');
-  assert.deepEqual(h.closed, [{ clientId: 'c1', code: CLOSE_CODE.NORMAL, reason: CLOSE_REASON.SESSION_RESUMED }]);
+  assert.equal(takeover.replacedClientId, 'connection-1');
+  assert.deepEqual(h.closed, [{ clientId: 'connection-1', code: CLOSE_CODE.NORMAL, reason: CLOSE_REASON.SESSION_RESUMED }]);
   assert.equal(room.waiting.players[0].x, waitingPos.x, 'takeover preserves waiting position');
   assert.equal(room.waiting.players[0].y, waitingPos.y);
   assert.equal(room.resumes.has(firstKey), false, 'previous resumeKey is invalidated on takeover');
 
   // Reusing the rotated-out key opens a new seat instead of hijacking the resumed player.
-  const stale = room.onJoin('c3', { resumeKey: firstKey, name: 'Other' });
+  const stale = room.onJoin('connection-3', { resumeKey: firstKey, name: 'Other' });
   assert.equal(stale.ok, true);
   assert.notEqual(stale.playerId, first.playerId);
 
   // Disconnected resume before start restores the lobby seat; after start it reclaims the bot seat.
-  const secondKey = h.lastOfType('c2', 'welcome').resumeKey;
-  assert.equal(room.onLeave('c2'), true);
+  const secondKey = h.lastOfType('connection-2', 'welcome').resumeKey;
+  assert.equal(room.onLeave('connection-2'), true);
   assert.equal(room.seats.roster().some(p => p.id === first.playerId), false, 'leaving lobby removes player from active roster while keeping resumeKey');
-  const rejoinedLobby = room.onJoin('c4', { ownerKey: 'owner-r', resumeKey: secondKey });
+  const rejoinedLobby = room.onJoin('connection-4', { ownerKey: 'owner-r', resumeKey: secondKey });
   assert.equal(rejoinedLobby.ok, true);
   assert.equal(rejoinedLobby.playerId, first.playerId);
 
-  room.onMessage('c4', { type: 'start' });
+  room.onMessage('connection-4', { type: 'start' });
   assert.equal(room.started, true);
-  const thirdKey = h.lastOfType('c4', 'welcome').resumeKey;
-  assert.equal(room.onLeave('c4'), true);
+  const thirdKey = h.lastOfType('connection-4', 'welcome').resumeKey;
+  assert.equal(room.onLeave('connection-4'), true);
   assert.equal(room.seats.roster().some(p => p.id === first.playerId), false, 'leaving live match turns player seat back to bot');
-  const rejoinedMatch = room.onJoin('c5', { ownerKey: 'owner-r', resumeKey: thirdKey });
+  const rejoinedMatch = room.onJoin('connection-5', { ownerKey: 'owner-r', resumeKey: thirdKey });
   assert.equal(rejoinedMatch.ok, true);
   assert.equal(rejoinedMatch.playerId, first.playerId);
   assert.equal(room.seats.roster().some(p => p.id === first.playerId), true);
@@ -234,15 +234,15 @@ test('Room projects delayed historical state to spectators and resends keyframes
   assert.ok(replays.started[0].header.map?.width > 0);
   assert.equal(replays.started[0].frames.length, 0);
 
+  h.droppedFor.add('p1');
   room.onMessage('p1', { type: 'start' });
   assert.equal(room.started, true);
   assert.equal(replays.started.length, 1);
   assert.equal(replays.started[0].frames.length, 1);
 
   // Drop the first live tick for p1 so keyframe acknowledgement stays unrecorded until the second tick succeeds.
-  h.droppedFor.add('p1');
   room.tick(TICK_MS, 2000 + TICK_MS);
-  assert.equal(h.messages('p1').filter(m => m.type === 'state' && m.state.phase === 'playing').length, 0, 'droppable tick 1 skipped for p1');
+  assert.equal(h.messages('p1').filter(m => m.type === 'state' && m.state.phase === 'live').length, 0, 'droppable tick 1 skipped for p1');
   h.droppedFor.delete('p1');
 
   room.tick(TICK_MS, 2000 + TICK_MS * 2);

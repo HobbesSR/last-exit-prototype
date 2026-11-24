@@ -1,3 +1,5 @@
+import { startGame } from '../shared/simulation/tick.ts';
+import { identifyItems } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultContent } from '../shared/simulation/content.ts';
@@ -14,19 +16,22 @@ test('live sites allow charging, extraction, and safe hunter redeployment', asyn
   t.after(() => disposePhysics(game));
   for (const player of game.players) player.bot = false;
   game.traps = [];
-  Object.assign(contestant, map.chargers[0]);
-  contestant.inventory[0] = { kind: 'cell', charge: 0 };
+  const charger = map.chargers[0];
+  Object.assign(contestant, { x: charger.x, y: charger.y });
+  contestant.inventory[0] = { kind: 'cell', charge: 0, instanceId: 'carried-cell', lineageId: 'carried-cell' };
+  identifyItems(game);
+  const hunter = game.players.find(player => player.role === 'gladiator');
+  hunter.status = 'respawning'; hunter.respawnAt = 1;
+  const { boundary } = startGame(game);
   const press = (player, input) => { setInput(game, player.id, { seq: player.lastSeq + 1, ...input }); step(game); };
   press(contestant, { interact: true });
-  for (let i = 1; i < game.content.cellChargeTicks; i++) step(game);
+  for (let i = 0; i < game.content.cellChargeTicks; i++) step(game);
   assert.equal(contestant.inventory[0].charge, game.content.cellChargeTicks);
-  Object.assign(contestant, map.exit);
+  assert.ok(boundary.teleport(contestant.id, [map.exit.x, map.exit.y]));
+  step(game);
   press(contestant, { interact: true });
   assert.equal(contestant.status, 'escaped');
   assert.equal(game.slots, 2);
-  const hunter = game.players.find(player => player.role === 'gladiator');
-  hunter.status = 'respawning'; hunter.respawnAt = game.tick + 1;
-  step(game);
   assert.equal(hunter.status, 'active');
   // On a station, to the engine's single-precision positions.
   assert.ok(map.stations.some(site => distance(hunter, site) < 0.01));

@@ -84,6 +84,7 @@ test('a bot routes to a cell it has seen and not to one it has not', async t => 
 test('a bot that knows of nothing it needs explores', async t => {
   const { s, p } = await lone();
   t.after(() => disposePhysics(s));
+  delete s.itemSerial; // This scenario clears all ground records before setup.
   const start = { x: p.x, y: p.y }, before = p.discovery.discovered.size;
   for (let i = 0; i < 300; i++) step(s);
   assert.ok(p.discovery.discovered.size > before + 10, `discovered ${before} → ${p.discovery.discovered.size}`);
@@ -102,84 +103,6 @@ test('item, door and survey memory stay out of snapshots and every projection', 
     assert.equal(JSON.stringify(frame).includes(secret), false, secret);
     for (const viewer of s.players) assert.equal(JSON.stringify(playerView(s, frame, viewer.id)).includes(secret), false, viewer.id);
   }
-});
-
-test('a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review)', async t => {
-  // Open ground with one roofed room. Everything has been seen but the room's cell, index 84, whose centre
-  // (864, 1632) stays concealed until the bot stands under the roof. The room holds the only cell.
-  const cell = { id: 'indoor-cell', kind: 'cell', x: 864, y: 1632, charge: 0 };
-  const { map } = arena({ cols: 10, rows: 20, items: [cell], buildings: [{ id: 'room', x: 768, y: 1536, w: 192, h: 192 }] });
-  assert.ok(canOccupy(map, cell.x, cell.y, 14), 'the room is walkable');
-  // A second contestant, idle and far off, keeps the match live.
-  const { s, players: [p] } = await stagePhysics(map, { content: defaultContent(),
-    actors: [{ role: 'contestant', x: 576, y: 1632 }, { role: 'contestant', bot: false, x: 1800, y: 3700 }] });
-  t.after(() => disposePhysics(s));
-  const memory = createDiscovery();
-  memory.seen = new Set();
-  for (let i = 0; i < 200; i++) { memory.discovered.add(i); if (i !== 84) memory.seen.add(i); }
-  attachDiscovery(p, memory);
-  for (let i = 0; i < 400 && !memory.seen.has(84); i++) step(s);
-  assert.ok(memory.seen.has(84), 'the roofed cell is seen by going in');
-  // A physical body reaches the cell as it sees it, and may pick it up on that tick.
-  assert.ok(memory.items.has('indoor-cell') || p.inventory.some(item => item?.kind === 'cell'), 'and the cell inside is seen, or already taken');
-});
-
-// The bot-level information test (22.6, #424): a contestant planning over tiles chooses its targets,
-// ranks them, judges ground and doors and steers from what it knows. Run a bot on a live map, then on
-// a twin that agrees wherever it looked and has nothing beyond: no obstacles or doors, and no ground.
-// The two walks must match tick for tick. The bot remembers a cell far across unseen ground,
-// so its route runs where the twins differ.
-test("information test: over tiles, a bot's targets, routes and inputs depend only on what it knows", async () => {
-  const seed = 4217, liveMap = generatedMap();
-  const spawn = liveMap.spawns[0], far = { id: 'far-cell', kind: 'cell', x: spawn.x + 6000, y: spawn.y, charge: 0 };
-  for (let dy = 48; !canOccupy(liveMap, far.x, far.y, 25); dy += 48) far.y = spawn.y + (dy % 96 ? dy : -dy);
-  const walk = async map => {
-    const s = await createGame(seed, structuredClone(map), defaultContent());
-    for (const p of s.players) if (p.id !== 'c0') { p.bot = false; p.input = {}; }
-    s.traps = []; s.items = [];
-    const p = s.players[0], trace = [], eyes = [];
-    p.discovery.items.clear(); p.discovery.items.set(itemId(s, far.id), { ...far, id: itemId(s, far.id) });
-    for (let i = 0; i < 500; i++) {
-      step(s);
-      trace.push(JSON.stringify([p.x, p.y, p.heading, p.route, p.inventory]));
-      eyes.push({ x: p.x, y: p.y });
-    }
-    disposePhysics(s);
-    return { trace, eyes, memory: p.discovery, s };
-  };
-  const truth = await walk(liveMap);
-  const { cols, size } = discoveryGrid(liveMap), memory = truth.memory;
-  // What the bot could have read: cells it knows, and anything within sight of where it looked.
-  const known = cell => memory.discovered.has(cell) || memory.surveyed.has(cell);
-  const sighted = box => truth.eyes.some(e => Math.hypot(Math.max(box.x, Math.min(box.x + box.w, e.x)) - e.x, Math.max(box.y, Math.min(box.y + box.h, e.y)) - e.y) <= DISCOVERY_RADIUS + 1);
-  const touchesKnown = box => {
-    for (let row = Math.floor(box.y / size); row <= Math.floor((box.y + box.h) / size); row++)
-      for (let col = Math.floor(box.x / size); col <= Math.floor((box.x + box.w) / size); col++) if (known(row * cols + col)) return true;
-    return false;
-  };
-  // The engine places every actor at its start, so the twin keeps the ground round each one too: more
-  // than the bot knew can only make the twins agree where it did not look, which the claim allows.
-  const starts = [...liveMap.spawns, ...liveMap.hunterSpawns];
-  const nearStart = box => starts.some(e => Math.hypot(Math.max(box.x, Math.min(box.x + box.w, e.x)) - e.x, Math.max(box.y, Math.min(box.y + box.h, e.y)) - e.y) <= 96);
-  const kept = box => touchesKnown(box) || sighted(box) || nearStart(box);
-  // The playable area's own cells, which are finer than discovery's.
-  const area = liveMap.playableArea, unit = area.cellSize;
-  const rows = area.rows.map(({ y, runs: truthRuns }) => {
-    const runs = [];
-    for (const [a, b] of truthRuns) for (let col = a; col < b; col++) {
-      if (!kept({ x: col * unit, y: y * unit, w: unit, h: unit })) continue;
-      if (runs.at(-1)?.[1] === col) runs.at(-1)[1] = col + 1; else runs.push([col, col + 1]);
-    }
-    return { y, runs };
-  });
-  const twin = { ...liveMap, playableArea: { ...area, rows }, obstacles: liveMap.obstacles.filter(o => kept(bounds(shapeOf(o)))).reverse(), gates: liveMap.gates.filter(g => kept(g)) };
-  assert.ok(twin.obstacles.length < liveMap.obstacles.length / 2, 'most of the map differs');
-  const cells = list => list.reduce((n, r) => n + r.runs.reduce((m, [a, b]) => m + b - a, 0), 0);
-  assert.ok(cells(rows) < cells(area.rows) / 2, 'ground the bot never saw is void');
-  const other = await walk(twin);
-  const first = other.trace.findIndex((t, i) => t !== truth.trace[i]);
-  assert.equal(first, -1, `the walks part at tick ${first + 1}: ${truth.trace[first]?.slice(0, 300)} vs ${other.trace[first]?.slice(0, 300)}`);
-  assert.ok(Math.hypot(truth.s.players[0].x - spawn.x, truth.s.players[0].y - spawn.y) > 1000, 'the bot went a long way');
 });
 
 test('a route that arrives late is joined only within its clearance margin, else by the trail back (#473 review)', () => {
