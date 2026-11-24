@@ -1,14 +1,21 @@
 // Refuses a push to Forgejo unless the pushing identity is pinned to this
-// worktree or to the agent's own process, and the pushed commits were made by
-// that identity (docs/34). Git Credential Manager picks any stored account when
-// no username is pinned, and an unpinned worktree falls back to shared
-// identity config, so either would push or commit as someone else silently.
+// worktree, to the checked-out branch's agent namespace or to the agent's own
+// process, the pushed commits were made by that identity, and an agent pushes
+// only its own namespace (docs/34). Git Credential Manager picks any stored
+// account when no username is pinned, and an unpinned worktree falls back to
+// shared identity config, so either would push or commit as someone else silently.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-/** Scopes that belong to one worktree or one agent process: `config.worktree`, or `GIT_CONFIG_*` / `-c`. */
-const PINNED = new Set(['worktree', 'command']);
+/**
+ * Scopes that belong to one worktree, one branch namespace or one agent process:
+ * `config.worktree`, an `includeIf "onbranch:<agent>/**"` identity file, or
+ * `GIT_CONFIG_*` / `-c`.
+ */
+const PINNED = new Set(['worktree', 'branch', 'command']);
 const SHOWN_COMMITS = 5;
 
 /**
@@ -16,15 +23,16 @@ const SHOWN_COMMITS = 5;
  *   username?: { scope: string, value: string },
  *   name?: { scope: string, value: string },
  *   email?: { scope: string, value: string },
- *   commits: { sha: string, committerEmail: string }[] }} push
+ *   commits: { sha: string, committerEmail: string }[],
+ *   refs?: string[] }} push `refs` are the remote refs being updated or deleted
  * @returns {string[]} problems; empty when the push may go ahead
  */
-export function checkPush({ remote, username, name, email, commits }) {
+export function checkPush({ remote, username, name, email, commits, refs = [] }) {
   const problems = [];
   const pinned = (label, entry) => {
     if (!entry) problems.push(`${label} is not set for ${remote}.`);
     else if (!PINNED.has(entry.scope)) {
-      problems.push(`${label} (${entry.value}) comes from ${entry.scope} config, not this worktree or this agent's environment.`);
+      problems.push(`${label} (${entry.value}) comes from ${entry.scope} config, not this worktree, this branch's agent include or this agent's environment.`);
     }
   };
   pinned('credential username', username);
@@ -32,6 +40,12 @@ export function checkPush({ remote, username, name, email, commits }) {
   pinned('user.email', email);
   if (username && name && isAgent(username.value, name.value) && username.value !== name.value) {
     problems.push(`credential username ${username.value} does not match user.name ${name.value}.`);
+  }
+  if (username && isAgent(username.value)) {
+    const namespace = `refs/heads/${username.value.slice('agent-'.length)}/`;
+    for (const ref of refs.filter((ref) => !ref.startsWith(namespace))) {
+      problems.push(`${username.value} may push only ${namespace}*, not ${ref}.`);
+    }
   }
   if (email) {
     const foreign = commits.filter((commit) => commit.committerEmail !== email.value);
@@ -56,11 +70,39 @@ function git(args) {
   }
 }
 
-function scoped(args) {
-  const line = git(['config', '--show-scope', ...args]).split(/\r?\n/).at(-1);
-  if (!line) return undefined;
-  const tab = line.indexOf('\t');
-  return { scope: line.slice(0, tab), value: line.slice(tab + 1) };
+const normalFile = (file) => file.replace(/^file:/, '').replaceAll('\\', '/').toLowerCase();
+
+/**
+ * The scope an entry counts as: `local` config read from one of the shared config's
+ * `includeIf "onbranch:…"` files is the checked-out branch's identity, `branch`.
+ * Anything else in the shared config applies to every worktree, so stays `local`.
+ *
+ * @param {{ scope: string, origin: string }} entry `origin` as `git config --show-origin` prints it
+ * @param {Set<string>} branchFiles the onbranch include files, normalised
+ */
+export function pinScope({ scope, origin }, branchFiles) {
+  return scope === 'local' && branchFiles.has(normalFile(origin)) ? 'branch' : scope;
+}
+
+/** The files the shared config includes by branch, resolved as git resolves include paths. */
+function branchIncludeFiles() {
+  const common = git(['rev-parse', '--path-format=absolute', '--git-common-dir']);
+  const records = git(['config', '--file', path.join(common, 'config'), '--null', '--get-regexp', '^includeif\\.onbranch:.*\\.path$']).split('\0');
+  const files = new Set();
+  for (const record of records) {
+    const newline = record.indexOf('\n');
+    const file = newline < 0 ? '' : record.slice(newline + 1);
+    if (!file) continue;
+    files.add(normalFile(file.startsWith('~/') ? path.join(homedir(), file.slice(2)) : path.resolve(common, file)));
+  }
+  return files;
+}
+
+/** The last value of `key` with the scope it counts as; NUL-delimited as `scope\0origin\0value\0`. */
+function scoped(key, branchFiles) {
+  const [scope, origin, value] = git(['config', '--null', '--show-scope', '--show-origin', '--get', key]).split('\0');
+  if (!scope) return undefined;
+  return { scope: pinScope({ scope, origin }, branchFiles), value };
 }
 
 const CREDENTIAL_KEY = /^credential\.(?:(.+)\.)?username$/;
@@ -93,26 +135,33 @@ export function credentialUsername(entries, value, url) {
   return { scope: source?.scope ?? 'unrecognised', value };
 }
 
-/** NUL-delimited, as `scope\0key\nvalue\0`, so a URL with a space or an empty value parses whole. */
-function scopedCredentialEntries() {
-  const fields = git(['config', '--null', '--show-scope', '--get-regexp', '^credential\\..*username$']).split('\0');
+/** NUL-delimited, as `scope\0origin\0key\nvalue\0`, so a URL with a space or an empty value parses whole. */
+function scopedCredentialEntries(branchFiles) {
+  const fields = git(['config', '--null', '--show-scope', '--show-origin', '--get-regexp', '^credential\\..*username$']).split('\0');
   const entries = [];
-  for (let i = 0; i + 1 < fields.length; i += 2) {
-    const record = fields[i + 1], newline = record.indexOf('\n');
+  for (let i = 0; i + 2 < fields.length; i += 3) {
+    const scope = pinScope({ scope: fields[i], origin: fields[i + 1] }, branchFiles);
+    const record = fields[i + 2], newline = record.indexOf('\n');
     entries.push(newline < 0
-      ? { scope: fields[i], key: record, value: '' }
-      : { scope: fields[i], key: record.slice(0, newline), value: record.slice(newline + 1) });
+      ? { scope, key: record, value: '' }
+      : { scope, key: record.slice(0, newline), value: record.slice(newline + 1) });
   }
   return entries;
 }
 
 const ZERO = /^0+$/;
 
+/** Pre-push stdin: `<local ref> <local sha> <remote ref> <remote sha>` per line. */
+function parseUpdates(input) {
+  return input.split(/\r?\n/).map((line) => line.trim().split(/\s+/))
+    .filter(([, localSha, remoteRef]) => localSha && remoteRef)
+    .map(([, localSha, remoteRef]) => ({ localSha, remoteRef }));
+}
+
 function pushedCommits(remote, updates) {
   const commits = [];
-  for (const line of updates.split(/\r?\n/)) {
-    const [, localSha] = line.trim().split(/\s+/);
-    if (!localSha || ZERO.test(localSha)) continue; // deletions push no commits
+  for (const { localSha } of updates) {
+    if (ZERO.test(localSha)) continue; // deletions push no commits
     const log = git(['log', '--format=%h %ce', localSha, '--not', `--remotes=${remote}`]);
     for (const entry of log.split(/\r?\n/).filter(Boolean)) {
       const [sha, committerEmail = ''] = entry.split(' ');
@@ -125,20 +174,23 @@ function pushedCommits(remote, updates) {
 function main([remote, url]) {
   // Only Forgejo carries per-agent accounts; the GitHub copy is pushed by the human.
   if (remote !== 'forgejo') return 0;
+  const branchFiles = branchIncludeFiles();
+  const updates = parseUpdates(readFileSync(0, 'utf8'));
   const problems = checkPush({
     remote,
     // A path remote has no URL to match and takes no credentials; it reads as unset.
     username: url?.includes('://')
-      ? credentialUsername(scopedCredentialEntries(), git(['config', '--get-urlmatch', 'credential.username', url]), url)
+      ? credentialUsername(scopedCredentialEntries(branchFiles), git(['config', '--get-urlmatch', 'credential.username', url]), url)
       : undefined,
-    name: scoped(['--get', 'user.name']),
-    email: scoped(['--get', 'user.email']),
-    commits: pushedCommits(remote, readFileSync(0, 'utf8')),
+    name: scoped('user.name', branchFiles),
+    email: scoped('user.email', branchFiles),
+    commits: pushedCommits(remote, updates),
+    refs: updates.map((update) => update.remoteRef),
   });
   if (problems.length === 0) return 0;
   console.error('pre-push: refusing to push to forgejo as an unpinned or mismatched identity (docs/34):');
   for (const problem of problems) console.error(`  ${problem}`);
-  console.error('Pin the identity in config.worktree or the agent harness environment, then retry. Do not bypass this.');
+  console.error('Work on your own <agent>/ branch, whose identity the onbranch include supplies (docs/34.1), or pin it in config.worktree, then retry. Do not bypass this.');
   return 1;
 }
 

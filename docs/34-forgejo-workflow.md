@@ -40,15 +40,18 @@ nothing (or shows `corey` in an agent worktree), or `npm run check:git-credentia
 flags an embedded credential, stop and report it rather than pushing.
 
 Worktrees an agent makes itself (an isolated subagent's, a review's) get no
-`config.worktree`, so each agent's harness also sets the same three keys in its
-process environment ([34.1](34.1-worktree-setup-and-github.md#agent-identity-in-the-harness)).
-Otherwise the credential helper picks any stored account and commits take the
-repository's shared identity, both silently. The tracked `pre-push` hook
-(`tools/git-hooks/`) refuses a push to `forgejo` unless the credential username,
-`user.name` and `user.email` come from `config.worktree` or the environment, an
-`agent-` account pushes under its own `user.name`, and every pushed commit was
-committed by that `user.email`. When it refuses, fix the identity, and re-commit
-foreign commits with `--reset-author`; never push with `--no-verify`.
+`config.worktree`, so the identity also follows the branch: the shared config
+includes each agent's three keys while a branch in its namespace is checked out
+([34.1](34.1-worktree-setup-and-github.md#agent-identity-by-branch)). Create
+the `<agent>/` branch before committing; on any other branch an unpinned
+worktree has no credential username and commits take the human's global
+identity. The tracked `pre-push` hook (`tools/git-hooks/`) refuses a push to
+`forgejo` unless the credential username, `user.name` and `user.email` come from
+`config.worktree`, the branch include or the agent's environment, an `agent-`
+account pushes under its own `user.name` and only to its own `<agent>/`
+branches, and every pushed commit was committed by that `user.email`. When it
+refuses, fix the identity, and re-commit foreign commits with `--reset-author`;
+never push with `--no-verify`.
 
 Each worktree also has an untracked, ignored `.env.local` at its root naming its
 dev port, e.g. `PORT=3110`. `npm run dev` from the root loads it, so a server an agent starts to look at by hand or drive

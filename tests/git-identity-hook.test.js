@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { checkPush, credentialUsername } from '../tools/git-hooks/pre-push.mjs';
+import { checkPush, credentialUsername, pinScope } from '../tools/git-hooks/pre-push.mjs';
 
 const HOOKS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'tools', 'git-hooks');
 const pinned = (value, scope = 'worktree') => ({ scope, value });
@@ -34,6 +34,21 @@ test('an agent account must push under its own name, and only its own commits', 
   const problems = checkPush({ ...agent, commits: [...agent.commits, ...foreign] });
   assert.equal(problems.length, 6);
   assert.match(problems.at(-1), /2 more commits/);
+});
+
+test('an agent account may push only its own namespace; the human may push any', () => {
+  assert.deepEqual(checkPush({ ...agent, refs: ['refs/heads/codex/fix', 'refs/heads/codex/old'] }), []);
+  const problems = checkPush({ ...agent, refs: ['refs/heads/codex/fix', 'refs/heads/claudecode/fix', 'refs/heads/codexish', 'refs/tags/v1'] });
+  assert.deepEqual(problems.map((problem) => problem.split(' not ')[1]), ['refs/heads/claudecode/fix.', 'refs/heads/codexish.', 'refs/tags/v1.']);
+  const human = { ...agent, username: pinned('corey'), name: pinned('HobbesSR'), email: pinned('codex@local.host') };
+  assert.deepEqual(checkPush({ ...human, refs: ['refs/heads/codex/fix'] }), []);
+});
+
+test('local config counts as the branch identity only when read from an onbranch include', () => {
+  const files = new Set(['c:/home/.config/git/agents/codex.inc']);
+  assert.equal(pinScope({ scope: 'local', origin: 'file:C:/home/.config/git/agents/codex.inc' }, files), 'branch');
+  assert.equal(pinScope({ scope: 'local', origin: 'file:C:/repo/.git/config' }, files), 'local');
+  assert.equal(pinScope({ scope: 'global', origin: 'file:C:/home/.config/git/agents/codex.inc' }, files), 'global');
 });
 
 test('the credential username takes the scope of the last entry that covers the URL with its value', () => {
@@ -71,8 +86,20 @@ test('the installed hook blocks an unpinned push and allows a pinned one', () =>
     git('config', '--worktree', 'user.name', 'agent-claudecode');
     git('config', '--worktree', 'user.email', 'claudecode@local.host');
     git('config', '--worktree', `credential.${remote}.username`, 'agent-claudecode');
-    const allowed = git('push', '-q', 'forgejo', 'HEAD:refs/heads/a');
+    const allowed = git('push', '-q', 'forgejo', 'HEAD:refs/heads/claudecode/a');
     assert.equal(allowed.status, 0, allowed.stderr);
+    assert.match(git('push', '-q', 'forgejo', 'HEAD:refs/heads/a').stderr, /may push only refs\/heads\/claudecode\/\*/);
+
+    // Without worktree pins, the checked-out branch's namespace supplies the identity.
+    git('config', '--worktree', '--remove-section', 'user');
+    git('config', '--worktree', '--remove-section', `credential.${remote}`);
+    const include = path.join(dir, 'claudecode.inc').replaceAll('\\', '/');
+    writeFileSync(include, `[user]\n\tname = agent-claudecode\n\temail = claudecode@local.host\n[credential "${remote}"]\n\tusername = agent-claudecode\n`);
+    git('config', 'includeIf.onbranch:claudecode/**.path', include);
+    assert.match(git('push', '-q', 'forgejo', 'HEAD:refs/heads/claudecode/b').stderr, /credential username is not set/);
+    git('switch', '-q', '-c', 'claudecode/b');
+    const byBranch = git('push', '-q', 'forgejo', 'HEAD:refs/heads/claudecode/b');
+    assert.equal(byBranch.status, 0, byBranch.stderr);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
