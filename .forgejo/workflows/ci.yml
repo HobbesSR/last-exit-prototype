@@ -40,7 +40,17 @@ jobs:
       - run: npm run typecheck
       # Through the thin reporter: a line per file with its wall time, each failure, and the
       # slowest files, so the log shows where verify's time goes (docs/31, #800).
-      - run: npm run brief -- test
+      - id: unit
+        run: npm run brief -- test
+      - name: Report container memory after a unit test failure
+        if: failure() && steps.unit.outcome == 'failure'
+        run: |
+          for stat in memory.events memory.peak memory.max; do
+            if [ -r "/sys/fs/cgroup/$stat" ]; then
+              printf '%s\n' "$stat"
+              cat "/sys/fs/cgroup/$stat"
+            fi
+          done
       - run: npm run test:mapgen
 
   # The slow tier (docs/31) runs after merge, not on PRs, on its own runner queue

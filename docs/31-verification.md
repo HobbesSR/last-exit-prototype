@@ -32,9 +32,9 @@ or `npm run brief -- test:slow`), because every line of test output they read is
 context, and in each agent that reads it. `tests/brief.mjs` runs the script with
 `tests/brief-reporter.mjs`, which writes one line per test file (its name, how many tests
 passed and its wall time), the name, location and error of each failure, any diagnostic node scopes to a file (such
-as an error from asynchronous activity after a test ended), the crash output of a file that fails
-outside any test, and a closing count; a failing TODO counts as TODO, as in node. The exit status
-is the script's. The wrapper replaces any reporter already set in `NODE_OPTIONS`, and
+as an error from asynchronous activity after a test ended), recent stdout and stderr with the test
+process's exit code or signal when a file crashes, and a closing count. A failing TODO counts as TODO,
+as in node. The exit status is the script's. The wrapper replaces any reporter already set in `NODE_OPTIONS`, and
 `test:times` drops the inherited one because it parses spec output. Agents start long runs in
 the background and wait for them to finish instead of checking the output repeatedly. Where the
 harness gives no exit notification, they wait on the running command or session with the longest
@@ -476,7 +476,8 @@ Rust workspace:
 - **`verify`** (label `docker`) runs on every pull request and every push to `main`. It installs the Rust
   toolchain, because `npm test` builds the core's WASM module ([27](27-rust-path.md#the-workspace)), then runs
   `npm run check`, `npm run typecheck`, `npm test` (through `brief`, so the log gives each
-  file's wall time and the slowest files) and `npm run test:mapgen`. It runs the whole fast
+  file's wall time and the slowest files) and `npm run test:mapgen`. When `npm test` fails,
+  the job logs the container's memory events, peak and limit where available. It runs the whole fast
   tier on every pull request, not only the sets a branch reaches (Corey, 2026-11-05, #800 S5);
   a slow `verify` is answered by cutting the slowest fast-tier files' cost, not by narrowing it. It is the pull request's
   check. The runner is several times slower than the development machine (42.3, 2026-11-04).
