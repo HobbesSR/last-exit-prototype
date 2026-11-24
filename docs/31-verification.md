@@ -336,6 +336,10 @@ sets a branch reaches. Sources overlap where code is shared (`map/kernel/` promp
 shared registries almost every file imports almost everything (a change under `shared/physics`
 reaches 221 of the 246 fast files' imports on 2026-11-04), so selection by import graph would select the whole tier.
 `npm test` stays the gate before a PR; sets make iterating cheaper, not the gate smaller.
+The exception is a PR that changes only documentation (no code, tests, scripts or configuration):
+its author runs `npm run brief -- test:set tooling`, which holds the documentation checks, and CI's
+verify job, which runs the same `npm test` on every PR, is its full gate. A reviewer accepts a
+green verify as that evidence.
 `npm run test:physics` is the `physics` set, `npm run test:micro` the `micro` set with its browser
 members, and `npm run test:browser` every set's browser members (`node tests/sets.mjs browser`).
 Browser scripts run one at a time, each reported `ok` or `FAIL` with its time, and a failure stops
