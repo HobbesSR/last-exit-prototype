@@ -464,9 +464,12 @@ agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 1838
      not presentation.
    - So is the building relation: which building a gate and a ground item belong to. Contestants group gates by
      building and skip a building's power cells while a door they last saw there was locked (`botGates`,
-     `shared/simulation/bots.ts`). Setup's gate rows don't carry it today. The #1215 inventory decides its encoding
-     (review 1058). Cosmetic presentation (decals, appearance, roof styling) reaches clients through the payload,
-     not the core.
+     `shared/simulation/bots.ts`). Setup uses dense slots ordered by building ID, shared by gate rows, ground items
+     and remembered items. An absent relation stays absent. A drop creates a ground item without a building slot.
+     Gate rows keep map order (#1318). Cosmetic presentation (decals, appearance, roof styling) reaches clients
+     through the payload.
+   - Match setup carries `entry.x` with a zero fallback, the static collision map and its playable mask, and roof
+     polygons and fallback building footprints. Roof lookups are available independently of discovery memory.
    - A rule that later needs something from an earlier step of the chain gets a new named runtime table, never the
      chain's objects.
    - #1215 starts with an inventory of every map read by bots, discovery and the tick, against what setup carries.
@@ -496,6 +499,9 @@ agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 1838
    bytes for both layers with the same geometry. Deferred preparation builds the contestant layer
    synchronously in the room worker by default. With inline rooms (`roomThreads: false`) it
    blocks the host event loop until the build finishes. Both flat variants remain opt-in.
+   Rust validates both uploaded clearances together during room preparation and retains the original allocations.
+   The match holds a reference before its first tick. The current JavaScript planner borrows views from the same
+   bytes, refreshing them after WASM memory growth. The room and match release their references on disposal (#1318).
    At 36×18 the deferred variant reduced idle stock but took about
    eight seconds to ready a stocked room and still increased live WASM capacity. The default legacy worker
    handoff prebuilds only the gladiator clearance.

@@ -288,6 +288,7 @@ fn pending_item_retries_body_placement_after_clearance_changes() {
     scenario.state.items.insert(
         item,
         GroundItem {
+            building: None,
             dropped_by: Some(C),
             pickup_ready_at: 3,
             ..pending_item()
@@ -371,6 +372,7 @@ fn a_due_rider_sees_the_gate_committed_in_apply() {
     scenario.state.gates.insert(
         gate,
         Gate {
+            building: None,
             position: [400.0, 0.0],
             open: true,
             door: true,
@@ -462,6 +464,7 @@ fn pending_items_leave_the_drop_reserve_free() {
         scenario.state.items.insert(
             id,
             GroundItem {
+                building: None,
                 unplaced_at: Some([100.0 * (i as f64 + 1.0), 0.0]),
                 ..pending_item()
             },

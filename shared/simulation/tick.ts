@@ -9,8 +9,8 @@ import { snapshot as setupSnapshot } from './visibility.ts';
 import type { WireIds } from './wire-ids.ts';
 
 /** Start the authority after the caller finishes arranging the match's initial state. */
-export function createTickSession(game: Game, wire?: WireIds) {
-  const match = createTickMatch(game);
+export function createTickSession(game: Game, wire?: WireIds, navigation?: number) {
+  const match = createTickMatch(game, navigation);
   try {
     const mirror = new TickMirror(game, match);
     return { match, mirror, boundary: new TickBoundary(game, match, wire), frames: new TickFrames(mirror) };

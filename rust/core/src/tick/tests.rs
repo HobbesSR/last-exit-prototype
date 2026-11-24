@@ -99,6 +99,7 @@ impl Mechanics for Rules {
                 Spawn::Item {
                     id: None,
                     item: GroundItem {
+                        building: None,
                         pickup_ready_at: view.tick + 1,
                         ..pending_item()
                     },
@@ -150,6 +151,7 @@ fn keep_open(scenario: &mut Scenario) {
 
 fn pending_item() -> GroundItem {
     GroundItem {
+        building: None,
         loot: Loot::Equipment(Equipment {
             kind: EquipmentKind::Cell { charge: 0 },
             quality: 1,

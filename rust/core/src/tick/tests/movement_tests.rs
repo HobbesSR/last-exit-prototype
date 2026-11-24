@@ -175,6 +175,7 @@ fn a_closed_gate_wins_the_contact_tie_and_open_gate_leaves_the_path_clear() {
         scenario.state.gates.insert(
             GateId(0),
             Gate {
+                building: None,
                 open,
                 locked: false,
                 ..Gate::default()

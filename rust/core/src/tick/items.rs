@@ -632,6 +632,7 @@ impl ItemRules {
             let spawn = Spawn::Item {
                 id: if copy == 0 { id } else { None },
                 item: GroundItem {
+                    building: None,
                     loot,
                     lineage,
                     unplaced_at: spot.body.is_none().then_some(spot.position),

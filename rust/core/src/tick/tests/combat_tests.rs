@@ -280,6 +280,7 @@ fn rewind_uses_historical_target_and_gate_with_current_caster() {
         scenario.state.gates.insert(
             gate,
             Gate {
+                building: None,
                 open: !gate_open,
                 locked: false,
                 ..Gate::default()

@@ -24,6 +24,7 @@ fn id(seat: u32) -> ActorId {
 
 fn item(id: u32, loot: Loot) -> GroundItem {
     GroundItem {
+        building: Some(7),
         loot,
         lineage: Some(ItemId(id + 100)),
         unplaced_at: Some([1.5, -2.5]),
@@ -143,6 +144,7 @@ fn rich_state() -> State {
     state.items.insert(
         ItemId(3),
         GroundItem {
+            building: None,
             lineage: None,
             unplaced_at: None,
             dropped_by: None,
@@ -203,6 +205,7 @@ fn rich_state() -> State {
     state.gates.insert(
         GateId(0),
         Gate {
+            building: Some(7),
             open: true,
             locked: false,
             door: true,
@@ -822,6 +825,7 @@ fn busy_scenario() -> (Scenario, GateId) {
     scenario.state.gates.insert(
         gate,
         Gate {
+            building: None,
             open: false,
             locked: true,
             door: true,
@@ -840,6 +844,7 @@ fn busy_scenario() -> (Scenario, GateId) {
     scenario.state.items.insert(
         ItemId(5),
         GroundItem {
+            building: None,
             unplaced_at: None,
             ..pending_item()
         },
@@ -897,6 +902,7 @@ fn a_richer_snapshot_decodes_as_setup_tables() {
         floor: [0.0; 4],
         hazard_areas: Vec::new(),
         wall: None,
+        entry_x: 0.0,
         bounds: None,
         combat: Combat::default(),
     };
@@ -1034,6 +1040,7 @@ fn sample_setup() -> Setup {
         floor: [0.5, 0.25, 0.75, 0.125],
         hazard_areas: vec![[1.0, 2.0, 3.0, 4.0]],
         wall: Some((960.0, 5)),
+        entry_x: 123.5,
         bounds: Some([0.0, 0.0, 1000.0, 500.0]),
         combat,
     }
@@ -1183,4 +1190,46 @@ fn non_finite_words_never_decode_into_a_value() {
             }
         }
     }
+}
+
+#[test]
+fn live_match_retains_collision_and_roofs_without_discovery() {
+    let roofs = crate::discovery::DiscoveryMap::new(
+        &[1.0, 1.0, 192.0, 100.0, 100.0, 0.0],
+        &[1],
+        &[],
+        &[
+            7.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 50.0, 1.0, 0.0, 0.0,
+        ],
+        &[3.0, 400.0, 400.0, 100.0, 100.0],
+    );
+    let collision = crate::collision::CollisionMap::new(
+        &[384.0, 192.0, 192.0, 2.0, 1.0],
+        &[1, 0],
+        &[],
+        &[0],
+        &[0, 0, 0, 0, 0],
+    );
+    let live = LiveMatch::new(
+        &sample_setup().encode(),
+        Handles {
+            collision: Some(&collision),
+            roofs: Some(&roofs),
+            ..Handles::default()
+        },
+    )
+    .expect("a valid setup starts without discovery");
+    drop(collision);
+    drop(roofs);
+    assert_eq!(live.entry_x(), 123.5);
+    let area = live.collision().expect("collision data is retained");
+    assert!(area.inside(100.0, 100.0, 1.0));
+    assert!(!area.inside(200.0, 100.0, 1.0));
+    let retained = live.roofs().expect("roof tables are retained");
+    assert_eq!(retained.roof_at(120.0, 120.0), Some(7));
+    assert_eq!(retained.roof_at(420.0, 420.0), Some(3));
+    assert_eq!(retained.roof_at(300.0, 300.0), None);
+    assert!(retained.conceals([300.0, 300.0], [120.0, 120.0]));
+    assert!(retained.conceals([120.0, 120.0], [420.0, 420.0]));
+    assert!(!retained.conceals([430.0, 430.0], [420.0, 420.0]));
 }

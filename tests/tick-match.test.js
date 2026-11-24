@@ -215,3 +215,29 @@ test('a gladiator respawning at match start is admitted from its seeded spec', a
     assert.equal(hasPose(), true);
   } finally { match?.dispose(); disposePhysics(s); }
 });
+
+
+test('building slots survive setup and remain outside the public row shape', async () => {
+  const s = await game();
+  let match;
+  try {
+    s.gates[0].buildingId = 'building-z';
+    s.items[0].buildingId = 'building-z';
+    s.items[1].buildingId = 'building-a';
+    s.map.entry = { x: 95, y: 140 };
+    const { setup, ids } = matchSetup(s);
+    assert.equal(setup.entryX, 95);
+    delete s.map.entry;
+    assert.equal(matchSetup(s).setup.entryX, 0);
+    assert.deepEqual(ids.buildingIds, ['building-a', 'building-z']);
+    assert.equal(setup.state.gates[0].gate.building, 1);
+    assert.equal(setup.state.items[0].item.building, 1);
+    match = new TickMatch(s, setup, ids);
+    const state = match.snapshot().state;
+    assert.equal(state.gates[0].gate.building, 1);
+    assert.equal(state.items[0].item.building, 1);
+    assert.equal(state.items[2].item.building, null);
+    assert.equal(Object.keys(state.items[0].item).includes('building'), false);
+    assert.equal(Object.keys(state.gates[0].gate).includes('building'), false);
+  } finally { match?.dispose(); disposePhysics(s); }
+});

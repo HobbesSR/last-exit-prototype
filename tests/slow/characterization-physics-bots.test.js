@@ -10,7 +10,8 @@ import { prepareRuntimeNavigation } from '../../server/runtime-map.js';
 const expected = deserialize(gunzipSync(readFileSync(new URL('../fixtures/behavior-physics-1.v8.gz', import.meta.url))));
 const prepareMap = process.env.RUNTIME_MAP_PARITY === '1' ? async map => {
   const decoded = unpackMap(packRuntimeMap(map));
-  return { map: decoded, release: await prepareRuntimeNavigation(decoded) };
+  const { release } = await prepareRuntimeNavigation(decoded);
+  return { map: decoded, release };
 } : undefined;
 // Whole physics bot matches on the arenas stored in the fixture (#920). The version check and the
 // scripted trace, which are cheap, are in ../characterization-physics.test.js.

@@ -31,6 +31,7 @@ export interface MatchIds {
   actorOfPlayer: ReadonlyMap<PlayerId, number>;
   playerOfActor: ReadonlyMap<number, PlayerId>;
   bindPlayer(slot: PlayerIdx, id: PlayerId): void;
+  buildingIds: readonly import('../types.ts').BuildingId[];
   gateIndex: ReadonlyMap<GateId, number>;
   gateIds: readonly GateId[];
   trapIndex: ReadonlyMap<TrapId, number>;
@@ -223,6 +224,8 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
     actorOfPlayer.set(id, word);
     playerOfActor.set(word, id);
   };
+  const buildingIds = [...new Set([...s.map.buildings.map(b => b.id), ...s.gates.map(g => g.buildingId), ...s.items.map(i => i.buildingId)].filter(id => id !== undefined))].sort(compare);
+  const buildingIndex = new Map(buildingIds.map((id, i) => [id, i] as const));
   const gateIds = s.gates.map(g => g.id), gateIndex = new Map(gateIds.map((id, i) => [id, i] as const));
   const trapIds = s.traps.map(t => t.id), trapIndex = new Map(trapIds.map((id, i) => [id, i] as const));
   const stationList: MatchIds['stations'][number][] = [
@@ -279,8 +282,10 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
     top = Math.max(top, id, lineage ?? 0);
     const dropper = item.droppedBy === undefined ? undefined : actorOfPlayer.get(item.droppedBy);
     if (item.droppedBy !== undefined && dropper === undefined) refuse(`ground item ${id} was dropped by an unknown player`);
-    items.push({ id, item: { loot: lootOf(s, item), lineage: lineage !== undefined && lineage !== id ? lineage : null,
-      unplacedAt: pointOf(item), droppedBy: dropper ?? null, pickupReadyAt: item.pickupAfter ?? 0 } });
+    const row: GroundEntry['item'] = { loot: lootOf(s, item), lineage: lineage !== undefined && lineage !== id ? lineage : null,
+      unplacedAt: pointOf(item), droppedBy: dropper ?? null, pickupReadyAt: item.pickupAfter ?? 0 };
+    Object.defineProperty(row, 'building', { value: item.buildingId === undefined ? null : buildingIndex.get(item.buildingId)!, enumerable: false });
+    items.push({ id, item: row });
   }
   items.sort((a, b) => a.id - b.id);
   for (const a of actors) for (const slot of a.actor.inventory.slots) if (slot) top = Math.max(top, slot.id, slot.lineage);
@@ -294,7 +299,11 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
   geometry.forEach((g, i) => bodies.push({ id: { kind: 'geometry', id: i }, body: setupBody({ ...g, mapGeometry: true }) }));
 
   // --- Records -----------------------------------------------------------
-  const gates: GateEntry[] = s.gates.map((g, id) => ({ id, gate: { open: g.open, locked: g.locked ?? g.kind !== 'door', door: g.kind === 'door', position: pointOf(g) } }));
+  const gates: GateEntry[] = s.gates.map((g, id) => {
+    const gate: GateEntry['gate'] = { open: g.open, locked: g.locked ?? g.kind !== 'door', door: g.kind === 'door', position: pointOf(g) };
+    Object.defineProperty(gate, 'building', { value: g.buildingId === undefined ? null : buildingIndex.get(g.buildingId)!, enumerable: false });
+    return { id, gate };
+  });
   const traps: TrapEntry[] = s.traps.map((trap, id) => {
     const target = trap.targetId == null ? undefined : actorOfPlayer.get(trap.targetId);
     const kind: TrapKind = trap.kind === 'mine' ? { kind: 'mine', spent: trap.spent }
@@ -325,8 +334,9 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
       hazardWall: { mapWidth: s.map.width, graceTicks: s.content.hazardGraceTicks },
       // Actors and spots lie inside the map's box (the old collision test's first condition).
       bounds: [0, 0, s.map.width, s.map.height],
+      entryX: s.map.entry?.x ?? 0,
       tuning: tuningOf(s) },
-    ids: { actorAtSlot, slotOfActor, actorOfPlayer, playerOfActor, bindPlayer, gateIndex, gateIds, trapIndex, trapIds, chargerIndex, transitIndex, stations: stationList,
+    ids: { actorAtSlot, slotOfActor, actorOfPlayer, playerOfActor, bindPlayer, buildingIds, gateIndex, gateIds, trapIndex, trapIds, chargerIndex, transitIndex, stations: stationList,
       propNumber, propLabels: props.map(p => p.label), geometryNumber, geometryIds: geometry.map(g => g.id) },
   };
 }
@@ -335,11 +345,12 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
 // The live match
 // ---------------------------------------------------------------------------
 
-/** The core's `match_*` exports (`rust/core/src/lib.rs`, adapter version 45). */
+/** The core's `match_*` exports (`rust/core/src/lib.rs`). */
 interface MatchExports {
   match_new(setup: number, setupLength: number, swept: number, sightIndex: number, gateSet: number,
-    discoveryMap: number, discoveryIndex: number, discoveryGates: number): number;
+    discoveryMap: number, discoveryIndex: number, discoveryGates: number, collision: number, roofs: number): number;
   match_free(game: number): void;
+  match_set_navigation(game: number, navigation: number): number;
   match_input(game: number, words: number): number;
   match_submit(game: number, tick: number, count: number): number;
   match_submit_flags(game: number): number;
@@ -365,20 +376,25 @@ export class TickMatch {
   #pointer: number;
 
   /** Packs `setup` (from `matchSetup(s)`, which the caller may adjust first) and starts the match. Throws when the core refuses it. */
-  constructor(s: Game, setup: MatchSetup, ids: MatchIds) {
+  constructor(s: Game, setup: MatchSetup, ids: MatchIds, navigation?: number) {
     const sight = sightOf(s), map = s.map;
     // The map's handles first: building one may grow the memory, and the core copies them.
-    const { core, index, gates } = sight.queryHandles(map);
+    const { core, collision, index, gates } = sight.queryHandles(map);
     const swept = sight.sweptHandle(map);
-    const discovery = s.content.discovery && map.playableArea ? sight.discoveryHandle(map, discoveryTables) : 0;
+    const roofs = sight.discoveryHandle(map, discoveryTables);
+    const discovery = s.content.discovery ? roofs : 0;
     const matchCore = core as MatchCore;
     const words = encodeSetup(setup), bytes = words.length * 8, buffer = matchCore.core_alloc(bytes) >>> 0;
     let pointer: number;
     try {
       new Float64Array(matchCore.memory.buffer, buffer, words.length).set(words);
-      pointer = matchCore.match_new(buffer, words.length, swept, index, gates, discovery, discovery ? index : 0, discovery ? gates : 0) >>> 0;
+      pointer = matchCore.match_new(buffer, words.length, swept, index, gates, discovery, discovery ? index : 0, discovery ? gates : 0, collision, roofs) >>> 0;
     } finally { matchCore.core_free(buffer, bytes); }
     if (pointer === 0) throw new Error('tick-match: the core refused the match setup');
+    if (navigation && !matchCore.match_set_navigation(pointer, navigation)) {
+      matchCore.match_free(pointer);
+      throw new Error('tick-match: the core refused the navigation package');
+    }
     this.setup = setup; this.ids = ids; this.#core = matchCore; this.#pointer = pointer;
     live.register(this, { core: matchCore, pointer }, this);
   }
@@ -433,7 +449,7 @@ export class TickMatch {
 }
 
 /** Map the game and start its match. */
-export function createTickMatch(s: Game): TickMatch {
+export function createTickMatch(s: Game, navigation?: number): TickMatch {
   const { setup, ids } = matchSetup(s);
-  return new TickMatch(s, setup, ids);
+  return new TickMatch(s, setup, ids, navigation);
 }

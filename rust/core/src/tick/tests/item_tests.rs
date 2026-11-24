@@ -24,6 +24,7 @@ fn add_loot(scenario: &mut Scenario, id: ItemId, x: f64, loot: Loot) {
     scenario.state.items.insert(
         id,
         GroundItem {
+            building: None,
             loot,
             unplaced_at: None,
             ..pending_item()
@@ -142,6 +143,7 @@ fn a_nominated_claim_outranks_a_closer_automatic_pickup() {
             scenario.state.items.insert(
                 item,
                 GroundItem {
+                    building: None,
                     loot: loot(pistol(5)),
                     unplaced_at: Some([7.0, 0.0]),
                     ..pending_item()
@@ -430,6 +432,7 @@ fn a_successful_swap_reuses_capacity_and_locks_out_only_the_dropper() {
             .any(|event| matches!(event.fact, Fact::Pickup { item, .. } if item == outgoing))
     );
     assert_eq!(game.state().items[&outgoing].pickup_ready_at, 21);
+    assert_eq!(game.state().items[&outgoing].building, None);
     let following = game.step(&rules).unwrap();
     assert!(has(
         &following,

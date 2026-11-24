@@ -231,6 +231,7 @@ fn key_picked_up_after_a_locked_attempt_only_opens_the_gate_next_tick() {
     scenario.state.gates.insert(
         gate,
         Gate {
+            building: None,
             open: false,
             locked: true,
             door: true,
@@ -244,6 +245,7 @@ fn key_picked_up_after_a_locked_attempt_only_opens_the_gate_next_tick() {
     scenario.state.items.insert(
         key,
         GroundItem {
+            building: None,
             loot: Loot::AccessKey,
             unplaced_at: None,
             ..pending_item()
@@ -299,6 +301,7 @@ fn default_interact_prefers_extraction_to_a_closer_gate() {
     scenario.state.gates.insert(
         gate,
         Gate {
+            building: None,
             open: false,
             locked: false,
             door: true,
@@ -494,6 +497,7 @@ fn solved_occupants_block_door_closure_until_they_escape() {
     scenario.state.gates.insert(
         gate,
         Gate {
+            building: None,
             open: true,
             door: true,
             position: [20.0, 0.0],
@@ -586,6 +590,7 @@ fn opposite_gate_intents_use_rewound_state_and_seeded_contention() {
         scenario.state.gates.insert(
             gate,
             Gate {
+                building: None,
                 open: true,
                 door: true,
                 position: [20.0, 0.0],
@@ -647,6 +652,7 @@ fn gates_and_full_inventory_swaps_share_the_distance_tier() {
         scenario.state.gates.insert(
             gate,
             Gate {
+                building: None,
                 position: [gate_x, 0.0],
                 door: true,
                 ..Gate::default()
@@ -656,6 +662,7 @@ fn gates_and_full_inventory_swaps_share_the_distance_tier() {
         scenario.state.items.insert(
             item,
             GroundItem {
+                building: None,
                 unplaced_at: if bodied { None } else { Some([20.0, 0.0]) },
                 ..pending_item()
             },
@@ -705,6 +712,7 @@ fn a_solid_dynamic_prop_blocks_a_close() {
     scenario.state.gates.insert(
         gate,
         Gate {
+            building: None,
             open: true,
             door: true,
             position: [20.0, 0.0],
