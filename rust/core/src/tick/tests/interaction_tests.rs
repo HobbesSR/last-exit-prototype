@@ -268,6 +268,7 @@ fn key_picked_up_after_a_locked_attempt_only_opens_the_gate_next_tick() {
     ));
     assert!(!game.state().gates[&gate].open);
     assert_eq!(game.state().actors[&A].inventory.keys, 1);
+    assert!(game.memory(A).unwrap().gates.is_empty());
     interact(&mut game, A, 2, Some(Target::Gate(gate)));
     let second = game.step(&rules).unwrap();
     assert!(has(
@@ -290,6 +291,21 @@ fn key_picked_up_after_a_locked_attempt_only_opens_the_gate_next_tick() {
     assert!(game.state().gates[&gate].open);
     assert_eq!(game.state().actors[&A].inventory.keys, 0);
     assert_eq!(game.position(BodyId::Gate(gate)), None);
+    assert_eq!(
+        game.memory(A).unwrap().gates[&gate],
+        DoorMemory {
+            open: false,
+            locked: true,
+        }
+    );
+    game.step(&rules).unwrap();
+    assert_eq!(
+        game.memory(A).unwrap().gates[&gate],
+        DoorMemory {
+            open: true,
+            locked: false,
+        }
+    );
 }
 
 #[test]
