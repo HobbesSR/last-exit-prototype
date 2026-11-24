@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { checkPush } from '../tools/git-hooks/pre-push.mjs';
+import { checkPush, credentialUsername } from '../tools/git-hooks/pre-push.mjs';
 
 const HOOKS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'tools', 'git-hooks');
 const pinned = (value, scope = 'worktree') => ({ scope, value });
@@ -34,6 +34,18 @@ test('an agent account must push under its own name, and only its own commits', 
   const problems = checkPush({ ...agent, commits: [...agent.commits, ...foreign] });
   assert.equal(problems.length, 6);
   assert.match(problems.at(-1), /2 more commits/);
+});
+
+test('the credential username takes the scope of the last entry that covers the URL with its value', () => {
+  const url = 'http://forge:3000/corey/repo.git';
+  const entry = (scope, key, value = 'agent-codex') => ({ scope, key, value });
+  assert.equal(credentialUsername([], '', url), undefined);
+  assert.deepEqual(credentialUsername([entry('global', 'credential.username'), entry('worktree', 'credential.http://forge:3000/.username')], 'agent-codex', url),
+    { scope: 'worktree', value: 'agent-codex' });
+  // A pin for another URL, or with another value, does not vouch for this one.
+  assert.equal(credentialUsername([entry('global', 'credential.username'), entry('worktree', 'credential.http://forge:3000/other.username')], 'agent-codex', url).scope, 'global');
+  assert.equal(credentialUsername([entry('global', 'credential.username'), entry('worktree', 'credential.username', 'agent-hermes')], 'agent-codex', url).scope, 'global');
+  assert.equal(credentialUsername([entry('worktree', 'credential.http://*:3000.username')], 'agent-codex', url).scope, 'unrecognised');
 });
 
 test('the installed hook blocks an unpinned push and allows a pinned one', () => {

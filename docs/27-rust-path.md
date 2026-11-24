@@ -1398,6 +1398,9 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
     imports that module, so Node and the browser load the core the same way, as Rapier's `-compat` package
     embeds its own. There is no file read in one host and fetch in the other, and no route to serve the file:
     `/shared` serves the generated module like any other. It is about 55 KB of WASM, 73 KB as text.
+  - **Decoding the bytes (#1332).** `initCore` decodes the base64 with a plain loop over `atob`'s string.
+    `Uint8Array.from(text, mapper)` calls back once per character; at 4 MB it took 270 ms and left about 70 MB of
+    process memory behind in every process and room thread that loads the core, against 10 ms and 9 MB.
   - **When.** `initCore` instantiates once per process (per thread in the server's room workers), memoized, before
     anything that uses the core.
   - **The first call.** The loader reads `adapter_version` before anything else. That is the version of the contract
@@ -1495,7 +1498,8 @@ PR); the results follow each:
   - **The version.** `rapier2d` 0.36.1 links `parry2d` 0.31.1 and `nalgebra` 0.35.0, the versions found in rapier.js
     0.21.0's module (21.1), so the engine is the same generation.
   - **Its size.** The module grew from about 55 KB to about 1.95 MB (2.6 MB as base64), close to rapier.js's
-    2.4 MB, which then retired.
+    2.4 MB, which then retired. By #1332 it was 3.9 MB (5.2 MB as base64): 3.1 MB of code and a 630 KB `name`
+    section, built with no size or LTO settings in the release profile.
 - **The licence record.** Rapier is Apache-2.0, compatible with the MIT licence, but as a crate it passes
   `cargo deny` and is recorded in [21.1](21.1-third-party-licenses.md#the-rust-workspace), with its dependencies.
   The npm package's record goes when the wrapper does.

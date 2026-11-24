@@ -172,7 +172,8 @@ test('the failure paths agree: no playable area, grown lists, another area, and 
 
 // Building a handle may grow WASM memory and detach the old buffer, so the open mask's view must be made
 // after the calls that build, as every view is (docs/27). A stub core grows memory in each constructor and
-// answers with the mask byte it finds, so a mask written into a detached buffer would read as closed.
+// answers with the mask byte it finds, so a mask written into a detached buffer would read as closed. It frees
+// as a core does: the gates' FinalizationRegistry calls gate_set_free whenever GC runs, even after the test (#1332).
 test('a collision upload that grows the core memory still writes the open mask where the core reads it', () => {
   const memory = new WebAssembly.Memory({ initial: 1 });
   let heap = 64, mask = 0;
@@ -180,7 +181,7 @@ test('a collision upload that grows the core memory still writes the open mask w
   const grow = handle => { memory.grow(1); return handle; };
   const stub = {
     memory, adapter_version: () => 9, core_alloc: alloc, core_free() {},
-    gate_set_new: () => grow(16), gate_set_open: () => (mask = alloc(1)), gate_set_locked: () => alloc(1),
+    gate_set_new: () => grow(16), gate_set_free() {}, gate_set_open: () => (mask = alloc(1)), gate_set_locked: () => alloc(1),
     collision_map_new: () => grow(24), collision_map_free() {},
     can_occupy: () => new Uint8Array(memory.buffer, mask, 1)[0],
   };
