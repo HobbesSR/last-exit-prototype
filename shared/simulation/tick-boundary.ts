@@ -1,5 +1,7 @@
 import { finite } from '../numbers.ts';
-import { inputLeadFrom, queueInput, resetInput, takeQueued } from './input.ts';
+import { inputLeadFrom, queueInput, queueSanitizedInput, resetInput, takeQueued } from './input.ts';
+import type { SanitizedInput } from './input.ts';
+import { playerById } from './relations.ts';
 import { viewLagFrom } from './rewind.ts';
 import { emptyInput } from './tick-codec.ts';
 import { wireIds } from './wire-ids.ts';
@@ -7,7 +9,7 @@ import type { Command, DropSlot, Inbound, Input, Point, Target } from './tick-co
 import type { WireIds } from './wire-ids.ts';
 import type { MatchIds, TickMatch } from './tick-match.ts';
 import type { BotIntent } from './bots.ts';
-import type { Game, InputTarget, Player, PlayerId, PlayerInput, Tick } from '../types.ts';
+import type { Game, InputTarget, Kit, Player, PlayerId, PlayerInput, Tick } from '../types.ts';
 
 // The receive boundary of the new tick (docs/27.2 "Node adapter (3d.2)"): what arrives between ticks becomes the inbound
 // queue's rows. Player input keeps 24's stamped-input contract by keeping its buffer: `queueInput` admits on sequence,
@@ -103,14 +105,14 @@ export function measured(ids: MatchIds, p: Player, roundTripMs: number | null | 
  * over, as `resetInput` leaves them, so nothing the previous connection queued is ever spent; the core clears the held
  * input, lag and spent sequence on the row.
  */
-export function seatChanged(ids: MatchIds, p: Player, kind: 'join' | 'leave'): Inbound | null {
+export function seatChanged(ids: MatchIds, p: Player, kind: 'join' | 'leave', kit?: Kit): Inbound | null {
   const actor = ids.actorOfPlayer.get(p.id);
   if (actor === undefined) return null;
   resetInput(p);
   reportedLag.set(p, 0);
   // As `resume` and `leave` set it: the core's record agrees at the tick's intake, and no bot command is sent meanwhile.
   p.bot = kind === 'leave';
-  return { type: 'observation', observation: { kind, actor } };
+  return { type: 'observation', observation: kind === 'join' && kit !== undefined ? { kind, actor, kit } : { kind, actor } };
 }
 
 /**
@@ -154,7 +156,7 @@ export class TickBoundary {
   /** The match's outward ID mapping (#1164), which a nominated item's ID arrives through. */
   readonly wire: WireIds;
   constructor(s: Game, match: TickMatch, wire: WireIds = wireIds()) { this.s = s; this.match = match; this.wire = wire; }
-  #player(id: PlayerId): Player | undefined { return this.s.players.find(p => p.id === id); }
+  #player(id: PlayerId): Player | undefined { return playerById(this.s, id); }
   #observe(rows: readonly Inbound[]): void {
     if (rows.length && !this.match.submit(this.s.tick + 1, rows).every(Boolean)) throw new Error('tick-boundary: the match refused an observation');
   }
@@ -162,6 +164,11 @@ export class TickBoundary {
   input(id: PlayerId, input: PlayerInput): PlayerInput | null {
     const p = this.#player(id);
     return p && this.match.ids.actorOfPlayer.has(p.id) ? queueInput(p, input, this.s.tick) : null;
+  }
+  /** Transport already sanitized these fields before dispatch. */
+  sanitizedInput(id: PlayerId, input: SanitizedInput): PlayerInput | null {
+    const p = this.#player(id);
+    return p && this.match.ids.actorOfPlayer.has(p.id) ? queueSanitizedInput(p, input, this.s.tick) : null;
   }
   /**
    * The command rows for `tick`: what each active player's buffer holds for it. A bot's seat has no buffer, and an inactive
@@ -184,8 +191,8 @@ export class TickBoundary {
     this.#observe(rows);
     return rows;
   }
-  seat(id: PlayerId, kind: 'join' | 'leave'): Inbound | null {
-    const p = this.#player(id), row = p ? seatChanged(this.match.ids, p, kind) : null;
+  seat(id: PlayerId, kind: 'join' | 'leave', kit?: Kit): Inbound | null {
+    const p = this.#player(id), row = p ? seatChanged(this.match.ids, p, kind, kit) : null;
     if (row) this.#observe([row]);
     return row;
   }

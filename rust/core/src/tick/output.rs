@@ -29,6 +29,8 @@ pub enum Discontinuity {
     Warped(BodyId),
     /// Left the world: an escape, a departure, an elimination, a stranding or a pickup.
     Removed(BodyId),
+    /// A committed developer teleport, identified by its inbound teleport ordinal.
+    DevWarped { body: BodyId, request: u32 },
 }
 
 /// A dynamic body's committed pose: where it is, its rotation, its motion and whether Rapier

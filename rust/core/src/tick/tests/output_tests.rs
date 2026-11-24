@@ -163,7 +163,13 @@ fn observations_are_recorded_inbound_and_written_at_intake() {
     assert!(tick.changes.actors[&C].bot);
     assert_eq!(
         tick.discontinuities,
-        [Discontinuity::Warped(BodyId::Actor(C))]
+        [
+            Discontinuity::Warped(BodyId::Actor(C)),
+            Discontinuity::DevWarped {
+                body: BodyId::Actor(C),
+                request: 0
+            }
+        ]
     );
     assert_eq!(tick.changes.poses[&BodyId::Actor(C)].at, [500.0, 40.0]);
 
@@ -171,7 +177,14 @@ fn observations_are_recorded_inbound_and_written_at_intake() {
     super::submit(&mut game, C, 2, 90, Input::default());
     game.step(&Combat::default()).unwrap();
     assert_eq!(game.acknowledged(C), Some(90));
-    observe(&mut game, 3, Observation::Join { actor: C });
+    observe(
+        &mut game,
+        3,
+        Observation::Join {
+            actor: C,
+            kit: None,
+        },
+    );
     super::submit(&mut game, C, 3, 0, Input::default());
     let joined = game.step(&Combat::default()).unwrap();
     assert!(!joined.changes.actors[&C].bot);
@@ -421,4 +434,72 @@ fn a_shot_is_heard_in_its_tick_events_and_reaches_listeners_after_it() {
     );
     while game.step(&rules).unwrap().tick < ready + 40 {}
     assert!(game.heard(C).is_empty(), "the cue fades");
+}
+
+#[test]
+fn teleport_ordinals_include_refusals_and_join_only_changes_supplied_kit() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 10.0);
+    add_actor(&mut scenario, C, 300.0);
+    scenario.state.actors.get_mut(&C).unwrap().kit = Some(Kit::Warden);
+    let mut game = scenario.start(50, 10);
+    observe(
+        &mut game,
+        1,
+        Observation::Join {
+            actor: C,
+            kit: None,
+        },
+    );
+    observe(
+        &mut game,
+        1,
+        Observation::Teleport {
+            body: BodyId::Actor(C),
+            to: [10.5, 0.0],
+        },
+    );
+    observe(&mut game, 1, Observation::ViewLag { actor: C, ticks: 2 });
+    observe(
+        &mut game,
+        1,
+        Observation::Teleport {
+            body: BodyId::Actor(C),
+            to: [500.0, 40.0],
+        },
+    );
+    observe(
+        &mut game,
+        1,
+        Observation::Teleport {
+            body: BodyId::Actor(C),
+            to: [600.0, 40.0],
+        },
+    );
+    let tick = game.step(&Combat::default()).unwrap();
+    assert_eq!(tick.changes.actors[&C].kit, Some(Kit::Warden));
+    assert_eq!(
+        tick.discontinuities,
+        [
+            Discontinuity::Warped(BodyId::Actor(C)),
+            Discontinuity::DevWarped {
+                body: BodyId::Actor(C),
+                request: 1
+            },
+            Discontinuity::DevWarped {
+                body: BodyId::Actor(C),
+                request: 2
+            }
+        ]
+    );
+    observe(
+        &mut game,
+        2,
+        Observation::Join {
+            actor: C,
+            kit: Some(Kit::Hook),
+        },
+    );
+    let tick = game.step(&Combat::default()).unwrap();
+    assert_eq!(tick.changes.actors[&C].kit, Some(Kit::Hook));
 }

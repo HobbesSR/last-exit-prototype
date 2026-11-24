@@ -18,7 +18,7 @@ import { startScheduler } from './scheduler.js';
 import { fileReplayWriters } from './replay-store.js';
 import { mapHere } from './map-pack.js';
 
-const { room: options, devTools, replays: replayOptions, replayFinishTimeoutMs, profile, wireKey } = workerData;
+const { room: options, devTools, replays: replayOptions, replayFinishTimeoutMs, profile, wireKey, tick } = workerData;
 profiler.enable(!!profile);
 
 const encoder = new TextEncoder();
@@ -84,6 +84,7 @@ const room = createRoom({
   devTools,
   replayFinishTimeoutMs,
   wireKey,
+  tick,
   reportError: error => emit(['error', asPlainError(error)]),
   deliver,
   datagram,
@@ -121,6 +122,7 @@ function handle(message) {
     }
     case 'leave': backlog.delete(message.clientId); room.onLeave(message.clientId, true); break;
     case 'message': room.onMessage(message.clientId, message.data); break;
+    case 'input': room.onInput(message.clientId, message.input); break;
     case 'invalid': room.onInvalidMessage(message.clientId, message.info); break;
     case 'lag': room.setViewLag(message.clientId, message.rttMs); break;
     case 'ack': room.onAck(message.clientId, message.tick); break;

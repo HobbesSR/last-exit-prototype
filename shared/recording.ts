@@ -20,8 +20,10 @@
  * `version` tells it what the contents *mean*. See [26](../docs/26-recording-contract.md).
  */
 
-/** The schema this build writes. Bump on any change to recorded structure. */
+/** The recording schema the default tick writes. */
 export const SCHEMA = 21;
+/** The opt-in tick's spent-queue archive format (26). */
+export const TICK_RECORDING_SCHEMA = 22;
 /**
  * The oldest schema this build can read: the first with both cell-masked chain maps and the
  * engine-free physics presentation every match now records.

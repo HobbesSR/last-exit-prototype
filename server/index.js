@@ -55,7 +55,7 @@ function printListeningUrls(host, port, policy) {
  * `edgeLink` is a loopback TCP port (0 for any) where the WebTransport edge connects (24.5); none unless given.
  * `content` supplies new rooms' content, for tests that need a set this build does not ship; never a request input.
  */
-export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS, generateMap, mapPool = 0, content, matchFactory, strictProtocol = false, roomThreads = true, wireKey = 'random', edgeLink } = {}) {
+export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS, generateMap, mapPool = 0, content, matchFactory, strictProtocol = false, roomThreads = true, wireKey = 'random', tick = 'old', edgeLink } = {}) {
   profiler.enable(profile);
   const policy = devToolsPolicy(devTools);
   const replays = await createFileReplayStore(replayDir);
@@ -64,7 +64,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   // The pool refills on its own worker, so a room asking for a particular seed never queues behind it.
   const poolMaps = mapPool > 0 && !generateMap ? createMapGenerator() : null;
   const pool = mapPool > 0 ? createMapPool({ generate: generateMap ?? poolMaps.generate, perSize: mapPool }) : null;
-  const service = createRoomService({ replays, devTools: policy, content, matchFactory, strictProtocol, threads: roomThreads, wireKey });
+  const service = createRoomService({ replays, devTools: policy, content, matchFactory, strictProtocol, threads: roomThreads, wireKey, tick });
   const directory = createRoomDirectory({ host: service, generateMap: generateMap ?? maps.generate, pool, devTools: policy });
   const app = express();
   app.disable('x-powered-by');

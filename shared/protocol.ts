@@ -1,6 +1,7 @@
 import { finite, safeInteger } from './numbers.ts';
 import { ROLES } from './simulation/rules.ts';
 import { sanitizeInput } from './simulation/input.ts';
+import type { SanitizedInput } from './simulation/input.ts';
 import type { WaitingMap } from './simulation/waiting.ts';
 import type { PredictionConstants } from './simulation/physics-presentation.ts';
 import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projected, Role, SeatMetadata, Snapshot, Tick } from './types.ts';
@@ -148,7 +149,7 @@ export interface ChooseMessage {
   kit?: Kit;
 }
 
-export type InputMessage = PlayerInput & {
+export type InputMessage = SanitizedInput & {
   type: typeof CLIENT_MESSAGE.INPUT;
   seq: number;
   /** The tick the input is for (#1096, `shared/simulation/input.ts`). */

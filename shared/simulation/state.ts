@@ -3,7 +3,8 @@ import { assertEnumKeys, KITS, WEAPONS } from '../enum-tables.ts';
 import { WORLD_WIDTH, WORLD_HEIGHT } from '../map.ts';
 import { SLOT_COUNT } from '../equipment.ts';
 import { DEFAULT_KIT, INITIAL_ESCAPE_SLOTS, MAX_PLAYER_NAME, ROLES, VERSION } from './rules.ts';
-import { queueInput, resetInput } from './input.ts';
+import { queueInput, queueSanitizedInput, resetInput } from './input.ts';
+import type { SanitizedInput } from './input.ts';
 import { defaultContent } from './content.ts';
 import { clearRoute } from './geometry.ts';
 import { createDiscovery, attachDiscovery, discover } from '../discovery.ts';
@@ -148,4 +149,10 @@ export function setInput(s: Game, id: PlayerId, input: PlayerInput | null | unde
   const p = playerById(s, id);
   if (!p) return false;
   return queueInput(p, input, s.tick) ?? false;
+}
+
+/** Accept an input already validated and sanitized at the protocol boundary. */
+export function setSanitizedInput(s: Game, id: PlayerId, input: SanitizedInput): SanitizedInput | false {
+  const p = playerById(s, id);
+  return p ? queueSanitizedInput(p, input, s.tick) ?? false : false;
 }

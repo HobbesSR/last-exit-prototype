@@ -92,6 +92,10 @@ Two sequence numbers are kept, and the split is the point. One records what was 
 
 ### Tick-stamped input
 
+Protocol validation sanitizes input once. The match and waiting area admit that sanitized value directly into their
+buffers. In-process callers can pass raw input through the same sanitizer. `unresolved` is an internal marker for
+a pressed malformed nomination. A client-supplied marker follows the same rules as any malformed nomination.
+
 Every input names the tick it is for (#1096; Corey's decisions in [17.4](17.4-live-service.md) #16). The server buffers it and spends it on that tick and no other (`shared/simulation/input.ts`), so when an input takes effect is the client's choice, not the network's. Before stamps, inputs queued in arrival order and a send rate equal to the tick rate never drained the backlog a retransmission stall left: on a lossy socket the queue held 140 to 180 ms more input than the network needed (42.48). The wire refuses an input without a stamp; in-process callers (tests, tools) may still omit one, and a tick then spends those in arrival order.
 
 - **Late input is discarded, never rewound.** A stamp for a tick that has already run is dropped. Nothing is resimulated for movement; only hits are judged in the past ([Lag compensation](#lag-compensation)). Delayed sealing with resimulation (#1096's option 2) is not built; it is revisited only if discarded inputs prove noticeable in play.
@@ -223,7 +227,11 @@ A player steps out to it in place, with the telescope button or the backquote ke
 
 Any session the policy admits, a player's included, may pause and resume its own room with `{ type: 'dev', action: 'pause' | 'resume' }`; other rooms keep running. A paused room runs no tick, so tick order, RNG and the recorded frames are untouched, and the time it owes is dropped rather than caught up, so resuming produces neither a burst nor a `server-stall` mark. Every session in the room is told with `{ type: 'paused', paused }`, and a welcome carries `paused`. Players stop sending input while paused, and the client forgets its packet timing at both ends, as it does for a hidden tab, so the pause is not reported as a packet gap. The recording gets one `pause` mark when the room resumes or ends (26). The empty-room grace keeps counting while paused: a paused room nobody is watching is still abandoned. The dev view's button or Space toggles it.
 
-A dev session may also move any active player or bot: `{ type: 'dev', action: 'teleport', id, x, y }`, which the dev view sends with T for the followed player (or the viewer's own, stepped out of) to the point under the cursor. The simulation refuses a point that body could not occupy; otherwise the move is applied between ticks, like a join, recorded as a `{ type: 'teleport', id, x, y }` command with the next frame, and answered to the sender with `{ type: 'teleport', ok }`. A paused room broadcasts the moved state at once, since it sends no frames of its own. Rewind history is left alone: a lagged shooter still saw the player where they were.
+A dev session may also move any active player or bot: `{ type: 'dev', action: 'teleport', id, x, y }`, which the dev view sends with T for the followed player (or the viewer's own, stepped out of) to the point under the cursor. The simulation refuses a point that body could not occupy and answers the sender with `{ type: 'teleport', ok, id }`. On the default tick a successful move is applied between ticks, recorded as a `{ type: 'teleport', id, x, y }` command with the next frame, and broadcast immediately while paused. Rewind history is left alone: a lagged shooter still saw the player where they were.
+
+On the opt-in tick, an admitted teleport is an observation at the next tick, and the reply reports that tick's
+committed warp. While paused, an admitted request explicitly runs one tick so it can return a result. Only a
+committed warp publishes the paused state. Scheduler wakes leave the room paused. See [27.2](27.2-tick-architecture.md#the-opt-in-room-tick-3d4c).
 
 A socket that has fallen 512 KB behind skips state frames, which the next frame supersedes; every other message (a pause, a lobby change, a saved replay) is sent regardless (`deliverable` in `server/protocol.js`). A session's `deliver` says whether it sent, so a skipped frame is known not to have delivered a keyframe (below).
 

@@ -526,10 +526,11 @@ impl Match {
         intake_facts.extend(writes.facts);
         let (mut changes, mut discontinuities) =
             self.apply(tick, mechanics, &solved, effects, intake_facts, start);
-        for body in teleported {
+        for (body, request) in teleported {
             if let Some(pose) = self.bodies.pose(body) {
                 changes.poses.insert(body, pose);
                 discontinuities.push(Discontinuity::Warped(body));
+                discontinuities.push(Discontinuity::DevWarped { body, request });
             }
         }
         discontinuities.sort_unstable();
@@ -562,8 +563,9 @@ impl Match {
     /// Observations enter as recorded inbound records, never as writes between ticks (27.2
     /// Boundary). Input lead is the receive boundary's and changes no match state. A dev
     /// teleport moves its body before the solve and returns it as a discontinuity.
-    fn observe(&mut self, inbound: &[Inbound]) -> Vec<BodyId> {
+    fn observe(&mut self, inbound: &[Inbound]) -> Vec<(BodyId, u32)> {
         let mut teleported = Vec::new();
+        let mut request = 0u32;
         for entry in inbound {
             let Inbound::Observation(observation) = *entry else {
                 continue;
@@ -575,21 +577,26 @@ impl Match {
                     }
                 }
                 Observation::InputLead { .. } => {}
-                Observation::Join { actor } | Observation::Leave { actor } => {
+                Observation::Join { actor, .. } | Observation::Leave { actor } => {
                     if let Some(record) = self.state.actors.get_mut(&actor) {
                         record.bot = matches!(observation, Observation::Leave { .. });
+                        if let Observation::Join { kit: Some(kit), .. } = observation {
+                            record.kit = Some(kit);
+                        }
                         // A bot sees the world directly and is compensated for nothing.
                         record.view_lag = 0;
                         self.input.reset(actor);
                     }
                 }
                 Observation::Teleport { body, to } => {
+                    let ordinal = request;
+                    request += 1;
                     if !self.teleport_clear(body, to) {
                         continue;
                     }
                     if let Some(angle) = self.bodies.angle(body) {
                         self.bodies.warp(body, to, angle);
-                        teleported.push(body);
+                        teleported.push((body, ordinal));
                     }
                 }
             }

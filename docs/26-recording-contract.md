@@ -23,12 +23,14 @@ never resimulates. L2 (#444) raises the writer schema to **13**: frames of
 `reload`/`dropAmmo` commands; older readers ignore the fields and draw an ammo
 pickup as an unknown item, so `minSchema` stays at 10.
 
-Recording failure must never reach gameplay. Default content is `content-12` (#1303) under
+Recording failure must never reach gameplay. The room service keeps the old tick as its default;
+the new path is selected per match with `tick: 'new'` until the cutover. Both inline and threaded
+new-path matches use the same archive contract below. Default content is `content-12` (#1303) under
 `last-exit-0.8-physics` ([below](#physics-rules-version-921)); the legacy mover's rules were `last-exit-0.7`.
 #920 retired that engine and contents 1 to 5, and #953 raised `MIN_SCHEMA` to **10** so
 archives recorded before schema 10 (pre-chain-map diamond arenas, `last-exit-0.7`, and
 experimental P1/P2 schemas 8–9 without required physics presentation) are refused with the
-existing `"no longer reads"` message while remaining downloadable. Recordings write schema **21**
+existing `"no longer reads"` message while remaining downloadable. The default tick writes schema **21**
 and `minSchema` 20 (`minimumReaderForMatch`, `RELATIONAL_SCHEMA`): since #901 they are stored as lines
 with delta frames ([Schema 17](#schema-17-lines-and-delta-frames-901)), which no older reader can
 read, and schema 18 (#948, #949) drops dead recorded fields (`Player.path`,
@@ -40,31 +42,35 @@ compatible with schema 17 readers; schema 19 adds tick stamps to recorded input
 descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
 
-## Schema 22: the inbound queue as commands (#1283, at the cutover)
+## Schema 22: the inbound queue as commands (#1283, new tick path)
 
-On the new tick's path, a frame's `commands` are T's inbound queue as the core spent it, in the queue's order, less the
-first-class bots' commands (`shared/simulation/tick-record.ts`), beside the room's own commands (start, the roster's joins and choices,
-abandonment). This replaces input recorded as queued: an input that never reached a tick, superseded or refused at
-the boundary, is no longer recorded. Each of 27.2's three kinds of inbound item is one recorded type:
+On the new tick's path, a frame's `commands` contain the room-owned commands for that frame (start, the roster's joins and choices,
+abandonment), followed by T's last spent inbound queue in its queue order, less first-class bots' derived commands
+(`shared/simulation/tick-record.ts`). Human and external bot commands are recorded. The inbound queue is attached to the
+matching committed frame, not recorded when merely queued. An input that never reached a tick, was superseded or was
+refused at the boundary is not recorded. Each of 27.2's three kinds of inbound item is one recorded type:
 - `{ type: 'command', id, source, tick, seq, input }`: input through the receive boundary, a person's or that of a
   bot controlling a player. The core's `Input` leaves out fields at their empty value, and names a transit station
   and a nominated target by authored ID. A nomination the boundary could not map is `target: { kind: 'unresolved' }`.
-- `{ type: 'observation', kind, … }`: `viewLag` and `inputLead` (`id`, `ticks`), `join` and `leave` (`id`), and a dev
-  `teleport` (`body`, `x`, `y`) as requested. The frame's discontinuities say whether it warped.
+- `{ type: 'observation', kind, … }`: `viewLag` and `inputLead` (`id`, `ticks`), `join` (`id`, optional `kit`),
+  `leave` (`id`), and a dev `teleport` (`body`, `x`, `y`) as requested. The core's tick discontinuities give the
+  live reply. The archive stores the resulting body pose and generation with the frame.
 - `{ type: 'carried', kind, … }`: an `impulse` (`body`, `x`, `y`), a `killReward` (`id`) and a `gateObserved` (`id`,
   `gate`, `open`, `locked`).
 
 An actor is its player ID, a gate or station its authored ID, an item its item ID. A body is a label: `actor:<player>`,
 `item:<id>` or `prop:<authored label>`.
 
-First-class bots' commands are not recorded (Corey, 2026-11-23). They are the match's own computation from the history
-the recording holds, and the old path never recorded them either. On arena 9's eleven-bot match they would add 41% to
-a gzipped recording (1.39 to 1.96 MB over 1800 ticks). A seat's `leave` and `join` observations mark where a bot
-derives that seat's commands. The new path's frames also leave out `rng` and `scatterSerial`, which that tick does
-not keep.
+First-class bots' commands are not recorded (Corey, 2026-11-23). They are the match's own computation from history;
+reconstructing them requires the matching bot version and complete history. Partial archives still support stored-frame
+playback, but cannot claim exact bot-command reconstruction across missing history. A seat's `leave` and `join`
+observations mark where a bot derives that seat's commands. On arena 9's eleven-bot match, storing these commands would
+add 41% to a gzipped recording (1.39 to 1.96 MB over 1800 ticks). The new path's frames also leave out `rng` and
+`scatterSerial`, which that tick does not keep.
 
-The writer takes schema 22 when the room records this path (27.2 3d.4). Until then `SCHEMA` stays 21. Playback reads no
-command, so `minSchema` is unchanged.
+The room writes header schema 21 on the old path and schema 22 on the new path. Playback reads no command, so
+`minSchema` is unchanged. Moving the room's default to the new path and deleting the old tick is 3d.4d; until then
+the old path remains the default.
 
 ## Schema 21: observations as commands (#1283)
 

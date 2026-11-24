@@ -10,7 +10,7 @@ const asError = plain => Object.assign(new Error(plain.message), plain.stack ? {
 /**
  * The host's side of a room running on its own worker thread (room-worker.js, #1089). It answers the host
  * as an in-process room (room.js) does, so the room service runs either behind one interface: `onJoin`,
- * `onLeave`, `onMessage`, `onInvalidMessage`, `setViewLag`, `onAck`, `close`, `summary`, `metrics`. What differs is
+ * `onLeave`, `onMessage`, `onInput`, `onInvalidMessage`, `setViewLag`, `onAck`, `close`, `summary`, `metrics`. What differs is
  * time and answers: the room ticks on its own scheduler (`tick` here only reports), a join is answered later
  * through `joined`, and `summary`/`metrics` are the room's latest report, adjusted for joins still in flight
  * so the directory never offers the same last place twice.
@@ -23,12 +23,12 @@ const asError = plain => Object.assign(new Error(plain.message), plain.stack ? {
  * `onFinalization`, `onDispose(roomId, clientIds)`, `published(meta)`, `reportError`, and `failed(roomId)`
  * when the thread dies unasked.
  */
-export function createRoomThread({ id, ownerKey, seed, matchmade, size, map, name, content, createdAt, devTools, replays, replayFinishTimeoutMs, profile, wireKey = null, hooks }) {
+export function createRoomThread({ id, ownerKey, seed, matchmade, size, map, name, content, createdAt, devTools, replays, replayFinishTimeoutMs, profile, wireKey = null, tick, hooks }) {
   const deferredMap = map !== undefined;
   const worker = new Worker(new URL('./room-worker.js', import.meta.url), {
     workerData: {
       room: { id, ownerKey, seed, matchmade, size, name, content, createdAt, deferredMap },
-      devTools, replays, replayFinishTimeoutMs, profile, wireKey,
+      devTools, replays, replayFinishTimeoutMs, profile, wireKey, tick,
     },
   });
   const capacity = role => role === 'gladiator' ? content.roster.gladiators.length : content.roster.contestants.length;
@@ -147,6 +147,7 @@ export function createRoomThread({ id, ownerKey, seed, matchmade, size, map, nam
     },
     onLeave(clientId) { reported.delete(clientId); blocked.delete(clientId); post({ op: 'leave', clientId }); return true; },
     onMessage(clientId, data) { post({ op: 'message', clientId, data }); },
+    onInput(clientId, input) { post({ op: 'input', clientId, input }); },
     onInvalidMessage(clientId, info) { post({ op: 'invalid', clientId, info }); },
     setViewLag(clientId, rttMs) { post({ op: 'lag', clientId, rttMs }); return true; },
     onAck(clientId, tick) { post({ op: 'ack', clientId, tick }); },

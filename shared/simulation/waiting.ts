@@ -1,5 +1,6 @@
 import { canOccupy, movementSpeed } from '../movement.ts';
-import { queueInput, consumeInput, resetInput } from './input.ts';
+import { queueInput, queueSanitizedInput, consumeInput, resetInput } from './input.ts';
+import type { SanitizedInput } from './input.ts';
 import { makePlayer } from './state.ts';
 import { HZ, MAX_PLAYER_NAME } from './rules.ts';
 import { observed } from './visibility.ts';
@@ -198,6 +199,12 @@ export function waitingSeats(w: Waiting): WaitingSeat[] {
 export function waitingInput(w: Waiting, id: PlayerId, input: PlayerInput | null | undefined): boolean {
   const p = w.players.find(p => p.id === id);
   return !!p && !!queueInput(p, input, w.tick);
+}
+
+/** Queue an input already validated and sanitized at the protocol boundary. */
+export function waitingSanitizedInput(w: Waiting, id: PlayerId, input: SanitizedInput): boolean {
+  const p = w.players.find(p => p.id === id);
+  return !!p && !!queueSanitizedInput(p, input, w.tick);
 }
 
 /** One tick: everyone spends one input, as in a match, and walks. Nothing else happens. */

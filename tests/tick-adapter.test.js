@@ -344,8 +344,6 @@ test('a nominated target maps onto the core, through the wire key for an item, a
   for (const t of [{ kind: 'gate', gateIdx: -1 }, { kind: 'item', id: -1 }, { kind: 'item', id: 2 ** 32 }, { kind: 'station', id: '' }, { kind: 'door' }, { kind: 'unresolved' }, 'gate']) {
     const input = sanitizeInput({ x: 1, attack: true, interact: true, transit: 's1', target: t }, 1);
     assert.deepEqual([input.target, input.interact, input.transit, input.x, input.attack], [{ kind: 'unresolved' }, false, undefined, 1, true], JSON.stringify(t));
-    // Queue admission keeps the mark validation made: the room's input passes both (review 1054).
-    assert.deepEqual(sanitizeInput(input, 1, { keepMark: true }), input, JSON.stringify(t));
     // Unpressed, nothing is kept, a wire-sent mark included (review 1055).
     assert.equal(sanitizeInput({ transit: 's1', target: t }, 1).target, undefined, JSON.stringify(t));
   }
@@ -378,7 +376,7 @@ test('a malformed nomination from a client reaches the core through validation a
       const validated = validateClientMessage({ type: CLIENT_MESSAGE.INPUT, seq: 0, tick: 1, x: 1, interact, transit: 's1', target });
       assert.ok(validated.ok, validated.reason);
       const { type: _type, ...input } = validated.message;
-      assert.ok(boundary.input(c.id, input), 'admitted');
+      assert.ok(boundary.sanitizedInput(c.id, input), 'admitted');
       const t = stepMirror(mirror, boundary);
       const spent = t.inbound.find(row => row.type === 'command' && row.command.actor === actor).command.input;
       assert.deepEqual([spent.interact, spent.target, spent.transit, spent.movement], [interact, interact ? { kind: 'unresolved' } : null, null, [1, 0]], label);

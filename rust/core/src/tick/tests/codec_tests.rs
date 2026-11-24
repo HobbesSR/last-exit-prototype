@@ -675,7 +675,14 @@ fn every_inbound() -> Vec<Inbound> {
     inbound.extend([
         Inbound::Observation(Observation::ViewLag { actor: A, ticks: 4 }),
         Inbound::Observation(Observation::InputLead { actor: A, ticks: 2 }),
-        Inbound::Observation(Observation::Join { actor: C }),
+        Inbound::Observation(Observation::Join {
+            actor: C,
+            kit: None,
+        }),
+        Inbound::Observation(Observation::Join {
+            actor: C,
+            kit: Some(Kit::Hook),
+        }),
         Inbound::Observation(Observation::Leave { actor: C }),
         Inbound::Observation(Observation::Teleport {
             body: BodyId::Actor(A),
@@ -712,6 +719,10 @@ fn discontinuities_discovery_memory_and_cues_round_trip() {
     for marker in [
         Discontinuity::Placed(BodyId::Actor(A)),
         Discontinuity::Warped(BodyId::Item(ItemId(1))),
+        Discontinuity::DevWarped {
+            body: BodyId::Actor(C),
+            request: 2,
+        },
         Discontinuity::Removed(BodyId::Prop(2)),
         Discontinuity::Removed(BodyId::Gate(GateId(3))),
         Discontinuity::Placed(BodyId::Geometry(4)),
