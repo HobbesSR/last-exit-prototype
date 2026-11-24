@@ -1,11 +1,9 @@
 # 34. Forgejo workflow and agent worktrees
 
 Forgejo, on the human's home network (see [Hosting](#hosting)), is the source
-of truth; GitHub (`gh`)
-is the public remote copy, described under [GitHub](#github) below.
-`corey/astra_test` is the only project repository: the map
-generator lives in `map/macro/` (see [50](50-map-generation.md)). The old
-`corey/last_exit_map` repository is retired: open no work against it.
+of truth. GitHub (`gh`) is a public copy that only the human pushes to: never push
+there. Worktree setup, GitHub publishing and the Forgejo tool server's internals
+are in [34.1](34.1-worktree-setup-and-github.md).
 
 This file governs top-level agents that each hold their own Forgejo account.
 Subagents that a lead spawns inside one session follow [32](32-delegation.md)
@@ -42,21 +40,13 @@ with a browser lands on that agent's own port. An assigned port is used exactly:
 if it is busy the server stops rather than drifting onto a neighbor's port, and
 the busy one is almost always your own earlier server. If `.env.local` is
 missing, create it from the table before starting a dev server. The Map Lab and the other
-labs are served by the game server on that same port ([20.5](20.5-tools-and-next-boundaries.md));
-nothing reads a `MAPGEN_PORT` left in an older `.env.local`.
+labs are served by the game server on that same port ([20.5](20.5-tools-and-next-boundaries.md)).
 
 ## Instruction loading
 
-`AGENTS.md` is the single source of instructions, with a nested `map/macro/AGENTS.md`
-for that directory. Codex reads both natively. Each directory's `CLAUDE.md` holds
-only `@AGENTS.md`, which Claude Code imports at session start. A worktree sees only
-committed files, so an instruction change reaches an agent once it is merged and
-the agent starts its next branch from fresh `forgejo/main`.
-
-The repository AGENTS.md carries the delegation strategy into sessions in this
-checkout and, once shared, other clones. The user's global Codex `AGENTS.md` also
-records the general preference for other projects on this machine. Environments that do not load these instructions need
-them supplied explicitly; these files cannot grant missing tool capabilities.
+A worktree sees only committed files, so a change to `AGENTS.md` (or a numbered
+document) reaches an agent once it is merged and the agent starts its next branch
+from fresh `forgejo/main`.
 
 ## The task loop
 
@@ -80,7 +70,10 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
    test workflow (31, [A test's cost is part of the change](31-verification.md#test-cost)).
 6. Review others with `list_pull_requests` and `get_pull_request_diff`
    (`stat` for the file list, `file` or `offset`/`limit` for parts). **Review reads
-   widely and runs narrowly** (#885, #1113). Read the diff, the issue it closes,
+   widely and runs narrowly.** Reviewers once checked out PR branches and re-ran
+   suites the author had already run, one starting a full chain sweep (#885); the
+   fix's wording, read literally as "judge only the hunks", would let a reviewer
+   miss callers, duplicated owners and required version bumps (#1113). Read the diff, the issue it closes,
    and the repository around it: the callers and users of anything it changes,
    the module that already owns any new helper (a duplicate is a finding), and the
    numbered documents and AGENTS.md invariants it touches. Look for what the diff
@@ -121,9 +114,9 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
    #1188): "asking reviewers to not only critique the work as is, but consider how they would do it
    differently, to add as suggestion for the original implementer to consider, because it can make
    solutions better at implementation time rather than later." Add design notes, labelled as suggestions
-   and kept apart from findings. #1188 took both of review 924's. Choose the verdict by what the notes need:
+   and kept apart from findings. Choose the verdict by what the notes need:
    `REQUEST_CHANGES` when the author should answer them before merge and you want Forgejo's review state
-   to block merge (since an approval lets a human merge first, as #1182 was approved before its notes
+   to block merge (an approval lets a human merge first, as PR #1182 was approved before its design notes
    were answered, and `COMMENT` does not block merge if another reviewer approves); `COMMENT` with
    `**Status: Awaiting author response to continue review.**` when you only need the author's rationale
    to finish your own review; `APPROVED` when the notes are optional follow-ups.
@@ -132,7 +125,9 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
    stated reason: it can move results (the frozen fixture, the chain sweep, wire bytes), it needs a
    decision of Corey's, or it is a different review question. A note that preserves behaviour and removes
    transitional state (a "until #N" caveat, an allow-list a later PR must shrink) usually belongs in this
-   PR. A self-imposed scope ("move, don't rewrite") is not a reason by itself (#1182, #1183).
+   PR. A self-imposed scope ("move, don't rewrite") is not a reason by itself: PR #1182 first deferred a
+   behaviour-preserving note to follow-up #1183 on that ground alone, then took it in after all; only the
+   note that could move fixture results stayed deferred.
 7. Humans merge; `main` is protected and needs one approval. Do not merge. After
    a merge, start the next task from step 2; the merged branch is left for the
    human to delete.
@@ -143,52 +138,26 @@ epic-directed sessions reassess its suggested successors against current priorit
 
 ## Reading Forgejo economically
 
-The Forgejo MCP server (`forgejo-mcp`, its own git repo outside this one; its shaping
-functions and tests are in `shape.js` and `shape.test.js`, run with `node --test`) returns
-compact text, not raw API JSON. Writes return a compact identifier and URL
-(`{number, html_url}`, or `{id, ...}` for reviews; idempotent ones add a `_note`);
-lists are one line per item (`limit`/`page`), and lists and comments follow every API
-page before paging locally.
-`get_issue_details` takes `part` (`summary`, `body`, `comments`, `all`) with
-comment `offset`/`limit`/`since` (use `since` for what is new after a handoff);
-`get_pull_request_reviews` gives one line per review, and `review_id` fetches one
-in full; `get_pull_request_diff` takes `stat`, `file` and `offset`/`limit`.
-Nothing is silently truncated: a partial result states its total and next offset.
+The Forgejo tools return compact text; `get_issue_details` takes `part` and comment
+`offset`/`limit`/`since` (use `since` for what is new after a handoff),
+`get_pull_request_reviews` takes `review_id` to fetch one review in full, and
+`get_pull_request_diff` takes `stat`, `file` and `offset`/`limit`. Tool results stay
+in context and are re-read every turn, so:
 
-Read-only text over about 6K characters is written to `.forgejo-cache/` (gitignored,
-in the server's working directory, or `FORGEJO_CACHE_DIR`) and the call returns a digest
-and the path. Open it with `Read` (offset/limit) or `Grep` only where needed.
-
-Tool results stay in context until it is compacted or cleared, and are re-read each
-turn. So:
-
-- For a Forgejo read expected over about 8K characters where the lead needs only a
-  summary (a long thread or a PR's reviews, review prep over a diff, a scan across many
-  issues), use a read-only subagent ([32](32-delegation.md)). It does not claim, comment,
-  push or open PRs. Ask it for quoted text on decisions and to say what it skipped.
-- Keep local: the issue text for the task you are implementing (a digest can drop
-  nuance), and every write.
-- A one-off read followed by a quick move on is cheaper done locally.
-- To measure the effect, run `npm run forgejo:usage` (`tools/forgejo-usage.mjs`): per-tool
-  call counts and result sizes from your Claude Code transcripts. `-- --split <ISO date>`
-  compares before and after a date. Only Claude Code transcripts are read.
+- Delegate a read expected over about 8K characters, when you need only a summary
+  (a long thread, a PR's reviews, a scan across many issues), to a read-only
+  subagent ([32](32-delegation.md)). Ask it for quoted text on decisions and to say
+  what it skipped.
+- A large result comes back as a digest and a path under `.forgejo-cache/`; open
+  only the parts you need with `Read` (offset/limit) or `Grep`.
+- Keep in your own context the issue you are implementing (a digest can drop
+  nuance) and every write.
 - Rely on the handoff comment and `/clear` at task boundaries rather than a
   session that grows without end.
 
 ## Setting up a worktree
 
-Done once per agent by the human or the lead, from the primary checkout.
-`extensions.worktreeConfig` must be on (it is set once for the repository).
-
-```sh
-git worktree add --detach ../astra_test.agents/<agent> forgejo/main
-git -C ../astra_test.agents/<agent> config --worktree user.name  <account>
-git -C ../astra_test.agents/<agent> config --worktree user.email <commit email>
-git -C ../astra_test.agents/<agent> config --worktree remote.forgejo.pushurl \
-  http://<account>:<token>@<forgejo host>/corey/astra_test.git
-printf 'PORT=<game port>\n' > ../astra_test.agents/<agent>/.env.local
-(cd ../astra_test.agents/<agent> && npm ci && npm --prefix map/macro ci)
-```
+Moved to [34.1](34.1-worktree-setup-and-github.md#setting-up-a-worktree).
 
 ## Shared machine resources
 
@@ -232,23 +201,4 @@ The rules that bind agents stay here:
 
 ## GitHub
 
-The `gh` remote is `github.com/HobbesSR/last-exit-prototype`, which is public
-(the primary checkout has no `origin`). It makes the project reachable away from
-this machine and lets work start elsewhere.
-The local side is managed with git and the Forgejo tools; the GitHub side with
-the `gh` CLI.
-
-- **Only the human pushes to `gh`.** An agent never pushes there: its
-  worktree carries a Forgejo push identity only, so a push to `gh` would
-  go out under the human's GitHub credentials.
-- **`main` moves on Forgejo first.** In the primary checkout, `main` tracks
-  `forgejo` (`branch.main.remote`), so after a merge `git pull` then
-  `git push gh main` publishes it; a bare `git push` goes to Forgejo.
-  Nothing is merged on GitHub, which keeps the two `main`s from diverging.
-- **Branches made on GitHub are reviewed on Forgejo.** For work pushed to
-  GitHub from elsewhere, list it with `gh pr list` or `git fetch gh`, bring
-  it across with `git push forgejo gh/<branch>:refs/heads/<branch>`, and
-  open the PR on Forgejo. Delete the GitHub branch with `gh` once it has merged.
-- **No Forgejo push mirror.** A push mirror runs `git push --mirror`, which
-  deletes every GitHub branch that Forgejo lacks, including branches started
-  on GitHub.
+Moved to [34.1](34.1-worktree-setup-and-github.md#github). Agents never push to `gh`.

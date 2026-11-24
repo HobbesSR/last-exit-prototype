@@ -99,7 +99,8 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [33.1-foundation-pass.md](33.1-foundation-pass.md) | The Foundation Pass: a periodic project-wide quality and maintainability review under a freeze; its conditions, six concern tracks and how a pass ends |
 | [33.1.1-running-a-pass.md](33.1.1-running-a-pass.md) | Running a Foundation Pass: single-ledger Forgejo workflow, phase order, sweep bounds, model routing and closeout checklist |
 | [33.2-readme-design.md](33.2-readme-design.md) | The README and audience-guide design: host/client players first, what the README holds, what moves to dedicated guides, secondary audiences |
-| [34-forgejo-workflow.md](34-forgejo-workflow.md) | Forgejo as source of truth, agent accounts and worktrees, the issue-to-PR loop |
+| [34-forgejo-workflow.md](34-forgejo-workflow.md) | Forgejo as source of truth, agent accounts and worktrees, the issue-to-PR loop and review rules; guide to 34.1 |
+| [34.1-worktree-setup-and-github.md](34.1-worktree-setup-and-github.md) | Setting up an agent worktree, publishing to GitHub, the Forgejo tool server's internals and usage measurement |
 
 ### 4x — Plan and history
 
