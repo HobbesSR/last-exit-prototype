@@ -30,6 +30,21 @@ function tileBytes({ index, floats, ints, gates }) {
   return index.byteLength + floats.byteLength + ints.byteLength + Buffer.byteLength(gates);
 }
 
+function coordinateSample(layers) {
+  const byRole = {};
+  for (const [i, { tiles }] of layers.entries()) {
+    let count = 0, f32Mismatches = 0, maxF32Error = 0;
+    for (const { points } of tiles) for (const point of points) {
+      count++;
+      const f32 = Math.fround(point);
+      if (!Object.is(point, f32)) f32Mismatches++;
+      maxF32Error = Math.max(maxF32Error, Math.abs(point - f32));
+    }
+    byRole[i === 0 ? 'gladiator' : 'contestant'] = { count, f32Mismatches, maxF32Error };
+  }
+  return byRole;
+}
+
 async function firstPlans(envelope, layers, content) {
   const game = await createGame(seed, unpackMap({ ...envelope, tiles: layers }), content);
   try {
@@ -78,6 +93,7 @@ try {
   started = performance.now();
   let navigation = packRuntimeNavigation(map, builtLayers);
   ms.flatNavigation = performance.now() - started;
+  const coordinates = coordinateSample(builtLayers);
   builtLayers.length = 0;
   const bytes = { workerMap: envelope.bytes.byteLength, workerGladiator: tileBytes(layers[0]),
     workerContestant: tileBytes(layers[1]), flatNavigation: navigation.byteLength };
@@ -117,7 +133,7 @@ try {
     plans.both[role].route = summary;
   }
   console.log(JSON.stringify({ node: process.version, cpu: os.cpus()[0].model, content: content.id,
-    size: sizeName, seed, grid: { cols, rows }, ms, bytes, snapshots, plans, contention: sample() }));
+    size: sizeName, seed, grid: { cols, rows }, ms, bytes, coordinates, snapshots, plans, contention: sample() }));
 } finally {
   lock.release();
 }
