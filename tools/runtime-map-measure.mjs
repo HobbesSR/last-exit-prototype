@@ -13,11 +13,12 @@ import { legGoal } from '../shared/simulation/bot-routes.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { acquireMachineLock } from '../tests/helpers/machine-lock.js';
 
-const [, , sizeName, seedArg] = process.argv;
+const [, , sizeName, seedArg, compactArg] = process.argv;
 const size = LIVE_ZONE_SIZES.find(candidate => zoneSizeName(candidate) === sizeName);
 const seed = Number(seedArg);
-assert.ok(size && Number.isSafeInteger(seed) && seed > 0 && globalThis.gc,
-  'usage: node --expose-gc tools/runtime-map-measure.mjs <live-size> <seed>');
+const measureCompact = compactArg === '--compact';
+assert.ok(size && Number.isSafeInteger(seed) && seed > 0 && globalThis.gc && (compactArg === undefined || measureCompact),
+  'usage: node --expose-gc tools/runtime-map-measure.mjs <live-size> <seed> [--compact]');
 
 function memory(core, collect = false) {
   if (collect) globalThis.gc();
@@ -28,6 +29,21 @@ function memory(core, collect = false) {
 
 function tileBytes({ index, floats, ints, gates }) {
   return index.byteLength + floats.byteLength + ints.byteLength + Buffer.byteLength(gates);
+}
+
+function coordinateSample(layers) {
+  const byRole = {};
+  for (const [i, { tiles }] of layers.entries()) {
+    let count = 0, f32Mismatches = 0, maxF32Error = 0;
+    for (const { points } of tiles) for (const point of points) {
+      count++;
+      const f32 = Math.fround(point);
+      if (!Object.is(point, f32)) f32Mismatches++;
+      maxF32Error = Math.max(maxF32Error, Math.abs(point - f32));
+    }
+    byRole[i === 0 ? 'gladiator' : 'contestant'] = { count, f32Mismatches, maxF32Error };
+  }
+  return byRole;
 }
 
 async function firstPlans(envelope, layers, content) {
@@ -78,9 +94,12 @@ try {
   started = performance.now();
   let navigation = packRuntimeNavigation(map, builtLayers);
   ms.flatNavigation = performance.now() - started;
-  builtLayers.length = 0;
+  const coordinates = coordinateSample(builtLayers);
   const bytes = { workerMap: envelope.bytes.byteLength, workerGladiator: tileBytes(layers[0]),
     workerContestant: tileBytes(layers[1]), flatNavigation: navigation.byteLength };
+  // Opt in because the extra pack affects peak RSS and the timing of later phases.
+  if (measureCompact) bytes.compactNavigation = packRuntimeNavigation(map, builtLayers, { compact: true }).byteLength;
+  builtLayers.length = 0;
   snapshots.builder = memory(core, true);
   map = null;
   snapshots.queued = memory(core, true);
@@ -117,7 +136,7 @@ try {
     plans.both[role].route = summary;
   }
   console.log(JSON.stringify({ node: process.version, cpu: os.cpus()[0].model, content: content.id,
-    size: sizeName, seed, grid: { cols, rows }, ms, bytes, snapshots, plans, contention: sample() }));
+    size: sizeName, seed, grid: { cols, rows }, ms, bytes, coordinates, snapshots, plans, contention: sample() }));
 } finally {
   lock.release();
 }

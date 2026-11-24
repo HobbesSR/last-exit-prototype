@@ -1,4 +1,4 @@
-// #1215: run each variant in a fresh process: node --expose-gc tools/runtime-map-room-measure.mjs current|flat [seed] [ticks]
+// Run each variant in a fresh process: node --expose-gc tools/runtime-map-room-measure.mjs current|flat|deferred [seed] [ticks]
 import assert from 'node:assert/strict';
 import os from 'node:os';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -13,9 +13,9 @@ import { acquireMachineLock } from '../tests/helpers/machine-lock.js';
 
 const [variant, seedArg = '4217', ticksArg = '20'] = process.argv.slice(2);
 const seed = Number(seedArg), ticks = Number(ticksArg);
-assert.ok(['current', 'flat'].includes(variant) && Number.isSafeInteger(seed) && seed > 0 &&
+assert.ok(['current', 'flat', 'deferred'].includes(variant) && Number.isSafeInteger(seed) && seed > 0 &&
   Number.isSafeInteger(ticks) && ticks > 0 && globalThis.gc,
-'usage: node --expose-gc tools/runtime-map-room-measure.mjs current|flat [positive-seed] [positive-ticks]');
+'usage: node --expose-gc tools/runtime-map-room-measure.mjs current|flat|deferred [positive-seed] [positive-ticks]');
 // Smoke mode is only a wiring check; it is not a production-stock measurement.
 const smoke = process.env.RUNTIME_MAP_SMOKE === '1';
 const size = smoke ? LIVE_ZONE_SIZES[0] : LIVE_ZONE_SIZES.find(s => zoneSizeName(s) === '36x18');
@@ -51,7 +51,7 @@ try {
   const core = await initCore(), snapshots = { baseline: memory(core) }, generations = [];
   const stocked = new Map(sizes.map(s => [zoneSizeName(s), []]));
   let failure;
-  generator = createMapGenerator({ runtimeMap: variant === 'flat' });
+  generator = createMapGenerator({ runtimeMap: { current: false, flat: true, deferred: 'deferred' }[variant] });
   progress(`filling the pool with ${MAP_POOL_SIZE} maps per size`);
   pool = createMapPool({ sizes, draw: () => seed, generate: async (drawn, mapSize) => {
     const sizeName = zoneSizeName(mapSize);

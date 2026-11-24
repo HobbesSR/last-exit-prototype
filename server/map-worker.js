@@ -11,8 +11,10 @@ import { packMap, packRuntimeMap, packedTransfer } from './map-pack.js';
 parentPort.on('message', ({ id, seed, size }) => {
   try {
     const content = defaultContent(), map = generateLiveMap(seed, content, size);
-    const runtimeMap = workerData?.runtimeMap === true;
-    const packed = runtimeMap ? packRuntimeMap(map) : packMap(map, prebuiltTiles(map, content));
+    const runtimeMap = workerData?.runtimeMap;
+    const packed = runtimeMap === true || runtimeMap === 'deferred'
+      ? packRuntimeMap(map, { deferContestant: runtimeMap === 'deferred' })
+      : packMap(map, prebuiltTiles(map, content));
     parentPort.postMessage({ id, packed }, packedTransfer(packed));
   } catch (error) { parentPort.postMessage({ id, error: error instanceof Error ? error.message : String(error) }); }
 });

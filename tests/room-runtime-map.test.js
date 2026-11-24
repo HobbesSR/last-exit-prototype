@@ -4,7 +4,7 @@ import { createMatch } from '../server/match.js';
 import { packMap, packedTransfer, packRuntimeMap, unpackMap } from '../server/map-pack.js';
 import { prepareRuntimeNavigation } from '../server/runtime-map.js';
 import { initCore } from '../shared/core.ts';
-import { createKnowledgePlanner, packedTilesFor } from '../shared/navigation/knowledge.ts';
+import { createKnowledgePlanner, freeTilesFor, packedTilesFor } from '../shared/navigation/knowledge.ts';
 import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { arena } from './helpers/arena.js';
@@ -27,11 +27,14 @@ test('a match borrows a transferred flat map across WASM growth and releases it 
   const graph = portalGraphOf(decoded);
   assert.deepEqual(graph, portalGraphOf(map));
   const known = { known: () => true, door: () => undefined, keys: 0, revision: 0 };
+  for (const role of ['gladiator', 'contestant']) {
+    assert.deepEqual(freeTilesFor(decoded, role), freeTilesFor(current.diagnosticState.map, role));
+  }
   const planner = createKnowledgePlanner(decoded, 'contestant');
-  const tile = planner.tile(known, 35), expectedPoints = tile.points.slice(), previous = tile.points.buffer;
+  const tile = planner.tile(known, 35), expectedPoints = tile.points.slice(), previous = tile.triangles.buffer;
   const core = await initCore();
   core.memory.grow(1);
-  assert.notEqual(tile.points.buffer, previous);
+  assert.notEqual(tile.triangles.buffer, previous);
   assert.deepEqual(tile.points, expectedPoints);
   assert.deepEqual(graph.owner, portalGraphOf(map).owner);
 
@@ -42,16 +45,25 @@ test('a match borrows a transferred flat map across WASM growth and releases it 
   assert.throws(() => tile.points, /released/);
 });
 
-test('a bad flat package is rejected and a graphless package can still be loaded', async () => {
+test('invalid flat headers and tile offsets are rejected and graphless packages still load', async () => {
   const { map } = arena({ cols: 3, rows: 2 });
   const bad = packRuntimeMap(map);
   const header = new DataView(bad.runtimeNavigation.buffer);
   header.setUint32(0, 0, true);
   await assert.rejects(prepareRuntimeNavigation(unpackMap(bad)), /Invalid runtime navigation/);
-  const decoded = unpackMap(packRuntimeMap(map));
-  const release = await prepareRuntimeNavigation(decoded);
-  try {
-    assert.equal(portalGraphOf(decoded), undefined);
-    assert.ok(createKnowledgePlanner(decoded, 'gladiator').tile({ known: () => true }, 0));
-  } finally { release(); }
+
+  const badPoint = packRuntimeMap(map);
+  const directory = new DataView(badPoint.runtimeNavigation.buffer);
+  // The graphless directory's tile points are section 5, after the header and four layer sections.
+  directory.setUint16(directory.getUint32(8 + 5 * 8, true), 0xffff, true);
+  await assert.rejects(prepareRuntimeNavigation(unpackMap(badPoint)), /Invalid runtime navigation/);
+
+  for (const deferContestant of [false, true]) {
+    const decoded = unpackMap(packRuntimeMap(map, { deferContestant }));
+    const release = await prepareRuntimeNavigation(decoded);
+    try {
+      assert.equal(portalGraphOf(decoded), undefined);
+      assert.ok(createKnowledgePlanner(decoded, 'gladiator').tile({ known: () => true }, 0));
+    } finally { release(); }
+  }
 });

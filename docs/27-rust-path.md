@@ -471,8 +471,10 @@ agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 1838
      chain's objects.
    - #1215 starts with an inventory of every map read by bots, discovery and the tick, against what setup carries.
 2. **Node derives the layers once, and they cross in a project-owned flat format.**
-   - The format has explicitly sized typed sections: `f64` geometry, and `i32` or `u32` indices, offsets, adjacency,
-     the owner grid and gate membership.
+   - The format has explicitly sized typed sections. Geometry uses `f64` except for v2 tile points, which use
+     exact `u16` offsets from each tile's origin in 1/256-world-unit steps. A 192-unit discovery tile needs at
+     most 49,152 steps per axis. The writer checks the round trip and the decoder validates offsets against
+     the tile bounds. Indices, offsets, adjacency, the owner grid and gate membership use `i32` or `u32`.
    - Variable lists (portals per region, stands, gate sets) are offset and count rows over flat arrays. Byte order,
      lengths and absence are defined, and references are checked at load.
    - Gates are slots in the match's order (`MatchIds.gateIndex`), keeping each gate set's order. Today's tiles name
@@ -486,8 +488,17 @@ agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 1838
    hold geometry contestants have not discovered, so a contestant's planner reads a tile only once its whole support
    is known ([22.6.2](22.6.2-knowledge-and-doors.md#knowledge-and-optimistic-planning), "Tiles and support").
 4. **Every tile the core may request exists before tick 1, for both clearances.** Building on demand would need a call
-   back into JavaScript mid-tick, or would make plans depend on timing. Tiles may still be decoded on demand. Today the
-   map worker prebuilds only the gladiator clearance.
+   back into JavaScript mid-tick, or would make plans depend on timing. Tiles may still be decoded on demand.
+   The deferred flat variant (#1317) stocks the graph and gladiator tiles and builds and uploads the contestant
+   layer during room preparation. Both packages belong to the same room. The eager flat variant stocks both
+   layers and keeps v1 `f64` points to reproduce the direct-writer baseline. Run
+   `node --expose-gc tools/runtime-map-measure.mjs 36x18 4217 --compact` to compare actual v1 and v2
+   bytes for both layers with the same geometry. Deferred preparation builds the contestant layer
+   synchronously in the room worker by default. With inline rooms (`roomThreads: false`) it
+   blocks the host event loop until the build finishes. Both flat variants remain opt-in.
+   At 36×18 the deferred variant reduced idle stock but took about
+   eight seconds to ready a stocked room and still increased live WASM capacity. The default legacy worker
+   handoff prebuilds only the gladiator clearance.
    - **Before #1215 is staged,** measure at the live sizes (`LIVE_ZONE_SIZES`: 12x6, 24x12 and 36x18, the bound):
      generation and packing time, package size, peak and retained memory (Node and WASM copies), and the first
      plan's cost.
