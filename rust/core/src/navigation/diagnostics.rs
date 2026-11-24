@@ -44,9 +44,10 @@ fn encode(route: &Route) -> Vec<f64> {
 
 /// Starts a diagnostic using one byte per public grid cell followed by one byte per gate slot:
 /// cells are unknown/known (0/1); gates are unobserved, closed unlocked, closed locked, or open (0-3).
+/// Returns null if either pointer is null or the input is refused.
 ///
 /// # Safety
-/// The navigation handle is live. Flags points to len initialized bytes for this call.
+/// A non-null navigation handle is live. Non-null flags points to len initialized bytes.
 #[unsafe(no_mangle)]
 #[allow(clippy::too_many_arguments)]
 pub unsafe extern "C" fn core_route_start(
@@ -81,14 +82,16 @@ pub unsafe extern "C" fn core_route_start(
     .map_or(ptr::null_mut(), RouteDiagnostic::new)
 }
 
-/// Advances one slice and returns the total expansions so far.
+/// Advances one slice and returns the total expansions so far, or zero for a null handle.
 ///
 /// # Safety
-/// The diagnostic handle is live and exclusive.
+/// A non-null diagnostic handle is live and exclusive.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn core_route_advance(handle: *mut RouteDiagnostic, limit: usize) -> usize {
     // SAFETY: the caller supplies exclusive access to the live search.
-    let diagnostic = unsafe { &mut *handle };
+    let Some(diagnostic) = (unsafe { handle.as_mut() }) else {
+        return 0;
+    };
     if diagnostic.output.is_empty()
         && let Some(route) = diagnostic.search.advance(limit)
     {
@@ -97,28 +100,34 @@ pub unsafe extern "C" fn core_route_advance(handle: *mut RouteDiagnostic, limit:
     diagnostic.search.expansions()
 }
 
+/// Returns the number of output words, or zero for a null handle.
+///
 /// # Safety
-/// The diagnostic handle is live.
+/// A non-null diagnostic handle is live.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn core_route_output_len(handle: *const RouteDiagnostic) -> usize {
     // SAFETY: the caller supplies a live search.
-    unsafe { (*handle).output.len() }
+    unsafe { handle.as_ref() }.map_or(0, |diagnostic| diagnostic.output.len())
 }
 
+/// Returns a read-only pointer valid until the handle is freed, or null for a null handle.
+///
 /// # Safety
-/// The handle is live. The returned pointer is read-only and valid until the handle is freed.
+/// A non-null diagnostic handle is live.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn core_route_output(handle: *const RouteDiagnostic) -> *const f64 {
     // SAFETY: the caller supplies a live search.
-    unsafe { (*handle).output.as_ptr() }
+    unsafe { handle.as_ref() }.map_or(ptr::null(), |diagnostic| diagnostic.output.as_ptr())
 }
 
 /// # Safety
-/// The handle came from a route start call and is freed once.
+/// A non-null handle came from a route start call and is freed once.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn core_route_free(handle: *mut RouteDiagnostic) {
-    // SAFETY: the caller owns the search.
-    drop(unsafe { Box::from_raw(handle) });
+    if !handle.is_null() {
+        // SAFETY: the caller owns the search.
+        drop(unsafe { Box::from_raw(handle) });
+    }
 }
 
 pub struct CorridorDiagnostic {
@@ -126,22 +135,29 @@ pub struct CorridorDiagnostic {
     corridor: Option<Corridor>,
 }
 
+/// Returns null for a null navigation handle.
+///
 /// # Safety
-/// The navigation handle is live.
+/// A non-null navigation handle is live.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn core_corridor_new(
     navigation: *const Rc<RuntimeNavigation>,
 ) -> *mut CorridorDiagnostic {
     // SAFETY: the caller lends the live handle.
-    let map = Rc::clone(unsafe { &*navigation });
+    let Some(navigation) = (unsafe { navigation.as_ref() }) else {
+        return ptr::null_mut();
+    };
+    let map = Rc::clone(navigation);
     Box::into_raw(Box::new(CorridorDiagnostic {
         map,
         corridor: None,
     }))
 }
 
+/// Writes the leg endpoint when both pointers are non-null.
+///
 /// # Safety
-/// The handle is live and exclusive. Out points to two writable aligned f64 words.
+/// A non-null handle is live and exclusive. Non-null out points to two writable aligned f64 words.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn core_corridor_leg(
     handle: *mut CorridorDiagnostic,
@@ -151,6 +167,9 @@ pub unsafe extern "C" fn core_corridor_leg(
     to_y: f64,
     out: *mut [f64; 2],
 ) {
+    if handle.is_null() || out.is_null() {
+        return;
+    }
     // SAFETY: the caller supplies a live handle and writable output.
     let diagnostic = unsafe { &mut *handle };
     let leg = Corridor::leg_goal(
@@ -163,17 +182,43 @@ pub unsafe extern "C" fn core_corridor_leg(
 }
 
 /// # Safety
-/// The handle is live and exclusive.
+/// A non-null handle is live and exclusive.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn core_corridor_abandon(handle: *mut CorridorDiagnostic) {
     // SAFETY: the caller supplies exclusive access to the live handle.
-    Corridor::abandon(unsafe { &mut (*handle).corridor });
+    if let Some(diagnostic) = unsafe { handle.as_mut() } {
+        Corridor::abandon(&mut diagnostic.corridor);
+    }
 }
 
 /// # Safety
-/// The handle came from core_corridor_new and is freed once.
+/// A non-null handle came from core_corridor_new and is freed once.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn core_corridor_free(handle: *mut CorridorDiagnostic) {
-    // SAFETY: the caller owns the handle.
-    drop(unsafe { Box::from_raw(handle) });
+    if !handle.is_null() {
+        // SAFETY: the caller owns the handle.
+        drop(unsafe { Box::from_raw(handle) });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn absent_handles_have_empty_output_and_leave_the_leg_unchanged() {
+        let mut leg = [1.0, 2.0];
+        // SAFETY: null handles are accepted. Leg is a live, aligned output buffer.
+        unsafe {
+            assert!(core_corridor_new(ptr::null()).is_null());
+            core_corridor_leg(ptr::null_mut(), 0.0, 0.0, 3.0, 4.0, &mut leg);
+            assert_eq!(leg, [1.0, 2.0]);
+            core_corridor_abandon(ptr::null_mut());
+            core_corridor_free(ptr::null_mut());
+            assert_eq!(core_route_advance(ptr::null_mut(), 10), 0);
+            assert_eq!(core_route_output_len(ptr::null()), 0);
+            assert!(core_route_output(ptr::null()).is_null());
+            core_route_free(ptr::null_mut());
+        }
+    }
 }

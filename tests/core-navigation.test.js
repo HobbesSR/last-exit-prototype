@@ -96,6 +96,18 @@ test('Rust knowledge search matches the JS information witness and sliced result
           }
         }
         const observed = knowledge(cells, { d1: { open: true, locked: false } }, 0, 18);
+        if (!deferContestant && role === 'contestant') {
+          const nearStart = { x: 395, y: 450 }, nearGoal = { x: 505, y: 450 };
+          const connected = compare(core, prepared[0].pointer, twins[0], role, observed, nearStart, nearGoal);
+          assert.equal(connected.status, 'complete');
+          assert.deepEqual(connected.points[0], nearStart);
+          assert.ok(connected.points[1].x < 390 && Math.abs(connected.points[1].y - 450) < 1,
+            'start connector enters the eroded free space');
+          assert.deepEqual(connected.points.at(-1), nearGoal);
+          assert.ok(connected.points.at(-2).x > 510 && Math.abs(connected.points.at(-2).y - 450) < 1,
+            'goal connector leaves the eroded free space');
+          assert.deepEqual(connected.prefix, connected.points);
+        }
         const surveyed = twins.map((map, i) => compare(core, prepared[i].pointer, map, role, observed, from, goal));
         assert.deepEqual(surveyed.map(route => route.status), ['complete', 'no-known-route']);
         for (const [start, end, budget] of [[from, goal, 0], [from, goal, 30], [from, from, ROUTE_BUDGET], [from, { x: -5, y: 10 }, ROUTE_BUDGET], [from, { x: 450, y: 450 }, ROUTE_BUDGET]]) {
