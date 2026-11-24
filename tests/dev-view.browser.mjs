@@ -6,6 +6,7 @@ import { collectBrowserErrors, serveDevWithBrowser } from './helpers/browser.js'
 import { canOccupy } from '../shared/movement.ts';
 import { SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
 import { MAX_INPUT_LEAD_TICKS } from '../shared/simulation/input.ts';
+import { reusedMap } from './helpers/room-harness.js';
 
 await mkdir('test-results', { recursive: true });
 const { server, base, browser, close } = await serveDevWithBrowser({ roomThreads: false });
@@ -362,3 +363,51 @@ try {
   console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'palette restyle', 'teleport', 'pause and resume', 'browser dev view', 'browser role after dev view and Auto', 'dev view across the start', 'death dialog hidden in dev view and restored'] }));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await close(); }
+
+// A watcher can join after preparation but before the opt-in core starts (#1314).
+// Keep the default-engine scenario above; this server uses the pregenerated arena to avoid a second build.
+const optInStartedAt = performance.now();
+const optIn = await serveDevWithBrowser({ roomThreads: false, tick: 'new', generateMap: reusedMap });
+const optInErrors = [];
+try {
+  const owner = await optIn.browser.newPage();
+  collectBrowserErrors(owner, optInErrors, { consoleErrors: true });
+  await owner.goto(`${optIn.base}/?seed=9`);
+  await owner.getByRole('button', { name: 'Start match', exact: true }).waitFor({ state: 'visible' });
+  await owner.waitForFunction(() => window.arenaDebug?.().room);
+  const roomId = await owner.evaluate(() => window.arenaDebug().room);
+  const room = optIn.server.rooms.get(roomId);
+  await until(() => !!room.match, () => 'the opt-in room prepared its match');
+  assert.equal(room.started, false);
+
+  const dev = await optIn.browser.newPage();
+  collectBrowserErrors(dev, optInErrors, { consoleErrors: true });
+  const envelopes = [];
+  await dev.routeWebSocket(/./, ws => {
+    const server = ws.connectToServer();
+    server.onMessage(message => {
+      if (typeof message === 'string') {
+        const data = JSON.parse(message);
+        if (data.type === 'welcome' || data.type === 'ready') envelopes.push(data);
+      }
+      ws.send(message);
+    });
+    ws.onMessage(message => server.send(message));
+  });
+  await dev.goto(`${optIn.base}/?room=${roomId}&dev`);
+  await until(() => envelopes.some(m => m.type === 'welcome'), () => 'the watcher received its welcome');
+  const welcome = envelopes.find(m => m.type === 'welcome');
+  assert.equal(welcome.ready, true);
+  assert.equal(welcome.map, null);
+  assert.equal(welcome.state, null);
+  assert.equal(room.started, false, 'the watcher joined before start');
+
+  await owner.getByRole('button', { name: 'Start match', exact: true }).click();
+  await until(() => envelopes.some(m => m.type === 'ready'), () => 'the watcher received ready');
+  const ready = envelopes.find(m => m.type === 'ready');
+  assert.ok(ready.map, 'ready carries the prepared map');
+  assert.equal(ready.state.tick, 0);
+  await dev.waitForFunction(() => window.arenaDebug?.().dev && window.arenaDebug().tick > 0 && window.arenaDebug().camera, null, { timeout: 15000 });
+  assert.deepEqual(optInErrors, []);
+} finally { await optIn.close(); }
+console.log(`Opt-in room watcher rendered after start without browser errors in ${((performance.now() - optInStartedAt) / 1000).toFixed(1)}s`);

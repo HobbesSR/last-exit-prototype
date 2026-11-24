@@ -61,6 +61,10 @@ refused at the boundary is not recorded. Each of 27.2's three kinds of inbound i
 An actor is its player ID, a gate or station its authored ID, an item its item ID. A body is a label: `actor:<player>`,
 `item:<id>` or `prop:<authored label>`.
 
+Live `join`, `resume` and `leave` commands record the room's roster changes, including the name and role for joins
+and resumes. The paired `join` or `leave` observation records the core's seat handoff when the tick spends it. If a
+room finishes before that tick, the final frame still carries the room's roster command.
+
 First-class bots' commands are not recorded (Corey, 2026-11-23). They are the match's own computation from history;
 reconstructing them requires the matching bot version and complete history. Partial archives still support stored-frame
 playback, but cannot claim exact bot-command reconstruction across missing history. A seat's `leave` and `join`

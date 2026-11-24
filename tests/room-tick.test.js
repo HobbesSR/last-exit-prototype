@@ -11,29 +11,38 @@ import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { arena } from './helpers/arena.js';
 import { contentById } from '../shared/simulation/content.ts';
 
-async function optInRoom() {
+async function optInRoom(durationTicks) {
   const content = structuredClone(contentById('content-ammo-1'));
   content.roster = { contestants: ['C0', 'C1'], gladiators: [{ name: 'G', kit: 'striker' }] };
+  if (durationTicks !== undefined) content.durationTicks = durationTicks;
   const h = roomHarness({ tick: 'new', devTools: 'owner', content: () => content, generateMap: seed => arena({
     cols: 6, rows: 4, seed, spawns: [{ x: 150, y: 300 }, { x: 200, y: 300 }], hunterSpawns: [{ x: 500, y: 300 }],
     obstacles: [{ id: 'wall', x: 350, y: 480, w: 80, h: 80 }],
   }).map });
   const room = await h.created(5), owner = h.joined(room, { ownerKey: room.ownerKey });
   const dev = h.joined(room, { mode: 'dev', ownerKey: room.ownerKey });
+  const spectator = h.joined(room, { mode: 'spectator', ownerKey: room.ownerKey });
   owner.send({ type: 'start' });
-  return { h, room, owner, dev, writer: h.writers.get(room.id) };
+  return { h, room, owner, dev, spectator, writer: h.writers.get(room.id) };
 }
 
 test('the opt-in room records spent inputs and keeps the same actor through a live join and resume', async () => {
-  const { h, room, owner, dev, writer } = await optInRoom();
+  const { h, room, owner, dev, spectator, writer } = await optInRoom();
   try {
     const first = writer.frames[0];
     assert.equal(writer.header.schema, 22);
     assert.deepEqual(first.commands.map(c => c.type), ['join', 'start']);
     assert.deepEqual([first.state.tick, first.state.physics, first.state.rng], [0, undefined, undefined]);
     assert.equal(owner.messages.find(m => m.type === 'ready').state.tick, 0);
-    assert.equal(dev.messages.find(m => m.type === 'welcome').state, null, 'the map is ready before the core is started');
-    assert.equal(dev.messages.find(m => m.type === 'state').state.tick, 0);
+    for (const watcher of [dev, spectator]) {
+      const welcome = watcher.messages.find(m => m.type === 'welcome');
+      assert.equal(welcome.ready, true, 'the room is prepared before start');
+      assert.deepEqual([welcome.map, welcome.state, welcome.constants], [null, null, null]);
+      const ready = watcher.messages.find(m => m.type === 'ready');
+      assert.ok(ready.map);
+      assert.equal(ready.state.tick, 0);
+      assert.equal(watcher.messages.find(m => m.type === 'state').state.tick, 0);
+    }
     const slot = first.state.players.findIndex(p => p.role === 'gladiator');
     const body = frame => frame.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === slot);
     const joined = h.joined(room, { role: 'gladiator', kit: 'specter', name: 'Late join' });
@@ -65,9 +74,29 @@ test('the opt-in room records spent inputs and keeps the same actor through a li
     assert.equal(afterResume.commands.at(-1).seq, 0);
     assert.equal(resumed.messages.findLast(m => m.type === 'state').state.self.lastSeq, 0);
 
+    owner.send({ type: 'dev', action: 'pause' });
+    const late = h.joined(room, { name: 'Last join' });
     owner.send({ type: 'finish' });
     await room.finalization;
-    assert.deepEqual(writer.frames.at(-1).commands, [], 'finishing at the same tick does not repeat its inbound queue');
+    assert.deepEqual(writer.frames.at(-1).commands.map(c => [c.type, c.id]), [['join', late.session.playerId]],
+      'the final frame keeps room roster metadata and only committed ticks carry the inbound queue');
+  } finally { await h.service.close(); }
+});
+
+test('a refused paused teleport still publishes the terminal frame', async () => {
+  const { h, room, owner, dev, writer } = await optInRoom(1);
+  try {
+    owner.send({ type: 'dev', action: 'pause' });
+    const id = owner.session.playerId;
+    owner.send({ type: 'dev', action: 'teleport', id, x: 390, y: 520 });
+    await room.finalization;
+    assert.deepEqual(owner.messages.findLast(m => m.type === 'teleport'), { type: 'teleport', ok: false, id });
+    for (const viewer of [owner, dev]) {
+      const { state } = viewer.messages.findLast(m => m.type === 'state');
+      assert.deepEqual([state.tick, state.phase], [1, 'finished']);
+    }
+    assert.deepEqual(writer.frames.map(f => [f.state.tick, f.state.phase]), [[0, 'live'], [1, 'finished']]);
+    assert.equal(writer.finishCalls, 1);
   } finally { await h.service.close(); }
 });
 
