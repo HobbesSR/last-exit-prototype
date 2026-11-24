@@ -21,6 +21,7 @@
     "test:set": "node tests/sets.mjs",
     "test:physics": "node tests/sets.mjs physics",
     "check": "node tests/check.mjs",
+    "check:git-credentials": "node tools/check-git-credentials.mjs",
     "typecheck": "tsc --noEmit && tsc --noEmit -p map/tools",
     "test:times": "node tests/timing.mjs",
     "brief": "node tests/brief.mjs",
