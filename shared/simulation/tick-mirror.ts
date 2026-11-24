@@ -44,7 +44,7 @@ const STATUS: Record<Actor['presence'], PlayerStatus> = {
 };
 
 /** What a ground record carries that the core does not: generation metadata, kept by ID. */
-type Metadata = Pick<GroundItem, 'buildingId' | 'nodeId' | 'tier'>;
+type Metadata = Pick<GroundItem, 'nodeId' | 'tier'>;
 /** Per player, whether it started with the optional records the core always has. */
 interface Shape { inventory: boolean; reserves: boolean }
 
@@ -255,7 +255,7 @@ export class TickMirror {
   constructor(s: Game, match: TickMatch) {
     this.s = s; this.match = match;
     const metadata = new Map<number, Metadata>();
-    for (const item of s.items) metadata.set(item.id, { buildingId: item.buildingId, nodeId: item.nodeId, tier: item.tier });
+    for (const item of s.items) metadata.set(item.id, { nodeId: item.nodeId, tier: item.tier });
     const shapes = new Map(s.players.map((p, slot) => [match.ids.actorAtSlot[slot]!, { inventory: p.inventory !== undefined, reserves: p.reserves !== undefined }] as const));
     this.ctx = { ids: match.ids, metadata, shapes, blast: s.content.traps.mine.blast, grid: discoveryGrid(s.map),
       discovery: s.content.discovery === true, weaponQuality: s.content.lootTiers !== undefined };

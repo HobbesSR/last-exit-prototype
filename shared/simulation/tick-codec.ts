@@ -782,7 +782,8 @@ function getActor(r: Reader): ActorEntry {
   return { kind: id.kind, seat: id.seat, word, actor: { presence, kit, level, kills, hp, maxHp, shield, maxShield, aim, sneak, viewLag,
     inventory, charging, respawnAt, transit, bot, aggression, deadlines, statuses } };
 }
-// Building slots are internal rule data. Keep the public decoded row's enumerable shape stable.
+// Keep the public decoded row's enumerable shape stable. Consumers that need the internal
+// building slot must read it directly or copy it explicitly, since spread and structuredClone omit it.
 function withBuilding<T extends object>(record: T, building: number | null): T {
   Object.defineProperty(record, 'building', { value: building, enumerable: false });
   return record;
