@@ -3,6 +3,7 @@ import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord, createGame, disposePhysics, joinGame, setInput, step, snapshot, visibleTo, couldSee, synchronizePhysics, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
+import { startGame } from '../shared/simulation/tick.ts';
 import { moveBody } from '../shared/movement.ts';
 import { lineClear } from '../shared/sight.ts';
 import { initCoreSight } from '../shared/sight-core.ts';
@@ -70,24 +71,35 @@ test('clients cannot send positions or amplify movement and stale inputs are rej
 });
 
 test('snapshots are independent copies including bot routes and input acknowledgments', async t => {
-  const field = 'route', s = await createGame(4217, generatedMap(), defaultContent());
+  const s = await createGame(4217, generatedMap(), defaultContent());
   t.after(() => disposePhysics(s));
   const human = s.players[0]; human.bot = false; human.input = {};
-  // A tile planner's first plans are staggered across its bots' turns, and a sliced one's may span ticks.
-  for (let i = 0; i < 40 && !s.players.some(p => p.bot && p[field]?.length); i++) step(s);
+  const { match } = startGame(s);
+  let bot, route;
+  // A tile planner's first plans are staggered, and a sliced search may span ticks.
+  for (let i = 0; i < 40 && !bot; i++) {
+    step(s);
+    bot = s.players.find(p => p.bot && match.botRoute(p.id).length);
+  }
+  assert.ok(bot, 'a bot must hold a route to witness');
+  route = match.botRoute(bot.id);
+  const expectedRoute = structuredClone(route);
+  route[0].x += 99; route.push({ ...route[0] });
+  assert.deepEqual(match.botRoute(bot.id), expectedRoute);
   assert.ok(setInput(s, human.id, { seq: human.lastSeq + 1, x: 1, y: 0 }));
   step(s);
-  const bot = s.players.find(p => p.bot && p[field]?.length);
-  assert.ok(bot, `a bot must hold a ${field} to witness`);
   const frame = snapshot(s), mine = frame.players.find(p => p.id === human.id), theirs = frame.players.find(p => p.id === bot.id);
-  assert.deepEqual(theirs[field], bot[field]); assert.ok(theirs[field].length > 0);
+  const frameRoute = structuredClone(theirs.route);
+  assert.ok(frameRoute?.length > 0, 'the snapshot carries the bot route');
+  assert.deepEqual(frameRoute, match.botRoute(bot.id));
   assert.equal(mine.lastSeq, human.lastSeq);
   assert.ok(mine.lastSeq >= 0);
-  const route = structuredClone(theirs[field]), accepted = structuredClone(mine.input), before = JSON.stringify(frame);
+  const accepted = structuredClone(mine.input), before = JSON.stringify(frame);
   bot.route[0].x += 99; bot.route.push({ ...bot.route[0] });
   assert.ok(setInput(s, human.id, { seq: human.lastSeq + 1, x: -1, y: 0 }));
   for (let i = 0; i < 20; i++) step(s);
-  assert.deepEqual(theirs[field], route); assert.deepEqual(mine.input, accepted);
+  assert.deepEqual(theirs.route, frameRoute);
+  assert.deepEqual(mine.input, accepted);
   assert.equal(JSON.stringify(frame), before);
 });
 

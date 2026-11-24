@@ -30,7 +30,8 @@ test('the opt-in room records spent inputs and keeps the same actor through a li
   const { h, room, owner, dev, spectator, writer } = await optInRoom();
   try {
     const first = writer.frames[0];
-    assert.equal(writer.header.schema, 22);
+    assert.equal(writer.header.schema, 23);
+    assert.equal(writer.header.botPlannerVersion, 1);
     assert.deepEqual(first.commands.map(c => c.type), ['join', 'start']);
     assert.deepEqual([first.state.tick, first.state.physics, first.state.rng], [0, undefined, undefined]);
     assert.equal(owner.messages.find(m => m.type === 'ready').state.tick, 0);
@@ -133,7 +134,7 @@ test('the opt-in room replies to each committed teleport and publishes a paused 
   } finally { await h.service.close(); }
 });
 
-test('the threaded host can opt into the new tick and save a schema 22 archive', { timeout: 10000 }, async t => {
+test('the threaded host can opt into the new tick and save a schema 23 archive', { timeout: 10000 }, async t => {
   const dir = await mkdtemp(path.join(tmpdir(), 'room-tick-'));
   const replays = await createFileReplayStore(dir), errors = [];
   const service = createRoomService({ replays, threads: true, reportError: error => errors.push(error) });
@@ -166,9 +167,17 @@ test('the threaded host can opt into the new tick and save a schema 22 archive',
     service.receive(owner, { type: 'finish' });
     await waitFor(events.get('saved').promise);
     const archive = readArchive(await readFile(path.join(dir, `${room.id}.json.gz`)));
-    assert.equal(archive.schema, 22);
+    assert.equal(archive.schema, 23);
+    assert.equal(archive.botPlannerVersion, 1);
     const first = archive.frames[0];
     assert.equal(first.state.tick, 0);
+    assert.equal(first.botCommandDigest, undefined, 'the initial frame precedes any committed tick');
+    const final = archive.frames.at(-1);
+    assert.equal(final.state.tick, archive.frames.at(-2).state.tick, 'finishing adds a frame without advancing');
+    assert.equal(final.botCommandDigest, undefined, 'the finish frame has no committed tick');
+    for (const frame of archive.frames.slice(1, -1)) {
+      assert.match(frame.botCommandDigest, /^[0-9a-f]{64}$/, `tick ${frame.state.tick} carries a bot digest`);
+    }
     assert.equal(first.state.physics, undefined);
     assert.deepEqual(first.commands.map(c => c.type), ['join', 'start']);
     assert.deepEqual(archive.frames.find(f => f.state.tick === tick).commands, [

@@ -20,6 +20,7 @@
 
 use crate::math::{hypot, js_max, js_min};
 use crate::sight::{BUCKET, Edge, GateSet, Grid, SightIndex, Visited, hit_ray};
+use crate::swept::{Shape, segment_shape_distance};
 
 /// SAT's `new Vector(x, y)` stores `x || 0`: -0 and NaN become 0.
 pub(crate) fn or_zero(v: f64) -> f64 {
@@ -209,6 +210,7 @@ struct Collider {
     bounds: [f64; 4],
     see_through: bool,
     body: Body,
+    shape: Shape,
 }
 
 /// `nearBounds` (`shared/shape.ts`).
@@ -239,6 +241,60 @@ const RECT: f64 = 0.0;
 const CIRCLE: f64 = 1.0;
 
 impl CollisionMap {
+    /// Movement's swept-clear query over static obstacles and playable-area voids.
+    pub(crate) fn segment_clear(&self, a: [f64; 2], b: [f64; 2], radius: f64) -> bool {
+        if !self.inside(a[0], a[1], radius) || !self.inside(b[0], b[1], radius) {
+            return false;
+        }
+        let left = a[0].min(b[0]) - radius;
+        let right = a[0].max(b[0]) + radius;
+        let top = a[1].min(b[1]) - radius;
+        let bottom = a[1].max(b[1]) + radius;
+        let mut blocked = false;
+        self.grid.each_cell_in(left, top, right, bottom, |entries| {
+            if blocked {
+                return;
+            }
+            for &index in entries {
+                let collider = &self.colliders[index as usize];
+                let [x, y, w, h] = collider.bounds;
+                if x <= right
+                    && y <= bottom
+                    && x + w >= left
+                    && y + h >= top
+                    && segment_shape_distance(a, b, &collider.shape) < radius - 0.01
+                {
+                    blocked = true;
+                    break;
+                }
+            }
+        });
+        if blocked {
+            return false;
+        }
+        let size = self.cell_size;
+        let first_col = ((left / size).floor() as usize).min(self.cols - 1);
+        let last_col = ((right / size).floor() as usize).min(self.cols - 1);
+        let first_row = ((top / size).floor() as usize).min(self.rows - 1);
+        let last_row = ((bottom / size).floor() as usize).min(self.rows - 1);
+        for row in first_row..=last_row {
+            for col in first_col..=last_col {
+                if !self.occupied(col as f64, row as f64) {
+                    let shape = Shape::Rect {
+                        x: col as f64 * size,
+                        y: row as f64 * size,
+                        w: size,
+                        h: size,
+                    };
+                    if segment_shape_distance(a, b, &shape) < radius {
+                        return false;
+                    }
+                }
+            }
+        }
+        true
+    }
+
     /// `constants` is `width, height, cellSize, cols, rows`; `occupied` has `cols * rows` bytes.
     /// Collider `i` is `colliders[offsets[i]..offsets[i + 1]]`: `kind, seeThrough, box x, y, w, h,
     /// x, y`, then `r` for a circle, `w, h` for a rect, or `n` and `n` points for a polygon.
@@ -267,6 +323,26 @@ impl CollisionMap {
                     bounds: [c[2], c[3], c[4], c[5]],
                     see_through: c[1] != 0.0,
                     body,
+                    shape: if c[0] == CIRCLE {
+                        Shape::Circle {
+                            x: c[6],
+                            y: c[7],
+                            r: c[8],
+                        }
+                    } else if c[0] == RECT {
+                        Shape::Rect {
+                            x: c[6],
+                            y: c[7],
+                            w: c[8],
+                            h: c[9],
+                        }
+                    } else {
+                        Shape::Polygon {
+                            x: c[6],
+                            y: c[7],
+                            points: c[9..9 + 2 * c[8] as usize].as_chunks::<2>().0.to_vec(),
+                        }
+                    },
                 }
             })
             .collect();

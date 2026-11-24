@@ -3,15 +3,12 @@ import { attachDiscovery, discoveryGrid } from '../discovery.ts';
 import { ItemMemory, SeenCells } from './bot-memory.ts';
 import { WEAPONS as WEAPON_ORDER } from '../enum-tables.ts';
 import { cos, sin } from '../math.ts';
-import { attachSolidPropReader, beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
-import { authoredProps } from './world-physics.ts';
-import { collectBotIntent } from './bots.ts';
 import { writeDoor } from './doors.ts';
 import { clearRoute } from './geometry.ts';
 import { effect, event, participant } from './event-records.ts';
 import { addItemsFromCore, groundItem, removeItem, replaceItem } from './ground-items.ts';
 import { sightOf } from './sight-runtime.ts';
-import { botCommand, rollMargin } from './tick-boundary.ts';
+import { rollMargin } from './tick-boundary.ts';
 import { bodyKey, bodyOrder } from './tick-codec.ts';
 import type { TickBoundary } from './tick-boundary.ts';
 import type { Actor, ActorEntry, CarriedItem, Cue, DecodedTick, Discontinuity, Equipment, Fact, GroundItem as CoreGround, Hook, Inbound, Loot,
@@ -20,7 +17,7 @@ import type { MatchIds, TickMatch } from './tick-match.ts';
 import type { BodyId, DiscoveryMemory, Game, HeardCue, GroundItem, InventoryItem, Player, PlayerId, PlayerStatus, Projectile, Trap } from '../types.ts';
 
 // The mirror applier of the new tick (docs/27.2 "Node adapter (3d.2)"): one function writes a completed tick's change list
-// onto `Game`, the mirror Node's bots, projection and tools read until #1284 removes it. It replaces the old tick's
+// onto `Game`, the mirror Node's projection and tools read until #1284 removes it. It replaces the old tick's
 // per-phase appliers on this path; nothing here runs on the old one. `mirrorOf` maps a whole snapshot the same way, which
 // is what a test holds the incrementally applied mirror equal to on every tick.
 //
@@ -260,11 +257,6 @@ export class TickMirror {
     this.ctx = { ids: match.ids, metadata, shapes, blast: s.content.traps.mine.blast, grid: discoveryGrid(s.map),
       discovery: s.content.discovery === true, weaponQuality: s.content.lootTiers !== undefined };
     this.#load(match.snapshot());
-    const props = authoredProps(s);
-    attachSolidPropReader(s, () => props.flatMap(({ spec }, id) => {
-      const pose = this.poses.get(`prop:${id}`);
-      return pose ? [{ spec, transform: { x: pose.at[0], y: pose.at[1], angle: pose.angle } }] : [];
-    }));
   }
 
   /** Make the game the snapshot's, whole: once, at the start. */
@@ -319,6 +311,7 @@ export class TickMirror {
   /** Write one completed tick onto the mirror. */
   apply(t: DecodedTick): void {
     const s = this.s, ctx = this.ctx, ids = ctx.ids, c = t.changes, tick = t.tick, at = poseMap(c.poses);
+    for (const { actor, route } of t.botRoutes ?? []) this.#player(actor).route = route;
     s.tick = tick;
     // Records, whole.
     for (const e of c.actors) this.#actor(e, tick);
@@ -492,21 +485,13 @@ function poseMap(poses: readonly PoseEntry[]): Map<string, Point> {
 function byId(list: readonly Projectile[]): Map<number, Projectile> { return new Map(list.map(p => [p.id, p] as const)); }
 
 /**
- * Run one tick of `s` on the new path (27.2 "Node adapter (3d.2)"). Each active bot's intent is
- * read from the mirror as T−1 left it (R11), in roster order as today until #1215, and submitted for T; the match steps;
- * the mirror applies the result. Player input waits in `boundary`'s buffers between calls, and each player's input for T
- * is submitted with the bots'. Returns the
- * completed tick, or null once the match is over.
+ * Submit the player input due for T, then step the core and apply its completed tick to the mirror.
+ * The core derives bot intent from the committed T−1 state. Returns null once the match is over.
  */
 export function stepMirror(mirror: TickMirror, boundary?: TickBoundary): DecodedTick | null {
   const { s, match } = mirror;
   if (s.phase !== 'live') return null;
   const tick = s.tick + 1, rows: Inbound[] = boundary?.due(tick) ?? [];
-  beginDynamicNavigationCollection(s);
-  try {
-    for (const p of s.players) if (p.bot && p.status === 'active')
-      rows.push({ type: 'command', command: botCommand(s, match, p, collectBotIntent(s, p), tick) });
-  } finally { endDynamicNavigationCollection(s); }
   if (rows.length && !match.submit(tick, rows).every(Boolean)) throw new Error(`tick-mirror: the match refused a command for ${tick}`);
   const completed = match.step();
   if (completed) mirror.apply(completed);

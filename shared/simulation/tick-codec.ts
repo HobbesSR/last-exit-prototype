@@ -159,13 +159,14 @@ export interface Command { actor: number; source: CommandSource; tick: Tick; seq
 export type Observation =
   | { kind: 'viewLag'; actor: number; ticks: Tick }
   | { kind: 'inputLead'; actor: number; ticks: Tick }
-  | { kind: 'join'; actor: number; kit?: Kit }
+  | { kind: 'join'; actor: number; kit?: Kit; botLabel?: BotLabel }
   | { kind: 'leave'; actor: number }
   | { kind: 'teleport'; body: BodyRef; to: Point };
 export type Carried =
   | { kind: 'impulse'; body: BodyRef; impulse: Point }
   | { kind: 'killReward'; actor: number }
   | { kind: 'gateObserved'; actor: number; gate: number; open: boolean; locked: boolean };
+export interface BotLabel { rank: number; opportunistic: boolean }
 export type Inbound =
   | { type: 'command'; command: Command }
   | { type: 'observation'; observation: Observation }
@@ -242,7 +243,10 @@ export type Discontinuity = { kind: 'placed' | 'warped' | 'removed'; body: BodyR
 export interface GateObservation { actor: number; gate: number; open: boolean; locked: boolean }
 export interface DiscoverySample { actor: number; eye: Point }
 export interface Discovery { gates: GateObservation[]; samples: DiscoverySample[] }
-export interface DecodedTick { tick: Tick; inbound: Inbound[]; changes: Changes; discontinuities: Discontinuity[]; discovery: Discovery }
+export interface DecodedTick {
+  tick: Tick; inbound: Inbound[]; changes: Changes; discontinuities: Discontinuity[]; discovery: Discovery;
+  readonly botRoutes?: { actor: number; route: { x: number; y: number }[] }[];
+}
 
 export interface RememberedItem { id: number; at: Point; item: GroundItem }
 export interface DoorMemory { gate: number; open: boolean; locked: boolean }
@@ -334,6 +338,8 @@ export interface MatchSetup {
   /** The world box actors and spots must lie in: `min x, min y, max x, max y`. */
   bounds: [number, number, number, number] | null;
   entryX?: number;
+  bots?: { hearing: boolean; hunting: number; portals: boolean; selectableTransit: boolean;
+    roster: readonly (BotLabel & { actor: number; inventory: boolean })[] };
   tuning: Tuning;
 }
 
@@ -602,6 +608,15 @@ export function encodeSetup(setup: MatchSetup): Float64Array {
   w.option(4, setup.bounds, b => w.raw(...b));
   w.raw(setup.entryX ?? 0);
   putTuning(w, setup.tuning);
+  const bots = setup.bots;
+  w.flag(bots?.hearing ?? false);
+  w.u32(bots?.hunting ?? 0);
+  w.flag(bots?.portals ?? false);
+  w.flag(bots?.selectableTransit ?? false);
+  w.u32(bots?.roster.length ?? 0);
+  for (const row of bots?.roster ?? []) {
+    w.raw(row.actor); w.flag(row.opportunistic); w.flag(row.inventory); w.u32(row.rank);
+  }
   return Float64Array.from(w.words);
 }
 
@@ -633,7 +648,10 @@ function putInbound(w: Writer, inbound: Inbound): void {
     switch (o.kind) {
       case 'viewLag': w.u32(0); w.actor(o.actor); w.u32(o.ticks); break;
       case 'inputLead': w.u32(1); w.actor(o.actor); w.u32(o.ticks); break;
-      case 'join': w.u32(2); w.actor(o.actor); w.option(1, o.kit ?? null, kit => w.pick(KITS, kit, 'kit')); break;
+      case 'join':
+        w.u32(2); w.actor(o.actor); w.option(1, o.kit ?? null, kit => w.pick(KITS, kit, 'kit'));
+        w.option(2, o.botLabel ?? null, label => { w.u32(label.rank); w.flag(label.opportunistic); });
+        break;
       case 'leave': w.u32(3); w.actor(o.actor); break;
       case 'teleport': w.u32(4); w.body(o.body); w.point(o.to); break;
     }
@@ -955,7 +973,8 @@ function getInbound(r: Reader): Inbound {
 }
 function getJoin(r: Reader): Observation {
   const actor = r.actor(), kit = r.option(1, () => r.pick(KITS));
-  return kit === null ? { kind: 'join', actor } : { kind: 'join', actor, kit };
+  const botLabel = r.option(2, () => ({ rank: r.u32(), opportunistic: r.bool() }));
+  return { kind: 'join', actor, ...(kit === null ? {} : { kit }), ...(botLabel === null ? {} : { botLabel }) };
 }
 function getDiscontinuity(r: Reader): Discontinuity {
   const tag = r.u32(), body = r.body();
@@ -985,8 +1004,15 @@ export function decodeCompleted(words: ArrayLike<number>): DecodedTick {
   const discontinuities: Discontinuity[] = [];
   for (let i = 0; i < count; i++) discontinuities.push(getDiscontinuity(r));
   const discovery = getDiscovery(r);
+  const completed = { tick, inbound, changes, discontinuities, discovery };
+  if (!r.empty) {
+    const botRoutes = Array.from({ length: r.count(2) }, () => ({ actor: r.actor(),
+      route: Array.from({ length: r.count(2) }, () => ({ x: r.finite(), y: r.finite() })) }));
+    // Private frame compatibility data rides on the same transfer. The committed tick's transcript is unchanged.
+    Object.defineProperty(completed, 'botRoutes', { value: botRoutes });
+  }
   if (!r.empty) r.fail('trailing words');
-  return { tick, inbound, changes, discontinuities, discovery };
+  return completed;
 }
 
 function getCells(r: Reader): number[] {

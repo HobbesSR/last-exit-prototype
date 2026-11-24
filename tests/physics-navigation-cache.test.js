@@ -1,13 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, disposePhysics, step } from '../shared/simulation.ts';
-import { startGame } from '../shared/simulation/tick.ts';
+import { createGame, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { attachSolidPropReader, observedBlockers } from '../shared/simulation/dynamic-navigation.ts';
+import { attachSolidPropReader, beginDynamicNavigationCollection, endDynamicNavigationCollection, observedBlockers } from '../shared/simulation/dynamic-navigation.ts';
 import { openArea } from './helpers/arena.js';
 
-test('bots share one prop query during collection, while same-tick external moves are observed freshly', async () => {
+test('the JS reference shares one prop query during collection and refreshes outside it', async () => {
   const content = structuredClone(contentById('content-6'));
   content.discovery = false;
   content.roster = { contestants: ['A', 'B'], gladiators: [] };
@@ -20,10 +19,11 @@ test('bots share one prop query during collection, while same-tick external move
   const s = await createGame(448, map, content);
   try {
     let props = physicsRuntime(s).world.solidPropStates();
-    startGame(s);
     let calls = 0;
     attachSolidPropReader(s, () => { calls++; return props; });
-    step(s);
+    beginDynamicNavigationCollection(s);
+    for (const player of s.players) observedBlockers(s, player);
+    endDynamicNavigationCollection(s);
     assert.equal(calls, 1, 'both bots consumed the same pre-movement prop list');
     const p = s.players[0], tick = s.tick;
     assert.ok(observedBlockers(s, p).some(shape => shape.kind === 'polygon'), 'nearby prop remains observed after the collection');
@@ -31,7 +31,9 @@ test('bots share one prop query during collection, while same-tick external move
     assert.equal(s.tick, tick);
     assert.equal(observedBlockers(s, p).some(shape => shape.kind === 'polygon'), false, 'no tick-keyed stale prop pose survives');
     assert.equal(calls, 3, 'outside collection each read is fresh');
-    step(s);
+    beginDynamicNavigationCollection(s);
+    for (const player of s.players) observedBlockers(s, player);
+    endDynamicNavigationCollection(s);
     assert.equal(calls, 4, 'the next collection obtains a new shared query');
   } finally { disposePhysics(s); }
 });

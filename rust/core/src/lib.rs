@@ -45,7 +45,8 @@ use std::slice;
 /// 45: a pose row carries the body's whole pose (27.2 3d.3).
 /// 46: the opening discovery at setup and an unresolved nomination target (27.2 3d.4).
 /// 49: runtime map rule tables and flat navigation uploads (27, #1318).
-pub const ADAPTER_VERSION: u32 = 49;
+/// 50: committed bot planning and the setup roster (27.2, #1321).
+pub const ADAPTER_VERSION: u32 = 50;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -1620,7 +1621,7 @@ pub unsafe extern "C" fn match_step(game: *mut tick::codec::LiveMatch) -> *const
     }
 }
 
-/// The word count of the last `match_step`, `match_snapshot`, `match_memory` or `match_heard`.
+/// The word count of the last tick, snapshot, memory, cue, or bot-route output.
 ///
 /// # Safety
 /// `game` is live.
@@ -1655,6 +1656,21 @@ pub unsafe extern "C" fn match_memory(
     // SAFETY: the caller's contract.
     unsafe {
         (*game).memory(actor_word);
+        (*game).output().as_ptr()
+    }
+}
+
+/// The bot's remaining route, as pairs of coordinates.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_bot_route(
+    game: *mut tick::codec::LiveMatch,
+    actor_word: f64,
+) -> *const f64 {
+    unsafe {
+        (*game).bot_route(actor_word);
         (*game).output().as_ptr()
     }
 }

@@ -75,11 +75,26 @@ pub struct Command {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Observation {
-    ViewLag { actor: ActorId, ticks: Tick },
-    InputLead { actor: ActorId, ticks: Tick },
-    Join { actor: ActorId, kit: Option<Kit> },
-    Leave { actor: ActorId },
-    Teleport { body: BodyId, to: Point },
+    ViewLag {
+        actor: ActorId,
+        ticks: Tick,
+    },
+    InputLead {
+        actor: ActorId,
+        ticks: Tick,
+    },
+    Join {
+        actor: ActorId,
+        kit: Option<Kit>,
+        bot_label: Option<(usize, bool)>,
+    },
+    Leave {
+        actor: ActorId,
+    },
+    Teleport {
+        body: BodyId,
+        to: Point,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

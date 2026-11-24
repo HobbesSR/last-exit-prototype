@@ -21,6 +21,7 @@ import { profiling, observe } from '../shared/profiler.ts';
 import { stepMirror } from '../shared/simulation/tick-mirror.ts';
 import { createTickSession } from '../shared/simulation/tick.ts';
 import { recordedInbound } from '../shared/simulation/tick-record.ts';
+import { encodeInbound } from '../shared/simulation/tick-codec.ts';
 
 // Only connection-facing operations resolve session labels; simulation relations use dense slots.
 const connectionPlayer = (game, id) => {
@@ -126,7 +127,7 @@ function matchOf(game, payloads, wire, navigation) {
   // Outward IDs for live payload items; recordings keep internal IDs (26).
   const outward = items => { const mapped = wireItemRecords(items, wire); if (mapped !== items) shareItemPublication(items, mapped); return mapped; };
   const seats = seatsOf(game, () => synchronizePhysics(game));
-  let live, spent = [], discontinuities = [], disposedFrame;
+  let live, spent = [], botWords = new Float64Array(), discontinuities = [], disposedFrame;
   const started = () => {
     if (disposedFrame) throw new Error('match disposed');
     return live ??= createTickSession(game, wire, navigation?.pointer);
@@ -141,6 +142,7 @@ function matchOf(game, payloads, wire, navigation) {
     presentation: describeContent(game.content),
     ...seats,
     recordingSchema: TICK_RECORDING_SCHEMA,
+    botPlannerVersion: 1,
     // Scenario and benchmark tools may arrange initial state before start.
     get diagnosticState() { return game; },
     join(id, role, kit, name) {
@@ -151,7 +153,7 @@ function matchOf(game, payloads, wire, navigation) {
       const previous = ids.playerOfActor.get(ids.actorAtSlot[slot]);
       ids.bindPlayer(slot, id);
       live.mirror.relabel(previous, id);
-      live.boundary.seat(id, 'join', p.role === 'gladiator' ? p.kit : undefined);
+      live.boundary.seat(id, 'join', p.role === 'gladiator' ? p.kit : undefined, true);
       return identity(p);
     },
     resume(id) {
@@ -186,11 +188,13 @@ function matchOf(game, payloads, wire, navigation) {
       const { match, mirror, boundary, frames } = started();
       const t = stepMirror(mirror, boundary);
       spent = t ? recordedInbound(match.ids, t.inbound) : [];
+      botWords = encodeInbound(t ? t.inbound.filter(row => row.type === 'command' && row.command.source === 'bot') : []);
       discontinuities = t?.discontinuities ?? [];
       return frames.frame();
     },
     teleportSucceeded: request => discontinuities.some(marker => marker.kind === 'devWarped' && marker.request === request),
     spent: () => structuredClone(spent),
+    botCommands: () => botWords.slice(),
     snapshot: frame,
     dispose() {
       if (disposedFrame) return;

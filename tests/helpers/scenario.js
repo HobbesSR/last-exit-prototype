@@ -1,8 +1,8 @@
-import { createGame, disposePhysics, step } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, step } from '../../shared/simulation.ts';
 import { createDiscovery, discoveryGrid } from '../../shared/discovery.ts';
-import { hearShot } from '../../shared/simulation/hearing.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
 import { openField } from './arena.js';
+import { identifyItems } from './item-identity.js';
 
 // The scenario layer over test arenas (31 "Test arenas", #697): put chosen actors on an arena, give them
 // chosen knowledge, script events per tick, and run.
@@ -77,7 +77,11 @@ export async function gunfight(distance, { content, weapon = 'pistol', every = 2
   const y = map.height / 2, at = { x: 600 + distance, y };
   const { s, players: [g, shooter] } = await stagePhysics(map, { content,
     actors: [{ role: 'gladiator', x: 600, y }, { role: 'contestant', bot: false, ...at }] });
+  shooter.inventory[0] = { kind: 'weapon', weaponType: weapon, ammo: s.content.weapons[weapon].ammo,
+    instanceId: 'gunfight-weapon', lineageId: 'gunfight-weapon' };
+  identifyItems(s);
   try {
-    return run(s, { ticks, events: [{ every, until, act: s => hearShot(s, shooter, weapon) }], done: () => Math.hypot(g.x - at.x, g.y - at.y) < 400 });
+    return run(s, { ticks, events: [{ every, until, act: s => setInput(s, shooter.id, { seq: s.tick + 1, attack: true, aim: 0 }) }],
+      done: () => Math.hypot(g.x - at.x, g.y - at.y) < 400 });
   } finally { disposePhysics(s); }
 }

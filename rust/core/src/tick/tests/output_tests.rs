@@ -184,6 +184,7 @@ fn observations_are_recorded_inbound_and_written_at_intake() {
         Observation::Join {
             actor: C,
             kit: None,
+            bot_label: None,
         },
     );
     super::submit(&mut game, C, 3, 0, Input::default());
@@ -480,6 +481,7 @@ fn teleport_ordinals_include_refusals_and_join_only_changes_supplied_kit() {
         Observation::Join {
             actor: C,
             kit: None,
+            bot_label: None,
         },
     );
     observe(
@@ -529,6 +531,7 @@ fn teleport_ordinals_include_refusals_and_join_only_changes_supplied_kit() {
         Observation::Join {
             actor: C,
             kit: Some(Kit::Hook),
+            bot_label: None,
         },
     );
     let tick = game.step(&Combat::default()).unwrap();

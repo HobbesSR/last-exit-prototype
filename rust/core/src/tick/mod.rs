@@ -2,6 +2,7 @@
 //! The WASM adapter still calls the seven-phase tick.
 
 mod apply;
+mod bots;
 pub mod codec;
 mod combat;
 mod discovery;
@@ -343,6 +344,7 @@ impl Scenario {
             sampler: self.discovery,
             memory,
             cues: hearing::Cues::default(),
+            bots: bots::Planner::default(),
             #[cfg(test)]
             mirror: None,
         };
@@ -380,6 +382,7 @@ pub struct Match {
     sampler: Option<discovery::Sampler>,
     memory: BTreeMap<ActorId, Memory>,
     cues: hearing::Cues,
+    bots: bots::Planner,
     /// Test builds fold every tick's change list into the first snapshot, as Node's mirror
     /// does, and compare the result with the match.
     #[cfg(test)]
@@ -441,19 +444,37 @@ impl Match {
     }
 
     pub fn step(&mut self, mechanics: &impl Mechanics) -> Option<CompletedTick> {
+        self.step_with_bots(mechanics, None)
+    }
+
+    fn step_with_bots(
+        &mut self,
+        mechanics: &impl Mechanics,
+        bot_rules: Option<&Combat>,
+    ) -> Option<CompletedTick> {
         if self.finished || self.tick == self.time_limit {
             return None;
         }
         let tick = self.tick + 1;
-        let inbound: Vec<_> = self
+        let mut inbound: Vec<_> = self
             .carried
             .drain(..)
             .map(Inbound::Carried)
             .chain(self.queued.remove(&tick).into_iter().flatten())
             .collect();
 
+        // Plan against T-1. Seat observations decide which controller owns T's input,
+        // while teleports and the other observations cannot affect the planner's view.
+        let generated =
+            bot_rules.map_or_else(Vec::new, |rules| bots::collect(self, rules, tick, &inbound));
         let start = output::Before::new(&self.state);
         let teleported = self.observe(&inbound);
+        for &(body, _) in &teleported {
+            if let BodyId::Actor(actor) = body {
+                self.bots.clear_route(actor);
+            }
+        }
+        inbound.extend(generated.into_iter().map(Inbound::Command));
         let commands = self.commands(tick, &inbound);
         let mut writes = Intake::default();
         let mut intake_facts = Vec::new();

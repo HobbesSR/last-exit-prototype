@@ -4,14 +4,14 @@ import { createMatch } from '../server/match.js';
 import { packMap, packedTransfer, packRuntimeMap, unpackMap } from '../server/map-pack.js';
 import { prepareRuntimeNavigation } from '../server/runtime-map.js';
 import { initCore } from '../shared/core.ts';
-import { createKnowledgePlanner, freeTilesFor, packedTilesFor } from '../shared/navigation/knowledge.ts';
+import { packedTilesFor } from '../shared/navigation/knowledge.ts';
 import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { arena } from './helpers/arena.js';
 
 const tiles = map => ['gladiator', 'contestant'].map(role => packedTilesFor(map, role));
 
-test('matches borrow eager and deferred flat maps across WASM growth and release them at disposal', async t => {
+test('matches use eager and deferred flat maps across WASM growth and disposal', async t => {
   const seed = 4217, base = defaultContent();
   const content = { ...base, roster: { contestants: ['C0'], gladiators: [{ name: 'G0', kit: 'warden' }] } };
   const { map } = arena({ cols: 10, rows: 6, corridor: { gaps: [3] }, spawns: [{ x: 300, y: 660 }],
@@ -26,31 +26,23 @@ test('matches borrow eager and deferred flat maps across WASM growth and release
     assert.equal(received.tiles.length, 0);
     const decoded = unpackMap(received), match = await createMatch(seed, undefined, decoded, content);
     t.after(() => match.dispose());
-    const graph = portalGraphOf(decoded);
-    assert.deepEqual(graph, portalGraphOf(map));
-    const known = { known: () => true, door: () => undefined, keys: 0, revision: 0 };
-    for (const role of ['gladiator', 'contestant']) {
-      assert.deepEqual(freeTilesFor(decoded, role), freeTilesFor(current.diagnosticState.map, role));
-    }
-    const planner = createKnowledgePlanner(decoded, 'contestant');
-    const tile = planner.tile(known, 35), expectedPoints = tile.points.slice(), previous = tile.triangles.buffer;
+    assert.equal(portalGraphOf(decoded), undefined);
     const core = await initCore();
     core.memory.grow(1);
-    assert.notEqual(tile.triangles.buffer, previous);
-    assert.deepEqual(tile.points, expectedPoints);
-    assert.deepEqual(graph.owner, portalGraphOf(map).owner);
     match.start();
-    variants.push({ match, decoded, tile });
+    variants.push({ match, decoded });
   }
   current.start();
-  for (let i = 0; i < 3; i++) {
+  let routed = false;
+  for (let i = 0; i < 24; i++) {
     const expected = current.advance();
+    routed ||= expected.players.some(p => p.route?.length);
     for (const { match } of variants) assert.deepEqual(match.advance(), expected);
   }
-  for (const { match, decoded, tile } of variants) {
+  assert.ok(routed, 'the comparison covers a bot following a route');
+  for (const { match, decoded } of variants) {
     match.dispose();
     assert.equal(portalGraphOf(decoded), undefined);
-    assert.throws(() => tile.points, /released/);
   }
 });
 
@@ -75,12 +67,10 @@ test('Rust rejects malformed flat packages and accepts graphless ones', async ()
 
   for (const deferContestant of [false, true]) {
     const decoded = unpackMap(packRuntimeMap(map, { deferContestant }));
-    const { release } = await prepareRuntimeNavigation(decoded);
+    const { pointer, release } = await prepareRuntimeNavigation(decoded);
     try {
       assert.equal(portalGraphOf(decoded), undefined);
-      for (const role of ['gladiator', 'contestant']) {
-        assert.ok(createKnowledgePlanner(decoded, role).tile({ known: () => true }, 0));
-      }
+      assert.ok(pointer);
     } finally { release(); }
   }
 });

@@ -1606,10 +1606,18 @@ pub fn put_inbound(w: &mut Vec<f64>, inbound: &Inbound) {
                     w.actor(actor);
                     w.int(ticks);
                 }
-                Observation::Join { actor, kit } => {
+                Observation::Join {
+                    actor,
+                    kit,
+                    bot_label,
+                } => {
                     w.int(2u32);
                     w.actor(actor);
                     put_option(w, 1, kit, |w, kit| put_pick(w, &KITS, &kit));
+                    put_option(w, 2, bot_label, |w, (rank, opportunistic)| {
+                        w.size(rank);
+                        w.flag(opportunistic);
+                    });
                 }
                 Observation::Leave { actor } => {
                     w.int(3u32);
@@ -1675,6 +1683,7 @@ pub fn get_inbound(r: &mut Reader) -> Result<Inbound> {
                 2 => Observation::Join {
                     actor: r.actor()?,
                     kit: r.option(1, |r| r.pick(&KITS))?,
+                    bot_label: r.option(2, |r| Ok((r.u32()? as usize, r.bool()?)))?,
                 },
                 3 => Observation::Leave { actor: r.actor()? },
                 4 => Observation::Teleport {
@@ -1831,6 +1840,8 @@ pub fn get_memory(r: &mut Reader) -> Result<Option<Memory>> {
     }
     Ok(Some(Memory {
         discovered,
+        seen_order: seen.iter().copied().collect(),
+        item_order: items.keys().copied().collect(),
         seen,
         surveyed,
         items,
@@ -1919,6 +1930,7 @@ pub struct Setup {
     pub wall: Option<(f64, Tick)>,
     pub bounds: Option<[f64; 4]>,
     pub entry_x: f64,
+    pub bots: super::bots::Settings,
     pub combat: Combat,
 }
 
@@ -2258,6 +2270,17 @@ impl Setup {
         put_option(&mut w, 4, self.bounds, |w, bounds| w.extend(bounds));
         w.push(self.entry_x);
         put_tuning(&mut w, &self.combat);
+        w.flag(self.bots.hearing);
+        w.int(self.bots.hunting as u32);
+        w.flag(self.bots.portals);
+        w.flag(self.bots.selectable_transit);
+        w.size(self.bots.roster.len());
+        for &(id, opportunistic, inventory, rank) in &self.bots.roster {
+            w.int(actor_word(id));
+            w.flag(opportunistic);
+            w.flag(inventory);
+            w.size(rank);
+        }
         w
     }
 
@@ -2292,6 +2315,37 @@ impl Setup {
         })?;
         let entry_x = r.finite()?;
         let combat = get_tuning(&mut r, surfaces)?;
+        let hearing = r.bool()?;
+        let hunting = match r.u32()? {
+            0 => super::bots::Hunting::None,
+            1 => super::bots::Hunting::Sweep,
+            2 => super::bots::Hunting::Front,
+            _ => return r.fail("invalid bot hunting rule"),
+        };
+        let portals = r.bool()?;
+        let selectable_transit = r.bool()?;
+        let count = r.count(4)?;
+        let mut roster = Vec::with_capacity(count);
+        let mut seats = BTreeSet::new();
+        let mut ranks = BTreeSet::new();
+        for _ in 0..count {
+            let id = r.actor()?;
+            if !state.actors.contains_key(&id) || !seats.insert(id) {
+                return r.fail("invalid bot roster seat");
+            }
+            let (opportunistic, inventory, rank) = (r.bool()?, r.bool()?, r.u32()? as usize);
+            if rank >= count || !ranks.insert(rank) {
+                return r.fail("invalid bot roster ordering");
+            }
+            roster.push((id, opportunistic, inventory, rank));
+        }
+        let bots = super::bots::Settings {
+            hearing,
+            hunting,
+            portals,
+            selectable_transit,
+            roster,
+        };
         if !r.is_empty() {
             return r.fail("trailing words");
         }
@@ -2305,6 +2359,7 @@ impl Setup {
             wall,
             bounds,
             entry_x,
+            bots,
             combat,
         })
     }
@@ -2355,43 +2410,44 @@ impl Setup {
 pub struct LiveMatch {
     game: Match,
     rules: Combat,
-    entry_x: f64,
-    collision: Option<crate::collision::CollisionMap>,
-    roofs: Option<std::sync::Arc<crate::discovery::Roofs>>,
-    navigation: Option<std::rc::Rc<crate::runtime_navigation::RuntimeNavigation>>,
     input: Vec<f64>,
     flags: Vec<u8>,
     output: Vec<f64>,
+    projected_routes: BTreeMap<ActorId, (u64, usize)>,
 }
 
 impl LiveMatch {
     pub fn new(setup: &[f64], handles: Handles<'_>) -> Result<Self> {
-        let setup = Setup::decode(setup)?;
-        let entry_x = setup.entry_x;
+        let mut setup = Setup::decode(setup)?;
+        let planner = super::bots::Planner::new(
+            std::mem::take(&mut setup.bots),
+            setup.entry_x,
+            handles.collision.cloned(),
+            handles.roofs.map(DiscoveryMap::roofs),
+        );
         let (scenario, rules, seed, time_limit) = setup.into_scenario(handles);
+        let mut game = scenario.start(seed, time_limit);
+        game.bots = planner;
         Ok(Self {
-            game: scenario.start(seed, time_limit),
+            game,
             rules,
-            entry_x,
-            collision: handles.collision.cloned(),
-            roofs: handles.roofs.map(DiscoveryMap::roofs),
-            navigation: None,
             input: Vec::new(),
             flags: Vec::new(),
             output: Vec::new(),
+            projected_routes: BTreeMap::new(),
         })
     }
 
     pub fn entry_x(&self) -> f64 {
-        self.entry_x
+        self.game.bots.map.entry_x
     }
 
     pub fn collision(&self) -> Option<&crate::collision::CollisionMap> {
-        self.collision.as_ref()
+        self.game.bots.map.collision.as_ref()
     }
 
     pub fn roofs(&self) -> Option<&crate::discovery::Roofs> {
-        self.roofs.as_deref()
+        self.game.bots.map.roofs.as_deref()
     }
 
     pub(crate) fn set_navigation(
@@ -2399,17 +2455,17 @@ impl LiveMatch {
         navigation: &std::rc::Rc<crate::runtime_navigation::RuntimeNavigation>,
     ) -> bool {
         if self.game.tick != 0
-            || self.navigation.is_some()
+            || self.game.bots.map.navigation.is_some()
             || !navigation.matches(self.game.bounds, self.game.state().gates.len())
         {
             return false;
         }
-        self.navigation = Some(navigation.clone());
+        self.game.bots.map.navigation = Some(navigation.clone());
         true
     }
 
     pub fn navigation(&self) -> Option<&crate::runtime_navigation::RuntimeNavigation> {
-        self.navigation.as_deref()
+        self.game.bots.map.navigation.as_deref()
     }
 
     /// The input buffer, resized to `words`. Each call may move it.
@@ -2443,10 +2499,23 @@ impl LiveMatch {
     /// Steps one tick and encodes it into the output buffer. False once the match is over.
     pub fn step(&mut self) -> bool {
         self.output.clear();
-        let Some(tick) = self.game.step(&self.rules) else {
+        let Some(tick) = self.game.step_with_bots(&self.rules, Some(&self.rules)) else {
             return false;
         };
         put_completed(&mut self.output, &tick);
+        let count_at = self.output.len();
+        self.output.push(0.0);
+        for (actor, generation, points) in self.game.bots.routes() {
+            let stamp = (generation, points.len());
+            if self.projected_routes.get(&actor) == Some(&stamp) {
+                continue;
+            }
+            self.projected_routes.insert(actor, stamp);
+            self.output[count_at] += 1.0;
+            self.output.actor(actor);
+            self.output.size(points.len());
+            self.output.extend(points.iter().flatten().copied());
+        }
         true
     }
 
@@ -2460,6 +2529,14 @@ impl LiveMatch {
         self.output.clear();
         let memory = word_actor(actor).and_then(|actor| self.game.memory(actor));
         put_memory(&mut self.output, memory);
+    }
+
+    pub fn bot_route(&mut self, actor: f64) {
+        self.output.clear();
+        if let Some(id) = word_actor(actor) {
+            self.output
+                .extend(self.game.bots.route(id).iter().flatten().copied());
+        }
     }
 
     pub fn heard(&mut self, actor: f64) {

@@ -37,7 +37,7 @@ impl Grid {
     }
 
     /// Support depends only on public dimensions and the body clearance.
-    fn support(self, cell: usize, clearance: f64) -> impl Iterator<Item = usize> {
+    pub(crate) fn support(self, cell: usize, clearance: f64) -> impl Iterator<Item = usize> {
         let reach = clearance + 0.2 + 1.0; // tileReach, shared/free-space.ts
         let [x, y, w, h] = self.bounds(cell);
         let first_col = ((x - reach) / self.size).floor() as usize;

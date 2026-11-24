@@ -20,9 +20,9 @@ export function createTickSession(game: Game, wire?: WireIds, navigation?: numbe
 const sessions = new WeakMap<Game, ReturnType<typeof createTickSession>>();
 
 /** In-process games share the room's authority, with lazy start for scenario setup. */
-export function startGame(s: Game) {
+export function startGame(s: Game, navigation?: number) {
   let session = sessions.get(s);
-  if (!session) { session = createTickSession(s); sessions.set(s, session); }
+  if (!session) { session = createTickSession(s, undefined, navigation); sessions.set(s, session); }
   return session;
 }
 

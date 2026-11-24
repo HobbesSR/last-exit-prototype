@@ -91,7 +91,23 @@ impl Transfer {
     }
 }
 
+pub(super) fn weapon_capacity(kind: WeaponKind) -> u32 {
+    WEAPON_CAPACITY[kind as usize]
+}
+
 impl Inventory {
+    pub(super) fn reloadable_rounds(&self, kind: WeaponKind, rounds: u32) -> u32 {
+        available(
+            self.reserves[kind.family() as usize],
+            rounds,
+            MAGAZINE_CAPACITY[kind as usize],
+        )
+    }
+
+    pub(super) fn reserve_room(&self, family: AmmoFamily) -> u32 {
+        RESERVE_CAPACITY[family as usize].saturating_sub(self.reserves[family as usize])
+    }
+
     pub fn selected_item(&self) -> Option<CarriedItem> {
         self.item(self.selected)
     }

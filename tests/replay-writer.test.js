@@ -4,6 +4,7 @@ import { Writable } from 'node:stream';
 import { mkdir, mkdtemp, rm, readFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { botCommandDigest } from '../server/bot-recording.js';
 import { createReplayWriter, frameLine, MAX_DIAGNOSTIC_MARKS } from '../server/replay-writer.js';
 import { createGame, disposePhysics, snapshot, step } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
@@ -34,6 +35,22 @@ test('replay writer preserves frame JSON, command ownership, integrity and idemp
   assert.deepEqual(meta, { id: header.id, seed: 9, createdAt: 100, ticks: 1, frames: 2, sha256: storedDigest(chunks), escaped: 0, frameEncoding: 'delta-1' });
   assert.deepEqual(published, [meta]); assert.deepEqual(errors, []);
   assert.throws(() => writer.append({}, []), /finalized/);
+});
+
+test('bot command digests survive keyframes, deltas and checkpoint reconstruction', async () => {
+  const chunks = [];
+  const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
+  const writer = createReplayWriter({ header: { id: 'bots', botPlannerVersion: 1 }, output, publish: async () => {} });
+  const first = botCommandDigest(new Float64Array([1, -0, 3]));
+  const second = botCommandDigest(new Float64Array([1, -0, 4]));
+  assert.notEqual(first, second);
+  assert.notEqual(first, botCommandDigest(new Float64Array([1, 0, 3])));
+  writer.append({ tick: 1 }, [], first);
+  writer.append({ tick: 2 }, [], second);
+  await writer.finish({ ticks: 2 });
+  const replay = readArchive(chunks);
+  assert.equal(replay.botPlannerVersion, 1);
+  assert.deepEqual(replay.frames.map(frame => frame.botCommandDigest), [first, second]);
 });
 
 test('diagnostic markers ride in a bounded trailer and leave the frames and digest untouched', async () => {

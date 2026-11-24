@@ -104,10 +104,14 @@ pub struct Memory {
     pub discovered: BTreeSet<u32>,
     /// Cells a bot has had in line of sight.
     pub seen: BTreeSet<u32>,
+    /// Seen cells in the order successive samples first observed them.
+    pub seen_order: Vec<u32>,
     /// Every cell a bot's view window has covered: the layout its navigation may treat as known.
     pub surveyed: BTreeSet<u32>,
-    /// Keyed by ID, so ties among remembered items break by ID (R11).
+    /// Keyed by ID for the sorted memory projection.
     pub items: BTreeMap<ItemId, RememberedItem>,
+    /// Remembered item IDs in first-observed order, excluding forgotten items.
+    pub item_order: Vec<ItemId>,
     pub gates: BTreeMap<GateId, DoorMemory>,
     /// Counts each change, so a plan made before one is known to be stale.
     pub revision: u64,
@@ -269,18 +273,30 @@ impl Sampler {
                 changed |= memory.surveyed.insert(index);
             }
         }
-        memory.seen.extend(seen);
+        for &index in seen {
+            if memory.seen.insert(index) {
+                memory.seen_order.push(index);
+            }
+        }
         if sighted {
             let mut present = BTreeSet::new();
             for &(id, at, item) in &near {
                 if flags.next().expect("item flag") {
                     present.insert(id);
-                    memory.items.insert(id, RememberedItem { at, item });
+                    if memory
+                        .items
+                        .insert(id, RememberedItem { at, item })
+                        .is_none()
+                    {
+                        memory.item_order.push(id);
+                    }
                 }
             }
             for &(id, _) in &held {
                 if flags.next().expect("remembered flag") && !present.contains(&id) {
-                    memory.items.remove(&id);
+                    if memory.items.remove(&id).is_some() {
+                        memory.item_order.retain(|&item| item != id);
+                    }
                 }
             }
             for &(gate, _) in &doors {
