@@ -355,6 +355,31 @@ fn humans_learn_the_view_window_and_bots_also_remember_what_they_see() {
     let bot = game.memory(C).unwrap();
     assert!(!bot.items.contains_key(&item));
     assert_eq!(bot.items[&bodiless].item.building, Some(0));
+
+    // Tick 30 is C's next scheduled sample, but the terminal check strands C first.
+    observe(
+        &mut game,
+        30,
+        Observation::Teleport {
+            body: BodyId::Actor(C),
+            to: [3600.0, 0.0],
+        },
+    );
+    while game.step(&rules).unwrap().tick < 29 {}
+    let before_finish = game.memory(C).unwrap().clone();
+    let finished = game.step(&rules).unwrap();
+    assert_eq!(finished.tick, 30);
+    assert!(
+        finished
+            .discontinuities
+            .contains(&Discontinuity::DevWarped {
+                body: BodyId::Actor(C),
+                request: 0,
+            })
+    );
+    assert_eq!(game.state().actors[&C].presence, Presence::Stranded);
+    assert!(finished.discovery.samples.is_empty());
+    assert_eq!(game.memory(C), Some(&before_finish));
 }
 
 #[test]

@@ -15,8 +15,8 @@ use super::{
 use crate::discovery::{DiscoveryMap, HEADER};
 use crate::sight::{GateSet, SightIndex};
 
-/// Each contestant samples once in this many ticks (`DISCOVERY_INTERVAL` in
-/// `shared/discovery.ts`, which keeps it until the cutover).
+/// Each contestant samples once in this many ticks. Replay folding uses the same interval
+/// (`DISCOVERY_INTERVAL` in `shared/discovery.ts`).
 pub const DISCOVERY_INTERVAL: Tick = 10;
 
 /// A gate an actor's own attempt saw in T−1, learned in T even when the attempt failed.

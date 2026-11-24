@@ -399,10 +399,9 @@ a tick is `tick_begin`, Node's phase 2, then `tick_finish(intents)`, which now a
 - **Phase 7 runs in the call:** the sync, `finishMatch`, the second sync, and the rewind frame. `actions_run`,
   `combat_run`, `interactions_run`, `hazards_run` and `phase_seven_run` now share their bodies with `tick_finish`
   (`*_call`).
-- **Discovery is Node's, after the call** (`advanceDiscovery`). It used to run before the terminal result. On the tick a
-  match finishes, a contestant just stranded now gets no discovery pass; that pass would only have updated its
-  memory, which no longer acts. This is the simpler order Corey's guidance allows (2026-11-22, qualitative correctness
-  over exact equivalence), and no fixture hash moved.
+- **At this stage, Node ran discovery after the call** (`advanceDiscovery`). A contestant stranded by the terminal
+  result stopped sampling on that tick. The [authoritative tick cutover](27.2-tick-architecture.md#the-cutover-3d4d)
+  retired this Node pass and kept its position after terminal resolution and rewind capture.
 - **Node applies each section** with that step's applier, now including `applyInteractions`, `applyHazards` and
   `applyFinish`. It reads a section the call did not reach (after a refusal) as empty. Phases 3 to 7 are timed as
   `sim.finish`.
@@ -512,6 +511,9 @@ agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 1838
      numbering parity.
 5. **Destruction (#794) is out of scope.** Changed geometry would need its own design for replacing derived layers at
    a tick boundary.
+
+Discovery uses the same rule tables with either map handoff. [27.2](27.2-tick-architecture.md#terminal-rewind-and-discovery-3b7)
+owns the live tick’s discovery order and memory (#1319).
 
 **Parity.** #1215 holds the characterization fixture that the cutover (#1283 3d.4d) re-baselines, bot traces
 included. The contract leaves both bot options on #1215 open: bots in the core, or outside it driving a seat.
