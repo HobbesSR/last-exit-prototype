@@ -24,15 +24,20 @@ from the primary checkout.
 | Codex | `agent-codex` (`codex@local.host`) | `../astra_test.agents/codex` | `codex/` | 3120 |
 | Antigravity | `agent-antigravity` (`antigravity@local.host`) | `../astra_test.agents/antigravity` | `antigravity/` | 3130 |
 | Hermes | `agent-hermes` (`hermes@local.host`) | `../astra_test.agents/hermes` | `hermes/` | 3140 |
+| DeepSeek | `agent-deepseek` (`deepseek@local.host`) | `../astra_test.agents/deepseek` | `deepseek/` | — |
 
 The primary checkout (`astra_test/`) belongs to the human: `main`, reviewing and
 merging. Agents never commit there and never touch another agent's worktree.
 
 Each worktree carries its own identity in `config.worktree`: `user.name`,
-`user.email`, and a `remote.forgejo.pushurl` holding that agent's access token,
-so pushes are made as the agent and not as the repository owner. If
-`git config --show-origin --get remote.forgejo.pushurl` shows nothing, or a push
-is recorded as `corey`, stop and report it rather than pushing.
+`user.email`, and `credential.<forgejo-url>.username` (matching that agent's
+Forgejo account), with the token stored in the OS-backed Git credential helper
+(Windows Credential Manager on Windows, `libsecret` or Git Credential Manager on
+Linux) rather than embedded in any remote URL. Never put a username or token in
+`remote.forgejo.url` or `remote.forgejo.pushurl`. If
+`git config --show-origin --get-regexp '^credential\..*\.username$'` shows
+nothing (or shows `corey` in an agent worktree), or `npm run check:git-credentials`
+flags an embedded credential, stop and report it rather than pushing.
 
 Each worktree also has an untracked, ignored `.env.local` at its root naming its
 dev port, e.g. `PORT=3110`. `npm run dev` from the root loads it, so a server an agent starts to look at by hand or drive
