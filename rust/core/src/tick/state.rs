@@ -148,6 +148,7 @@ pub enum Kit {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GroundItem {
+    pub building: Option<u32>,
     pub loot: Loot,
     /// If absent, the ground item's own ID is the root.
     pub lineage: Option<ItemId>,
@@ -195,6 +196,7 @@ pub struct Hook {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Gate {
+    pub building: Option<u32>,
     pub open: bool,
     pub locked: bool,
     pub door: bool,

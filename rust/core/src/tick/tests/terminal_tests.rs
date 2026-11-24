@@ -67,6 +67,7 @@ fn locked_gate(scenario: &mut Scenario, x: f64) -> GateId {
     scenario.state.gates.insert(
         gate,
         Gate {
+            building: None,
             open: false,
             locked: true,
             door: true,
@@ -188,6 +189,7 @@ fn rewind_captures_admissions_warps_and_removals_from_the_committed_state() {
     scenario.state.gates.insert(
         gate,
         Gate {
+            building: None,
             open: false,
             locked: false,
             door: true,
@@ -201,6 +203,7 @@ fn rewind_captures_admissions_warps_and_removals_from_the_committed_state() {
     scenario.state.items.insert(
         drop,
         GroundItem {
+            building: None,
             unplaced_at: Some([-400.0, 0.0]),
             ..pending_item()
         },

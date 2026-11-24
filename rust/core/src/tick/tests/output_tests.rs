@@ -12,6 +12,7 @@ fn add_loot(scenario: &mut Scenario, id: ItemId, x: f64) {
     scenario.state.items.insert(
         id,
         GroundItem {
+            building: None,
             unplaced_at: None,
             ..pending_item()
         },
@@ -285,6 +286,7 @@ fn discovery_scenario(scenario: &mut Scenario, gate_box: [f64; 4]) {
     scenario.state.gates.insert(
         GateId(0),
         Gate {
+            building: None,
             open: false,
             locked: true,
             door: true,
@@ -306,6 +308,7 @@ fn humans_learn_the_view_window_and_bots_also_remember_what_they_see() {
     scenario.state.items.insert(
         bodiless,
         GroundItem {
+            building: Some(0),
             unplaced_at: Some([500.0, 0.0]),
             ..pending_item()
         },
@@ -324,7 +327,9 @@ fn humans_learn_the_view_window_and_bots_also_remember_what_they_see() {
     let bot = game.memory(C).unwrap();
     assert!(bot.discovered.contains(&0) && bot.seen.contains(&0) && bot.surveyed.contains(&0));
     assert_eq!(bot.items[&item].item.loot, game.state().items[&item].loot);
+    assert_eq!(bot.items[&item].item.building, None);
     assert_eq!(bot.items[&bodiless].at, [500.0, 0.0]);
+    assert_eq!(bot.items[&bodiless].item.building, Some(0));
     assert_eq!(
         bot.gates[&GateId(0)],
         DoorMemory {
@@ -349,6 +354,7 @@ fn humans_learn_the_view_window_and_bots_also_remember_what_they_see() {
     while game.step(&rules).unwrap().tick < 20 {}
     let bot = game.memory(C).unwrap();
     assert!(!bot.items.contains_key(&item));
+    assert_eq!(bot.items[&bodiless].item.building, Some(0));
 }
 
 #[test]

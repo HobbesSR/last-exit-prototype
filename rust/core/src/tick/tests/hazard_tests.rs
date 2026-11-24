@@ -298,6 +298,7 @@ fn turret_reads_s0_gate_and_its_next_tick_sweep_reads_the_closed_gate() {
     scenario.state.gates.insert(
         gate,
         Gate {
+            building: None,
             open: true,
             door: true,
             position: [20.0, 0.0],

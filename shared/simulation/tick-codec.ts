@@ -73,6 +73,7 @@ export interface Actor {
 export interface ActorEntry { kind: 'contestant' | 'gladiator'; seat: number; word: number; actor: Actor }
 
 export interface GroundItem {
+  building?: number | null;
   loot: Loot;
   /** Null when the item's own ID is the root. */
   lineage: number | null;
@@ -98,7 +99,7 @@ export type HookPhase =
 export interface Hook { owner: number; phase: HookPhase; expiresAt: Tick }
 export interface HookEntry { id: number; hook: Hook }
 
-export interface Gate { open: boolean; locked: boolean; door: boolean; position: Point }
+export interface Gate { building?: number | null; open: boolean; locked: boolean; door: boolean; position: Point }
 export interface GateEntry { id: number; gate: Gate }
 
 export type TrapKind =
@@ -332,6 +333,7 @@ export interface MatchSetup {
   hazardWall: { mapWidth: number; graceTicks: Tick } | null;
   /** The world box actors and spots must lie in: `min x, min y, max x, max y`. */
   bounds: [number, number, number, number] | null;
+  entryX?: number;
   tuning: Tuning;
 }
 
@@ -344,10 +346,10 @@ export const EQUIPMENT_WORDS = 4;
 export const INVENTORY_WORDS = SLOT_COUNT * (3 + EQUIPMENT_WORDS) + 1 + 3 + 1 + 4;
 export const LOOT_WORDS = 1 + EQUIPMENT_WORDS;
 export const ACTOR_STRIDE = 93;
-export const ITEM_STRIDE = 1 + LOOT_WORDS + 2 + 3 + 2 + 1;
+export const ITEM_STRIDE = 1 + LOOT_WORDS + 2 + 3 + 2 + 1 + 2;
 export const PROJECTILE_STRIDE = 10;
 export const HOOK_STRIDE = 9;
-export const GATE_STRIDE = 6;
+export const GATE_STRIDE = 8;
 export const TRAP_STRIDE = 10;
 export const STATION_STRIDE = 4;
 export const EXTRACTION_WORDS = 4;
@@ -489,9 +491,10 @@ function putItem(w: Writer, id: number, item: GroundItem): void {
   w.option(2, item.unplacedAt, at => w.point(at));
   w.option(1, item.droppedBy, d => w.actor(d));
   w.u32(item.pickupReadyAt);
+  w.option(1, item.building ?? null, slot => w.u32(slot));
   if (w.length - start !== ITEM_STRIDE) bad('item width');
 }
-function putGate(w: Writer, e: GateEntry): void { w.u32(e.id); w.flag(e.gate.open); w.flag(e.gate.locked); w.flag(e.gate.door); w.point(e.gate.position); }
+function putGate(w: Writer, e: GateEntry): void { w.u32(e.id); w.flag(e.gate.open); w.flag(e.gate.locked); w.flag(e.gate.door); w.point(e.gate.position); w.option(1, e.gate.building ?? null, slot => w.u32(slot)); }
 function putTrap(w: Writer, e: TrapEntry): void {
   const t = e.trap;
   w.u32(e.id); w.point(t.position); w.raw(t.heading); w.u32(t.readyAt);
@@ -597,6 +600,7 @@ export function encodeSetup(setup: MatchSetup): Float64Array {
   for (const area of setup.hazardAreas) w.raw(...area);
   w.option(2, setup.hazardWall, wall => { w.raw(wall.mapWidth); w.u32(wall.graceTicks); });
   w.option(4, setup.bounds, b => w.raw(...b));
+  w.raw(setup.entryX ?? 0);
   putTuning(w, setup.tuning);
   return Float64Array.from(w.words);
 }
@@ -778,10 +782,16 @@ function getActor(r: Reader): ActorEntry {
   return { kind: id.kind, seat: id.seat, word, actor: { presence, kit, level, kills, hp, maxHp, shield, maxShield, aim, sneak, viewLag,
     inventory, charging, respawnAt, transit, bot, aggression, deadlines, statuses } };
 }
+// Building slots are internal rule data. Keep the public decoded row's enumerable shape stable.
+function withBuilding<T extends object>(record: T, building: number | null): T {
+  Object.defineProperty(record, 'building', { value: building, enumerable: false });
+  return record;
+}
 function getItem(r: Reader): GroundEntry {
   const id = r.u32();
-  return { id, item: { loot: getLoot(r), lineage: r.option(1, () => r.u32()), unplacedAt: r.option(2, () => r.point()),
-    droppedBy: r.option(1, () => r.actor()), pickupReadyAt: r.u32() } };
+  const item = { loot: getLoot(r), lineage: r.option(1, () => r.u32()), unplacedAt: r.option(2, () => r.point()),
+    droppedBy: r.option(1, () => r.actor()), pickupReadyAt: r.u32() };
+  return { id, item: withBuilding(item, r.option(1, () => r.u32())) };
 }
 function getProjectile(r: Reader): ProjectileEntry {
   return { id: r.u32(), projectile: { source: r.entity(), position: r.point(), velocity: r.point(), damage: r.finite(), activeFrom: r.u32(), expiresAt: r.u32() } };
@@ -792,7 +802,10 @@ function getHook(r: Reader): HookEntry {
     : tag === 1 ? { kind: 'pulling', target: r.actor(), length: r.finite() } : r.fail('unknown hook phase'));
   return { id, hook: { owner, phase, expiresAt: r.u32() } };
 }
-function getGate(r: Reader): GateEntry { return { id: r.u32(), gate: { open: r.bool(), locked: r.bool(), door: r.bool(), position: r.point() } }; }
+function getGate(r: Reader): GateEntry {
+  const id = r.u32(), gate = { open: r.bool(), locked: r.bool(), door: r.bool(), position: r.point() };
+  return { id, gate: withBuilding(gate, r.option(1, () => r.u32())) };
+}
 function getTrap(r: Reader): TrapEntry {
   const id = r.u32(), position = r.point(), heading = r.finite(), readyAt = r.u32(), tag = r.u32();
   const kind = r.padded<TrapKind>(4, () => tag === 0 ? { kind: 'mine', spent: r.bool() } : tag === 1 ? { kind: 'turret', aiming: r.bool() }

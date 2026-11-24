@@ -132,7 +132,8 @@ export function groundOf(ctx: Context, id: number, item: CoreGround, at: Point):
   if (item.droppedBy !== null) record.droppedBy = ctx.ids.playerOfActor.get(item.droppedBy);
   if (item.pickupReadyAt > 0) record.pickupAfter = item.pickupReadyAt;
   const meta = ctx.metadata.get(id);
-  if (meta) for (const key of ['buildingId', 'nodeId', 'tier'] as const) if (meta[key] !== undefined) (record as Record<string, unknown>)[key] = meta[key];
+  if (item.building != null) record.buildingId = ctx.ids.buildingIds[item.building];
+  if (meta) for (const key of ['nodeId', 'tier'] as const) if (meta[key] !== undefined) (record as Record<string, unknown>)[key] = meta[key];
   return record;
 }
 

@@ -204,6 +204,7 @@ pub(crate) fn disk_penetration(x: f64, y: f64, radius: f64, body: &Body) -> Opti
 }
 
 /// One obstacle as collision reads it: its bounds, whether sight passes it, and its body.
+#[derive(Clone)]
 struct Collider {
     bounds: [f64; 4],
     see_through: bool,
@@ -219,6 +220,7 @@ fn near_bounds(b: &[f64; 4], x: f64, y: f64, radius: f64) -> bool {
 }
 
 /// A map's collision data, uploaded once (`collisionTables` in `shared/movement.ts`).
+#[derive(Clone)]
 pub struct CollisionMap {
     width: f64,
     height: f64,

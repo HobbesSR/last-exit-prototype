@@ -8,7 +8,7 @@
  */
 
 /** The adapter contract this loader speaks: `ADAPTER_VERSION` in `rust/core/src/lib.rs`. */
-export const CORE_ADAPTER_VERSION = 48;
+export const CORE_ADAPTER_VERSION = 49;
 
 // The project's lib is ES2023 without the DOM, which is where TypeScript declares WebAssembly.
 // Both hosts have it; this names only what the loader uses.
@@ -23,6 +23,11 @@ export interface CoreExports {
   /** A buffer of `bytes` in WASM memory for JavaScript to fill, and its release. */
   core_alloc(bytes: number): number;
   core_free(pointer: number, bytes: number): void;
+  /** Validate uploaded navigation and take ownership of both buffers on success. */
+  runtime_navigation_new(primary: number, primaryLength: number, contestant: number, contestantLength: number,
+    width: number, height: number, tileSize: number, cols: number, rows: number, gateCount: number,
+    gladiatorClearance: number, contestantClearance: number): number;
+  runtime_navigation_free(navigation: number): void;
   // Sight casting (`rust/core/src/sight.rs`), driven by `shared/sight-core.ts`.
   sight_index_new(segments: number, segmentCount: number, grid: number, gridLength: number,
     through: number, throughCount: number, throughOffsets: number, obstacleCount: number, throughGrid: number, throughGridLength: number): number;

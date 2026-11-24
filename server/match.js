@@ -105,7 +105,7 @@ export async function createMatch(seed, size, map, content = defaultContent(), {
   const wire = wireIds(wireKey);
   map ??= generateLiveMap(seed, content, size);
   const uploadingNavigation = prepareRuntimeNavigation(map);
-  const releaseNavigation = uploadingNavigation && await uploadingNavigation;
+  const navigation = uploadingNavigation && await uploadingNavigation;
   let game;
   try {
     game = await createGame(seed, map, content, () => preparationPause());
@@ -115,21 +115,21 @@ export async function createMatch(seed, size, map, content = defaultContent(), {
     const beforeGround = profiling() ? performance.now() : undefined;
     await prepareGroundItems(publishItems(game), () => preparationPause());
     if (beforeGround !== undefined) observe('prepare.ground', performance.now() - beforeGround);
-    return matchOf(game, payloads, wire, releaseNavigation);
+    return matchOf(game, payloads, wire, navigation);
   } catch (error) {
-    try { if (game) disposePhysics(game); } finally { releaseNavigation?.(); }
+    try { if (game) disposePhysics(game); } finally { navigation?.release(); }
     throw error;
   }
 }
 
-function matchOf(game, payloads, wire, releaseNavigation) {
+function matchOf(game, payloads, wire, navigation) {
   // Outward IDs for live payload items; recordings keep internal IDs (26).
   const outward = items => { const mapped = wireItemRecords(items, wire); if (mapped !== items) shareItemPublication(items, mapped); return mapped; };
   const seats = seatsOf(game, () => synchronizePhysics(game));
   let live, spent = [], discontinuities = [], disposedFrame;
   const started = () => {
     if (disposedFrame) throw new Error('match disposed');
-    return live ??= createTickSession(game, wire);
+    return live ??= createTickSession(game, wire, navigation?.pointer);
   };
   const frame = () => disposedFrame ? structuredClone(disposedFrame) : live ? live.frames.frame() : snapshot(game);
   return {
@@ -199,7 +199,7 @@ function matchOf(game, payloads, wire, releaseNavigation) {
         try { live?.match.dispose(); }
         finally {
           try { disposePhysics(game); }
-          finally { releaseNavigation?.(); payloads = undefined; }
+          finally { navigation?.release(); payloads = undefined; }
         }
       }
     },

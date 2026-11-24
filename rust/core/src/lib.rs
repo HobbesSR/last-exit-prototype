@@ -25,6 +25,8 @@ pub mod physics;
 pub mod placement;
 pub mod players;
 pub mod registry;
+pub mod runtime_map;
+pub mod runtime_navigation;
 pub mod scatter;
 pub mod sight;
 pub mod swept;
@@ -41,7 +43,8 @@ use std::slice;
 /// 44: `Fact::Escaped` carries the slots left after it (27.2 3d.2).
 /// 45: a pose row carries the body's whole pose (27.2 3d.3).
 /// 46: the opening discovery at setup and an unresolved nomination target (27.2 3d.4).
-pub const ADAPTER_VERSION: u32 = 48;
+/// 49: runtime map rule tables and flat navigation uploads (27, #1318).
+pub const ADAPTER_VERSION: u32 = 49;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -1500,6 +1503,8 @@ pub unsafe extern "C" fn match_new(
     discovery_map: *const discovery::DiscoveryMap,
     discovery_index: *const sight::SightIndex,
     discovery_gates: *const sight::GateSet,
+    collision: *const collision::CollisionMap,
+    roofs: *const discovery::DiscoveryMap,
 ) -> *mut tick::codec::LiveMatch {
     // SAFETY: the caller's contract; a null handle is `None`.
     let (swept, sight_index, gate_set, discovery_map, discovery_index, discovery_gates) = unsafe {
@@ -1526,6 +1531,8 @@ pub unsafe extern "C" fn match_new(
         swept,
         sight,
         discovery,
+        collision: unsafe { collision.as_ref() },
+        roofs: unsafe { roofs.as_ref() },
     };
     // SAFETY: the caller's contract.
     match tick::codec::LiveMatch::new(unsafe { items(setup, setup_len) }, handles) {
@@ -1540,6 +1547,23 @@ pub unsafe extern "C" fn match_new(
 pub unsafe extern "C" fn match_free(game: *mut tick::codec::LiveMatch) {
     // SAFETY: the caller's contract.
     drop(unsafe { Box::from_raw(game) });
+}
+
+/// Attaches both validated clearances to a match during setup. The match shares the buffers
+/// with the room's handle so JavaScript can keep borrowing them for the current planner.
+///
+/// # Safety
+/// `game` is live and exclusive. `navigation` is a live handle from `runtime_navigation_new`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_set_navigation(
+    game: *mut tick::codec::LiveMatch,
+    navigation: *const std::rc::Rc<runtime_navigation::RuntimeNavigation>,
+) -> u32 {
+    if game.is_null() || navigation.is_null() {
+        return 0;
+    }
+    // SAFETY: the caller keeps both handles live for the call.
+    unsafe { u32::from((*game).set_navigation(&*navigation)) }
 }
 
 /// The inbound buffer, resized to `words` `f64`s: `match_submit`'s rows. Setup needs no such

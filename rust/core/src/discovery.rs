@@ -20,6 +20,7 @@
 use crate::math::{atan2, hypot, js_max, js_min};
 use crate::sight::{self, GateSet, SightIndex};
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 /// The bucket side of the roof index: `ROOF_BUCKET` in `shared/view.ts`.
 const ROOF_BUCKET: f64 = 160.0;
@@ -28,7 +29,6 @@ const ROOF_BUCKET: f64 = 160.0;
 pub const HEADER: usize = 11;
 
 /// A roof as `roofAt` in `shared/view.ts` reads it.
-#[derive(Clone)]
 struct Roof {
     id: u32,
     bounds: [f64; 4],
@@ -39,8 +39,7 @@ struct Roof {
 
 /// `roofAt`'s index: roofs, then the buildings no roof declares, each listed per bucket in map
 /// order. Roof and building ids are interned to integers by the adapter, so equal ids stay equal.
-#[derive(Clone)]
-struct Roofs {
+pub struct Roofs {
     roofs: Vec<Roof>,
     buildings: Vec<(u32, [f64; 4])>,
     roof_buckets: BTreeMap<(i64, i64), Vec<u32>>,
@@ -61,6 +60,12 @@ fn bucket_over(buckets: &mut BTreeMap<(i64, i64), Vec<u32>>, b: [f64; 4], item: 
 }
 
 impl Roofs {
+    /// A roof or fallback building conceals its contents from eyes outside the same roof.
+    pub fn conceals(&self, eye: [f64; 2], target: [f64; 2]) -> bool {
+        self.roof_at(target[0], target[1])
+            .is_some_and(|roof| self.roof_at(eye[0], eye[1]) != Some(roof))
+    }
+
     /// `roofs`: per roof `id, x, y, w, h, originX, originY, cellSize, cellCount`, then the cells'
     /// `x, y`. `buildings`: `id, x, y, w, h` per building no roof declares.
     fn new(roof_words: &[f64], building_words: &[f64]) -> Roofs {
@@ -114,7 +119,7 @@ impl Roofs {
 
     /// `roofAt`: the id of the roof or building over the point, or `None`. A point that is not
     /// finite has no bucket in the TypeScript, so none here.
-    fn at(&self, x: f64, y: f64) -> Option<u32> {
+    pub fn roof_at(&self, x: f64, y: f64) -> Option<u32> {
         if !x.is_finite() || !y.is_finite() {
             return None;
         }
@@ -191,7 +196,7 @@ pub struct DiscoveryMap {
     inside: Vec<u8>,
     /// `x, y, cell` per landmark, in `landmarks()` order; the cell is -1 off the map.
     landmarks: Vec<[f64; 3]>,
-    roofs: Roofs,
+    roofs: Arc<Roofs>,
     input: Vec<f64>,
     output: Vec<u32>,
 }
@@ -249,7 +254,7 @@ impl DiscoveryMap {
             beacon: constants[5],
             inside: inside.to_vec(),
             landmarks: landmarks.as_chunks::<3>().0.to_vec(),
-            roofs: Roofs::new(roofs, buildings),
+            roofs: Arc::new(Roofs::new(roofs, buildings)),
             input: Vec::new(),
             output: Vec::new(),
         }
@@ -340,8 +345,8 @@ impl DiscoveryMap {
                 if dx * dx + dy * dy > radius_sq {
                     return false;
                 }
-                if let Some(target) = roofs.at(x, y) {
-                    let eye = *eye_roof.get_or_insert_with(|| roofs.at(ex, ey));
+                if let Some(target) = roofs.roof_at(x, y) {
+                    let eye = *eye_roof.get_or_insert_with(|| roofs.roof_at(ex, ey));
                     if eye != Some(target) {
                         return false;
                     }
@@ -415,7 +420,11 @@ impl DiscoveryMap {
 
     /// `roofAt` over this map's roofs, for the parity check.
     pub fn roof_at(&self, x: f64, y: f64) -> Option<u32> {
-        self.roofs.at(x, y)
+        self.roofs.roof_at(x, y)
+    }
+
+    pub(crate) fn roofs(&self) -> Arc<Roofs> {
+        self.roofs.clone()
     }
 }
 
@@ -449,11 +458,15 @@ mod tests {
             ],
             &[3.0, 400.0, 400.0, 50.0, 50.0],
         );
-        assert_eq!(roofs.at(120.0, 120.0), Some(7));
-        assert_eq!(roofs.at(170.0, 120.0), None, "outside the roof's cells");
-        assert_eq!(roofs.at(100.0, 120.0), None, "the bounds are open");
-        assert_eq!(roofs.at(420.0, 420.0), Some(3));
-        assert_eq!(roofs.at(f64::NAN, 420.0), None);
+        assert_eq!(roofs.roof_at(120.0, 120.0), Some(7));
+        assert_eq!(
+            roofs.roof_at(170.0, 120.0),
+            None,
+            "outside the roof's cells"
+        );
+        assert_eq!(roofs.roof_at(100.0, 120.0), None, "the bounds are open");
+        assert_eq!(roofs.roof_at(420.0, 420.0), Some(3));
+        assert_eq!(roofs.roof_at(f64::NAN, 420.0), None);
     }
 
     #[test]

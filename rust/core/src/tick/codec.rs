@@ -37,10 +37,10 @@
 //! | Inventory | [`INVENTORY_WORDS`] 51 | 6 slots of (present, id, lineage, equipment) = 42, selected, 3 reserves, keys, reload option (present, slot, item, ready_at) |
 //! | Loot | [`LOOT_WORDS`] 5 | tag (AccessKey 0, Equipment 1, Ammo 2), then equipment (4), or family and count, zero padded |
 //! | Actor | [`ACTOR_STRIDE`] 93 | actor word, presence, kit option (2), level, kills, hp, max_hp, shield, max_shield, aim, sneak, view_lag, inventory (51), charging option (present, station, cell), respawn_at option (2), transit option (present, destination, origin x, y, arrive_at), bot, aggression option (present, source actor word, expires_at), deadlines (skill, weapon, transit), statuses (Boost, Cloak, Reveal, Stun: each present, active_from, expires_at) |
-//! | Ground item | [`ITEM_STRIDE`] 14 | id, loot (5), lineage option (2), unplaced_at option (3), dropped_by option (2), pickup_ready_at |
+//! | Ground item | [`ITEM_STRIDE`] 16 | id, loot (5), lineage option (2), unplaced_at option (3), dropped_by option (2), pickup_ready_at, building option (2) |
 //! | Projectile | [`PROJECTILE_STRIDE`] 10 | id, source entity (2), position, velocity, damage, active_from, expires_at |
 //! | Hook | [`HOOK_STRIDE`] 9 | id, owner, phase tag (Flying 0, Pulling 1), payload (5: Flying position, direction, travelled; Pulling target actor word, length), expires_at |
-//! | Gate | [`GATE_STRIDE`] 6 | id, open, locked, door, position |
+//! | Gate | [`GATE_STRIDE`] 8 | id, open, locked, door, position, building option (2) |
 //! | Trap | [`TRAP_STRIDE`] 10 | id, position, heading, ready_at, kind tag (Mine 0, Turret 1, Flame 2, Spider 3), payload (4: Mine spent; Turret aiming; Flame offset, warning, firing; Spider home (2), target option (2)) |
 //! | Station | [`STATION_STRIDE`] 4 | id, kind, position |
 //! | Extraction option | [`EXTRACTION_WORDS`] 4 | present, position, slots |
@@ -66,7 +66,7 @@
 //! - **floor drag bases**: loot linear, loot angular, prop linear, prop angular (4);
 //! - **hazard areas**, a section of boxes `x, y, w, h`;
 //! - the **wall** option: present, `map_width`, `grace_ticks` (3);
-//! - the **bounds** option: present, `min x, min y, max x, max y` (5);
+//! - the **bounds** option: present, `min x, min y, max x, max y` (5), then entry x (1);
 //! - the **tuning** ([`TUNING_WORDS`] words, no section): motor (`base_speed` 2, `boost` 2, stun,
 //!   sneak, acceleration, braking), hook (range, speed, max force, stiffness, damping, pull speed,
 //!   duration, cooldown, standoff, target distance, break distance), boost duration and cooldown,
@@ -105,7 +105,7 @@
 //! | Discovery sample | [`SAMPLE_STRIDE`] 3: actor, eye |
 //! | Discovery | a section of gate observations, a section of samples |
 //! | Completed tick | tick, inbound section, changes, discontinuities section, discovery. The solved paths stay in Rust |
-//! | Memory | presence word (0 for no memory), then `discovered`, `seen`, `surveyed` (sections of cell words), items (a section of [`REMEMBERED_ITEM_STRIDE`] 16: position, ground item row), gates (a section of [`DOOR_MEMORY_STRIDE`] 3: gate, open, locked), revision |
+//! | Memory | presence word (0 for no memory), then `discovered`, `seen`, `surveyed` (sections of cell words), items (a section of [`REMEMBERED_ITEM_STRIDE`] 18: position, ground item row), gates (a section of [`DOOR_MEMORY_STRIDE`] 3: gate, open, locked), revision |
 //! | Cue | [`CUE_STRIDE`] 4: `at`, tick, until. Heard is a section of cues, oldest first |
 //!
 //! The fact payloads, by tag (words after the tag, zero padded to 6): 0 Hit (source entity, target);
@@ -135,10 +135,10 @@ pub const EQUIPMENT_WORDS: usize = 4;
 pub const INVENTORY_WORDS: usize = SLOT_COUNT * (3 + EQUIPMENT_WORDS) + 1 + 3 + 1 + 4;
 pub const LOOT_WORDS: usize = 1 + EQUIPMENT_WORDS;
 pub const ACTOR_STRIDE: usize = 93;
-pub const ITEM_STRIDE: usize = 1 + LOOT_WORDS + 2 + 3 + 2 + 1;
+pub const ITEM_STRIDE: usize = 1 + LOOT_WORDS + 2 + 3 + 2 + 1 + 2;
 pub const PROJECTILE_STRIDE: usize = 10;
 pub const HOOK_STRIDE: usize = 9;
-pub const GATE_STRIDE: usize = 6;
+pub const GATE_STRIDE: usize = 8;
 pub const TRAP_STRIDE: usize = 10;
 pub const STATION_STRIDE: usize = 4;
 pub const EXTRACTION_WORDS: usize = 4;
@@ -730,6 +730,7 @@ fn put_item(w: &mut Vec<f64>, id: ItemId, item: &GroundItem) {
     put_option(w, 2, item.unplaced_at, |w, at| w.point(at));
     put_option(w, 1, item.dropped_by, |w, actor| w.actor(actor));
     w.int(item.pickup_ready_at);
+    put_option(w, 1, item.building, |w, slot| w.int(slot));
     debug_assert_eq!(w.len() - start, ITEM_STRIDE);
 }
 
@@ -741,6 +742,7 @@ fn get_item(r: &mut Reader) -> Result<(ItemId, GroundItem)> {
         unplaced_at: r.option(2, |r| r.point())?,
         dropped_by: r.option(1, |r| r.actor())?,
         pickup_ready_at: r.u32()?,
+        building: r.option(1, |r| r.u32())?,
     };
     Ok((id, item))
 }
@@ -828,6 +830,7 @@ fn put_gate(w: &mut Vec<f64>, id: GateId, gate: &Gate) {
     w.flag(gate.locked);
     w.flag(gate.door);
     w.point(gate.position);
+    put_option(w, 1, gate.building, |w, slot| w.int(slot));
 }
 
 fn get_gate(r: &mut Reader) -> Result<(GateId, Gate)> {
@@ -838,6 +841,7 @@ fn get_gate(r: &mut Reader) -> Result<(GateId, Gate)> {
             locked: r.bool()?,
             door: r.bool()?,
             position: r.point()?,
+            building: r.option(1, |r| r.u32())?,
         },
     ))
 }
@@ -1914,6 +1918,7 @@ pub struct Setup {
     pub hazard_areas: Vec<[f64; 4]>,
     pub wall: Option<(f64, Tick)>,
     pub bounds: Option<[f64; 4]>,
+    pub entry_x: f64,
     pub combat: Combat,
 }
 
@@ -1921,6 +1926,8 @@ pub struct Setup {
 #[derive(Clone, Copy, Default)]
 pub struct Handles<'a> {
     pub swept: Option<&'a crate::swept::SweptMap>,
+    pub collision: Option<&'a crate::collision::CollisionMap>,
+    pub roofs: Option<&'a DiscoveryMap>,
     pub sight: Option<(&'a SightIndex, &'a GateSet)>,
     pub discovery: Option<(&'a DiscoveryMap, &'a SightIndex, &'a GateSet)>,
 }
@@ -2249,6 +2256,7 @@ impl Setup {
             w.int(grace);
         });
         put_option(&mut w, 4, self.bounds, |w, bounds| w.extend(bounds));
+        w.push(self.entry_x);
         put_tuning(&mut w, &self.combat);
         w
     }
@@ -2282,6 +2290,7 @@ impl Setup {
         let bounds = r.option(4, |r| {
             Ok([r.finite()?, r.finite()?, r.finite()?, r.finite()?])
         })?;
+        let entry_x = r.finite()?;
         let combat = get_tuning(&mut r, surfaces)?;
         if !r.is_empty() {
             return r.fail("trailing words");
@@ -2295,6 +2304,7 @@ impl Setup {
             hazard_areas,
             wall,
             bounds,
+            entry_x,
             combat,
         })
     }
@@ -2345,6 +2355,10 @@ impl Setup {
 pub struct LiveMatch {
     game: Match,
     rules: Combat,
+    entry_x: f64,
+    collision: Option<crate::collision::CollisionMap>,
+    roofs: Option<std::sync::Arc<crate::discovery::Roofs>>,
+    navigation: Option<std::rc::Rc<crate::runtime_navigation::RuntimeNavigation>>,
     input: Vec<f64>,
     flags: Vec<u8>,
     output: Vec<f64>,
@@ -2352,14 +2366,50 @@ pub struct LiveMatch {
 
 impl LiveMatch {
     pub fn new(setup: &[f64], handles: Handles<'_>) -> Result<Self> {
-        let (scenario, rules, seed, time_limit) = Setup::decode(setup)?.into_scenario(handles);
+        let setup = Setup::decode(setup)?;
+        let entry_x = setup.entry_x;
+        let (scenario, rules, seed, time_limit) = setup.into_scenario(handles);
         Ok(Self {
             game: scenario.start(seed, time_limit),
             rules,
+            entry_x,
+            collision: handles.collision.cloned(),
+            roofs: handles.roofs.map(DiscoveryMap::roofs),
+            navigation: None,
             input: Vec::new(),
             flags: Vec::new(),
             output: Vec::new(),
         })
+    }
+
+    pub fn entry_x(&self) -> f64 {
+        self.entry_x
+    }
+
+    pub fn collision(&self) -> Option<&crate::collision::CollisionMap> {
+        self.collision.as_ref()
+    }
+
+    pub fn roofs(&self) -> Option<&crate::discovery::Roofs> {
+        self.roofs.as_deref()
+    }
+
+    pub(crate) fn set_navigation(
+        &mut self,
+        navigation: &std::rc::Rc<crate::runtime_navigation::RuntimeNavigation>,
+    ) -> bool {
+        if self.game.tick != 0
+            || self.navigation.is_some()
+            || !navigation.matches(self.game.bounds, self.game.state().gates.len())
+        {
+            return false;
+        }
+        self.navigation = Some(navigation.clone());
+        true
+    }
+
+    pub fn navigation(&self) -> Option<&crate::runtime_navigation::RuntimeNavigation> {
+        self.navigation.as_deref()
     }
 
     /// The input buffer, resized to `words`. Each call may move it.
