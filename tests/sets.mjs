@@ -27,7 +27,7 @@ export const SETS = {
     fast: ['brief-reporter', 'ci-cancel-pr-runs', 'ci-slow-failures', 'doc-links', 'doc-reads', 'forgejo-usage', 'machine-lock',
       'third-party-notices', 'vendor-modules', 'source-provenance', 'timing', 'profiler', 'sets', 'encoding-damage',
       // tools/navigation/*.mjs, the navigation report's library; they import nothing under shared/navigation.
-      'navigation-clearance', 'navigation-graph', 'navigation-optimistic'],
+      'navigation-clearance', 'navigation-graph', 'navigation-optimistic', 'git-identity-hook'],
     sources: ['tests/*.mjs', 'tests/helpers/**', 'tools/**', '.forgejo/**', 'docs/**', 'AGENTS.md', 'package.json', '.gitattributes', 'THIRD-PARTY-NOTICES*', 'shared/profiler.ts'],
   },
   geometry: {

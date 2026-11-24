@@ -1,0 +1,4 @@
+#!/bin/sh
+# Tracked Git hooks for this repository (docs/34.1). Enabled once per clone with
+# `git config core.hooksPath tools/git-hooks`; the path resolves in each worktree.
+exec node "$(dirname "$0")/pre-push.mjs" "$@"
