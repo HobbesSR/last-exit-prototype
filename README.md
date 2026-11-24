@@ -67,7 +67,7 @@ When started with `npm run dev`, the server hosts the **Developer Portal** at `/
 
 ## Contributing and Direction
 
-**Contributions:** External pull requests and contributions are not currently accepted. The public GitHub repository is a read-only mirror of the development repository on Forgejo ([34](docs/34-forgejo-workflow.md#github)).
+**Contributions:** External pull requests and contributions are not currently accepted. The public GitHub repository is a read-only mirror of the development repository on Forgejo ([34.1](docs/34.1-worktree-setup-and-github.md#github)).
 
 **Current state and roadmap:** Core match rules, Rapier 2D physics, the macro-to-micro generation chain, free-space bot navigation, delta-frame replay recording, and developer labs are active. Upcoming efforts—world and art direction, unified development-tool faces, map obstruction, spatial reward and danger curves, equipment/physics qualification, netcode, and renderer batching—are tracked in [**docs/41-roadmap.md**](docs/41-roadmap.md), [**docs/13-accepted-features.md**](docs/13-accepted-features.md), and [**docs/16-deferred.md**](docs/16-deferred.md).
 
