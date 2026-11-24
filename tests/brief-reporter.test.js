@@ -8,7 +8,7 @@ import { briefNodeOptions, npmArgs, reporterUrl } from './brief.mjs';
 import { drifted, slowerLine } from './brief-reporter.mjs';
 
 const FILES = {
-  'good.test.mjs': "import test from 'node:test';\nfor (let i = 0; i < 3; i++) test(`case ${i}`, () => {});\n",
+  'good.test.mjs': "import test from 'node:test';\nconsole.log('passing stdout');\nfor (let i = 0; i < 3; i++) test(`case ${i}`, () => {});\n",
   'mixed.test.mjs': [
     "import test from 'node:test'; import assert from 'node:assert/strict';",
     "test('passes', () => {});",
@@ -23,6 +23,8 @@ const FILES = {
   ].join('\n'),
   'todo.test.mjs': "import test from 'node:test'; import assert from 'node:assert/strict';\ntest('known unfinished', { todo: 'pending' }, () => assert.equal(1, 2));\n",
   'crash.test.mjs': 'throw new Error("import crash");\n',
+  'exit.test.mjs': "console.log('last stdout before exit'); console.error('last stderr before exit'); process.exit(23);\n",
+  'signal.test.mjs': "console.log('last stdout before signal'); process.kill(process.pid, 'SIGTERM');\n",
 };
 
 // Runs `node --test` over throwaway files with the given NODE_OPTIONS (and no reporter flag of its
@@ -55,9 +57,22 @@ test('brief reporter writes a line per file and the detail of each failure', () 
   assert.match(out, /^ {2}! late\n.*"late error".*important late error cause/m, 'a late error keeps its test and cause');
   assert.match(out, /^FAIL crash {2}0 ok, 1 failed {2}[\d.]+s$/m);
   assert.match(out, /Error: import crash/);
-  assert.doesNotMatch(out, /node:internal|case 0|good child/, 'passing names and node frames stay out');
+  assert.doesNotMatch(out, /node:internal|case 0|good child|passing stdout/, 'passing output, names and node frames stay out');
   assert.match(out, /^slowest: (\w+ [\d.]+s, ){3}\w+ [\d.]+s$/m, 'the slowest files, one line');
   assert.match(out, /^FAILED: 6 ok, 3 failed, 1 skipped, 1 todo, [\d.]+s\n$/m);
+});
+
+test('file process failures retain output and termination details', () => {
+  const files = ['exit.test.mjs', ...(process.platform === 'win32' ? [] : ['signal.test.mjs'])];
+  const result = runNodeTest(files);
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stdout, /last stderr before exit/);
+  assert.match(result.stdout, /last stdout before exit/);
+  assert.match(result.stdout, /exit code 23/);
+  if (process.platform !== 'win32') {
+    assert.match(result.stdout, /last stdout before signal/);
+    assert.match(result.stdout, /signal SIGTERM/);
+  }
 });
 
 test('every run records each file and top-level test duration', () => {

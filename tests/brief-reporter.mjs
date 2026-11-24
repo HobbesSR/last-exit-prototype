@@ -13,7 +13,7 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 // and each top-level test's duration go to test-results/test-times/<script>.json, which keeps the
 // last RUNS_KEPT runs. The output adds only the slowest files and any file well above its recorded
 // median. A failure to record never fails the run.
-const MAX_NAME = 100, MAX_DETAIL_LINES = 12, MAX_STDERR_CHARS = 1 << 16;
+const MAX_NAME = 100, MAX_DETAIL_LINES = 12, MAX_OUTPUT_CHARS = 1 << 16;
 export const RUNS_KEPT = 10, SLOWEST_SHOWN = 5;
 /** A file is flagged when it takes this many times its median over at least MIN_HISTORY earlier runs, and this many seconds more. */
 export const DRIFT_RATIO = 2, DRIFT_SECONDS = 3, MIN_HISTORY = 3;
@@ -41,11 +41,20 @@ const errorLines = error => {
   return String(cause?.message ?? cause ?? 'failed').trim().split('\n').slice(0, MAX_DETAIL_LINES);
 };
 
-// The tail of a crashed file's stderr, without blank lines, node's own stack frames or the closing
+// The tail of a crashed file's output, without blank lines, node's own stack frames or the closing
 // "Node.js vN" line.
 const crashLines = text => (text ?? '').split('\n').map(line => line.trimEnd())
   .filter(line => line && !/^Node\.js v\d/.test(line) && !/^\s+at .*\(?node:internal\//.test(line))
   .slice(-MAX_DETAIL_LINES);
+
+const fileErrorLines = (error, stdout, stderr) => {
+  const diagnostic = crashLines(stderr), output = crashLines(stdout);
+  const lines = diagnostic.length ? diagnostic : errorLines(error);
+  if (error?.exitCode != null) lines.push(`exit code ${error.exitCode}`);
+  if (error?.signal != null) lines.push(`signal ${error.signal}`);
+  if (output.length) lines.push('stdout:', ...output);
+  return lines;
+};
 
 /** The median of `values`, or undefined for none. */
 const median = values => {
@@ -102,7 +111,7 @@ export default async function* briefReporter(source) {
   const start = performance.now(), cpuStart = cpuTimes();
   const script = process.env.BRIEF_SCRIPT || 'adhoc';
   const totals = { ok: 0, fail: 0, skip: 0, todo: 0 };
-  const stderr = new Map(); // file -> its recent stderr, shown only when the file crashes
+  const stdout = new Map(), stderr = new Map(); // recent output, shown only when the file crashes
   const fileMs = new Map(); // file key -> its wall time, from its file-level completion
   const testMs = new Map(); // file key -> { top-level test name: ms }
   // Skips and TODOs are not failures, whether or not a TODO's body fails (node exits 0 for both).
@@ -129,9 +138,10 @@ export default async function* briefReporter(source) {
   };
   for await (const event of source) {
     const { data } = event;
-    if (event.type === 'test:stderr' && data.file) {
-      const key = fileKey(data.file), text = (stderr.get(key) ?? '') + data.message;
-      stderr.set(key, text.slice(-MAX_STDERR_CHARS));
+    if ((event.type === 'test:stdout' || event.type === 'test:stderr') && data.file) {
+      const output = event.type === 'test:stdout' ? stdout : stderr;
+      const key = fileKey(data.file), text = (output.get(key) ?? '') + data.message;
+      output.set(key, text.slice(-MAX_OUTPUT_CHARS));
     } else if (event.type === 'test:complete' && Number.isFinite(data.details?.duration_ms) && data.nesting === 0 && data.file) {
       const key = fileKey(data.file);
       if (isFileCompletion(data)) fileMs.set(key, data.details.duration_ms);
@@ -154,8 +164,13 @@ export default async function* briefReporter(source) {
       // Only the leaves carry the real error; a parent fails with "N subtests failed".
       if (outcome !== 'fail' || data.details?.error?.failureType === 'subtestsFailed') continue;
       const where = data.file ? ` (${path.relative(process.cwd(), data.file)}${data.line ? `:${data.line}` : ''})` : '';
-      const crash = isFileLevel(data) ? crashLines(stderr.get(fileKey(data.file))) : [];
-      yield `  ✖ ${label(data)}${where}\n${indent(crash.length ? crash : errorLines(data.details?.error))}\n`;
+      const error = data.details?.error;
+      let detail;
+      if (isFileLevel(data)) {
+        const key = fileKey(data.file);
+        detail = fileErrorLines(error, stdout.get(key), stderr.get(key));
+      } else detail = errorLines(error);
+      yield `  ✖ ${label(data)}${where}\n${indent(detail)}\n`;
     }
   }
   const last = fileLine();
