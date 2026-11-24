@@ -109,8 +109,19 @@ let embedded: Promise<CoreExports> | undefined;
  */
 export function initCore(): Promise<CoreExports> {
   return embedded ??= (import(EMBEDDED) as Promise<{ CORE_WASM_BASE64: string }>).then(
-    ({ CORE_WASM_BASE64 }) => loadCore(Uint8Array.from(atob(CORE_WASM_BASE64), c => c.charCodeAt(0))),
+    ({ CORE_WASM_BASE64 }) => loadCore(decodeBase64(CORE_WASM_BASE64)),
     error => { throw new Error(`the core module is not built (npm run core:build): ${(error as Error).message}`); });
+}
+
+/**
+ * The module's bytes from its base64. A plain loop: `Uint8Array.from(text, mapper)` iterates the 4 MB string
+ * through a callback per character, which took 270 ms and left about 70 MB of process memory behind in every
+ * process and room thread that loads the core; this takes 10 ms and 9 MB (#1332).
+ */
+function decodeBase64(base64: string): Uint8Array {
+  const text = atob(base64), bytes = new Uint8Array(text.length);
+  for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i);
+  return bytes;
 }
 
 /** Instantiates the core and checks its adapter version before anything else is called. */
