@@ -36,8 +36,11 @@ as an error from asynchronous activity after a test ended), the crash output of 
 outside any test, and a closing count; a failing TODO counts as TODO, as in node. The exit status
 is the script's. The wrapper replaces any reporter already set in `NODE_OPTIONS`, and
 `test:times` drops the inherited one because it parses spec output. Agents start long runs in
-the background and wait for the exit notification instead of polling the output. `--test-reporter`
-cannot simply be appended (`npm test -- --test-reporter=...`): node ignores it after the file globs.
+the background and wait for them to finish instead of checking the output repeatedly. Where the
+harness gives no exit notification, they wait on the running command or session with the longest
+wait the tool allows, since every check adds to the context cost.
+`--test-reporter` cannot simply be appended (`npm test -- --test-reporter=...`): node ignores it
+after the file globs.
 
 <a id="recorded-test-times"></a>
 
@@ -333,6 +336,10 @@ sets a branch reaches. Sources overlap where code is shared (`map/kernel/` promp
 shared registries almost every file imports almost everything (a change under `shared/physics`
 reaches 221 of the 246 fast files' imports on 2026-11-04), so selection by import graph would select the whole tier.
 `npm test` stays the gate before a PR; sets make iterating cheaper, not the gate smaller.
+The exception is a PR that changes only documentation (no code, tests, scripts or configuration):
+its author runs `npm run brief -- test:set tooling`, which holds the documentation checks, and CI's
+verify job, which runs the same `npm test` on every PR, is its full gate. The reviewer does not
+wait for verify ([34](34-forgejo-workflow.md)).
 `npm run test:physics` is the `physics` set, `npm run test:micro` the `micro` set with its browser
 members, and `npm run test:browser` every set's browser members (`node tests/sets.mjs browser`).
 Browser scripts run one at a time, each reported `ok` or `FAIL` with its time, and a failure stops
@@ -351,7 +358,7 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | Tier | When | Runs |
 | --- | --- | --- |
 | Inner loop | every edit | The narrowest check that fails when the edit is wrong: a test file, a `--test-name-pattern`, a set or `set:word` ([Test sets](#test-sets)), or a replay. Seconds |
-| Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and for a change under `map/macro/` also `npm run test:mapgen`, run from the repository root; for a change under `rust/`, what the `rust` workflow runs, from `rust/`; plus the area's extras |
+| Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and for a change under `map/macro/` also `npm run test:mapgen`, run from the repository root; for a change under `rust/`, what the `rust` workflow runs, from `rust/`; plus the area's extras. A PR that changes only documentation runs `npm run brief -- test:set tooling` instead and leaves the rest to CI's `verify` ([Test sets](#test-sets)) |
 | Integration | once per PR, where the area can move it | The members of [Integration checks per set](31.1-test-catalogue.md#integration-checks-per-set) the change can move, and no others |
 
 | Changed area | Inner loop | Integration | Alone, 2026-11-05 |
@@ -372,7 +379,8 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 
 The replay needs its cache captured before the first edit (53). Whatever the area, a fixture is
 never regenerated to make a check pass (below), and timing comparisons run sequentially.
-`npm test`, the gate, is not repeated by a set; the before-the-PR gates stay as above.
+`npm test`, the gate, is not repeated by a set; the before-the-PR gates stay as above, including the
+documentation-only exception.
 
 <a id="the-replay-or-the-full-sweep"></a>
 

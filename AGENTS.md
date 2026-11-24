@@ -55,11 +55,14 @@ every spawn, since an unnamed one inherits the lead's
 looking them up.
 
 - Run test scripts through the thin reporter, `npm run brief -- <script>`. Start long
-  runs in the background and wait for the exit notification; do not poll their output.
+  runs in the background and wait for them to finish; do not check their output
+  repeatedly. Without an exit notification, wait on the running command with the
+  longest wait the tool allows.
 - Choose checks by changed area from
   [31's table](docs/31-verification.md#choosing-checks-by-changed-area), not by
   default: never `test:all`, `test:browser` or the benchmarks unless your area calls
-  for them. `npm test` is the gate before a PR.
+  for them. `npm test` is the gate before a PR, except for a PR that changes only
+  documentation: run `test:set tooling` and let CI's verify job be the full gate.
 - Adding, growing or slowing a test carries a cost statement in the PR
   ([31](docs/31-verification.md#test-cost)).
 
