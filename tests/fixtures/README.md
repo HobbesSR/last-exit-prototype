@@ -10,9 +10,11 @@ portal graph bots plan with, and the graph holds typed arrays that JSON drops.
 - `arenas` — seeds 9 and 4217's chain maps at the default live size (12 × 6), each
   `{ map, graph }`, stored so generation moving on never moves the traces.
 - `bots` — 100-tick digest blocks over every snapshot (the private `physics` state included)
-  and the `c0`, `g0` and directed projections of each seed's whole bot match: 3,557 ticks for
-  seed 9 and 3,103 for seed 4217.
-- `scripted` — 20 labelled snapshots, each with four projections, from a scene on seed 4217's
+  and the `c0`, `g0` and directed projections of each seed's whole bot match. The cutover trace also
+  hashes the core's opening snapshot and each completed tick, including its inbound queue and changes.
+  Seed 9 runs 3,206 ticks and seed 4217 runs 3,254.
+- `scripted` — 20 labelled captures, each with a core snapshot, a recorded frame and four projections,
+  from a scene on seed 4217's
   arena: two queued inputs, carried instances merged and used, a physical drop and its automatic
   pickup, charging, a cancel and a full charge, a door opened, refused while occupied and closed,
   a contestant and a gladiator killed, a respawn, a hook pull, a hunter's ability and melee,
@@ -23,7 +25,19 @@ portal graph bots plan with, and the graph holds typed arrays that JSON drops.
 trace (1.3 s); `tests/slow/characterization-physics-bots.test.js` replays the bot matches
 (31 s). Both run from `tests/characterization-physics-scenarios.js`.
 
-Current projection checkpoint: `35a49a18` (#1131 stage 3, wire 6 / schema 20).
+Current checkpoint `1283-3d.4d` adopts the tick in [27.2](../../docs/27.2-tick-architecture.md#the-cutover-3d4d)
+(wire 13, schema 22, `last-exit-0.8-physics`, `content-7`). The arenas and portal graphs were carried
+forward with serialized SHA-256 `be9ea312c4da5f9b390e49da96e9f724fc09f9fd9e5ebe8c99c764d9303a9ee5`.
+Gzip SHA-256 `c86d6c1c01eda793bd8d9cc91019a110a375be50fd1615fcd6dac0feda3a9feb`.
+Scripted JSON SHA-256 `2f115a0ad206a93f2575a99987fffb6dda4b5f1e242c6e00adcef930bb931096`.
+The scripted scene seeds equipment, hit points and the last extraction slot before tick 0, then
+uses queued commands and committed warps. It spends slot selection and drop on separate ticks,
+observes the drop at its settled position, starts and cancels charging, and witnesses a hook that
+attaches on impact. The extraction that spends the last slot also finishes the match. These
+expectations follow the cutover's intake, resolve and apply rules. Frame digests include the new
+body lifetimes and omit the old private world, RNG and scatter serial from the recording frames.
+
+Previous projection checkpoint `35a49a18` (#1131 stage 3, wire 6 / schema 20).
 Gzip SHA-256 `405786de88d4fbfbd84366118171730c4c895d8dadc02dfd736df0caca2756eb`; scripted JSON SHA-256
 `0597778064b7760a114b18d3b2c4fb2dae021853a0ed0f639f88d101b378b8ee`. It is the decided schema closure of
 [24.3](../../docs/24.3-wire-data-model.md) (proposals 3, 6 and 8, with Corey's decision on the rest of 8 in

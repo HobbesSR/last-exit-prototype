@@ -11,14 +11,15 @@ import { PHYSICS_VERSION } from '../shared/simulation.ts';
 // portal graphs (v8, since the graph holds typed arrays), so these keep their meaning when generation moves.
 const expected = deserialize(gunzipSync(readFileSync(new URL('./fixtures/behavior-physics-1.v8.gz', import.meta.url))));
 
-test('the physics-1 checkpoint names the rules version and content it characterizes', () => {
+test('the tick cutover checkpoint names the rules version and content it characterizes', () => {
   assert.equal(expected.version, PHYSICS_VERSION, 'a rules version change is a decision that recaptures this fixture');
   assert.equal(expected.content, CONTENT);
+  assert.equal(expected.checkpoint, '1283-3d.4d');
 });
 
 // The two whole bot matches take about thirty seconds and run in the slow tier
 // (slow/characterization-physics-bots.test.js).
-test('scripted authoritative snapshots and private projections match the physics-1 checkpoint', async () => {
+test('scripted authoritative snapshots and private projections match the tick cutover checkpoint', async () => {
   const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
   const actual = await scriptedTrace(expected.arenas[4217]);
   if (hash(actual) === hash(expected.scripted)) return;
@@ -31,6 +32,7 @@ test('scripted authoritative snapshots and private projections match the physics
       assert.deepEqual(a.frame, e.frame, `${label}: frame`);
       assert.fail(`${label}: frame serialized field order changed`);
     }
+    assert.deepEqual(a.core, e.core, `${label}: core snapshot`);
     for (let j = 0; j < Math.max(a.views.length, e.views.length); j++) {
       if (hash(a.views[j] ?? null) !== hash(e.views[j] ?? null)) {
         assert.deepEqual(a.views[j], e.views[j], `${label}: view ${j}`);

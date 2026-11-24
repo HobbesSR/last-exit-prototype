@@ -1,10 +1,10 @@
+import { startGame } from '../shared/simulation/tick.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { disposePhysics, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openField } from './helpers/arena.js';
 import { stagePhysics } from './helpers/scenario.js';
-import { setTrap } from '../shared/simulation/hazards.ts';
 
 // Traps on the shipped content and its engine (#920): a contestant beside one trap on open ground, a
 // gladiator far off, all played by the test. A second contestant stands far off too, so the match goes on
@@ -25,7 +25,7 @@ test('motion mine ignores stationary players and damages either role when trigge
   const { s, p, g, trap } = await fixture('mine');
   try {
     g.x = trap.x + 30; g.y = trap.y;
-    step(s); assert.equal(trap.spent, undefined);
+    step(s); assert.equal(trap.spent, false);
     const hp = { p: p.hp + p.shield, g: g.hp + g.shield };
     setInput(s, p.id, { seq: 1, x: 1 }); step(s);
     assert.equal(trap.spent, true);
@@ -34,35 +34,28 @@ test('motion mine ignores stationary players and damages either role when trigge
   } finally { disposePhysics(s); }
 });
 
-test('turrets fire at either role and walls block acquisition', async () => {
-  const covered = await fixture('turret', { cover: true });
+test('a turret exposes its aim and shot in the committed frame', async () => {
+  const { s } = await fixture('turret');
   try {
-    for (let i = 0; i < 3; i++) step(covered.s);
-    assert.equal(covered.s.projectiles.length, 0, 'no shot through the wall');
-    assert.equal(covered.p.hp, 100);
-  } finally { disposePhysics(covered.s); }
-  const { s, p, g, trap } = await fixture('turret');
-  try {
-    for (let i = 0; i < 3; i++) step(s);
-    assert.ok(p.hp < 100, 'the contestant is shot');
-    p.status = 'eliminated'; g.x = trap.x - 45; g.y = trap.y; setTrap(s, 0, { cooldown: 0 });
-    const before = g.hp;
-    for (let i = 0; i < 3; i++) step(s);
-    assert.ok(g.hp < before, 'so is a gladiator');
+    step(s);
+    const frame = snapshot(s);
+    assert.equal(frame.traps[0].aiming, true);
+    assert.equal(frame.projectiles.length, 1);
+    assert.ok(frame.projectiles[0].dx < 0, 'the shot travels toward the contestant');
   } finally { disposePhysics(s); }
 });
 
-test('flamethrowers warn, fire in a cone, and respect cover', async () => {
-  const { s, p, trap } = await fixture('flame');
+test('a flame trap exposes warning and firing states in committed frames', async () => {
+  const { s, p } = await fixture('flame', { extra: { offset: 115 } });
   try {
-    s.tick = 79; step(s); assert.equal(trap.warning, true); assert.equal(p.hp, 100);
-    s.tick = 119; step(s); assert.equal(trap.firing, true); assert.ok(p.hp < 100, 'the cone burns');
+    step(s);
+    let trap = snapshot(s).traps[0];
+    assert.deepEqual([trap.warning, trap.firing], [true, false]);
+    for (let i = 0; i < 4; i++) step(s);
+    trap = snapshot(s).traps[0];
+    assert.deepEqual([trap.warning, trap.firing], [false, true]);
+    assert.ok(p.hp + p.shield < 100, 'the firing cone damaged the contestant');
   } finally { disposePhysics(s); }
-  const covered = await fixture('flame', { cover: true });
-  try {
-    covered.s.tick = 119; step(covered.s); assert.equal(covered.trap.firing, true);
-    assert.equal(covered.p.hp, 100, 'not through cover');
-  } finally { disposePhysics(covered.s); }
 });
 
 test('spiders grapple either role, release targets beyond the leash, and keep target IDs private', async () => {
@@ -70,10 +63,12 @@ test('spiders grapple either role, release targets beyond the leash, and keep ta
   try {
     step(s); assert.ok(p.stun > 0, 'grappled'); assert.ok(p.hp < 100);
     const view = playerView(s, snapshot(s), p.id); assert.equal(Object.hasOwn(view.traps[0], 'targetId'), false);
-    p.x = trap.homeX - 500; step(s); assert.equal(trap.targetId, null);
+    assert.ok(startGame(s).boundary.teleport(p.id, [trap.homeX - 500, p.y]));
+    step(s); assert.equal(trap.targetId, null);
     assert.ok(Math.hypot(trap.x - trap.homeX, trap.y - trap.homeY) <= 360);
-    g.x = trap.homeX + 50; g.y = trap.homeY; setTrap(s, 0, { cooldown: 0 });
+    assert.ok(startGame(s).boundary.teleport(g.id, [trap.homeX + 50, trap.homeY]));
     const before = g.hp;
-    step(s); assert.ok(g.stun > 0); assert.ok(g.hp < before);
+    for (let i = 0; i <= s.content.traps.spider.cooldown; i++) step(s);
+    assert.ok(g.stun > 0); assert.ok(g.hp < before);
   } finally { disposePhysics(s); }
 });

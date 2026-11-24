@@ -81,6 +81,7 @@ test('a dev teleport moves any active player to open ground, is recorded, and sh
       for (const [dx, dy] of offsets) {
         if (used.has(`${dx} ${dy}`)) continue;
         owner.send({ type: 'dev', action: 'teleport', id: target, x: spawn.x + dx + 0.4, y: spawn.y + dy });
+        if (room.pausedAt == null) h.wake(50);
         const answer = owner.messages.findLast(m => m.type === 'teleport');
         if (answer.ok) { used.add(`${dx} ${dy}`); return { answer, x: spawn.x + dx, y: spawn.y + dy }; }
       }
@@ -91,23 +92,26 @@ test('a dev teleport moves any active player to open ground, is recorded, and sh
     bot.route = [{ x: 1, y: 1 }];
     const first = land(bot.id);
     assert.deepEqual(first.answer, { type: 'teleport', ok: true, id: bot.id });
-    assert.equal(bot.x, Math.round(first.x + 0.4)); assert.equal(bot.y, first.y); assert.deepEqual(bot.route, [], 'a bot plans again from where it lands');
-    h.wake(50);
-    assert.deepEqual(writer.frames.at(-1).commands.find(c => c.type === 'teleport'), { type: 'teleport', id: bot.id, x: Math.round(first.x + 0.4), y: first.y });
+    assert.ok(Math.hypot(bot.x - first.x, bot.y - first.y) < 20, 'the warp precedes the solve');
+    assert.deepEqual(bot.route, [], 'a bot plans again from where it lands');
+    assert.deepEqual(writer.frames.at(-1).commands.find(c => c.kind === 'teleport'),
+      { type: 'observation', kind: 'teleport', body: `actor:${bot.id}`, x: Math.round(first.x + 0.4), y: first.y });
     land(id);
     // The map is immutable, so the solid collider is the map's largest building rather than one arranged here.
     const wall = room.game.map.obstacles.filter(o => o.kind === 'building').reduce((a, b) => b.w * b.h > a.w * a.h ? b : a);
     owner.send({ type: 'dev', action: 'teleport', id, x: wall.x + wall.w / 2, y: wall.y + wall.h / 2 });
-    assert.equal(owner.messages.at(-1).ok, false, 'a body cannot be put inside a wall');
+    h.wake(50);
+    assert.equal(owner.messages.findLast(m => m.type === 'teleport').ok, false, 'a body cannot be put inside a wall');
     for (const bad of [{ id: 'nobody' }, { id, x: NaN }, { id, x: 1e9, y: 1e9 }]) {
       owner.send({ type: 'dev', action: 'teleport', x: first.x, y: first.y, ...bad });
-      assert.equal(owner.messages.at(-1).ok, false, JSON.stringify(bad));
+      h.wake(50);
+      assert.equal(owner.messages.findLast(m => m.type === 'teleport').ok, false, JSON.stringify(bad));
     }
     owner.send({ type: 'dev', action: 'pause' }); const tick = room.match.tick;
     const moved = land(id);
     const shown = owner.messages.filter(m => m.type === 'state').at(-1).state;
-    assert.equal(shown.tick, tick); assert.ok(Math.abs(shown.players.find(p => p.id === id).y - moved.y) < 0.001, 'a paused room shows the stored body pose at once');
-    assert.equal(shown.players.find(p => p.id === id).x, Math.round(moved.x + 0.4));
+    assert.ok(shown.tick > tick); assert.ok(Math.abs(shown.players.find(p => p.id === id).y - moved.y) < 0.001, 'a paused room shows the stored body pose at once');
+    assert.ok(Math.abs(shown.players.find(p => p.id === id).x - Math.round(moved.x + 0.4)) < 0.001);
   } finally { await h.service.close(); }
 });
 

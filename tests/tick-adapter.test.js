@@ -334,12 +334,17 @@ test('a nominated target maps onto the core, through the wire key for an item, a
     const quiet = inputOf(ids, { transit: 's1', target: { kind: 'gate', gateIdx: 9 } }, wire);
     assert.deepEqual([quiet.interact, quiet.target, quiet.transit], [false, { kind: 'unresolved' }, null]);
     assert.equal(inputOf(ids, { interact: true, transit: 's1' }).transit, ids.transitIndex.get('s1'), 'no nomination, so the rail stands');
+    const rail = { interact: true, transit: 'nowhere', x: 1, attack: true };
+    const refused = inputOf(ids, rail);
+    assert.deepEqual([refused.interact, refused.transit, refused.movement, refused.attack], [false, null, [1, 0], true]);
+    const automatic = inputOf(ids, rail, wire, false);
+    assert.deepEqual([automatic.interact, automatic.transit], [true, null], 'automatic transit keeps the interact');
     // An item ID outside the core's range names nothing, keyed or not.
     assert.equal(targetOf(ids, { kind: 'item', id: 2 ** 32 }, wireIds()), null);
     assert.equal(targetOf(ids, { kind: 'item', id: 2 ** 20 }, wire), null);
   });
-  // The wire keeps a target's shape and bounds. A malformed one is a failed nomination: no rail, and the button is cleared,
-  // which is all the old tick reads. Pressed, it is kept as `unresolved` for the new tick's core to reject.
+  // The wire keeps a target's shape and bounds. A malformed one is kept as `unresolved` so the core can
+  // refuse the nomination without allowing rail travel.
   assert.deepEqual(sanitizeInput({ target: { kind: 'gate', gateIdx: 2, extra: 1 } }, 1).target, { kind: 'gate', gateIdx: 2 });
   for (const t of [{ kind: 'gate', gateIdx: -1 }, { kind: 'item', id: -1 }, { kind: 'item', id: 2 ** 32 }, { kind: 'station', id: '' }, { kind: 'door' }, { kind: 'unresolved' }, 'gate']) {
     const input = sanitizeInput({ x: 1, attack: true, interact: true, transit: 's1', target: t }, 1);

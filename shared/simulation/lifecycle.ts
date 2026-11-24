@@ -11,5 +11,3 @@ export function eliminate(s: Game, target: Player, source: Player | null): void 
   if (!physicsRuntime(s)) throw new Error("elimination runs in the core and needs the game's physics world");
   eliminateInCore(s, target, source);
 }
-// Respawn runs in the core's phase 1 (`rust/core/src/phase_one.rs`, adapter `phase-one.ts`); `finishMatch` in phase 7's
-// (`phase_seven.rs`, adapter `phase-seven.ts`).

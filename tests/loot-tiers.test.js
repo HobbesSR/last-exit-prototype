@@ -106,7 +106,7 @@ test('weapon quality is explicit: the default content assigns none and consumes 
   const plain = createGameRecord(4217, structuredClone(map), defaultContent());
   const tiered = createGameRecord(4217, structuredClone(map), contentById('content-loot-1'));
   assert.ok(plain.items.every(i => i.quality === undefined));
-  assert.ok(tiered.items.every(i => Number.isInteger(i.quality)));
+  assert.ok(tiered.items.filter(i => i.kind === 'weapon').every(i => Number.isInteger(i.quality)));
   assert.equal(tiered.rng, plain.rng);
   assert.equal(tiered.itemSerial, plain.itemSerial);
   assert.equal(qualityDamage(plain.content, { quality: 5 }), 1);
@@ -152,5 +152,5 @@ test('the same match replays to identical quality-bearing frames', async t => {
   };
   const frames = await run();
   assert.deepEqual(await run(), frames);
-  assert.ok(JSON.parse(frames[0]).items.every(i => Number.isInteger(i.quality)));
+  assert.ok(JSON.parse(frames[0]).items.filter(i => i.kind === 'weapon').every(i => Number.isInteger(i.quality)));
 });

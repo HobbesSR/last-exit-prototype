@@ -54,26 +54,34 @@ export function targetOf(ids: MatchIds, t: InputTarget, wire: WireIds): Target |
  * the core as `unresolved`: R8 allows no other gesture, so any rail destination goes, and the core rejects a pressed
  * interact with it (review 1049). Movement and combat stand.
  */
-export function inputOf(ids: MatchIds, input: PlayerInput, wire: WireIds = wireIds()): Input {
+export function inputOf(ids: MatchIds, input: PlayerInput, wire: WireIds = wireIds(), selectableTransit = true): Input {
   const mapped = input.target ? targetOf(ids, input.target, wire) : null, failed = input.target !== undefined && mapped === null;
   const pressed = input.interact === true || input.target?.kind === 'unresolved';
+  const transit = selectableTransit && !failed ? station(ids, input.transit) : null;
+  // An explicit unknown station must not fall through to a local interact.
+  const unknownStation = selectableTransit && input.transit !== undefined && transit === null && !failed;
+  // A drag into the world names the source slot on the same input as drop.
+  const dropSlot = input.drop ? input.slot : undefined;
+  const drop: DropSlot | null = dropSlot !== undefined ? { kind: 'slot', slot: dropSlot } : input.drop ? { kind: 'selected' } : null;
   return { ...emptyInput(), movement: [input.x ?? 0, input.y ?? 0], aim: input.aim ?? null, sneak: input.sneak === true,
-    attack: input.attack === true, skill: input.skill === true, interact: pressed, target: failed ? { kind: 'unresolved' } : mapped,
-    slot: input.slot ?? null, moveSlot: input.moveSlot ? [input.moveSlot.from, input.moveSlot.to] : null,
-    drop: input.drop ? { kind: 'selected' } : null, reload: input.reload === true,
+    attack: input.attack === true, skill: input.skill === true, interact: pressed && !unknownStation, target: failed ? { kind: 'unresolved' } : mapped,
+    slot: dropSlot === undefined ? input.slot ?? null : null, moveSlot: input.moveSlot ? [input.moveSlot.from, input.moveSlot.to] : null,
+    drop, reload: input.reload === true,
     dropAmmo: input.dropAmmo ? { family: input.dropAmmo.family, count: input.dropAmmo.count } : null,
-    transit: failed ? null : station(ids, input.transit) };
+    transit };
 }
 
 /**
  * The command row of the input player `p` spends at `tick`, if one is buffered for it: a stamp for that tick or the oldest
  * unstamped input, as `consumeInput` takes it.
  */
-export function dueCommand(ids: MatchIds, p: Player, tick: Tick, wire: WireIds = wireIds()): Inbound | null {
+export function dueCommand(ids: MatchIds, p: Player, tick: Tick, wire: WireIds = wireIds(), selectableTransit = true): Inbound | null {
   const actor = ids.actorOfPlayer.get(p.id);
   if (actor === undefined) return null;
   const input = takeQueued(p, tick);
-  return input ? { type: 'command', command: { actor, source: 'player', tick, seq: input.seq!, input: inputOf(ids, input, wire) } } : null;
+  if (!input) return null;
+  const mapped = inputOf(ids, input, wire, selectableTransit);
+  return { type: 'command', command: { actor, source: 'player', tick, seq: input.seq!, input: mapped } };
 }
 
 /** The margin a tick reports: that of the inputs that arrived before it (`consumeInput`'s first step). */
@@ -141,7 +149,7 @@ export function botCommand(s: Game, match: TickMatch, p: Player, intent: BotInte
   const drop: DropSlot | null = intent.discardSlot !== undefined ? { kind: 'slot', slot: intent.discardSlot }
     : input.drop ? { kind: 'selected' } : null;
   return { actor, source: 'bot', tick, seq: (match.acknowledged(p.id) ?? -1) + 1,
-    input: { ...inputOf(ids, { ...input, slot, transit: s.content.transit === 'selectable' ? input.transit : undefined }),
+    input: { ...inputOf(ids, { ...input, slot, drop: false }, undefined, s.content.transit === 'selectable'),
       utilitySlot: intent.utilitySlot ?? null, drop } };
 }
 
@@ -178,7 +186,7 @@ export class TickBoundary {
     const rows: Inbound[] = [];
     for (const p of this.s.players) {
       if (p.bot || p.status !== 'active') continue;
-      const row = dueCommand(this.match.ids, p, tick, this.wire);
+      const row = dueCommand(this.match.ids, p, tick, this.wire, this.s.content.transit === 'selectable');
       if (row) rows.push(row);
     }
     return rows;

@@ -55,6 +55,7 @@ test('a room is joinable while its map generates, and the seats it gave out are 
       await twin.ready;
       const people = crowd(inline, twin), ids = new Map([[owner, people.owner], [late, people.late], [back, people.back]]
         .map(([held, live]) => [live.session.playerId, held.session.playerId]));
+      people.owner.send({ type: 'start' });
       const rename = frame => JSON.parse(JSON.stringify(frame), (key, value) => ids.get(value) ?? value);
       // The physics world lists its bodies, with their generations, in the order they were made, which the two join histories differ in; what the people are is the claim.
       const seated = frame => { const { physics, bodies, ...rest } = frame; return rest; };

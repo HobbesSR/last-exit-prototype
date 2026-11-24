@@ -1,3 +1,4 @@
+import { startGame } from '../shared/simulation/tick.ts';
 import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -117,9 +118,9 @@ test('dropping a selected charged cell frees a slot, preserves charge, and does 
     assert.equal(cell.pickupAfter, free, 'the record carries the one-second delay');
     assert.ok(canOccupy(s.map, cell.x, cell.y, actorRadius(s, p)));
     // Standing on it, the dropper is refused until the delay has passed; then it is theirs again, charge intact.
+    assert.ok(startGame(s).boundary.teleport(p.id, [cell.x, cell.y]));
     let collected = null;
     for (let i = 0; i < 3 * HZ && !collected; i++) {
-      Object.assign(p, { x: cell.x, y: cell.y });
       step(s);
       if (carriedCell(p)) collected = s.tick;
       else assert.ok(s.tick < free, `refused on tick ${s.tick}, past the delay`);
@@ -180,7 +181,10 @@ test('contestant bots initiate close-range fights after opening grace without be
     p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', instanceId: itemId(s, 'pistol-1'), lineageId: itemId(s, 'pistol-1') };
     for (let i = 0; i < 5; i++) step(s);
     assert.equal(target.hp, 100, 'opening grace avoids an immediate spawn fight');
-    s.tick = 30 * HZ + 1;
+    while (s.tick < 30 * HZ) step(s);
+    const nearX = p.x + (p.x < s.map.width - 150 ? 85 : -85);
+    assert.ok(startGame(s).boundary.teleport(target.id, [nearX, p.y]));
+    step(s);
     for (let i = 0; i < 20; i++) step(s);
     assert.ok(target.hp < 100, 'nearby contestant is challenged without retaliation trigger');
   });

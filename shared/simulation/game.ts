@@ -2,7 +2,6 @@ import { createGameRecord } from './state.ts';
 import { prepareMovementGeometry } from '../movement.ts';
 import { prepareSightIndex } from '../sight.ts';
 import { initCoreSight } from '../sight-core.ts';
-import { initPhaseOne } from './phase-one.ts';
 import { initItemAllocation } from '../item-allocation-core.ts';
 import { attachSight } from './sight-runtime.ts';
 import { ownDoors } from './doors.ts';
@@ -32,7 +31,6 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
   // event-loop yields; shared/browser callers retain the ordinary construction path.
   if (yieldControl) { await prepareMovementGeometry(map, yieldControl); await prepareSightIndex(map, yieldControl); }
   const sight = await initCoreSight();
-  await initPhaseOne();
   const itemAllocator = await initItemAllocation();
   const s = createGameRecord(seed, map, content, sight, itemAllocator);
   attachSight(s, sight);

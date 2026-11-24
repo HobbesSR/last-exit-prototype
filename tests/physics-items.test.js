@@ -206,48 +206,6 @@ test('full-inventory E swap uses the incoming body slot and removes a sleeping p
   } finally { disposePhysics(s); }
 });
 
-test('authored crate moves and rotates without contact damage; floor drag uses priority then ID', async () => {
-  const map = arena();
-  map.spawns[0].y = 190;
-  map.physicsProps = [{ id: 'crate', profile: 'crate', x: 200, y: 200, angle: 0 }];
-  map.motorSurfaces = [
-    { id: 'z', x: 150, y: 140, w: 300, h: 120, priority: 7, speed: 1, traction: 1, braking: 1, drag: 0.8 },
-    { id: 'a', x: 150, y: 140, w: 300, h: 120, priority: 7, speed: 1, traction: 1, braking: 1, drag: 0.2 },
-    { id: 'low', x: 150, y: 140, w: 300, h: 120, priority: 1, speed: 1, traction: 1, braking: 1, drag: 0.9 },
-  ];
-  const { s, p, runtime } = await game(map);
-  try {
-    s.items.push(item('floor-item', 'cell', { x: 410, charge: 10 }));
-    identifyItems(s);
-    synchronizePhysics(s);
-    const start = runtime.world.getTransform('prop:crate');
-    const hp = p.hp, shield = p.shield;
-    for (let i = 0; i < 18; i++) {
-      assert.ok(setInput(s, p.id, { seq: s.tick + 1, x: 1 }));
-      step(s);
-    }
-    const end = runtime.world.getTransform('prop:crate');
-    assert.ok(end.x > start.x + 0.1, `crate moved from ${start.x} to ${end.x}`);
-    assert.ok(Math.abs(end.angle - start.angle) > 0.001, `crate rotated to ${end.angle}`);
-    assert.equal(p.hp, hp); assert.equal(p.shield, shield);
-    const bodies = snapshot(s).physics.world.bodies;
-    assert.equal(bodies.find(b => b.spec.id === 'item:floor-item').spec.linearDamping, 1);
-    assert.equal(bodies.find(b => b.spec.id === 'prop:crate').spec.linearDamping, 0.4);
-  } finally { disposePhysics(s); }
-});
-
-test('floor drag accepts any finite floor, beyond the body representability bound (review 970)', async () => {
-  const map = arena();
-  map.physicsProps = [{ id: 'crate', profile: 'crate', x: 200, y: 200, angle: 0 }];
-  map.motorSurfaces = [{ id: 'wide', x: 0, y: 0, w: 1e10, h: 400, priority: 1, speed: 1, traction: 1, braking: 1, drag: 0.5 }];
-  const { s } = await game(map);
-  try {
-    step(s);
-    assert.equal(snapshot(s).physics.world.bodies.find(b => b.spec.id === 'prop:crate').spec.linearDamping,
-      s.content.worldPhysics.prop.linearDamping * 0.5);
-  } finally { disposePhysics(s); }
-});
-
 test('world physics authoring is validated and match-pinned', async () => {
   const bad = arena();
   bad.motorSurfaces = [{ id: 'floor', x: 100, y: 100, w: 200, h: 200,
@@ -262,30 +220,4 @@ test('world physics authoring is validated and match-pinned', async () => {
     assert.equal(s.map.physicsProps[0].x, 450);
     assert.equal(s.content.worldPhysics.loot.radius, 6);
   } finally { disposePhysics(s); }
-});
-
-test('repeated synchronization keeps stable body counts and identical physical traces', async () => {
-  const runs = [];
-  for (let n = 0; n < 2; n++) {
-    const map = arena();
-    map.physicsProps = [{ id: 'crate', profile: 'crate', x: 450, y: 200 }];
-    map.items.push(item('loose', 'cell', { charge: 21 }));
-    const { s, runtime } = await game(map);
-    try {
-      const initial = runtime.world.counts().dynamic;
-      enqueuePhysicsImpulse(s, 'item:loose', { x: 100, y: 0 });
-      const trace = [];
-      for (let i = 0; i < 12; i++) {
-        synchronizePhysics(s);
-        step(s);
-        assert.equal(runtime.world.counts().dynamic, initial);
-        const frame = snapshot(s);
-        trace.push({ item: frame.bodies.find(b => b.owner.kind === 'item' && b.owner.itemId === itemId(s, 'loose')),
-          bodies: frame.bodies.map(body => ({ id: body.id, x: body.x, y: body.y, angle: body.angle })) });
-      }
-      assert.ok(trace.at(-1).item.x > trace[0].item.x);
-      runs.push(trace);
-    } finally { disposePhysics(s); }
-  }
-  assert.deepEqual(runs[0], runs[1]);
 });

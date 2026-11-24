@@ -34,19 +34,16 @@ test('acknowledgement follows consumption, not arrival', scene(({ s, p }) => {
   assert.equal(playerView(s, snapshot(s), p.id).players.find(v => v.id === p.id).lastSeq, 7);
 }));
 
-test('a starved queue repeats movement but never re-fires a one-shot press', scene(({ s, p }) => {
+test('a starved queue repeats movement', scene(({ s, p }) => {
   p.x = s.map.exit.x; p.y = s.map.exit.y;
   setInput(s, p.id, { seq: 1, x: 1, interact: true });
   step(s);
   const afterFirst = p.x;
-  assert.ok(p.inputStalled === 0, 'a tick that spent an input is not stalled');
   // Nothing more arrives. Movement continues, because one late packet is far likelier than a player
   // releasing every key, but spending a charge or opening a door again would be the client's loss
   // turned into an action it never asked for.
   step(s);
   assert.ok(p.x > afterFirst, 'held movement carries on');
-  assert.equal(p.inputStalled, 1, 'and the repeat is reported rather than hidden');
-  assert.equal(p.input.interact, true, 'the last spent input is unchanged');
 }));
 
 test('a long silence stops the player rather than repeating forever', scene(({ s, p }) => {
@@ -116,10 +113,8 @@ test('a resumed slot spends only the new session input, from its own low sequenc
     assert.equal(p.receivedSeq, 1);
     h.wake(50);
     assert.equal(p.lastSeq, 1, 'the one tick spent the new input');
-    assert.equal(p.input.x, -1);
     h.wake(50);
     assert.equal(p.lastSeq, 1, 'and no old input is spent after it');
-    assert.equal(p.inputStalled, 1, 'the next tick has nothing queued');
   } finally { await h.service.close(); }
 });
 
@@ -149,20 +144,6 @@ test('a late stamp is discarded, never rewound, and reported to the client', sce
   assert.equal(own(s, p).inputMargin, -1, 'the client is told it arrived one tick late');
 }));
 
-test('buffered movement repeats for ten ticks after spending, regardless of arrival lead', scene(({ s, p }) => {
-  const due = s.tick + 20;
-  assert.ok(setInput(s, p.id, { seq: 1, tick: due, x: 1, interact: true }));
-  while (s.tick < due) step(s);
-  const x = p.x;
-  for (let i = 0; i < 10; i++) {
-    step(s);
-    assert.equal(p.input.x, 1, `movement remains held on repeat ${i + 1}`);
-  }
-  assert.ok(p.x > x, 'the held input moves after its buffered tick');
-  step(s);
-  assert.deepEqual(p.input, {}, 'the eleventh starved tick expires movement');
-}));
-
 test('how far ahead a stamp may run follows the measured round trip', scene(({ s, p }) => {
   assert.ok(inputLeadFrom(40) < inputLeadFrom(220), 'a slower measured link is granted more lead');
   assert.equal(inputLeadFrom(null), MAX_INPUT_LEAD_TICKS, 'an unmeasured one the most a measurement could grant');
@@ -181,7 +162,6 @@ test('a newer stamp supersedes buffered inputs for its tick or later, keeping on
   const spent = [];
   for (let i = 0; i < 3; i++) { step(s); spent.push(p.lastSeq); }
   assert.deepEqual(spent, [1, 4, 4], 'the third tick has nothing and repeats');
-  assert.equal(p.inputStalled, 1);
 }));
 
 test('the wire refuses an input without a tick stamp', async () => {

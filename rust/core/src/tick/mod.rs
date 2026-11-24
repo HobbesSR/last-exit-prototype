@@ -52,7 +52,7 @@ pub use rewind::{RewindFrame, RewindHistory, Rewound};
 pub use solve::{BeforeSolve, BodySpec, Contact, ContactKind, Motor, Path, Solved, Tether};
 pub use state::*;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use crate::floor_drag::Floor;
@@ -457,6 +457,23 @@ impl Match {
         let commands = self.commands(tick, &inbound);
         let mut writes = Intake::default();
         let mut intake_facts = Vec::new();
+        if !teleported.is_empty() {
+            let warped: BTreeSet<_> = teleported.iter().map(|&(body, _)| body).collect();
+            self.state.hooks.retain(|_, hook| {
+                let owner_warped = warped.contains(&BodyId::Actor(hook.owner));
+                let target_warped = matches!(hook.phase, HookPhase::Pulling { target, .. }
+                    if warped.contains(&BodyId::Actor(target)));
+                if owner_warped || target_warped {
+                    intake_facts.push(Fact::HookReleased {
+                        owner: hook.owner,
+                        reason: HookRelease::Relocated,
+                    });
+                    false
+                } else {
+                    true
+                }
+            });
+        }
         apply::reward_kills(&mut self.state, &inbound, &mut intake_facts);
         let bodies = self.bodies.before_solve();
         let before = IntakeView {
@@ -530,8 +547,8 @@ impl Match {
             if let Some(pose) = self.bodies.pose(body) {
                 changes.poses.insert(body, pose);
                 discontinuities.push(Discontinuity::Warped(body));
-                discontinuities.push(Discontinuity::DevWarped { body, request });
             }
+            discontinuities.push(Discontinuity::DevWarped { body, request });
         }
         discontinuities.sort_unstable();
         discontinuities.dedup();

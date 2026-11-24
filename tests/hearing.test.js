@@ -1,13 +1,14 @@
 import { renderedPlayerView as playerView } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { disposePhysics, step, snapshot, } from '../shared/simulation.ts';
+import { disposePhysics, setInput, step, snapshot } from '../shared/simulation.ts';
 import { attack } from '../shared/simulation/combat.ts';
 import { heardBy } from '../shared/simulation/hearing.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { cellCenter, cellIndexAt } from '../shared/discovery.ts';
 import { openField } from './helpers/arena.js';
 import { stagePhysics } from './helpers/scenario.js';
+import { identifyItems } from './helpers/item-identity.js';
 
 // Heard gunfire (#684, 14 "Heard gunfire", 15): an area, private to each hearer, with no RNG or id of its own.
 
@@ -20,7 +21,7 @@ async function scene(hearing = HEARING) {
   const { map } = openField(3600);
   const { s, players: [shooter, near, far, gladiator] } = await stagePhysics(map, { content: hearing ? { ...base, id: 'content-hearing-test', hearing } : base,
     actors: [{ role: 'contestant', x, y }, { role: 'contestant', x: x + 600, y }, { role: 'contestant', x: x + 1500, y }, { role: 'gladiator', x: x - 900, y }] });
-  shooter.inventory = [{ kind: 'weapon', weaponType: 'pistol', ammo: 48 }]; shooter.selectedSlot = 0;
+  shooter.inventory = [{ kind: 'weapon', weaponType: 'pistol', ammo: 48, instanceId: 'pistol', lineageId: 'pistol' }]; shooter.selectedSlot = 0;
   return { s, shooter, near, far, gladiator };
 }
 const fire = (s, p) => { p.attackCd = 0; attack(s, p); };
@@ -89,9 +90,13 @@ test("a cue is in its hearer's own projection only, and never in a snapshot", as
 test('hearing changes no simulated state: frames match a match without it, tick for tick', async () => {
   const silent = await scene(null), loud = await scene();
   try {
+    for (const { s } of [silent, loud]) { s.players.forEach(p => { p.bot = false; }); identifyItems(s); }
     let heard = 0;
     for (let tick = 0; tick < 120; tick++) {
-      for (const { s, shooter } of [silent, loud]) { if (tick % 10 === 0) fire(s, shooter); step(s); }
+      for (const { s, shooter } of [silent, loud]) {
+        if (tick % 10 === 0) assert.ok(setInput(s, shooter.id, { seq: tick + 1, attack: true, aim: 0 }));
+        step(s);
+      }
       heard += heardBy(loud.near, loud.s.tick).length;
       assert.equal(JSON.stringify(snapshot(loud.s)), JSON.stringify(snapshot(silent.s)), `tick ${tick}`);
     }

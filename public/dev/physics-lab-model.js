@@ -1,10 +1,16 @@
 import { createFrameNormalizer, bodyRelations } from '../../shared/relational-frame.ts';
 import { openPlayableArea } from '/shared/playable-area.ts';
-import { createGame, disposePhysics, enqueuePhysicsImpulse, setInput, snapshot, step } from '/shared/simulation.ts';
+import { createGame, disposePhysics, enqueuePhysicsImpulse, setInput } from '/shared/simulation.ts';
 import { contentById } from '/shared/simulation/content.ts';
+import { admitPending } from '/shared/simulation/boundary.ts';
+import { consumeInput } from '/shared/simulation/input.ts';
+import { finishHooks, prepareHooks } from '/shared/simulation/hook.ts';
+import { phaseThree } from '/shared/simulation/phase-three.ts';
 import { physicsRuntime } from '/shared/simulation/physics-runtime.ts';
+import { uploadPlayers } from '/shared/simulation/player-store.ts';
 import { HZ } from '/shared/simulation/rules.ts';
 import { firstContact, solidBlockers } from '/shared/simulation/swept.ts';
+import { snapshot } from '/shared/simulation/visibility.ts';
 import { SQUISH, squishShell, stepSquish } from './squish-shell.js';
 
 const LAB_FORMAT = 'last-exit-physics-lab-1';
@@ -35,6 +41,32 @@ function addJelly(game, at) {
       restLength: JELLY.ring, stiffness: JELLY.stiffness, damping: JELLY.damping, maxForce: JELLY.maxForce });
   }
   world.commitMutations();
+}
+
+// The lab drives a physics world directly. Its arbitrary spring rigs and queued test impulses
+// belong to that world, outside the match authority and its gameplay state tables.
+function stepLab(game) {
+  const runtime = physicsRuntime(game), { world } = runtime;
+  const native = world.boundaryCall();
+  game.tick++;
+  runtime.stepping = true;
+  try {
+    for (const p of game.players) {
+      p.cooldown = Math.max(0, p.cooldown - 1);
+      p.attackCd = Math.max(0, p.attackCd - 1);
+    }
+    uploadPlayers(game, runtime, native.core, native.world);
+    prepareHooks(game);
+    admitPending(game, runtime);
+    phaseThree(game, game.players.map(p => ({ input: consumeInput(p, game.tick) })));
+    const { paths, distance } = world.step();
+    for (const p of game.players) {
+      const id = `actor:${p.id}`, at = paths[id]?.at(-1);
+      if (at) { p.x = at.x; p.y = at.y; p.movedThisTick = distance[id]; }
+    }
+    uploadPlayers(game, runtime, native.core, native.world);
+    finishHooks(game, paths);
+  } finally { runtime.stepping = false; }
 }
 const SCENES = Object.freeze({
   A: { name: 'A · character collision and crowd', spawns: [{ x: 240, y: 400 }, { x: 350, y: 400 }, { x: 460, y: 400 }, { x: 350, y: 500 }],
@@ -140,7 +172,7 @@ export class PhysicsLab {
       aim: Number(input.aim) || 0, skill: !!input.skill, attack: !!input.attack,
       interact: !!input.interact };
     setInput(this.game, player.id, command);
-    step(this.game);
+    stepLab(this.game);
     this.trace.push({ tick: this.game.tick, actorId: player.id, input: command });
     this.frames.push(this.normalizer.normalize(structuredClone(snapshot(this.game))));
     const world = physicsRuntime(this.game).world;

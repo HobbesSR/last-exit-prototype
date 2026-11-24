@@ -21,9 +21,9 @@
  */
 
 /** The recording schema the default tick writes. */
-export const SCHEMA = 21;
+export const SCHEMA = 22;
 /** The opt-in tick's spent-queue archive format (26). */
-export const TICK_RECORDING_SCHEMA = 22;
+export const TICK_RECORDING_SCHEMA = SCHEMA;
 /**
  * The oldest schema this build can read: the first with both cell-masked chain maps and the
  * engine-free physics presentation every match now records.

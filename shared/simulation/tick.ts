@@ -1,44 +1,47 @@
-import { tickFinish } from './tick-finish.ts';
-import { collectBotIntent } from './bots.ts';
-import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
-import type { BotIntent } from './bots.ts';
-import { consumeInput } from './input.ts';
-import { tickBegin } from './tick-begin.ts';
-import { advanceDiscovery } from './tick-rules.ts';
-import { physicsRuntime } from './physics-runtime.ts';
-import type { PhysicsRuntime } from './physics-runtime.ts';
-import type { Game } from '../types.ts';
 import { start, stop } from '../profiler.ts';
+import type { Game } from '../types.ts';
+import { TickBoundary } from './tick-boundary.ts';
+import { TickFrames } from './tick-frame.ts';
+import { createTickMatch } from './tick-match.ts';
+import { TickMirror, stepMirror } from './tick-mirror.ts';
+import { disposePhysics as disposeSetup } from './physics-runtime.ts';
+import { snapshot as setupSnapshot } from './visibility.ts';
+import type { WireIds } from './wire-ids.ts';
 
-/** The seven-phase tick. Actors move only through the physics world, never `movePlayer`. */
-export function stepGame(s: Game): void {
-  const r = physicsRuntime(s);
-  if (!r) throw new Error('physics world missing or disposed');
-  if (s.phase !== 'live') return;
-  r.stepping = true;
-  start('sim.step');
-  try { advanceGame(s, r); } finally { r.stepping = false; stop('sim.step'); }
+/** Start the authority after the caller finishes arranging the match's initial state. */
+export function createTickSession(game: Game, wire?: WireIds) {
+  const match = createTickMatch(game);
+  try {
+    const mirror = new TickMirror(game, match);
+    return { match, mirror, boundary: new TickBoundary(game, match, wire), frames: new TickFrames(mirror) };
+  } catch (error) { match.dispose(); throw error; }
 }
 
-// Timed by phase (sim.*; 42.22). Every synchronize call is counted in sim.sync.
-function advanceGame(s: Game, r: PhysicsRuntime): void {
-  // 1: all timers and previous-boundary lifecycle, before anyone decides: the tick, timers, respawn and arrival
-  // (phase-one.ts), then the body sync and the pending admission (boundary.ts), all in the core; the hooks here.
-  // One core call (D4's `tick_begin`, #1214 stage 6e.5): the markers' trim, the sync, the hooks, the spawns, the
-  // pending admission and the commit follow phase 1 there, and each is applied here in that order.
-  start('sim.begin'); tickBegin(s, r); stop('sim.begin');
-  // 2: roster-order collection from the same pre-movement world.
-  const intents = new Array<BotIntent | undefined>(s.players.length);
-  start('sim.bots');
-  start('sim.bots.collect'); beginDynamicNavigationCollection(s); stop('sim.bots.collect');
-  try {
-    for (let idx = 0; idx < s.players.length; idx++) {
-      const p = s.players[idx];
-      if (p.status === 'active') intents[idx] = p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) };
-    }
-  } finally { endDynamicNavigationCollection(s); stop('sim.bots'); }
-  // 3 to 7 in one core call (D4's `tick_finish`, #1214 stages 6e.5b and 6e.5c), built there from the intents.
-  start('sim.finish'); tickFinish(s, r, intents); stop('sim.finish');
-  // 7's discovery is Node's, after the call: each contestant's memory, from the mirror as the call left it.
-  advanceDiscovery(s);
+const sessions = new WeakMap<Game, ReturnType<typeof createTickSession>>();
+
+/** In-process games share the room's authority, with lazy start for scenario setup. */
+export function startGame(s: Game) {
+  let session = sessions.get(s);
+  if (!session) { session = createTickSession(s); sessions.set(s, session); }
+  return session;
+}
+
+export function stepGame(s: Game) {
+  if (s.phase !== 'live') return null;
+  const { mirror, boundary } = startGame(s);
+  start('sim.step');
+  try { return stepMirror(mirror, boundary); } finally { stop('sim.step'); }
+}
+
+export function snapshot(s: Game) {
+  const session = sessions.get(s);
+  if (!session) return setupSnapshot(s);
+  start('sim.snapshot');
+  try { return session.frames.frame(); } finally { stop('sim.snapshot'); }
+}
+
+export function disposePhysics(s: Game): void {
+  sessions.get(s)?.match.dispose();
+  sessions.delete(s);
+  disposeSetup(s);
 }

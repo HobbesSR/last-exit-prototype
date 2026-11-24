@@ -23,15 +23,14 @@ never resimulates. L2 (#444) raises the writer schema to **13**: frames of
 `reload`/`dropAmmo` commands; older readers ignore the fields and draw an ammo
 pickup as an unknown item, so `minSchema` stays at 10.
 
-Recording failure must never reach gameplay. The room service keeps the old tick as its default;
-the new path is selected per match with `tick: 'new'` until the cutover. Both inline and threaded
-new-path matches use the same archive contract below. Default content is `content-12` (#1303) under
+Recording failure must never reach gameplay. Inline and threaded matches run the authoritative
+core tick and use the same archive contract below. Default content is `content-12` (#1303) under
 `last-exit-0.8-physics` ([below](#physics-rules-version-921)); the legacy mover's rules were `last-exit-0.7`.
 #920 retired that engine and contents 1 to 5, and #953 raised `MIN_SCHEMA` to **10** so
 archives recorded before schema 10 (pre-chain-map diamond arenas, `last-exit-0.7`, and
 experimental P1/P2 schemas 8–9 without required physics presentation) are refused with the
-existing `"no longer reads"` message while remaining downloadable. The default tick writes schema **21**
-and `minSchema` 20 (`minimumReaderForMatch`, `RELATIONAL_SCHEMA`): since #901 they are stored as lines
+existing `"no longer reads"` message while remaining downloadable. The room writes schema **22**
+and `minSchema` 20 (`minimumReaderForMatch`, `RELATIONAL_SCHEMA`). Since #901, archives are stored as lines
 with delta frames ([Schema 17](#schema-17-lines-and-delta-frames-901)), which no older reader can
 read, and schema 18 (#948, #949) drops dead recorded fields (`Player.path`,
 `GameMap.{modules,nodes,routes,streets}`, `physics.{profile,settings,world.pending}`) while remaining
@@ -42,9 +41,9 @@ compatible with schema 17 readers; schema 19 adds tick stamps to recorded input
 descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
 
-## Schema 22: the inbound queue as commands (#1283, new tick path)
+## Schema 22: the inbound queue as commands (#1283)
 
-On the new tick's path, a frame's `commands` contain the room-owned commands for that frame (start, the roster's joins and choices,
+A frame's `commands` contain the room-owned commands for that frame (start, the roster's joins and choices,
 abandonment), followed by T's last spent inbound queue in its queue order, less first-class bots' derived commands
 (`shared/simulation/tick-record.ts`). Human and external bot commands are recorded. The inbound queue is attached to the
 matching committed frame, not recorded when merely queued. An input that never reached a tick, was superseded or was
@@ -72,24 +71,23 @@ observations mark where a bot derives that seat's commands. On arena 9's eleven-
 add 41% to a gzipped recording (1.39 to 1.96 MB over 1800 ticks). The new path's frames also leave out `rng` and
 `scatterSerial`, which that tick does not keep.
 
-The room writes header schema 21 on the old path and schema 22 on the new path. Playback reads no command, so
-`minSchema` is unchanged. Moving the room's default to the new path and deleting the old tick is 3d.4d; until then
-the old path remains the default.
+Since 3d.4d the room writes header schema 22. Playback reads stored frames with the same `minSchema` 20, including
+archives written under schema 21.
 
 ## Schema 21: observations as commands (#1283)
 
-The new tick takes everything that enters a tick from one recorded inbound queue: commands, events carried from
+The authoritative core takes everything that enters a tick from one recorded inbound queue: commands, events carried from
 the previous tick, and observations ([27.2](27.2-tick-architecture.md#boundary)). Joins, leaves and dev teleports
 were already recorded commands. Schema 21 adds the last observations, the server-measured view lag and input lead.
 When a measurement changes either value, the room records `{ type: 'viewLag', id, ticks }` and
 `{ type: 'inputLead', id, ticks }` (`server/match.js` `setViewLag`), with `ticks` 0 for none. An unchanged
 measurement records nothing, and nothing is recorded before the start. A join or leave implies a view lag of 0.
 
-The change is additive and `minSchema` stays at 20: playback draws stored frames and reads no command. Until the
-cutover (27.2 3d) the old tick also keeps `viewLagTicks` and `inputLeadTicks` in player state, so these
-recordings carry both. Rules stay `last-exit-0.8-physics`.
+The change is additive and `minSchema` stays at 20: playback draws stored frames and reads no command.
+Schema 21 archives also carry `viewLagTicks` and `inputLeadTicks` in player state. Rules stay
+`last-exit-0.8-physics`.
 
-The new tick's recording frame is S1, T's inbound queue and apply's discontinuity markers
+The schema 22 recording frame is S1, T's inbound queue and apply's discontinuity markers
 (`rust/core/src/tick/output.rs`). S1 is the previous frame with the tick's change list applied, which is the delta
 form [Schema 17](#schema-17-lines-and-delta-frames-901) already stores, and a keyframe is the core's `Snapshot`.
 A marker names a body placed, warped or removed in that tick. The cutover maps these onto the frame's fields and

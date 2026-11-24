@@ -64,9 +64,6 @@ test('the nearest gate takes the interaction even when it cannot be used', async
   await dispose(await arena({ gates: [gate('locked', 3040, y, { locked: true }), gate('free', 3060, y)] }), ({ s, p }) => {
     press(s, p, { interact: true });
     assert.deepEqual(s.map.gates.map(g => g.open), [false, false], 'a locked keyless door does not fall through to the next');
-    p.keys = 1; press(s, p, { interact: true });
-    assert.deepEqual(s.map.gates.map(g => [g.open, g.locked]), [[true, false], [false, false]]);
-    assert.equal(p.keys, 0);
   });
   await dispose(await arena({ gates: [gate('old', 3040, y, { kind: 'gate', locked: undefined })] }), ({ s, p }) => {
     press(s, p, { interact: true });

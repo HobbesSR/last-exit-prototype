@@ -48,7 +48,7 @@ test('weapons stop firing at zero ammo and matching pickups replenish without lo
   collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType: 'pistol', ammo: 1 }));
   setInput(s, p.id, { seq: 1, attack: true }); step(s);
   assert.equal(p.inventory[0].ammo, 0); assert.equal(s.projectiles.length, 1);
-  s.projectiles = []; p.attackCd = 0;
+  for (let i = 0; i < WEAPONS.pistol.life; i++) step(s);
   setInput(s, p.id, { seq: 2, attack: true }); step(s);
   assert.equal(s.projectiles.length, 0);
   p.inventory[0].ammo = WEAPONS.pistol.maxAmmo - 2;
@@ -62,22 +62,24 @@ test('slot moves follow selection, merge compatible stacks, swap cells and rejec
   p.inventory[0] = { kind: 'med', count: 2 }; p.inventory[1] = { kind: 'med', count: 2 };
   assert.ok(moveSlot(s, p, 0, 1)); assert.equal(p.inventory[0].count, 1); assert.equal(p.inventory[1].count, 3);
   assert.equal(moveSlot(s, p, 0, 1), false);
-  p.inventory[2] = { kind: 'cell', charge: 71 };
-  setInput(s, p.id, { seq: 1, slot: 2, moveSlot: { from: 2, to: 5 } }); step(s);
+  p.inventory[2] = { kind: 'cell', charge: 71, instanceId: 'cell-71', lineageId: 'cell-71' };
+  identifyItems(s);
+  setInput(s, p.id, { seq: 1, slot: 2 }); step(s);
+  setInput(s, p.id, { seq: 2, moveSlot: { from: 2, to: 5 } }); step(s);
   assert.equal(p.selectedSlot, 5); assert.equal(p.inventory[5].charge, 71); assert.equal(p.inventory[2], null);
   const settled = structuredClone(p.inventory);
   step(s);
   assert.deepEqual(p.inventory, settled, 'an input a tick already spent is not applied again');
-  assert.equal(moveSlot(s, p, -1, 0), false); assert.equal(moveSlot(s, p, 5, SLOT_COUNT), false);
-  assert.equal(moveSlot(s, p, 1.2, 0), false);
   const before = structuredClone(p.inventory);
   setInput(s, p.id, { seq: 3, moveSlot: { from: 5, to: 999 } }); step(s);
   assert.deepEqual(p.inventory, before);
 }));
 
 test('dropped weapons keep remaining ammo and a sixth-slot item can be selected', scene(({ s, p }) => {
-  p.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7 };
-  setInput(s, p.id, { seq: 1, slot: 5, drop: true }); step(s);
+  p.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: 'held-rifle', lineageId: 'held-rifle' };
+  identifyItems(s);
+  setInput(s, p.id, { seq: 1, slot: 5 }); step(s);
+  setInput(s, p.id, { seq: 2, drop: true }); step(s);
   assert.equal(p.selectedSlot, 5); assert.equal(p.inventory[5], null);
   assert.equal(s.items.find(i => i.weaponType === 'rifle').ammo, 7);
 }));
@@ -85,13 +87,15 @@ test('dropped weapons keep remaining ammo and a sixth-slot item can be selected'
 test('slot selection is validated and held; firing uses the selected weapon and utilities consume charges', scene(({ s, p }) => {
   for (const weaponType of Object.keys(WEAPONS)) collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType }));
   collectInstanceEquipment(s, p, ground(s, { kind: 'med' }));
+  p.hp = 50;
   setInput(s, p.id, { seq: 1, slot: 2 }); step(s);
   assert.equal(p.selectedSlot, 2);
   setInput(s, p.id, { seq: 2, attack: true, aim: 0 }); step(s);
   assert.equal(s.projectiles.length, 5); assert.equal(p.attackCd, WEAPONS.scattergun.cooldown);
   setInput(s, p.id, { seq: 3, slot: 999 }); step(s); assert.equal(p.selectedSlot, 2);
-  p.attackCd = 0; p.hp = 50;
-  setInput(s, p.id, { seq: 4, slot: 3, attack: true }); step(s);
+  while (p.attackCd > 0) step(s);
+  setInput(s, p.id, { seq: 4, slot: 3 }); step(s);
+  setInput(s, p.id, { seq: 5, attack: true }); step(s);
   assert.equal(p.hp, 90); assert.equal(p.inventory[3], null); assert.equal(p.weapon, 0);
   const view = playerView(s, snapshot(s), s.players[1].id);
   assert.equal(Object.hasOwn(view.players.find(other => other.id === p.id), 'inventory'), false);

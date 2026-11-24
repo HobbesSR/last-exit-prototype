@@ -9,6 +9,7 @@ import { checkContentPresentation } from './content-presentation.mjs';
 import { checkReloadControls } from './reload-controls.mjs';
 import { createMapGenerator } from '../server/map-generator.js';
 import { readArchive } from './helpers/recordings.js';
+import { canOccupy } from '../shared/movement.ts';
 
 await mkdir('test-results', { recursive: true });
 // Hand-built scenes for the checks that place geometry. The engine pins a map when its match is built, so a scene is
@@ -48,8 +49,7 @@ const failableMaps = (seed, size) => {
   return new Promise((_resolve, reject) => { failHeldGeneration = () => reject(new Error('generation failure arranged by the browser suite')); });
 };
 // The client's long regression, over the rooms a player gets: the shipped content on its physics engine (#920). Its
-// fixtures place actors by assigning positions on the server's game, which the engine takes as a teleport between ticks,
-// and stand checks that need fixed geometry on the scenes above.
+// fixtures arrange initial state before start and use committed teleports for moves between live witnesses.
 const { server, base, browser } = await serveWithBrowser({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps, roomThreads: false });
 const errors = [];
 /** Wait until a player has stopped moving on the server and the page shows them where they stopped. */
@@ -62,14 +62,27 @@ async function settled(page, player, timeout = 10000) {
   }
   assert.fail(`player never settled: server ${JSON.stringify({ x: player.x, y: player.y })}`);
 }
-async function ready(page, url = base) {
+async function warp(room, player, { x, y }) {
+  const radius = room.game.content.actorPhysics.geometry[player.role].bodyRadius;
+  assert.ok(canOccupy(room.game.map, x, y, radius), `fixture warp point ${x},${y} must be clear`);
+  assert.ok(room.match.teleport(player.id, x, y));
+  for (let i = 0; i < 100; i++) {
+    if (Math.hypot(player.x - Math.round(x), player.y - Math.round(y)) < 1) return;
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  assert.fail(`warp did not reach ${x},${y}`);
+}
+async function ready(page, url = base, beforeStart = null) {
   collectBrowserErrors(page, errors, { consoleErrors: true });
   await page.goto(url);
   // A match is built once its map arrives, so allow what default-room.browser.mjs allows for the same step.
   const start = page.getByRole('button', { name: 'Start match', exact: true });
   const live = () => window.arenaDebug?.().phase === 'live';
   await Promise.race([start.waitFor({ state: 'visible', timeout: 60000 }), page.waitForFunction(live, null, { timeout: 60000 })]);
-  if (await start.isVisible()) await start.click();
+  if (await start.isVisible()) {
+    if (beforeStart) await beforeStart(page);
+    await start.click();
+  }
   await page.waitForFunction(() => window.arenaDebug?.().phase === 'live' && window.arenaDebug().tick > 3, null, { timeout: 120000 });
 }
 try {
@@ -97,7 +110,16 @@ try {
   await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
   assert.equal(new URL(page.url()).searchParams.get('room'), ownerRoom, 'reload retains room and owner controls');
   assert.equal(await myId(), ownerPlayer, 'reload resumes the same player');
-  await ready(page, page.url());
+  const arrangeRifle = async (tab, label) => {
+    const { room: id, me } = await tab.evaluate(() => window.arenaDebug());
+    const room = server.rooms.get(id);
+    await room.ready;
+    const game = room.game, player = game.players.find(p => p.id === me.id);
+    const idOfRifle = itemId(game, label);
+    player.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: idOfRifle, lineageId: idOfRifle };
+    player.inventory[4] = null;
+  };
+  await ready(page, page.url(), tab => arrangeRifle(tab, 'browser-rifle'));
   const before = await page.evaluate(() => window.arenaDebug().me.x);
   await page.keyboard.down('KeyD'); await page.waitForTimeout(650); await page.keyboard.up('KeyD');
   const after = await page.evaluate(() => window.arenaDebug().me.x);
@@ -121,15 +143,6 @@ try {
   // Real pointer gestures travel through the client, wire validation and fixed tick.
   const inventoryGame = server.rooms.get(ownerRoom).game;
   const inventoryPlayer = inventoryGame.players.find(p => p.id === ownerPlayer);
-  // Neutral input still collects nearby loot. Park other actors at a distant authored spawn while
-  // the browser observes the drop, then restore their positions and bot control.
-  const awayFrom = (game, player) => [...game.map.spawns, ...game.map.hunterSpawns]
-    .sort((a, b) => Math.hypot(b.x - player.x, b.y - player.y) - Math.hypot(a.x - player.x, a.y - player.y))[0];
-  const inventoryOthers = inventoryGame.players.filter(p => p.id !== inventoryPlayer.id)
-    .map(player => ({ player, bot: player.bot, x: player.x, y: player.y }));
-  for (const { player } of inventoryOthers) { player.bot = false; player.input = {}; Object.assign(player, awayFrom(inventoryGame, inventoryPlayer)); }
-  inventoryPlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: itemId(inventoryGame, 'browser-rifle') };
-  inventoryPlayer.selectedSlot = 0;
   await page.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7);
   const slotCenter = async index => {
     const box = await page.locator('#equipment-slots button').nth(index).boundingBox();
@@ -147,11 +160,9 @@ try {
   const arenaBox = await page.locator('#game canvas').boundingBox();
   await dragInventory(4, { x: arenaBox.x + arenaBox.width / 2, y: arenaBox.y + arenaBox.height / 2 });
   await page.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
-  const droppedRifle = () => server.rooms.get(ownerRoom).game.items.find(item => item.id === itemId(inventoryGame, 'browser-rifle') && item.droppedBy === ownerPlayer);
+  const droppedRifle = () => server.rooms.get(ownerRoom).match.snapshot().items.find(item => item.id === itemId(inventoryGame, 'browser-rifle') && item.droppedBy === ownerPlayer);
   for (let waited = 0; !droppedRifle() && waited < 2000; waited += 50) await page.waitForTimeout(50);
   assert.equal(droppedRifle()?.ammo, 7, 'world drag drops the unselected source with its ammunition');
-  // Live guest admission below needs its replaceable bot slots back.
-  for (const { player, bot, x, y } of inventoryOthers) Object.assign(player, { bot, x, y });
   await page.screenshot({ path: 'test-results/desktop.png' });
   
   await page.waitForTimeout(200);
@@ -567,7 +578,7 @@ try {
   await page.waitForFunction(() => window.arenaDebug().me?.kit === 'striker' && window.arenaDebug().me?.role === 'gladiator');
   await page.waitForTimeout(300); await page.screenshot({ path: 'test-results/gladiator.png' });
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
-  await ready(mobile, `${base}/?seed=4217`);
+  await ready(mobile, `${base}/?seed=4217`, tab => arrangeRifle(tab, 'browser-mobile-rifle'));
   const mx = await mobile.evaluate(() => window.arenaDebug().me.x);
   const move = await mobile.getByRole('group', { name: 'Movement stick', exact: true }).boundingBox();
   await mobile.mouse.move(move.x + move.width / 2, move.y + move.height / 2); await mobile.mouse.down(); await mobile.mouse.move(move.x + move.width - 8, move.y + move.height / 2); await mobile.waitForTimeout(400); await mobile.mouse.up();
@@ -600,12 +611,6 @@ try {
   const mobileInfo = await mobile.evaluate(() => window.arenaDebug());
   const mobileGame = server.rooms.get(mobileInfo.room).game;
   const mobilePlayer = mobileGame.players.find(p => p.id === mobileInfo.me.id);
-  // As on desktop, keep automatic pickups away from the drop throughout these gestures.
-  for (const other of mobileGame.players) if (other.id !== mobilePlayer.id) {
-    other.bot = false; other.input = {}; Object.assign(other, awayFrom(mobileGame, mobilePlayer));
-  }
-  mobilePlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: itemId(mobileGame, 'browser-mobile-rifle') };
-  mobilePlayer.inventory[4] = null;
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7 && !window.arenaDebug().me.inventory[4]);
   const touchSlotCenter = async index => {
     const box = await mobile.locator('#equipment-slots button').nth(index).boundingBox();
@@ -626,15 +631,16 @@ try {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [worldTouch] });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
-  assert.equal(server.rooms.get(mobileInfo.room).game.items.find(item => item.id === itemId(mobileGame, 'browser-mobile-rifle') && item.droppedBy === mobilePlayer.id)?.ammo, 7, 'touch world drag preserves source ammo');
+  assert.equal(server.rooms.get(mobileInfo.room).match.snapshot().items.find(item => item.id === itemId(mobileGame, 'browser-mobile-rifle') && item.droppedBy === mobilePlayer.id)?.ammo, 7, 'touch world drag preserves source ammo');
   // Fixed-coordinate sight and projectile probes stand on the geometry scene; the normal rooms above and the
   // spectator below exercise the live chain map.
   const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seed: SCENE.geometry }) })).json();
   await server.rooms.get(vr.id).ready;
-  const geometryGame = server.rooms.get(vr.id).game;
+  const geometryRoom = server.rooms.get(vr.id), geometryGame = geometryRoom.game;
   for (const p of geometryGame.players) p.bot = false;
   Object.assign(geometryGame.players[0], { bot: true, x: 11980, y: 6000, weapon: 1, selectedSlot: 0,
-    inventory: [{ kind: 'weapon', weaponType: 'pistol', instanceId: itemId(geometryGame, 'browser-pistol') }, null, null, null, null, null] });
+    inventory: [{ kind: 'weapon', weaponType: 'pistol', instanceId: itemId(geometryGame, 'browser-pistol') },
+      { kind: 'cell', charge: 99, instanceId: itemId(geometryGame, 'browser-cell') }, null, null, null, null] });
   const visionPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await ready(visionPage, `${base}/?room=${vr.id}&ownerKey=${encodeURIComponent(vr.ownerKey)}`);
   await visionPage.mouse.move(1100, 420);
@@ -697,28 +703,28 @@ try {
   // The server now sends anything within reach; the client alone decides what is drawn. An enemy
   // standing behind cover must arrive in the state and still never be rendered.
   const lurker = geometryGame.players.find(p => p.role === 'gladiator');
-  Object.assign(lurker, { x: 12200, y: 6000, bot: false, input: {} });
+  await warp(geometryRoom, lurker, { x: 12200, y: 6000 });
   await visionPage.waitForFunction(id => window.arenaDebug().actors?.some(a => a.id === id), lurker.id, { timeout: 8000 });
   const behindCover = await visionPage.evaluate(id => window.arenaDebug().actors.find(a => a.id === id), lurker.id);
   assert.equal(behindCover.visible, false, 'an enemy behind cover is transmitted but not drawn');
-  Object.assign(lurker, { x: 12035, y: 6000 });
+  await warp(geometryRoom, lurker, { x: 12035, y: 6000 });
   await visionPage.waitForFunction(id => window.arenaDebug().actors?.find(a => a.id === id)?.visible === true, lurker.id, { timeout: 8000 });
   const inTheOpen = await visionPage.evaluate(id => window.arenaDebug().actors.find(a => a.id === id), lurker.id);
   assert.equal(inTheOpen.visible, true, 'the same enemy in the open is drawn');
   const runnerId = await visionPage.evaluate(() => window.arenaDebug().me.id);
   const runner = geometryGame.players.find(p => p.id === runnerId);
-  runner.x = 15000; runner.y = 6000;
+  await warp(geometryRoom, runner, { x: 15000, y: 6000 });
   // Beyond the former 620-unit circle yet inside the shipped camera's view (about 1290 x 830 at its zoom).
-  lurker.x = 15560; lurker.y = 6300;
+  await warp(geometryRoom, lurker, { x: 15560, y: 6300 });
 
   await visionPage.waitForFunction(id => window.arenaDebug().me.x > 14900 && window.arenaDebug().actors.find(a => a.id === id)?.visible, lurker.id);
   assert.ok(Math.hypot(lurker.x - runner.x, lurker.y - runner.y) > 620, 'visible actor is beyond the former circular cutoff');
   await visionPage.screenshot({ path: 'test-results/viewport-visibility.png' });
-  runner.inventory[1] = { kind: 'cell', charge: 99, instanceId: itemId(geometryGame, 'browser-cell') }; Object.assign(runner, { x: geometryGame.map.chargers[1].x, y: geometryGame.map.chargers[1].y });
+  await warp(geometryRoom, runner, geometryGame.map.chargers[1]);
   await visionPage.waitForFunction(() => window.arenaDebug().me.inventory?.[1]?.charge === 99);
   await visionPage.keyboard.press('KeyE');
   await visionPage.waitForFunction(() => document.getElementById('objective').textContent.includes('CELL CHARGED'));
-  Object.assign(runner, geometryGame.map.exit);
+  await warp(geometryRoom, runner, geometryGame.map.exit);
   await visionPage.waitForFunction(x => Math.abs(window.arenaDebug().me.x - x) < 1, geometryGame.map.exit.x);
   await visionPage.keyboard.press('KeyE');
   await visionPage.waitForFunction(() => window.arenaDebug().me.status === 'escaped');
@@ -738,8 +744,9 @@ try {
   const artRoom = server.rooms.get(artInfo.id);
   await artRoom.ready;
   const artPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  await ready(artPage, `${base}/?room=${artInfo.id}&ownerKey=${encodeURIComponent(artInfo.ownerKey)}`);
-  for (const player of artRoom.game.players) player.bot = false;
+  await ready(artPage, `${base}/?room=${artInfo.id}&ownerKey=${encodeURIComponent(artInfo.ownerKey)}`, () => {
+    for (const player of artRoom.game.players) player.bot = false;
+  });
   const artId = await artPage.evaluate(() => window.arenaDebug().me.id);
   const artPlayer = artRoom.game.players.find(p => p.id === artId);
   // Several archetypes are in the catalogue, so every position here comes from the building rather
@@ -749,7 +756,7 @@ try {
   assert.ok(entrance, 'the roof/door fixture has an unlocked entrance and indoor loot');
   const interior = artRoom.game.map.buildings.find(b => b.id === entrance.buildingId);
   const indoors = artRoom.game.items.find(i => i.buildingId === interior.id);
-  Object.assign(artPlayer, { x: indoors.x, y: indoors.y });
+  await warp(artRoom, artPlayer, indoors);
   // The body may be separated out of a partition, so wait for wherever it settles rather than for the
   // exact spot: rooms have random seeds, so which buildings put loot against a partition varies.
   await settled(artPage, artPlayer);
@@ -762,11 +769,10 @@ try {
   const across = entrance.w > entrance.h, outward = across ? Math.sign(doorY - (interior.y + interior.h / 2)) : Math.sign(doorX - (interior.x + interior.w / 2));
   const approach = across ? { x: doorX, y: outward > 0 ? interior.y + interior.h + 55 : interior.y - 55, key: outward > 0 ? 'KeyW' : 'KeyS' }
     : { x: outward > 0 ? interior.x + interior.w + 55 : interior.x - 55, y: doorY, key: outward > 0 ? 'KeyA' : 'KeyD' };
-  Object.assign(artPlayer, { x: approach.x, y: approach.y });
+  await warp(artRoom, artPlayer, approach);
   await artPage.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible, interior.id);
   await artPage.waitForTimeout(150);
   await artPage.screenshot({ path: 'test-results/building-roof.png' });
-  artPlayer.keys = 1;
   await artPage.keyboard.press('KeyE');
   await artPage.keyboard.down(approach.key); await artPage.waitForTimeout(850); await artPage.keyboard.up(approach.key);
   await artPage.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible === false, interior.id);
@@ -827,7 +833,7 @@ try {
   await ready(wallPage, `${base}/?room=${wallRoom.id}&ownerKey=${encodeURIComponent(wallRoom.ownerKey)}`);
   const wallBox = inside(walled).find(o => o.w >= 8 && o.h >= 24);
   const wallPlayer = wallGame.players.find(p => p.id === wallRoom.playerId) || wallGame.players[0];
-  Object.assign(wallPlayer, { x: walled.x + walled.w / 2, y: walled.y + walled.h / 2 });
+  await warp(server.rooms.get(wallRoom.id), wallPlayer, { x: walled.x + walled.w / 2, y: walled.y + walled.h / 2 });
   await settled(wallPage, wallPlayer);
   await wallPage.waitForFunction(id => {
     const d = window.arenaDebug();

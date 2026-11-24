@@ -5,6 +5,7 @@ import { createRoomService } from '../server/room-service.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { createGame, step, snapshot, disposePhysics, PHYSICS_VERSION, playerView, enqueuePhysicsImpulse, setInput } from '../shared/simulation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
+import { admitPending } from '../shared/simulation/boundary.ts';
 import { staticShapes } from '../shared/simulation/swept.ts';
 import { insideMap } from '../shared/playable-area.ts';
 import { stringifyWithMap } from '../server/map-payload.js';
@@ -29,7 +30,7 @@ test('experimental match owns, isolates and disposes its world while retaining d
     assert.equal(a.version, PHYSICS_VERSION);
     assert.equal(b.tick, 0);
     assert.equal(a.snapshot().players[0].lastSeq, 1);
-    assert.ok(a.snapshot().physics);
+    assert.equal(a.snapshot().physics, undefined);
     assert.equal('physics' in a.project(a.snapshot(), 'human'), false, 'private engine state never enters live projection');
     a.dispose(); a.dispose();
     assert.throws(() => world.counts(), /disposed/);
@@ -137,7 +138,7 @@ test('room welcomes and recording start use prepared maps without changing start
     assert.equal(frames[0].state.tick, 0);
     service.receive(player, { type: 'input', tick: 1, seq: 0, x: 1 });
     service.advance(50, 50);
-    assert.deepEqual(frames.at(-1).commands.map(command => [command.type, command.seq]), [['input', 0]],
+    assert.deepEqual(frames.at(-1).commands.map(command => [command.type, command.seq]), [['command', 0]],
       'a factory with only acceptInput still admits and records input');
     const watcher = service.connect({ deliver(message) { messages.push(readServerMessage(message)); return true; }, close() {} });
     service.receive(watcher, { type: 'join', room: room.id, mode: 'dev' });
@@ -218,14 +219,17 @@ test('room shutdown during cooperative construction awaits and disposes the unad
 test('mask contact remains contained at a distant live-map corner without leaking private state', async () => {
   const s = await createGame(1, arena(51000, 25000), content());
   try {
-    const p = s.players[0]; p.bot = false; p.input = { x: 1, y: 1 }; p.inputTick = 1000;
-    for (let i = 0; i < 80; i++) { step(s); assert.ok(insideMap(s.map, p.x, p.y, 11.99)); }
+    const p = s.players[0]; p.bot = false;
+    for (let i = 0; i < 80; i++) {
+      assert.ok(setInput(s, p.id, { seq: i + 1, x: 1, y: 1 }));
+      step(s);
+      assert.ok(insideMap(s.map, p.x, p.y, s.content.actorPhysics.geometry.contestant.bodyRadius - 0.05), 'contact stays within solver slop');
+    }
     const frame = snapshot(s);
     assert.equal('physics' in playerView(s, frame, p.id), false);
     assert.equal(physicsRuntime(s).world.settings.exactCheckpoint, 'unsupported');
-    assert.equal('settings' in frame.physics, false);
-    assert.equal('profile' in frame.physics, false);
-    assert.equal('pending' in frame.physics.world, false);
+    assert.equal(frame.physics, undefined);
+    assert.ok(frame.bodies.some(body => body.owner.kind === 'actor'));
   } finally { disposePhysics(s); }
 });
 
@@ -240,8 +244,8 @@ test('pending effects reject invalid values and cannot act on a teleported gener
     const previous = r.world.getGeneration(id);
     r.world.setTransform(id, { x: p.x, y: p.y, angle: 0 });
     assert.notEqual(r.world.getGeneration(id), previous);
-    step(s);
+    admitPending(s, r);
     assert.equal(r.pendingImpulses.length, 0);
-    assert.equal(p.movedThisTick, 0);
+    assert.equal(r.world.step().distance[id], 0);
   } finally { disposePhysics(s); }
 });

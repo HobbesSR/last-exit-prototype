@@ -19,14 +19,18 @@ interface ObservedBody { kind: 'actor' | 'prop'; shape: Shape }
 const detours = new WeakMap<Player, Detour>();
 const work = new WeakMap<Game, { tick: number; edges: number }>();
 const localMaps = new WeakMap<Player, { source: CollisionMap; doors: string; map: CollisionMap }>();
-const collectionObservations = new WeakMap<Game, { players: Player[]; props: Array<{ spec: BodySpec; transform: Transform }> }>();
+type SolidProp = { spec: Pick<BodySpec, 'shape'>; transform: Pick<Transform, 'x' | 'y' | 'angle'> };
+const liveProps = new WeakMap<Game, () => SolidProp[]>();
+export function attachSolidPropReader(s: Game, read: () => SolidProp[]): void { liveProps.set(s, read); }
+const solidProps = (s: Game) => liveProps.get(s)?.() ?? physicsRuntime(s)?.world.solidPropStates() ?? [];
+const collectionObservations = new WeakMap<Game, { players: Player[]; props: SolidProp[] }>();
 export function dynamicNavigationWork(s: Game): number { return work.get(s)?.tick === s.tick ? work.get(s)!.edges : 0; }
 
 const sortedPlayers = (s: Game) => [...s.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 /** Scope sharing to the immutable pre-movement collection, never merely to a tick number. */
 export function beginDynamicNavigationCollection(s: Game): void {
   if (!s.players.some(p => p.bot && p.status === 'active')) return;
-  const props = physicsRuntime(s)?.world.solidPropStates() ?? [];
+  const props = solidProps(s);
   count('work.bots.props', props.length);
   collectionObservations.set(s, { players: sortedPlayers(s), props });
 }
@@ -38,7 +42,7 @@ function observations(s: Game, p: Player): ObservedBody[] {
   for (const other of shared?.players ?? sortedPlayers(s)) if (other !== p && other.status === 'active' && distance(p, other) <= RANGE
     && visibleTo(s, p, other)) bodies.push({ kind: 'actor', shape: { kind: 'circle', x: other.x, y: other.y, r: actorRadius(s, other) } });
   const sees = (at: Vec2) => distance(p, at) <= RANGE && visiblePoint(s, p, at);
-  for (const body of shared?.props ?? physicsRuntime(s)?.world.solidPropStates() ?? []) {
+  for (const body of shared?.props ?? solidProps(s)) {
     if (!sees(body.transform)) continue;
     const at = body.transform, shape = body.spec.shape;
     if (shape.kind === 'circle') bodies.push({ kind: 'prop', shape: { kind: 'circle', x: at.x, y: at.y, r: shape.radius } });

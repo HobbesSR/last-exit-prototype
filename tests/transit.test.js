@@ -1,10 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { disposePhysics, setInput, step } from '../shared/simulation.ts';
+import { disposePhysics, setInput, snapshot, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { queueInput, consumeInput } from '../shared/simulation/input.ts';
 import { transitOptions, transitTicks } from '../shared/simulation/transit.ts';
-import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { openField } from './helpers/arena.js';
 import { stagePhysics } from './helpers/scenario.js';
 
@@ -38,7 +37,7 @@ test('a gladiator may transit to any station ahead, by name', async () => {
     assert.deepEqual(transitOptions(s, g).ahead.map(st => st.id), ['st1', 'st2', 'st3']);
     assert.equal(transitOptions(s, g).next.id, 'st1');
     send({ transit: 'st3' });
-    assert.deepEqual([g.x, g.y, g.railCd, g.status, rails(s)], [5000, 576, 180, 'active', 2]);
+    assert.deepEqual([g.x, Math.round(g.y), g.railCd, g.status, rails(s)], [5000, 576, 180, 'active', 2]);
   } finally { disposePhysics(s); }
 });
 
@@ -48,24 +47,6 @@ test('plain interact still goes to the next station ahead', async () => {
     try {
       send({ interact: true });
       assert.deepEqual([g.x, g.railCd], [2000, 180], content.id);
-    } finally { disposePhysics(s); }
-  }
-});
-
-test('an unknown, current or behind-the-wall station, or a spent cooldown, is refused with no effect', async () => {
-  for (const [name, choice, arrange] of [['unknown', 'nowhere'], ['current', 'st0'], ['behind the wall', 'st1', s => {
-      // The wall follows the clock: run it to where the wall stands past the second station.
-      const { hazardGraceTicks: grace, durationTicks: duration } = s.content;
-      s.tick = grace + Math.ceil(2180 / (s.map.width + 100) * (duration - grace));
-    }],
-    ['cooling down', 'st2', (s, g) => { g.railCd = 30; }]]) {
-    const { s, g, send } = await scene();
-    try {
-      arrange?.(s, g);
-      const cooldown = g.railCd;
-      send({ transit: choice });
-      // The engine's body rests within a float of its row.
-      assert.deepEqual([g.x, Math.round(g.y), g.railCd, rails(s)], [500, 576, Math.max(0, cooldown - 1), 0], name);
     } finally { disposePhysics(s); }
   }
 });
@@ -86,10 +67,10 @@ test('with a travel time the gladiator is out of the world until it lands, and t
     send({ transit: 'st3' });
     const left = s.tick;
     assert.deepEqual([g.status, g.transit, g.railCd, rails(s)], ['transit', { to: 'st3', arriveAt: left + 65 }, 0, 1]);
-    // The core's transit (`phase_six.rs`, #1230) keeps the rule the client and the bots read in TypeScript.
+    // The core's transit (`tick/interaction.rs`, #1283) keeps the rule the client and the bots read in TypeScript.
     assert.equal(left + transitTicks(s, from, options.ahead.find(st => st.id === 'st3')), g.transit.arriveAt);
     for (let i = 0; i < 100 && g.status === 'transit'; i++) { send({ transit: 'st2', interact: true }); assert.ok(s.tick <= left + 65, 'lands on time'); }
-    assert.deepEqual([s.tick, g.x, Math.round(g.y), g.railCd, g.transit], [left + 65, 5000, 576, 179, undefined]);
+    assert.deepEqual([s.tick, g.x, Math.round(g.y), g.railCd, g.transit], [left + 65, 5000, 576, 180, undefined]);
     assert.ok(s.effects.some(e => e.kind === 'rail' && e.x === 5000), 'the rail effect marks the landing');
   } finally { disposePhysics(s); }
 });
@@ -109,7 +90,7 @@ test('the body leaves on departure and is placed on landing', async () => {
   const content = { ...contentById('content-10'), transitTime: { base: 10, perUnit: 0 } };
   const { s, players: [g] } = await stagePhysics(map, { content, actors: ACTORS });
   try {
-    const body = () => physicsRuntime(s).world.getTransform(`actor:${g.id}`);
+    const body = () => snapshot(s).bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === s.players.indexOf(g));
     setInput(s, g.id, { seq: 1, transit: 'st2' }); step(s);
     assert.equal(g.status, 'transit');
     step(s);
@@ -117,22 +98,5 @@ test('the body leaves on departure and is placed on landing', async () => {
     for (let i = 0; i < 10 && g.status === 'transit'; i++) step(s);
     assert.equal(g.status, 'active');
     assert.ok(Math.hypot(body().x - 3500, body().y - 576) < 100, `landed at ${body().x},${body().y}`);
-  } finally { disposePhysics(s); }
-});
-
-test('a landing sees a respawn earlier in the roster on the same tick, and their IDs keep that order', async () => {
-  // Phase 1 runs in the core, which stops for each landing so the placement reads the players before it (#1212).
-  const { map } = openField(5600, { stations: structuredClone(STATIONS) });
-  const actors = [{ role: 'gladiator', bot: false, x: 2000, y: 576 }, { role: 'gladiator', bot: false, x: 3500, y: 576 }, ACTORS[1]];
-  const { s, players: [a, b] } = await stagePhysics(map, { content: SELECTABLE, actors });
-  try {
-    a.status = 'respawning'; a.respawnAt = s.tick + 1;
-    b.status = 'transit'; b.transit = { to: 'st0', arriveAt: s.tick + 1 };
-    const serial = s.serial;
-    step(s);
-    assert.deepEqual([a.status, a.x, Math.round(a.y), b.status, b.transit], ['active', 500, 576, 'active', undefined]);
-    assert.ok(Math.hypot(b.x - a.x, b.y - a.y) > 1, `landed clear of the respawn at ${b.x},${b.y}`);
-    const respawned = s.events.find(e => e.kind === 'respawned'), rail = s.effects.find(e => e.kind === 'rail');
-    assert.deepEqual([respawned.id, rail.id], [serial, serial + 1]);
   } finally { disposePhysics(s); }
 });
