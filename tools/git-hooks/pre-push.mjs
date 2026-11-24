@@ -63,6 +63,45 @@ function scoped(args) {
   return { scope: line.slice(0, tab), value: line.slice(tab + 1) };
 }
 
+const CREDENTIAL_KEY = /^credential\.(?:(.+)\.)?username$/;
+
+/**
+ * The scope that supplies `value` as the credential username for `url`. `git config
+ * --show-scope --get-urlmatch` names the scope only from git 2.42 on; older git, such
+ * as the runner's Debian bookworm, prints `unknown` (#1332). So every host finds the
+ * scope the same way: among the scoped `credential.*username` entries, the last whose
+ * URL pattern covers `url` and whose value is `value`. A pattern this does not
+ * recognise (git's host wildcards) reads as `unrecognised`, which the hook refuses.
+ *
+ * @param {{ scope: string, key: string, value: string }[]} entries in git's reading order
+ * @returns {{ scope: string, value: string } | undefined}
+ */
+export function credentialUsername(entries, value, url) {
+  if (!value) return undefined;
+  const covers = (pattern) => {
+    if (pattern === undefined) return true;
+    const prefix = pattern.replace(/\/+$/, '').toLowerCase();
+    const target = url.toLowerCase();
+    return target === prefix || target.startsWith(`${prefix}/`);
+  };
+  const source = entries.findLast((entry) => {
+    const match = CREDENTIAL_KEY.exec(entry.key);
+    return match && entry.value === value && covers(match[1]);
+  });
+  return { scope: source?.scope ?? 'unrecognised', value };
+}
+
+function scopedCredentialEntries() {
+  return git(['config', '--show-scope', '--get-regexp', '^credential\\..*username$'])
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => {
+      const tab = line.indexOf('\t');
+      const space = line.indexOf(' ', tab + 1);
+      return { scope: line.slice(0, tab), key: line.slice(tab + 1, space), value: line.slice(space + 1) };
+    });
+}
+
 const ZERO = /^0+$/;
 
 function pushedCommits(remote, updates) {
@@ -85,7 +124,9 @@ function main([remote, url]) {
   const problems = checkPush({
     remote,
     // A path remote has no URL to match and takes no credentials; it reads as unset.
-    username: url?.includes('://') ? scoped(['--get-urlmatch', 'credential.username', url]) : undefined,
+    username: url?.includes('://')
+      ? credentialUsername(scopedCredentialEntries(), git(['config', '--get-urlmatch', 'credential.username', url]), url)
+      : undefined,
     name: scoped(['--get', 'user.name']),
     email: scoped(['--get', 'user.email']),
     commits: pushedCommits(remote, readFileSync(0, 'utf8')),
