@@ -6,16 +6,13 @@ import { parentPort, workerData } from 'node:worker_threads';
 import { generateLiveMap } from '../map/live.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { prebuiltTiles } from '../shared/simulation/bot-routes.ts';
-import { packedTilesFor } from '../shared/navigation/knowledge.ts';
-import { packMap, packedTransfer } from './map-pack.js';
+import { packMap, packRuntimeMap, packedTransfer } from './map-pack.js';
 
 parentPort.on('message', ({ id, seed, size }) => {
   try {
     const content = defaultContent(), map = generateLiveMap(seed, content, size);
     const runtimeMap = workerData?.runtimeMap === true;
-    const tiles = prebuiltTiles(map, content);
-    if (runtimeMap) tiles.push(packedTilesFor(map, 'contestant'));
-    const packed = packMap(map, tiles, { runtimeMap });
+    const packed = runtimeMap ? packRuntimeMap(map) : packMap(map, prebuiltTiles(map, content));
     parentPort.postMessage({ id, packed }, packedTransfer(packed));
   } catch (error) { parentPort.postMessage({ id, error: error instanceof Error ? error.message : String(error) }); }
 });

@@ -1,6 +1,7 @@
 import { serialize, deserialize } from 'node:v8';
 import { attachPortalGraph, portalGraphOf } from '../shared/navigation/portal-graph.ts';
 import { adoptPackedTiles } from '../shared/free-space.ts';
+import { freeTilesFor } from '../shared/navigation/knowledge.ts';
 import { packRuntimeNavigation } from './runtime-map-write.js';
 
 // A generated map as bytes, so it can cross threads without any thread in between decoding it (#1089).
@@ -19,11 +20,16 @@ function owned(buffer) {
 }
 
 /** A map (with its portal graph and any prebuilt tiles) as transferable bytes. */
-export function packMap(map, tiles = [], { runtimeMap = false } = {}) {
+export function packMap(map, tiles = []) {
+  return { kind: PACKED, bytes: owned(serialize({ map, navigation: portalGraphOf(map) ?? null })), tiles };
+}
+
+/** The opt-in worker handoff writes its flat navigation directly from generated tiles. */
+export function packRuntimeMap(map) {
   const navigation = portalGraphOf(map) ?? null;
-  if (!runtimeMap) return { kind: PACKED, bytes: owned(serialize({ map, navigation })), tiles };
   const graphIds = navigation && { regions: navigation.regions.map(r => r.id), portals: navigation.portals.map(p => p.id) };
-  return { kind: PACKED, bytes: owned(serialize({ map, graphIds })), tiles: [], runtimeNavigation: packRuntimeNavigation(map, tiles) };
+  const layers = ['gladiator', 'contestant'].map(role => freeTilesFor(map, role));
+  return { kind: PACKED, bytes: owned(serialize({ map, graphIds })), tiles: [], runtimeNavigation: packRuntimeNavigation(map, layers) };
 }
 
 export const isPackedMap = value => value?.kind === PACKED && value.bytes instanceof Uint8Array;

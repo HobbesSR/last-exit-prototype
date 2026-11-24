@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
 
-// Each section has an offset and length in the runtime navigation header. This layout measures
-// only the new navigation payload, with the numeric widths from the runtime map contract.
+// The directory describes 8-byte-aligned sections in the v1 runtime navigation payload.
 export function packRuntimeNavigation(map, layers) {
+  assert.equal(layers.length, 2);
   const gateSlots = new Map(map.gates.map(({ id }, slot) => [id, slot]));
   const graph = portalGraphOf(map);
   const sections = [Uint32Array.of(+!!graph, layers.length)];
@@ -25,39 +25,62 @@ export function packRuntimeNavigation(map, layers) {
     sections.push(Float64Array.from(geometry), Uint32Array.from(rows), graph.owner,
       Uint32Array.from(adjacency), Float64Array.from(stands));
   }
-  for (const { clearance, size, cols, index, floats, ints, gates } of layers) {
-    const gateSets = JSON.parse(gates), tileInts = [], tileGeometry = [], setRows = [], members = [];
-    const fields = 16;
-    assert.equal(index.length % fields, 0);
-    for (let at = 0; at < index.length; at += fields) {
-      const sets = gateSets[at / fields] ?? [];
-      tileInts.push(...index.subarray(at, at + 6), index[at + 9], index[at + 10], setRows.length / 2, sets.length);
-      tileGeometry.push(...index.subarray(at + 6, at + 9), ...index.subarray(at + 11, at + fields));
-      for (const set of sets) {
-        setRows.push(members.length, set.length);
-        for (const gate of set) {
-          assert.ok(gateSlots.has(gate), `unknown gate ${gate}`);
-          members.push(gateSlots.get(gate));
-        }
-      }
+  const layerStart = sections.length;
+  for (const { tiles } of layers) {
+    let floats = 0, ints = 0, sets = 0, members = 0;
+    for (const tile of tiles) {
+      floats += tile.points.length;
+      ints += tile.triangles.length * 2 + tile.locator.starts.length + tile.locator.items.length + tile.gateSet.length;
+      sets += tile.gateSets.length;
+      for (const set of tile.gateSets) members += set.length;
     }
-    sections.push(Float64Array.of(clearance, size), Uint32Array.of(cols, index.length / fields),
-      Uint32Array.from(tileInts), Float64Array.from(tileGeometry), floats, ints,
-      Uint32Array.from(setRows), Uint32Array.from(members));
+    // A number describes a section to fill directly after allocating the final buffer.
+    sections.push(16, 8, tiles.length * 10 * 4, tiles.length * 8 * 8,
+      floats * 8, ints * 4, sets * 2 * 4, members * 4);
   }
   const directory = new Uint32Array(2 + sections.length * 2);
   directory.set([1, sections.length]);
   let bytes = directory.byteLength;
   for (const [i, section] of sections.entries()) {
     bytes = Math.ceil(bytes / 8) * 8;
-    directory.set([bytes, section.byteLength], 2 + i * 2);
-    bytes += section.byteLength;
+    const length = typeof section === 'number' ? section : section.byteLength;
+    directory.set([bytes, length], 2 + i * 2);
+    bytes += length;
   }
   assert.equal(os.endianness(), 'LE');
   const packed = new Uint8Array(bytes);
   packed.set(new Uint8Array(directory.buffer));
-  for (const [i, section] of sections.entries()) {
+  for (let i = 0; i < layerStart; i++) {
+    const section = sections[i];
     packed.set(new Uint8Array(section.buffer, section.byteOffset, section.byteLength), directory[2 + i * 2]);
+  }
+  const view = (i, Type) => new Type(packed.buffer, directory[2 + i * 2], directory[3 + i * 2] / Type.BYTES_PER_ELEMENT);
+  for (const [layerIndex, { clearance, size, cols, tiles }] of layers.entries()) {
+    const s = layerStart + layerIndex * 8;
+    view(s, Float64Array).set([clearance, size]);
+    view(s + 1, Uint32Array).set([cols, tiles.length]);
+    const rows = view(s + 2, Uint32Array), geometry = view(s + 3, Float64Array);
+    const floats = view(s + 4, Float64Array), ints = view(s + 5, Int32Array);
+    const setRows = view(s + 6, Uint32Array), members = view(s + 7, Uint32Array);
+    let floatAt = 0, intAt = 0, setAt = 0, memberAt = 0;
+    for (const [i, tile] of tiles.entries()) {
+      const { x, y, size: bucket, cols: across, rows: down, starts, items } = tile.locator;
+      const { box } = tile;
+      rows.set([floatAt, tile.points.length, intAt, tile.triangles.length, starts.length, items.length,
+        across, down, setAt, tile.gateSets.length], i * 10);
+      geometry.set([x, y, bucket, box.x, box.y, box.w, box.h, tile.reach], i * 8);
+      floats.set(tile.points, floatAt); floatAt += tile.points.length;
+      for (const part of [tile.triangles, tile.twins, starts, items, tile.gateSet]) {
+        ints.set(part, intAt); intAt += part.length;
+      }
+      for (const set of tile.gateSets) {
+        setRows.set([memberAt, set.length], setAt * 2); setAt++;
+        for (const gate of set) {
+          assert.ok(gateSlots.has(gate), `unknown gate ${gate}`);
+          members[memberAt++] = gateSlots.get(gate);
+        }
+      }
+    }
   }
   return packed;
 }

@@ -5,9 +5,12 @@ import { takeRuntimeNavigation } from './map-pack.js';
 import { readRuntimeNavigation } from './runtime-map-read.js';
 
 /** Upload the worker's navigation package once, then let the transition planner borrow its views. */
-export async function prepareRuntimeNavigation(map) {
+export function prepareRuntimeNavigation(map) {
   const pending = takeRuntimeNavigation(map);
-  if (!pending) return undefined;
+  return pending ? uploadRuntimeNavigation(map, pending) : undefined;
+}
+
+async function uploadRuntimeNavigation(map, pending) {
   const core = await initCore();
   const length = pending.bytes.byteLength;
   let pointer = core.core_alloc(length) >>> 0;

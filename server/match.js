@@ -104,7 +104,8 @@ export function createLobby(content = defaultContent()) {
 export async function createMatch(seed, size, map, content = defaultContent(), { wireKey = null } = {}) {
   const wire = wireIds(wireKey);
   map ??= generateLiveMap(seed, content, size);
-  const releaseNavigation = await prepareRuntimeNavigation(map);
+  const uploadingNavigation = prepareRuntimeNavigation(map);
+  const releaseNavigation = uploadingNavigation && await uploadingNavigation;
   let game;
   try {
     game = await createGame(seed, map, content, () => preparationPause());

@@ -6,8 +6,7 @@ import { packMap, unpackMap } from '../server/map-pack.js';
 import { initCore } from '../shared/core.ts';
 import { discoveryGrid } from '../shared/discovery.ts';
 import { packTiles } from '../shared/free-space.ts';
-import { navigationClearance } from '../shared/map/navigation.ts';
-import { contestantKnowledge, createKnowledgePlanner } from '../shared/navigation/knowledge.ts';
+import { contestantKnowledge, createKnowledgePlanner, freeTilesFor } from '../shared/navigation/knowledge.ts';
 import { packRuntimeNavigation } from '../server/runtime-map-write.js';
 import { createGame, disposePhysics } from '../shared/simulation.ts';
 import { legGoal } from '../shared/simulation/bot-routes.ts';
@@ -61,16 +60,15 @@ try {
   let map = generateLiveMap(seed, content, size);
   ms.map = performance.now() - started;
   snapshots.map = memory(core);
-  const { cols, rows, size: cellSize } = discoveryGrid(map);
-  const all = { known: () => true, door: () => undefined, keys: 0, revision: 0 };
-  const layers = [];
+  const { cols, rows } = discoveryGrid(map);
+  const layers = [], builtLayers = [];
   for (const role of ['gladiator', 'contestant']) {
-    const planner = createKnowledgePlanner(map, role);
     started = performance.now();
-    const tiles = Array.from({ length: cols * rows }, (_, cell) => planner.tile(all, cell));
+    const { tiles, clearance, size: cellSize } = freeTilesFor(map, role);
+    builtLayers.push({ tiles, clearance, size: cellSize, cols });
     ms[`${role}Build`] = performance.now() - started;
     started = performance.now();
-    layers.push(packTiles(tiles, navigationClearance(role), cellSize, cols));
+    layers.push(packTiles(tiles, clearance, cellSize, cols));
     ms[`${role}Pack`] = performance.now() - started;
     snapshots[role] = memory(core);
   }
@@ -78,8 +76,9 @@ try {
   const envelope = packMap(map, layers);
   ms.workerEnvelope = performance.now() - started;
   started = performance.now();
-  let navigation = packRuntimeNavigation(map, layers);
+  let navigation = packRuntimeNavigation(map, builtLayers);
   ms.flatNavigation = performance.now() - started;
+  builtLayers.length = 0;
   const bytes = { workerMap: envelope.bytes.byteLength, workerGladiator: tileBytes(layers[0]),
     workerContestant: tileBytes(layers[1]), flatNavigation: navigation.byteLength };
   snapshots.builder = memory(core, true);
