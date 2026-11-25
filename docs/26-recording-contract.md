@@ -54,8 +54,17 @@ the archived graph.
 
 `null` says the match ran without a graph. An absent field means the archive did not capture that
 input, including schema 24 archives with `setup.items`. Stored-frame playback ignores the setup
-object and still uses reader floor 20. Start-state reconstruction and digest verification remain
-in #1284.
+object and still uses reader floor 20.
+
+For #1284's start-state reconstruction, `server/replay-start.js` accepts a decoded schema 25 archive
+with matching rules, shipped content, tick rate and planner version. It builds the match with the
+recorded map and seed, substitutes the authored items, rebuilds free-space layers and uploads the
+archived graph sections through the core's runtime navigation validator. It applies the ordered seat
+commands before the opening `start` and restores the view lag and input lead from the tick-zero
+players. It then starts the match and compares its opening frame with the stored frame in the
+archive's JSON representation. Missing inputs, unsupported versions and opening mismatches are
+reported by reconstruction. The caller owns the returned match and disposes it. Checking subsequent
+ticks against `botCommandDigest` remains in #1284.
 
 ## Schema 24: authored loot for replay setup (#1284)
 

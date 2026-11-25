@@ -13,8 +13,20 @@ function recordingGraph(bytes) {
   return { encoding: 'flat-graph-1', sections };
 }
 
+function readRecordingGraph(graph) {
+  if (graph == null) return graph;
+  if (graph?.encoding !== 'flat-graph-1') throw new RangeError('Unsupported replay setup.portalGraph encoding');
+  if (!Array.isArray(graph.sections)) throw new RangeError('Invalid replay setup.portalGraph sections');
+  return graph.sections.map(section => {
+    if (typeof section !== 'string') throw new RangeError('Invalid replay setup.portalGraph section');
+    const bytes = Buffer.from(section, 'base64');
+    if (bytes.toString('base64') !== section) throw new RangeError('Invalid replay setup.portalGraph base64');
+    return bytes;
+  });
+}
+
 /** Prepare both navigation layers before the room is ready. */
-export async function prepareRuntimeNavigation(map) {
+export async function prepareRuntimeNavigation(map, archivedGraph) {
   const pending = takeRuntimeNavigation(map);
   const core = await initCore();
   let portalGraph;
@@ -24,6 +36,6 @@ export async function prepareRuntimeNavigation(map) {
     : undefined;
   const navigation = pending
     ? uploadRuntimeNavigation(core, map, pending.bytes, contestant, capture)
-    : createRuntimeNavigation(core, map, capture);
+    : createRuntimeNavigation(core, map, capture, readRecordingGraph(archivedGraph));
   return { ...navigation, portalGraph };
 }

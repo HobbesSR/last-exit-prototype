@@ -3,6 +3,7 @@ import { CLIP_SCALE } from '../shape-construction.ts';
 
 const DIRECTORY_HEADER_WORDS = 2;
 const SECTION_WORDS = 2;
+const GRAPH_SECTION_COUNT = 5;
 const sectionEntry = section => DIRECTORY_HEADER_WORDS + section * SECTION_WORDS;
 
 /** Borrow the five graph sections of a validated primary package, or null for a graphless package. */
@@ -12,7 +13,7 @@ export function runtimePortalGraphSections(bytes) {
   // Both versions use the same graph flag, geometry, rows, owner grid, adjacency and stands.
   if (!view.getUint32(readWord(sectionEntry(0)), true)) return null;
   const sections = [];
-  for (let section = 1; section <= 5; section++) {
+  for (let section = 1; section <= GRAPH_SECTION_COUNT; section++) {
     const entry = sectionEntry(section);
     const offset = readWord(entry);
     sections.push(bytes.subarray(offset, offset + readWord(entry + 1)));
@@ -22,13 +23,19 @@ export function runtimePortalGraphSections(bytes) {
 
 // The directory describes 8-byte-aligned sections. Version 2 stores points as unsigned
 // offsets from the discovery-tile origin in units of the Clipper grid.
-export function packRuntimeNavigation(map, layers, { compact = false, includeGraph = true } = {}) {
+export function packRuntimeNavigation(map, layers, { compact = false, includeGraph = true, graphSections } = {}) {
   if (layers.length !== 2 && !(compact && layers.length === 1)) throw new RangeError('Invalid navigation layers');
   const gateSlots = new Map(map.gates.map(({ id }, slot) => [id, slot]));
-  const graph = includeGraph ? portalGraphOf(map) : undefined;
+  if (includeGraph && graphSections != null && graphSections.length !== GRAPH_SECTION_COUNT) {
+    throw new RangeError('Invalid navigation graph sections');
+  }
+  const graph = includeGraph && graphSections === undefined ? portalGraphOf(map) : undefined;
+  const hasGraph = includeGraph && (graphSections != null || !!graph);
   const Points = compact ? Uint16Array : Float64Array;
-  const sections = [Uint32Array.of(+!!graph, layers.length)];
-  if (graph) {
+  const sections = [Uint32Array.of(+hasGraph, layers.length)];
+  if (hasGraph && graphSections != null) {
+    sections.push(...graphSections);
+  } else if (graph) {
     const geometry = [graph.cellSize], rows = [graph.cols, graph.rows, graph.regions.length, graph.portals.length];
     const adjacency = [], stands = [];
     for (const region of graph.regions) {

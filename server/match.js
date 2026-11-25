@@ -2,9 +2,9 @@ import { mergeGateGeometry } from '../shared/relational-frame.ts';
 import { TICK_RECORDING_SCHEMA } from '../shared/recording.ts';
 import { playerSlot, seatMetadata } from '../shared/simulation/relations.ts';
 import { createGameRecord, createGame, disposePhysics, joinGame, playerView, snapshot, synchronizePhysics } from '../shared/simulation.ts';
-import { inputLeadFrom, resetInput } from '../shared/simulation/input.ts';
+import { inputLeadFrom, MAX_INPUT_LEAD_TICKS, resetInput } from '../shared/simulation/input.ts';
 import { changeSeat, wholeMap } from '../shared/simulation/state.ts';
-import { viewLagFrom } from '../shared/simulation/rewind.ts';
+import { MAX_REWIND_TICKS, viewLagFrom } from '../shared/simulation/rewind.ts';
 import { clearRoute } from '../shared/simulation/geometry.ts';
 import { generateLiveMap } from '../map/live.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
@@ -29,6 +29,7 @@ const connectionPlayer = (game, id) => {
   return idx === undefined ? undefined : game.players[idx];
 };
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
+export const BOT_PLANNER_VERSION = 1;
 
 // Who holds which place, over any game's roster: the match's own, or a lobby's before its map exists.
 function seatsOf(game, reconcile = () => {}) {
@@ -102,12 +103,12 @@ export function createLobby(content = defaultContent()) {
 // `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
 // `wireKey` keys the match's outward IDs (#1164, 24.4): drawn by the server's composition root, never
 // recorded, logged or sent. Without one the outward IDs are the internal ones.
-export async function createMatch(seed, size, map, content = defaultContent(), { wireKey = null } = {}) {
+export async function createMatch(seed, size, map, content = defaultContent(), { wireKey = null, archivedGraph } = {}) {
   const wire = wireIds(wireKey);
   map ??= generateLiveMap(seed, content, size);
   // Match setup replaces authored loot labels and splits weapon magazines before publication.
   const setupItems = structuredClone(map.items);
-  const navigation = await prepareRuntimeNavigation(map);
+  const navigation = await prepareRuntimeNavigation(map, archivedGraph);
   let game;
   try {
     game = await createGame(seed, map, content, () => preparationPause());
@@ -155,7 +156,7 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     presentation: describeContent(game.content),
     ...seats,
     recordingSchema: TICK_RECORDING_SCHEMA,
-    botPlannerVersion: 1,
+    botPlannerVersion: BOT_PLANNER_VERSION,
     recordingSetup: () => structuredClone({ items: setupItems, portalGraph: navigation.portalGraph }),
     // Scenario and benchmark tools may arrange initial state before start.
     get diagnosticState() { return game; },
@@ -186,7 +187,28 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
       const admitted = started().boundary.sanitizedInput(id, input);
       return admitted && structuredClone(admitted);
     },
-    start() { started(); },
+    start({ measurements } = {}) {
+      if (measurements) {
+        if (live || disposedFrame) throw new Error('Opening measurements require an unstarted match');
+        for (const { id, viewLagTicks, inputLeadTicks } of measurements) {
+          const p = connectionPlayer(game, id);
+          if (!p) throw new RangeError(`Unknown replay opening seat: ${id}`);
+          if (viewLagTicks !== undefined) {
+            if (!Number.isInteger(viewLagTicks) || viewLagTicks < 1 || viewLagTicks > MAX_REWIND_TICKS) {
+              throw new RangeError(`Invalid replay opening view lag for ${id}`);
+            }
+            p.viewLagTicks = viewLagTicks;
+          }
+          if (inputLeadTicks !== undefined) {
+            if (!Number.isInteger(inputLeadTicks) || inputLeadTicks < 1 || inputLeadTicks > MAX_INPUT_LEAD_TICKS) {
+              throw new RangeError(`Invalid replay opening input lead for ${id}`);
+            }
+            p.inputLeadTicks = inputLeadTicks;
+          }
+        }
+      }
+      started();
+    },
     setViewLag(id, roundTripMs) {
       if (live) return live.boundary.roundTrip(id, roundTripMs);
       const p = connectionPlayer(game, id);
