@@ -1,5 +1,5 @@
 import { discoveryGrid } from '../discovery.ts';
-import { closestOnSegment, entry, freeSpaceTile, packTiles, pullTaut, tileReach, type FreeTile, type PackedTiles } from '../free-space.ts';
+import { closestOnSegment, entry, freeSpaceTile, freeSpaceTileReader, packTiles, pullTaut, tileReach, type FreeTile, type PackedTiles } from '../free-space.ts';
 import { navigationClearance } from '../map/navigation.ts';
 import type { Box, CollisionMap, DiscoveryMemory, GateId, GateObservation, Role, Vec2, World } from '../types.ts';
 import { Heap } from './portal-graph.ts';
@@ -108,10 +108,15 @@ interface State {
 
 /** Every discovery-grid tile for a clearance, in row-major order. Flat uploads can skip retaining new tiles. */
 export function freeTilesFor(map: CollisionMap, role: Role, cacheTiles = true) {
-  const planner = createKnowledgePlanner(map, role, cacheTiles), { cols, rows, size } = discoveryGrid(map);
-  const all: Knowledge = { known: () => true, door: () => undefined, keys: 0, revision: 0 };
-  const tiles = Array.from({ length: cols * rows }, (_, cell) => planner.tile(all, cell)!);
-  return { clearance: navigationClearance(role), size, cols, tiles };
+  const { cols, rows, size } = discoveryGrid(map), clearance = navigationClearance(role);
+  const read = freeSpaceTileReader(map, clearance, cacheTiles);
+  const tiles = Array.from({ length: cols * rows }, (_, cell) => read(boxOfCell(map, size, cols, cell)));
+  return { clearance, size, cols, tiles };
+}
+
+function boxOfCell(map: CollisionMap, size: World, cols: number, cell: number): Box {
+  const x = (cell % cols) * size, y = Math.floor(cell / cols) * size;
+  return { x, y, w: Math.min(size, map.width - x), h: Math.min(size, map.height - y) };
 }
 
 /** Keep the worker handoff used by the current room planner (22.6, "Bot adoption"). */
@@ -121,13 +126,10 @@ export function packedTilesFor(map: CollisionMap, role: Role): PackedTiles {
 }
 
 /** Plans for one body over the knowledge a caller supplies at each query; the map is read only through known tiles. */
-export function createKnowledgePlanner(map: CollisionMap, role: Role, cacheTiles = true) {
+export function createKnowledgePlanner(map: CollisionMap, role: Role) {
   const clearance = navigationClearance(role), { cols, rows, size } = discoveryGrid(map);
   const reach = tileReach(clearance);
-  const boxOf = (cell: number): Box => {
-    const col = cell % cols, row = Math.floor(cell / cols), x = col * size, y = row * size;
-    return { x, y, w: Math.min(size, map.width - x), h: Math.min(size, map.height - y) };
-  };
+  const boxOf = (cell: number) => boxOfCell(map, size, cols, cell);
   const cellAt = (p: Vec2) => p.x < 0 || p.y < 0 || p.x >= map.width || p.y >= map.height ? -1 : Math.floor(p.y / size) * cols + Math.floor(p.x / size);
 
   /** The cells a tile's reach touches: it is known only when all of them are. */
@@ -141,7 +143,7 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role, cacheTiles
 
   /** The tile of a cell if its whole support is known, else null. */
   const tile = (knowledge: Knowledge, cell: number): FreeTile | null =>
-    support(cell).every(c => knowledge.known(c)) ? freeSpaceTile(map, boxOf(cell), clearance, cacheTiles) : null;
+    support(cell).every(c => knowledge.known(c)) ? freeSpaceTile(map, boxOf(cell), clearance) : null;
 
   return {
     support,

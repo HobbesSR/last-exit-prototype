@@ -369,6 +369,20 @@ export interface FreeTile extends FreeSpace {
 /** How far past its box the geometry a tile of `clearance` is built from reaches (`FreeTile.reach`). */
 export const tileReach = (clearance: World): World => clearance + ERODE_MARGIN + 1;
 
+function widenedDoors(map: CollisionMap, clearance: World) {
+  const widen = clearance + ERODE_MARGIN;
+  return map.gates.map(gate => {
+    const { x, y, w, h } = gateShape(gate);
+    return { id: gate.id, zone: { x: x - widen, y: y - widen, w: w + 2 * widen, h: h + 2 * widen } };
+  }).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+}
+
+/** A batch tile reader for an unchanged map, with gate geometry prepared once for the clearance. */
+export function freeSpaceTileReader(map: CollisionMap, clearance: World, cacheTiles: boolean): (box: Box) => FreeTile {
+  const doors = widenedDoors(map, clearance);
+  return box => readFreeSpaceTile(map, box, clearance, cacheTiles, doors);
+}
+
 /**
  * The tile of a map's free space within `box` for a body of `clearance`, built on first use and
  * kept until the obstacle list changes. A tile is a function of the geometry within its reach
@@ -378,7 +392,12 @@ export const tileReach = (clearance: World): World => clearance + ERODE_MARGIN +
  * Neighbouring tiles meet edge to edge along their shared side, where both cut the same eroded
  * boundary.
  */
-export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World, cacheTile = true): FreeTile {
+export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World): FreeTile {
+  return readFreeSpaceTile(map, box, clearance, true);
+}
+
+function readFreeSpaceTile(map: CollisionMap, box: Box, clearance: World, cacheTile: boolean,
+  doors?: ReturnType<typeof widenedDoors>): FreeTile {
   const cache = cacheOf(map), key = `${box.x},${box.y},${box.w},${box.h}@${clearance}`;
   const kept = cache.tiles.get(key) ?? tileSources.get(map)?.(box, clearance)
     ?? cache.packed.reduce<FreeTile | undefined>((found, packed) => found ?? unpackTile(packed, box, clearance), undefined);
@@ -392,11 +411,8 @@ export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World, cac
   const eroded = erodedRings([rect(window.x, window.y, window.w, window.h)], openGround(map, window), blocked, clearance);
   let pieces: { rings: ClipperLib.Paths; gates: string[] }[] = [{ rings: clip(eroded, [clipPath(rect(box.x, box.y, box.w, box.h))], ClipperLib.ClipType.ctIntersection), gates: [] }];
   // A door matters wherever a disk of the clearance would meet it closed: its outline widened by the erosion, squared off.
-  const widen = clearance + ERODE_MARGIN;
-  const doors = map.gates.map(g => ({ id: g.id, zone: gateShape(g) }))
-    .map(({ id, zone }) => ({ id, zone: { x: zone.x - widen, y: zone.y - widen, w: zone.w + 2 * widen, h: zone.h + 2 * widen } }))
-    .filter(({ zone }) => meets(zone, box)).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-  for (const door of doors) {
+  for (const door of doors ?? widenedDoors(map, clearance)) {
+    if (!meets(door.zone, box)) continue;
     const zone = [clipPath(rect(door.zone.x, door.zone.y, door.zone.w, door.zone.h))];
     pieces = pieces.flatMap(piece => [
       { rings: clip(piece.rings, zone, ClipperLib.ClipType.ctDifference), gates: piece.gates },

@@ -10,7 +10,7 @@ export async function prepareRuntimeNavigation(map) {
   if (!pending) return undefined;
   const core = await initCore();
   const contestant = pending.deferContestant
-    ? packRuntimeNavigation(map, [freeTilesFor(map, 'contestant', false)], { compact: true, includeGraph: false })
+    ? () => packRuntimeNavigation(map, [freeTilesFor(map, 'contestant', false)], { compact: true, includeGraph: false })
     : undefined;
   return uploadRuntimeNavigation(core, map, pending.bytes, contestant);
 }

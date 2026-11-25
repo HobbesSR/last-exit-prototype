@@ -6,6 +6,7 @@ import { prepareRuntimeNavigation } from '../server/runtime-map.js';
 import { initCore } from '../shared/core.ts';
 import { packedTilesFor } from '../shared/navigation/knowledge.ts';
 import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
+import { createRuntimeNavigation } from '../shared/navigation/runtime-map.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { arena } from './helpers/arena.js';
 
@@ -73,4 +74,9 @@ test('Rust rejects malformed flat packages and accepts graphless ones', async ()
       assert.ok(pointer);
     } finally { release(); }
   }
+
+  const { map: fractional } = arena({ cols: 3, rows: 2, cellSize: 192.125 });
+  const direct = createRuntimeNavigation(await initCore(), fractional);
+  try { assert.ok(direct.pointer, 'fractional bounds can still use the eager upload'); }
+  finally { direct.release(); }
 });
