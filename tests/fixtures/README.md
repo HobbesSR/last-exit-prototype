@@ -25,7 +25,20 @@ portal graph bots plan with, and the graph holds typed arrays that JSON drops.
 trace (1.3 s); `tests/slow/characterization-physics-bots.test.js` replays the bot matches
 (31 s). Both run from `tests/characterization-physics-scenarios.js`.
 
-Current checkpoint `1283-3d.4d` adopts the tick in [27.2](../../docs/27.2-tick-architecture.md#the-cutover-3d4d)
+Current checkpoint `1344-core-frames` builds frames from the core's output
+([27.2](../../docs/27.2-tick-architecture.md#frames-3d3), recording schema 26), under Corey's 2026-11-25 decision that
+checks follow the architecture ([31](../../docs/31-verification.md#the-frozen-fixture)). The simulation is unchanged:
+each bot match runs the same ticks, and `tools/frame-continuity.mjs` showed the core's opening snapshot, every completed
+tick and every hundredth whole snapshot byte-identical to `1283-3d.4d`. It also showed every frame and view equal once
+keys are sorted and the dropped boundary fields are removed
+([report](../../docs/reports/issue-1344/frame-continuity.md)). What moved is each frame player's field order, now fixed,
+and four receive-boundary fields frames no longer carry (`receivedSeq`, `inputQueue`, `inputTick`, `inputMarginNext`).
+Captured with `node tools/capture-physics-fixture.mjs --checkpoint=1344-core-frames`, which carries the arenas forward
+and reproduced `1283-3d.4d` exactly with `--check` on its own commit (`08fb0e4d`). The arenas' serialized SHA-256 is
+unchanged. Gzip SHA-256 `6008b447fee4b305c55b7ada8905643b8391d92b492a6e5f54652a7b9e19c705`. Scripted JSON SHA-256
+`1a18b8ab321dd7b80078ba196b1fbb502efb17370fa42adabad1355d263137ac`.
+
+Previous checkpoint `1283-3d.4d` adopts the tick in [27.2](../../docs/27.2-tick-architecture.md#the-cutover-3d4d)
 (wire 13, schema 22, `last-exit-0.8-physics`, `content-7`). The arenas and portal graphs were carried
 forward with serialized SHA-256 `be9ea312c4da5f9b390e49da96e9f724fc09f9fd9e5ebe8c99c764d9303a9ee5`.
 Gzip SHA-256 `c86d6c1c01eda793bd8d9cc91019a110a375be50fd1615fcd6dac0feda3a9feb`.
@@ -79,7 +92,7 @@ recorded-state or wire change, is named for its new checkpoint, and costs the co
 evidence, so it is a decision rather than a step. Such changes wait in the open "Physics recapture
 batch" issue and land together with one recapture ([31](../../docs/31-verification.md#the-frozen-fixture)). A physics rules version change is one: the fast
 test fails on the stored `version` first. Because the fixture carries its own arenas, a change to
-generation alone never moves the traces. To recapture, build the object
+generation alone never moves the traces. To recapture, run `node tools/capture-physics-fixture.mjs --checkpoint=<name>`, which builds the object
 above from the scenario module: `traceArenas()` (or the previous fixture's `arenas`, carried
 forward unless the arenas themselves are meant to change), one `await botTrace(seed, arenas[seed])`
 per exported seed, and `JSON.parse(JSON.stringify(await scriptedTrace(arenas[4217])))`, with

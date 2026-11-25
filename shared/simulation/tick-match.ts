@@ -442,10 +442,16 @@ export class TickMatch {
     const flags = core.match_submit_flags(game) >>> 0;
     return Array.from(new Uint8Array(core.memory.buffer, flags, rows.length), flag => flag === 1);
   }
+  readonly #followers: ((completed: DecodedTick) => void)[] = [];
+  /** Hand every completed tick to `take` as the step decodes it, before the step returns (the frames, `tick-frame.ts`). */
+  follow(take: (completed: DecodedTick) => void): void { this.#followers.push(take); }
   /** Step one tick, or null once the match is over. */
   step(): DecodedTick | null {
     const pointer = this.#core.match_step(this.#live()) >>> 0;
-    return pointer === 0 ? null : this.#read(pointer, decodeCompleted);
+    if (pointer === 0) return null;
+    const completed = this.#read(pointer, decodeCompleted);
+    for (const take of this.#followers) take(completed);
+    return completed;
   }
   snapshot(): Snapshot { return this.#read(this.#core.match_snapshot(this.#live()), decodeSnapshot); }
   #actor(id: PlayerId): number {

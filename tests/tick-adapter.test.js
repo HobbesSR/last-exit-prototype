@@ -9,14 +9,15 @@ import { emptyInput } from '../shared/simulation/tick-codec.ts';
 import { sanitizeInput } from '../shared/simulation/input.ts';
 import { CLIENT_MESSAGE, validateClientMessage } from '../shared/protocol.ts';
 import { wireIds } from '../shared/simulation/wire-ids.ts';
-import { BodyLives, TickMirror, stepMirror } from '../shared/simulation/tick-mirror.ts';
+import { TickMirror, stepMirror } from '../shared/simulation/tick-mirror.ts';
+import { BodyLives } from '../shared/simulation/tick-records.ts';
 import { templatesOf } from '../shared/simulation/boundary.ts';
 import { TickFrames } from '../shared/simulation/tick-frame.ts';
 import { playerView } from '../shared/simulation/visibility.ts';
 import { createFrameEncoder, createRecordingReader } from '../shared/recording-format.ts';
 import { SCHEMA } from '../shared/recording.ts';
 import { arena } from './helpers/arena.js';
-import { checkFrame } from './helpers/tick-frame.js';
+import { checkFrame, checkRecords } from './helpers/tick-frame.js';
 
 // The Node adapter (27.2 "Node adapter (3d.2)"): the receive boundary, bot commands and the mirror applier, on a small
 // arena, and the frames on that path (27.2 "Frames (3d.3)"). The whole-match check on a generated map is
@@ -61,10 +62,10 @@ async function run(fn, content) {
   } finally { match?.dispose(); disposePhysics(s); }
 }
 
-test('a bot match on the new path holds the mirror and its frames equal to the match snapshot every tick', async () => {
+test('a bot match on the new path holds the mirror and the frame store records equal to the match snapshot every tick', async () => {
   await run((s, match, mirror) => {
     assert.ok(s.players.every(p => p.bot));
-    const kinds = new Set(), frames = new TickFrames(mirror), record = recordingRoundTrip();
+    const kinds = new Set(), frames = new TickFrames(s, match), record = recordingRoundTrip();
     const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
     assert.deepEqual(mirror.view(mirror.mirrorOf(match.snapshot())), mirror.mirrorOf(match.snapshot()));
     let previous = checkFrame(frames.frame(), match.snapshot(), 0, words), placed = 0;
@@ -75,6 +76,7 @@ test('a bot match on the new path holds the mirror and its frames equal to the m
       const snap = match.snapshot(), expected = mirror.mirrorOf(snap);
       assert.deepEqual(mirror.view(expected), expected, `tick ${t.tick}`);
       const frame = frames.frame(), bodies = checkFrame(frame, snap, t.tick, words);
+      checkRecords(frames, snap, t.tick);
       // A body keeps its ID and generation until it is placed or warped; a placed body is marked on that tick only.
       const marked = new Map(t.discontinuities.map(d => [`${d.body.kind}:${d.body.id}`, d.kind]));
       for (const [key, body] of bodies) {
@@ -105,7 +107,7 @@ test('a bot match on the new path holds the mirror and its frames equal to the m
 test('a hook is a flight on the frame, then a tether from caster to target, and the view of its caster says so', async () => {
   await run((s, match, mirror) => {
     const g = s.players.find(p => p.role === 'gladiator'), c = s.players.find(p => p.role === 'contestant'), gi = s.players.indexOf(g);
-    const boundary = new TickBoundary(s, match), frames = new TickFrames(mirror);
+    const boundary = new TickBoundary(s, match), frames = new TickFrames(s, match);
     boundary.seat(g.id, 'join');
     // Beside the contestants, clear of the locked door between them and the gladiators' spawn. A warp keeps the body's ID
     // and renews its generation, so a viewer does not interpolate across it.
@@ -154,11 +156,11 @@ test('a body gets a new ID each time it enters the world and a generation renewe
 
 test('frames publish frozen shapes of their own, which no frame can change for another or for the loader', async () => {
   await run((s, match, mirror) => {
-    const frames = new TickFrames(mirror), template = templatesOf(s).actor.contestant.shape, radius = template.radius;
+    const frames = new TickFrames(s, match), template = templatesOf(s).actor.contestant.shape, radius = template.radius;
     stepMirror(mirror);
     const first = frames.frame();
     stepMirror(mirror);
-    const second = new TickFrames(mirror).frame(), shape = second.bodies[0].shape;
+    const second = new TickFrames(s, match).frame(), shape = second.bodies[0].shape;
     assert.notEqual(shape, template);
     assert.ok(Object.isFrozen(shape));
     assert.throws(() => { shape.radius = 99; }, TypeError);

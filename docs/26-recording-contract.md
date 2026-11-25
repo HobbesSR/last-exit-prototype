@@ -29,7 +29,7 @@ core tick and use the same archive contract below. Default content is `content-1
 #920 retired that engine and contents 1 to 5, and #953 raised `MIN_SCHEMA` to **10** so
 archives recorded before schema 10 (pre-chain-map diamond arenas, `last-exit-0.7`, and
 experimental P1/P2 schemas 8–9 without required physics presentation) are refused with the
-existing `"no longer reads"` message while remaining downloadable. The room writes schema **25**
+existing `"no longer reads"` message while remaining downloadable. The room writes schema **26**
 and `minSchema` 20 (`minimumReaderForMatch`, `RELATIONAL_SCHEMA`). Since #901, archives are stored as lines
 with delta frames ([Schema 17](#schema-17-lines-and-delta-frames-901)), which no older reader can
 read, and schema 18 (#948, #949) drops dead recorded fields (`Player.path`,
@@ -40,6 +40,24 @@ compatible with schema 17 readers; schema 19 adds tick stamps to recorded input
 ([Schema 21](#schema-21-observations-as-commands-1283)). This build still reads every schema from 10. Optional appearance
 descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
+
+## Schema 26: frames from the core's output (#1344)
+
+Frames are built from the core's completed ticks by the frame store (`shared/simulation/tick-frame.ts`,
+[27.2](27.2-tick-architecture.md#frames-3d3)), not from the `Game` mirror. Their values are unchanged. Two things differ:
+- **Player field order.** Each player record is written in one fixed order. Before, the order followed the history of
+  writes to the mirror's player object, so it depended on when input arrived.
+- **No receive-boundary internals.** A player no longer carries `receivedSeq`, `inputQueue`, `inputTick` or
+  `inputMarginNext`. They are the boundary's admission state, which no reader of a frame reads, and they reached frames
+  only because the old frame cloned the mirror's player whole. `lastSeq`, `inputStalled`, `inputMargin` and
+  `inputLeadTicks` stay, as do the roster's `name`, `role`, `kit` and `seat`.
+
+Playback is unchanged and still uses reader floor 20; readers never depended on key order or the dropped fields.
+`tools/frame-continuity.mjs` showed that, over the frozen fixture's two bot matches and its scripted scene, the core's
+completed ticks are byte-identical and every frame and view equals its schema 25 counterpart once keys are sorted and
+the dropped fields are removed ([report](reports/issue-1344/frame-continuity.md)). Resimulation (`verifyBotCommands`,
+below) reconstructs schema 26 archives only, since it compares the opening frame exactly. Schema 25 archives are still
+playable.
 
 ## Schema 25: planner portal graph for replay setup (#1284)
 
@@ -56,7 +74,7 @@ the archived graph.
 input, including schema 24 archives with `setup.items`. Stored-frame playback ignores the setup
 object and still uses reader floor 20.
 
-For #1284's start-state reconstruction, `server/replay-start.js` accepts a decoded schema 25 archive
+For #1284's start-state reconstruction, `server/replay-start.js` accepts a decoded archive of the schema this build writes (26)
 with matching rules, shipped content, tick rate and planner version. It builds the match with the
 recorded map and seed, substitutes the authored items, rebuilds free-space layers and uploads the
 archived graph sections through the core's runtime navigation validator. It applies the ordered seat
@@ -76,6 +94,12 @@ equal it before the digest of the regenerated bot rows is compared. Verification
 an archive the start reconstruction refuses, a header that records missing frames, a committed tick that does not follow the
 previous one or lacks a digest, and the first tick whose queue or digest differs. A last frame at the last tick without a digest
 (finish or abandonment) ends the check. Verification is a server tool. Playback still reads stored frames only.
+
+The room-tick test covers matching digests, the first mismatch and each refusal. Whether the replay gives a rejoined
+seat's bot its live label is witnessed by hand, outside the test tiers and CI (Corey, 2026-11-25):
+`node tools/bot-label-witness.mjs` plays a room where late joins change seats' bot temperaments. It then requires the
+recording to verify as recorded and to fail when replayed with `verifyBotCommands(archive, { labels: false })`, which
+drops the relabels' ranks. The script's header says when to run it and what it found when it was introduced.
 
 ## Schema 24: authored loot for replay setup (#1284)
 
@@ -273,6 +297,7 @@ The schema history, with the sections that explain each step:
 
 | Schema | Added | `minSchema` written |
 | --- | --- | --- |
+| 26 | Frames built from the core's output: fixed player field order, no receive-boundary internals (#1344) | unchanged |
 | 25 | Exact planner portal graph in `setup.portalGraph` (#1284) | unchanged |
 | 24 | Authored loot in `setup.items` (#1284) | unchanged |
 | 23 | Bot planner version and command digests (#1321) | unchanged |

@@ -34,7 +34,7 @@ test('the opt-in room records spent inputs and keeps the same actor through a li
   const { h, room, owner, dev, spectator, writer } = await optInRoom();
   try {
     const first = writer.frames[0];
-    assert.equal(writer.header.schema, 25);
+    assert.equal(writer.header.schema, 26);
     assert.equal(writer.header.setup.portalGraph, null);
     assert.equal(writer.header.botPlannerVersion, 1);
     assert.deepEqual(first.commands.map(c => c.type), ['join', 'start']);
@@ -226,7 +226,7 @@ test('the threaded host archives authored loot and the planner graph beside stor
     service.receive(owner, { type: 'finish' });
     await waitFor(events.get('saved').promise);
     const archive = readArchive(await readFile(path.join(dir, `${room.id}.json.gz`)));
-    assert.equal(archive.schema, 25);
+    assert.equal(archive.schema, 26);
     assert.ok(archive.setup.items.length > 0, 'the generated setup includes authored loot');
     assert.deepEqual(archive.setup.items, authoredItems);
     const { owner: graphOwner } = portalGraphOf(map);

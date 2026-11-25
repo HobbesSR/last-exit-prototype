@@ -192,9 +192,11 @@ test('the owner sees reserves and reload progress; other players and older conte
   assert.deepEqual(own.players.find(r => r.id === p.id).reload, { slot: 0, until: p.reload.until });
   const seen = other.players.find(r => r.id === p.id);
   assert.equal(seen.reserves, undefined); assert.equal(seen.reload, undefined);
-  // Ground ammo keeps its family on the live wire, as in recorded frames.
-  s.items = [...s.items, { id: 'box', kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }];
-  const box = playerView(s, snapshot(s), q.id).items.find(item => item.id === itemId(s, 'box'));
+  // Ground ammo keeps its family on the live wire, as in recorded frames. Frames come from the core, so the box is
+  // given to the projection on a frame rather than arranged on the game mid-match.
+  const id = Math.max(0, ...frame.items.map(item => item.id)) + 1;
+  const boxed = { ...frame, items: [...frame.items, { id, kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }] };
+  const box = playerView(s, boxed, q.id).items.find(item => item.id === id);
   assert.equal(box.family, 'shell');
   const plain = createGameRecord(17, arena(), content('content-7'));
   assert.equal(Object.hasOwn(snapshot(plain).players[0], 'reserves'), false);

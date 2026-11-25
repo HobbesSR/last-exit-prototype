@@ -23,3 +23,18 @@ export function checkFrame(frame, snap, tick, words) {
   });
   return bodies;
 }
+
+/**
+ * Hold the frame store's records, folded tick by tick from the change lists, to the whole snapshot mapped the same way
+ * (`TickFrames.recordsOf`): every player field the core decides, the ground, projectiles, gates, traps, slots and wall.
+ * The ground is compared in ID order; an actor without a body has no place in a snapshot, so its place is left out.
+ */
+export function checkRecords(frames, snap, tick) {
+  const comparable = records => {
+    const posed = new Set(snap.poses.filter(p => p.body.kind === 'actor').map(p => p.body.id));
+    const words = frames.ctx.ids.actorAtSlot;
+    return { ...records, items: [...records.items].sort((a, b) => a.id - b.id),
+      players: records.players.map((p, slot) => { if (posed.has(words[slot])) return p; const { x, y, ...rest } = p; return rest; }) };
+  };
+  assert.deepEqual(comparable(frames.records()), comparable(frames.recordsOf(snap)), `tick ${tick}: records`);
+}

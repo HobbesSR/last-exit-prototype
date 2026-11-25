@@ -12,10 +12,15 @@ import type { WireIds } from './wire-ids.ts';
 export function createTickSession(game: Game, wire?: WireIds, navigation?: number) {
   const match = createTickMatch(game, navigation);
   try {
-    const mirror = new TickMirror(game, match);
-    return { match, mirror, boundary: new TickBoundary(game, match, wire), frames: new TickFrames(mirror) };
+    const mirror = new TickMirror(game, match), frames = new TickFrames(game, match);
+    framesByGame.set(game, frames);
+    return { match, mirror, boundary: new TickBoundary(game, match, wire), frames };
   } catch (error) { match.dispose(); throw error; }
 }
+
+const framesByGame = new WeakMap<Game, TickFrames>();
+/** The frame store of a started game's session, a room's included: for tests arranging a scenario, never the server. */
+export function framesOf(s: Game): TickFrames | undefined { return framesByGame.get(s); }
 
 const sessions = new WeakMap<Game, ReturnType<typeof createTickSession>>();
 

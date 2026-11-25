@@ -14,7 +14,7 @@ const expected = deserialize(gunzipSync(readFileSync(new URL('./fixtures/behavio
 test('the tick cutover checkpoint names the rules version and content it characterizes', () => {
   assert.equal(expected.version, PHYSICS_VERSION, 'a rules version change is a decision that recaptures this fixture');
   assert.equal(expected.content, CONTENT);
-  assert.equal(expected.checkpoint, '1283-3d.4d');
+  assert.equal(expected.checkpoint, '1344-core-frames');
 });
 
 // The two whole bot matches take about thirty seconds and run in the slow tier

@@ -92,6 +92,22 @@ export function rollMargin(p: Player): void {
 }
 
 /**
+ * What each connection has had spent by the last completed tick, on its player: the sequence the core acknowledged, how
+ * many ticks an active player has gone without a new one, and the margin the tick reports. Bots have none. Run once per
+ * completed tick, after the step.
+ */
+export function acknowledge(s: Game, match: TickMatch): void {
+  for (const p of s.players) {
+    if (p.bot) continue;
+    const sequence = match.acknowledged(p.id) ?? -1;
+    if (sequence !== p.lastSeq) p.inputStalled = 0;
+    else if (p.status === 'active') p.inputStalled = (p.inputStalled ?? 0) + 1;
+    p.lastSeq = sequence;
+    rollMargin(p);
+  }
+}
+
+/**
  * A measured round trip as observation rows: the view lag the core rewinds by and the input lead this boundary admits
  * by. Only a change from the last report is a row, as `setViewLag` records it. The lead stays here (27.2 "Output (3c)");
  * the lag is the core's, and reaches the mirror through the change list.

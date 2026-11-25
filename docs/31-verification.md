@@ -569,6 +569,15 @@ changes, and the new expectations and version decision they require, from
 behaviour-preserving extraction. `tests/fixtures/README.md` records provenance, how
 to regenerate and how to audit.
 
+**Checks follow the architecture (Corey, 2026-11-25, #1344).** The tick rebuild (#1279) now makes changes large
+enough that keeping an old check exact can cost more than it shows. Suppose the new implementation meets the game's
+requirements, but reproducing an old check exactly would be prohibitive, as when a frame's JSON key order followed the
+mirror's write history. Then the check is replaced by one that holds its qualitative properties in terms of the new
+design, at a reasonable cost in computation and time. The fixture is recaptured in the same PR, with
+`node tools/capture-physics-fixture.mjs --checkpoint=<name>`. The PR shows continuity for what must still hold exactly,
+such as the core's completed ticks, and says what the replacement check holds. This covers representation that the
+design makes incidental, not a behaviour change nobody decided, which still never recaptures.
+
 **Recaptures batch too.** A recapture restarts the evidence, so decided changes that would move this
 fixture wait and land together, as content changes do (below). They collect in one open issue
 titled "Physics recapture batch". It lists each change, its issue and whether it is decided. The

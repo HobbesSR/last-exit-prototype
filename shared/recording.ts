@@ -21,7 +21,7 @@
  */
 
 /** The recording schema the default tick writes. */
-export const SCHEMA = 25;
+export const SCHEMA = 26;
 /** The opt-in tick's spent-queue archive format (26). */
 export const TICK_RECORDING_SCHEMA = SCHEMA;
 /**

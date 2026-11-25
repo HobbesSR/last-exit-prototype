@@ -147,6 +147,7 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     const previous = ids.playerOfActor.get(ids.actorAtSlot[slot]);
     ids.bindPlayer(slot, id);
     live.mirror.relabel(previous, id);
+    live.frames.relabel(previous, id);
     return p;
   };
   const step = boundary => {
@@ -241,8 +242,9 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
      * room applied them between ticks, then its spent `command` and `observation` rows in recorded order. The core
      * regenerates its carry and the first-class bots' commands, which `spent` and `botCommands` then report. A seat
      * relabel carries the lexical rank computed just after binding, as the live join does. False once the match is over.
+     * `labels: false` leaves the ranks out, as a witness that a recording depends on them (`tools/bot-label-witness.mjs`).
      */
-    replay(commands) {
+    replay(commands, { labels: ranked = true } = {}) {
       const { match } = started(), labels = new Map(), rows = [];
       for (const command of commands) {
         if (command.type === 'command' || command.type === 'observation') rows.push(command);
@@ -256,7 +258,7 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
           seatChanged(match.ids, p, command.type === 'resume' ? 'join' : 'leave');
         } else if (command.type !== 'carried') throw new RangeError(`Replay cannot apply a ${command.type} command after the start`);
       }
-      const inbound = inboundOfRecorded(match.ids, rows, labels);
+      const inbound = inboundOfRecorded(match.ids, rows, ranked ? labels : new Map());
       return step({ due: () => inbound }) !== null;
     },
     teleportSucceeded: request => discontinuities.some(marker => marker.kind === 'devWarped' && marker.request === request),
@@ -289,6 +291,7 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
       return payloads.read(source, { publicMap: kind !== 'recording', itemsJson, gatesJson });
     },
     end({ strand = false } = {}) {
+      live?.frames.end({ strand });
       game.phase = 'finished';
       if (strand) for (const p of game.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded';
     },
