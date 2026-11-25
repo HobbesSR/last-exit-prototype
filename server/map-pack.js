@@ -27,9 +27,8 @@ export function packMap(map, tiles = []) {
 /** Write the flat handoff from generated tiles. Deferred maps pack only the gladiator layer here. */
 export function packRuntimeMap(map, { deferContestant = true } = {}) {
   const navigation = portalGraphOf(map) ?? null;
-  const graphIds = navigation && { regions: navigation.regions.map(r => r.id), portals: navigation.portals.map(p => p.id) };
-  const layers = (deferContestant ? ['gladiator'] : ['gladiator', 'contestant']).map(role => freeTilesFor(map, role));
-  const envelope = deferContestant ? { map, graphIds, deferContestant } : { map, graphIds };
+  const layers = (deferContestant ? ['gladiator'] : ['gladiator', 'contestant']).map(role => freeTilesFor(map, role, false));
+  const envelope = deferContestant ? { map, deferContestant } : { map };
   return { kind: PACKED, bytes: owned(serialize(envelope)), tiles: [],
     runtimeNavigation: packRuntimeNavigation(map, layers, { compact: deferContestant }) };
 }
@@ -45,10 +44,10 @@ export function packedTransfer(packed) {
 
 /** The map a packed map holds, with its portal graph and tiles attached as the generator left them. */
 export function unpackMap(packed) {
-  const { map, navigation, graphIds, deferContestant } = deserialize(packed.bytes);
+  const { map, navigation, deferContestant } = deserialize(packed.bytes);
   if (navigation) attachPortalGraph(map, navigation);
   for (const tile of packed.tiles) adoptPackedTiles(map, tile);
-  if (packed.runtimeNavigation) pendingNavigation.set(map, { bytes: packed.runtimeNavigation, graphIds, deferContestant });
+  if (packed.runtimeNavigation) pendingNavigation.set(map, { bytes: packed.runtimeNavigation, deferContestant });
   return map;
 }
 

@@ -21,6 +21,11 @@
 // The constants are fdlibm's, digit for digit; some carry more digits than an f64 holds.
 #![allow(clippy::excessive_precision, clippy::approx_constant)]
 
+/// Distance between two points using the shared hypot implementation.
+pub(crate) fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {
+    hypot(a[0] - b[0], a[1] - b[1])
+}
+
 /// The high 32 bits of `x`'s IEEE representation, as fdlibm's `__HI`.
 fn high(x: f64) -> i32 {
     (x.to_bits() >> 32) as i32

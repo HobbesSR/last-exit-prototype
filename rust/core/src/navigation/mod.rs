@@ -5,6 +5,8 @@ mod geometry;
 pub(crate) mod portal;
 mod search;
 
+pub(crate) use geometry::closest;
+
 pub use search::{Knowledge, ROUTE_BUDGET, Route, RouteSearch, RouteStatus};
 
 use crate::runtime_map::Tile;
@@ -19,7 +21,25 @@ pub(crate) struct Grid {
 }
 
 impl Grid {
-    fn cell_at(self, [x, y]: [f64; 2]) -> Option<usize> {
+    pub(crate) fn discovery(width: f64, height: f64) -> Self {
+        let size = 192.0;
+        Self {
+            width,
+            height,
+            size,
+            cols: (width / size).ceil() as usize,
+            rows: (height / size).ceil() as usize,
+        }
+    }
+
+    pub(crate) fn centre(self, cell: usize) -> [f64; 2] {
+        [
+            (cell % self.cols) as f64 * self.size + self.size / 2.0,
+            (cell / self.cols) as f64 * self.size + self.size / 2.0,
+        ]
+    }
+
+    pub(crate) fn cell_at(self, [x, y]: [f64; 2]) -> Option<usize> {
         (x >= 0.0 && y >= 0.0 && x < self.width && y < self.height).then(|| {
             (y / self.size).floor() as usize * self.cols + (x / self.size).floor() as usize
         })
@@ -37,7 +57,7 @@ impl Grid {
     }
 
     /// Support depends only on public dimensions and the body clearance.
-    fn support(self, cell: usize, clearance: f64) -> impl Iterator<Item = usize> {
+    pub(crate) fn support(self, cell: usize, clearance: f64) -> impl Iterator<Item = usize> {
         let reach = clearance + 0.2 + 1.0; // tileReach, shared/free-space.ts
         let [x, y, w, h] = self.bounds(cell);
         let first_col = ((x - reach) / self.size).floor() as usize;

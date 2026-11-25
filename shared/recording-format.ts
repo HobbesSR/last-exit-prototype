@@ -43,7 +43,7 @@ type Shadow =
   | { kind: 'v'; json: string }
   | { kind: 'o'; keys: string[]; children: Map<string, Shadow> }
   | { kind: 'a'; ids: Id[]; texts: Map<Id, string> };
-type Frame = { state: unknown; commands?: unknown };
+type Frame = { state: unknown; commands?: unknown; botCommandDigest?: unknown };
 export type Checkpoint = { frame: number; sha256: string };
 
 const isPlain = (value: unknown): value is Record<string, unknown> =>
@@ -138,13 +138,14 @@ function diff(prev: Shadow, value: unknown, recordKey: KeyOf, json?: string): [S
 }
 
 /** A frame's state as its top-level keys and their JSON text, in key order; and its commands' JSON. */
-export type FrameEntries = { entries: [string, string][]; commands?: string };
+export type FrameEntries = { entries: [string, string][]; commands?: string; botCommandDigest?: string };
 type Encoded = { text: string; keyframe: boolean; checkpoint?: { frame: number; line: string } };
 
-const tail = (commands?: string) => commands === undefined ? '}' : `,"commands":${commands}}`;
+const tail = (commands?: string, botCommandDigest?: string) =>
+  `${commands === undefined ? '' : `,"commands":${commands}`}${botCommandDigest === undefined ? '' : `,"botCommandDigest":${botCommandDigest}`}}`;
 /** A frame's full JSON line, `JSON.stringify({ state, commands })`, from its entries. */
-export function frameText({ entries, commands }: FrameEntries): string {
-  return `{"state":{${entries.map(([key, json]) => `${JSON.stringify(key)}:${json}`).join(',')}}${tail(commands)}`;
+export function frameText({ entries, commands, botCommandDigest }: FrameEntries): string {
+  return `{"state":{${entries.map(([key, json]) => `${JSON.stringify(key)}:${json}`).join(',')}}${tail(commands, botCommandDigest)}`;
 }
 
 /**
@@ -191,7 +192,7 @@ export function createFrameEncoder({ keyframeEvery = KEYFRAME_EVERY, schema }: {
       if (reordered) for (const key of keys) if (!nextKeys.includes(key)) top!.delete(key);
       keys = nextKeys;
       const delta = parts.length || reordered ? `{"o":{${parts.join(',')}}${reordered ? `,"k":${JSON.stringify(nextKeys)}` : ''}}` : '{}';
-      return finishRecord(`{"delta":${delta}${tail(frame.commands)}`, false, frame);
+      return finishRecord(`{"delta":${delta}${tail(frame.commands, frame.botCommandDigest)}`, false, frame);
     },
     /** A frame stored as its full line because its state is not a plain object; the next is a keyframe. */
     whole(line: string): Encoded {
@@ -283,7 +284,8 @@ export function createRecordingReader({ onHeader }: ReadOptions = {}) {
       if (!frames.length) throw damaged('the first frame is not a keyframe');
       state = applyPatch(frames[frames.length - 1]!.state, value.delta, header!.schema);
     } else throw damaged(`frame ${frames.length + 1} has neither state nor delta`);
-    frames.push(own(value, 'commands') ? { state, commands: value.commands } : { state });
+    frames.push({ state, ...(own(value, 'commands') ? { commands: value.commands } : {}),
+      ...(own(value, 'botCommandDigest') ? { botCommandDigest: value.botCommandDigest } : {}) });
   }
   return {
     /** Feed the next piece of text. */

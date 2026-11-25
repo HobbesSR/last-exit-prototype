@@ -21,9 +21,9 @@ const aborted = signal => { if (signal?.aborted) throw asError(signal.reason || 
 // left out, as JSON.stringify does. `bytes` is the UTF-8 length of the frame's full line, which the queue
 // charges whatever the worker stores.
 const KEPT = new Set(['items', 'gates']);
-function frameParts(state, commands, kept, referenceKept = false) {
+function frameParts(state, commands, kept, referenceKept = false, botCommandDigest) {
   if (state === null || typeof state !== 'object' || 'toJSON' in state) {
-    const line = JSON.stringify({ state, commands });
+    const line = JSON.stringify({ state, commands, botCommandDigest });
     return { line, bytes: Buffer.byteLength(line) };
   }
   const entries = [];
@@ -35,9 +35,10 @@ function frameParts(state, commands, kept, referenceKept = false) {
     if (json === undefined) continue;
     entries.push([key, json]); bytes += Buffer.byteLength(JSON.stringify(key)) + 1 + Buffer.byteLength(json);
   }
-  const commandsJson = JSON.stringify(commands), tail = commandsJson === undefined ? '}}' : `},"commands":${commandsJson}}`;
+  const commandsJson = JSON.stringify(commands), digestJson = JSON.stringify(botCommandDigest);
+  const tail = `}${commandsJson === undefined ? '' : `,"commands":${commandsJson}`}${digestJson === undefined ? '' : `,"botCommandDigest":${digestJson}`}}`;
   bytes += 10 + Math.max(0, entries.length - 1) + Buffer.byteLength(tail);
-  return { entries, commands: commandsJson, bytes };
+  return { entries, commands: commandsJson, botCommandDigest: digestJson, bytes };
 }
 
 // A frame's full line, `JSON.stringify({ state, commands })`, and its byte count, for checking the byte
@@ -125,11 +126,11 @@ export function createReplayWriter({ header, output, outputPath, publish, onErro
     get droppedFrames() { return droppedFrames; },
     get failed() { return failed; },
     opened,
-    append(state, commands) {
+    append(state, commands, botCommandDigest) {
       if (completion || ending) throw new Error('Cannot append to a finalized replay');
       if (failed) return false;
       let frame;
-      try { frame = frameParts(state, commands, keptText, true); }
+      try { frame = frameParts(state, commands, keptText, true, botCommandDigest); }
       catch (error) { fail(error); return false; }
       const bytes = frame.bytes + 1;
       if (!fits(bytes)) { droppedFrames++; return false; }

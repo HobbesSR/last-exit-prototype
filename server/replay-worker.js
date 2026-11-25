@@ -69,7 +69,7 @@ function pump() {
   if (message.type === 'frame') {
     Object.assign(kept, message.updates);
     text = stored(message.line !== undefined ? encoder.whole(message.line)
-      : encoder.encode({ entries: message.entries.map(([key, json]) => [key, json ?? kept[key]]), commands: message.commands }));
+      : encoder.encode({ entries: message.entries.map(([key, json]) => [key, json ?? kept[key]]), commands: message.commands, botCommandDigest: message.botCommandDigest }));
   } else if (message.type === 'finish') {
     const last = encoder.close();
     if (last) checkpoints.push({ frame: last.frame, sha256: sha256(last.line) });

@@ -29,7 +29,7 @@ core tick and use the same archive contract below. Default content is `content-1
 #920 retired that engine and contents 1 to 5, and #953 raised `MIN_SCHEMA` to **10** so
 archives recorded before schema 10 (pre-chain-map diamond arenas, `last-exit-0.7`, and
 experimental P1/P2 schemas 8–9 without required physics presentation) are refused with the
-existing `"no longer reads"` message while remaining downloadable. The room writes schema **22**
+existing `"no longer reads"` message while remaining downloadable. The room writes schema **23**
 and `minSchema` 20 (`minimumReaderForMatch`, `RELATIONAL_SCHEMA`). Since #901, archives are stored as lines
 with delta frames ([Schema 17](#schema-17-lines-and-delta-frames-901)), which no older reader can
 read, and schema 18 (#948, #949) drops dead recorded fields (`Player.path`,
@@ -40,6 +40,20 @@ compatible with schema 17 readers; schema 19 adds tick stamps to recorded input
 ([Schema 21](#schema-21-observations-as-commands-1283)). This build still reads every schema from 10. Optional appearance
 descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
+
+## Schema 23: bot command checkability (#1321)
+
+The optional header `botPlannerVersion` identifies the first-class bot planner. Each committed tick may
+carry `botCommandDigest`, the lowercase SHA-256 of the committed bot command rows encoded using
+`encodeInbound`, with each numeric wire word serialized as an IEEE-754 binary64 little-endian value in
+row order. This includes gesture flags and the empty row sequence. The initial pre-tick frame has no digest.
+A finish or abandonment can add a frame at the last tick without advancing the simulation, so that frame also
+has no digest. Human and external bot commands remain in `commands`. The digest is metadata and playback remains based on
+stored frames. Schema 23 is additive and retains `minSchema` 20. Older archives lack these fields.
+
+There is currently no recording resimulation path that reconstructs bot commands. A future resimulator can
+encode its committed bot rows and compare their digest on each available frame, using the matching planner
+version and complete history. Missing frames prevent continuous reconstruction.
 
 ## Schema 22: the inbound queue as commands (#1283)
 

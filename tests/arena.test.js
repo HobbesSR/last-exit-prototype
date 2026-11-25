@@ -52,7 +52,8 @@ test('a gladiator that hears a gunfight goes straight to it; one that only hears
   assert.ok(heard >= floor && heard < floor * 1.1, `arrived on tick ${heard}`);
   assert.equal(await gunfight(distance, { content: contentById('content-8'), ticks: 600 }), null);
   // One shot is enough: the lead outlasts the cue.
-  assert.ok(await gunfight(distance, { content: contentById('content-9'), until: 1, ticks: 600 }) < floor * 1.1);
+  const once = await gunfight(distance, { content: contentById('content-9'), until: 1, ticks: 600 });
+  assert.ok(once !== null && once < floor * 1.1, `arrived on tick ${once}`);
 });
 
 test('an event without a period acts every tick', async () => {

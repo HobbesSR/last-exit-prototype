@@ -178,17 +178,21 @@ test('items are admitted by T1 under the reserve rule, and the match ends at its
   }, setup => { setup.tuning.items.drops.dropReserve = 128 - 5 - 2; setup.timeLimit = 40; setup.hazardWall.graceTicks = 10; });
 });
 
-test('bot commands are accepted for a future tick, spent, and move the actor', async () => {
+test('a queued client command and derived bot commands each spend one input per seat', async () => {
   await live((match, setup, ids, s) => {
     const [c] = s.players, actor = ids.actorOfPlayer.get(c.id);
-    const command = (tick, seq, input) => ({ type: 'command', command: { actor, source: 'bot', tick, seq, input: { ...emptyInput(), ...input } } });
+    const command = (tick, seq, input) => ({ type: 'command', command: { actor, source: 'player', tick, seq, input: { ...emptyInput(), ...input } } });
     const x = () => match.snapshot().poses.find(p => p.body.kind === 'actor' && p.body.id === actor).at[0];
     const before = x();
     // The right tick is queued; a stale tick, or a command stamped for another tick, is refused.
-    assert.deepEqual(match.submit(1, [command(1, 1, { movement: [1, 0], aim: 0.5 }), command(2, 2, {})]), [true, false]);
+    const accepted = command(1, 1, { movement: [1, 0], aim: 0.5 });
+    assert.deepEqual(match.submit(1, [{ type: 'observation', observation: { kind: 'join', actor } }, accepted, command(2, 2, {})]), [true, true, false]);
     assert.deepEqual(match.submit(0, [command(0, 4, {})]), [false]);
     const tick = match.step();
-    assert.equal(tick.inbound.length, 1);
+    const inputs = tick.inbound.filter(row => row.type === 'command');
+    assert.deepEqual(inputs.filter(row => row.command.actor === actor), [accepted]);
+    assert.equal(inputs.filter(row => row.command.source === 'bot').length, s.players.length - 1);
+    assert.equal(new Set(inputs.map(row => row.command.actor)).size, inputs.length);
     for (let i = 0; i < 4; i++) match.step();
     assert.ok(x() > before + 1, `${x()} did not move from ${before}`);
     assert.equal(match.acknowledged(c.id), 1);

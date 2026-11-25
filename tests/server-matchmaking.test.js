@@ -18,7 +18,9 @@ test('matchmaking separates private rooms, honors available preferences, falls b
     const clients = [], welcomes = [];
     for (const role of ['gladiator', 'gladiator', 'gladiator', 'gladiator', 'contestant', 'any']) {
       const ws = await open(base);
-      const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'match', role, name: 'Queued' }));
+      // The first join creates the room. With inline rooms, navigation preparation can delay delivery.
+      const welcome = next(ws, 'welcome', clients.length === 0 ? 30_000 : undefined);
+      ws.send(JSON.stringify({ type: 'match', role, name: 'Queued' }));
       clients.push(ws); welcomes.push(await welcome);
     }
     const roomId = welcomes[0].room;

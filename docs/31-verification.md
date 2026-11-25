@@ -23,7 +23,10 @@ npm run bench:client
 `npm test` and `npm run test:all` cap file concurrency at four, keeping CPU and memory contention
 bounded on the shared machine. Each command runs every case in its selected tier; `test:all` includes the slow tier;
 isolated file budgets are unchanged. CI uses the same four; it does not size concurrency to its
-runner (Corey, 2026-11-05, #800 S5), so per-file times stay comparable across machines. The dated concurrency incident is retained in [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints).
+runner (Corey, 2026-11-05, #800 S5), so per-file times stay comparable across machines. The verify
+unit step gives each V8 isolate a 384 MiB old-space limit and 8 MiB semi-space limit so concurrent
+test files and their room workers can share the CI container (#1321). The dated concurrency incident
+is retained in [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints).
 Use the normal scripts for integration; focused `node --test` commands remain
 available. The chain sweep's internal worker pool is separate.
 

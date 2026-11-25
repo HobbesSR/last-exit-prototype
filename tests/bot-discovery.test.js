@@ -102,12 +102,24 @@ test('a bot enters a reachable roofed frontier cell rather than giving it up fro
     actors: [{ role: 'contestant', x: 576, y: 1632 }, { role: 'contestant', bot: false, x: 1800, y: 3700 }] });
   t.after(() => disposePhysics(s));
   // Discovery comes from the authoritative match, including the initially concealed roofed cell.
-  startGame(s);
-  step(s);
-  assert.equal(p.discovery.seen.has(roofedCell), false, 'the roof conceals the frontier from outside');
-  for (let i = 0; i < 400 && !p.discovery.seen.has(roofedCell); i++) step(s);
-  assert.ok(p.discovery.seen.has(roofedCell), 'the roofed cell is seen by going in');
-  assert.ok(p.discovery.items.has(itemId(s, 'indoor-cell')) || p.inventory.some(item => item?.kind === 'cell'), 'the cell inside is seen, or already taken');
+  const { match } = startGame(s);
+  const actor = match.ids.actorOfPlayer.get(p.id);
+  const memory = () => match.memory(p.id);
+  let movedByIntent = false;
+  const advance = () => {
+    const tick = stepGame(s);
+    const row = tick.inbound.find(row => row.type === 'command' && row.command.source === 'bot' && row.command.actor === actor);
+    assert.ok(row, 'the core committed input for the exploring bot');
+    movedByIntent ||= row.command.input.movement.some(component => component !== 0);
+  };
+  advance();
+  assert.equal(memory().seen.includes(roofedCell), false, 'the roof conceals the frontier from outside');
+  for (let i = 0; i < 400 && !memory().seen.includes(roofedCell); i++) advance();
+  assert.ok(movedByIntent, 'the committed commands drove exploration');
+  assert.ok(memory().seen.includes(roofedCell), 'the roofed cell is seen by going in');
+  const inventory = match.snapshot().state.actors.find(entry => entry.word === actor).actor.inventory;
+  assert.ok(memory().items.some(item => item.id === itemId(s, 'indoor-cell'))
+    || inventory.slots.some(item => item?.equipment.kind.kind === 'cell'), 'the cell inside is seen, or already taken');
 });
 
 test('a contestant routes over unknown ground with the same intent until it surveys a wall (#424)', async t => {
@@ -134,11 +146,14 @@ test('a contestant routes over unknown ground with the same intent until it surv
     worlds.push({ s, bot, match, boundary, learnedLayout });
   }
 
-  const advance = ({ s, bot }) => {
+  const advance = ({ s, bot, match }) => {
     const tick = stepGame(s);
-    const command = tick.inbound.find(row => row.type === 'command' && row.command.source === 'bot');
-    assert.ok(command, 'the tick spent a bot command');
-    return { position: [bot.x, bot.y], route: bot.route?.map(({ x, y }) => ({ x, y })), input: command.command.input };
+    const actor = match.ids.actorOfPlayer.get(bot.id);
+    const command = tick.inbound.find(row => row.type === 'command' && row.command.source === 'bot' && row.command.actor === actor);
+    assert.ok(command, 'the tick spent the contestant bot command');
+    const pose = match.snapshot().poses.find(entry => entry.body.kind === 'actor' && entry.body.id === actor);
+    assert.ok(pose, 'the bot has a committed pose');
+    return { position: pose.at, route: match.botRoute(bot.id), input: command.command.input };
   };
   const nearCell = route => {
     const end = route?.at(-1);
@@ -150,8 +165,11 @@ test('a contestant routes over unknown ground with the same intent until it surv
     assert.deepEqual(blocked.match.memory(blocked.bot.id), open.match.memory(open.bot.id));
     assert.ok(worlds.every(world => !world.learnedLayout()), 'the wall tile is outside the known support');
   }
-  assert.ok(nearCell(blocked.bot.route), 'the speculative route targets the remembered cell across the unknown wall');
-  assert.ok(blocked.bot.route.some((point, i, route) => !sweptClear(blocked.s.map, i ? route[i - 1] : blocked.bot, point, 12)),
+  const route = blocked.match.botRoute(blocked.bot.id);
+  const actor = blocked.match.ids.actorOfPlayer.get(blocked.bot.id);
+  const position = blocked.match.snapshot().poses.find(entry => entry.body.kind === 'actor' && entry.body.id === actor).at;
+  assert.ok(nearCell(route), 'the speculative route targets the remembered cell across the unknown wall');
+  assert.ok(route.some((point, i) => !sweptClear(blocked.s.map, i ? route[i - 1] : { x: position[0], y: position[1] }, point, 12)),
     'the speculative route crosses the hidden wall');
 
   for (const { boundary, bot } of worlds) assert.ok(boundary.teleport(bot.id, [2500, 960]));

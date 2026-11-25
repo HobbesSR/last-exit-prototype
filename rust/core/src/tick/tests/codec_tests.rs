@@ -681,10 +681,12 @@ fn every_inbound() -> Vec<Inbound> {
         Inbound::Observation(Observation::Join {
             actor: C,
             kit: None,
+            bot_label: None,
         }),
         Inbound::Observation(Observation::Join {
             actor: C,
             kit: Some(Kit::Hook),
+            bot_label: Some((2, true)),
         }),
         Inbound::Observation(Observation::Leave { actor: C }),
         Inbound::Observation(Observation::Teleport {
@@ -760,6 +762,7 @@ fn discontinuities_discovery_memory_and_cues_round_trip() {
     let memory = Memory {
         discovered: BTreeSet::from([1, 5, 9]),
         seen: BTreeSet::from([2]),
+        seen_order: vec![2],
         surveyed: BTreeSet::new(),
         items: BTreeMap::from([(
             ItemId(3),
@@ -768,6 +771,7 @@ fn discontinuities_discovery_memory_and_cues_round_trip() {
                 item: item(3, Loot::AccessKey),
             },
         )]),
+        item_order: vec![ItemId(3)],
         gates: BTreeMap::from([(
             GateId(1),
             DoorMemory {
@@ -903,6 +907,7 @@ fn a_richer_snapshot_decodes_as_setup_tables() {
         hazard_areas: Vec::new(),
         wall: None,
         entry_x: 0.0,
+        bots: Default::default(),
         bounds: None,
         combat: Combat::default(),
     };
@@ -1041,6 +1046,7 @@ fn sample_setup() -> Setup {
         hazard_areas: vec![[1.0, 2.0, 3.0, 4.0]],
         wall: Some((960.0, 5)),
         entry_x: 123.5,
+        bots: Default::default(),
         bounds: Some([0.0, 0.0, 1000.0, 500.0]),
         combat,
     }

@@ -4,6 +4,7 @@ import type { SanitizedInput } from './input.ts';
 import { playerById } from './relations.ts';
 import { viewLagFrom } from './rewind.ts';
 import { emptyInput } from './tick-codec.ts';
+import { botLabel } from './tick-match.ts';
 import { wireIds } from './wire-ids.ts';
 import type { Command, DropSlot, Inbound, Input, Point, Target } from './tick-codec.ts';
 import type { WireIds } from './wire-ids.ts';
@@ -111,16 +112,19 @@ export function measured(ids: MatchIds, p: Player, roundTripMs: number | null | 
 /**
  * A connection taking over its seat (`resume`) or handing it to a bot (`leave`). The receive state and the buffer start
  * over, as `resetInput` leaves them, so nothing the previous connection queued is ever spent; the core clears the held
- * input, lag and spent sequence on the row.
+ * input, lag and spent sequence on the row. A relabel carries its rank just after binding the new label.
+ * The rank is relative to this observation, so another relabel queued for the same tick leaves it intact.
  */
-export function seatChanged(ids: MatchIds, p: Player, kind: 'join' | 'leave', kit?: Kit): Inbound | null {
+export function seatChanged(ids: MatchIds, p: Player, kind: 'join' | 'leave', kit?: Kit, relabeled = false): Inbound | null {
   const actor = ids.actorOfPlayer.get(p.id);
   if (actor === undefined) return null;
   resetInput(p);
   reportedLag.set(p, 0);
   // As `resume` and `leave` set it: the core's record agrees at the tick's intake, and no bot command is sent meanwhile.
   p.bot = kind === 'leave';
-  return { type: 'observation', observation: kind === 'join' && kit !== undefined ? { kind, actor, kit } : { kind, actor } };
+  return { type: 'observation', observation: kind === 'join'
+    ? { kind, actor, ...(kit === undefined ? {} : { kit }), ...(relabeled ? { botLabel: botLabel(ids.playerOfActor.values(), p.id) } : {}) }
+    : { kind, actor } };
 }
 
 /**
@@ -134,7 +138,7 @@ export function teleported(ids: MatchIds, p: Player, to: Point): Inbound | null 
 }
 
 /**
- * A bot's intent as its command for tick `tick` (R11: read from the mirror as T−1 left it). `utilitySlot` is the core's
+ * Encode a JS reference-planner intent for adapter tests. `utilitySlot` is the core's
  * own field. `discardSlot`, equipment dropped to make room for a cell, is a drop of that slot, which outranks a drop of the
  * selected one (R1 allows one). A transit nomination is sent only under `transit: 'selectable'` content, where the old
  * rules read it. The sequence is one past the last the match spent for the actor, so a seat handed back from a player
@@ -199,8 +203,8 @@ export class TickBoundary {
     this.#observe(rows);
     return rows;
   }
-  seat(id: PlayerId, kind: 'join' | 'leave', kit?: Kit): Inbound | null {
-    const p = this.#player(id), row = p ? seatChanged(this.match.ids, p, kind, kit) : null;
+  seat(id: PlayerId, kind: 'join' | 'leave', kit?: Kit, relabeled = false): Inbound | null {
+    const p = this.#player(id), row = p ? seatChanged(this.match.ids, p, kind, kit, relabeled) : null;
     if (row) this.#observe([row]);
     return row;
   }

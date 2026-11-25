@@ -6,7 +6,6 @@ use super::{
     side_edges,
 };
 use crate::{
-    math::hypot,
     runtime_map::{Layer, Tile, Values},
     runtime_navigation::RuntimeNavigation,
     tick::{DoorMemory, Gate, GateId, Memory},
@@ -31,6 +30,7 @@ struct Place {
 }
 
 /// The cells and door states one search may read, frozen at its start.
+#[derive(Clone)]
 pub struct Knowledge {
     known: Vec<bool>,
     doors: Vec<Option<DoorMemory>>,
@@ -39,6 +39,13 @@ pub struct Knowledge {
 }
 
 impl Knowledge {
+    pub(crate) fn known(&self, cell: usize) -> bool {
+        self.known.get(cell).copied().unwrap_or(false)
+    }
+
+    pub(crate) fn keys(&self) -> usize {
+        self.keys
+    }
     pub fn contestant(map: &RuntimeNavigation, memory: &Memory, keys: usize) -> Self {
         let mut known = vec![false; map.cell_count()];
         for &cell in memory.discovered.union(&memory.surveyed) {
@@ -123,6 +130,7 @@ pub enum RouteStatus {
     BudgetExhausted,
 }
 
+#[derive(Clone)]
 pub struct Route {
     pub status: RouteStatus,
     pub points: Vec<Point>,
@@ -183,9 +191,7 @@ impl<N: Ord> PartialEq for QueueEntry<N> {
 
 impl<N: Ord> Eq for QueueEntry<N> {}
 
-pub(super) fn distance(a: Point, b: Point) -> f64 {
-    hypot(a[0] - b[0], a[1] - b[1])
-}
+pub(super) use crate::math::distance;
 
 fn gates<'a>(tile: &Tile<'a>, triangle: usize) -> Option<Values<'a>> {
     let set = tile.triangle_gate_sets.i32(triangle);

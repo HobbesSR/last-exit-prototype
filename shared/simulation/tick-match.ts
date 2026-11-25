@@ -12,8 +12,9 @@ import { HZ } from './rules.ts';
 import { sightOf } from './sight-runtime.ts';
 import { discoveryTables } from '../discovery.ts';
 import { authoredProps } from './world-physics.ts';
+import { createRuntimeNavigation } from '../navigation/runtime-map.ts';
 import { SLOT_COUNT, actorWord, decodeCompleted, decodeCues, decodeMemory, decodeSnapshot, encodeInbound, encodeSetup } from './tick-codec.ts';
-import type { Actor, ActorEntry, Presence, Window, BodyRow, SetupBody, DecodedTick, Equipment, GateEntry, GroundEntry, Inbound, Loot, MatchSetup, Memory, MotorSurface, Cue,
+import type { Actor, ActorEntry, Presence, Window, BodyRow, SetupBody, DecodedTick, Equipment, GateEntry, GroundEntry, Inbound, Loot, MatchSetup, Memory, MotorSurface, Cue, BotLabel,
   Point, Snapshot, State, StationEntry, Tick, TrapEntry, TrapKind, Tuning, WeaponTuning } from './tick-codec.ts';
 import type { CoreExports } from '../core.ts';
 import type { ChargerId, Game, GateId, InventoryItem, Kit, Player, PlayerId, PlayerIdx, PlayerStatus, StationId, TrapId, WeaponType } from '../types.ts';
@@ -64,6 +65,13 @@ const BAKED = Object.freeze({
 });
 
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
+
+/** Encode the label-dependent bot ties when a persistent seat gets its current label. */
+export function botLabel(labels: Iterable<PlayerId>, id: PlayerId): BotLabel {
+  let rank = 0;
+  for (const label of labels) if (label < id) rank++;
+  return { rank, opportunistic: id.charCodeAt(id.length - 1) % 3 === 0 };
+}
 const pointOf = (at: { x: number; y: number }): Point => [at.x, at.y];
 
 const PRESENCE: Record<PlayerStatus, Presence> = {
@@ -335,6 +343,11 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
       // Actors and spots lie inside the map's box (the old collision test's first condition).
       bounds: [0, 0, s.map.width, s.map.height],
       entryX: s.map.entry?.x ?? 0,
+      bots: { hearing: s.content.hearingResponse === 'temperament',
+        hunting: s.content.hunting === 'front' ? 2 : s.content.hunting === 'sweep' ? 1 : 0,
+        portals: s.content.hunterPlanning === 'portals', selectableTransit: s.content.transit === 'selectable',
+        roster: s.players.map(p => ({ actor: actorOfPlayer.get(p.id)!,
+          ...botLabel(playerOfActor.values(), p.id), inventory: p.inventory !== undefined })) },
       tuning: tuningOf(s) },
     ids: { actorAtSlot, slotOfActor, actorOfPlayer, playerOfActor, bindPlayer, buildingIds, gateIndex, gateIds, trapIndex, trapIds, chargerIndex, transitIndex, stations: stationList,
       propNumber, propLabels: props.map(p => p.label), geometryNumber, geometryIds: geometry.map(g => g.id) },
@@ -358,6 +371,7 @@ interface MatchExports {
   match_output_len(game: number): number;
   match_snapshot(game: number): number;
   match_memory(game: number, actor: number): number;
+  match_bot_route(game: number, actor: number): number;
   match_heard(game: number, actor: number): number;
   match_acknowledged(game: number, actor: number): number;
 }
@@ -391,9 +405,16 @@ export class TickMatch {
       pointer = matchCore.match_new(buffer, words.length, swept, index, gates, discovery, discovery ? index : 0, discovery ? gates : 0, collision, roofs) >>> 0;
     } finally { matchCore.core_free(buffer, bytes); }
     if (pointer === 0) throw new Error('tick-match: the core refused the match setup');
-    if (navigation && !matchCore.match_set_navigation(pointer, navigation)) {
+    try {
+      const local = navigation === undefined ? createRuntimeNavigation(core, map) : undefined;
+      try {
+        const candidate = navigation ?? local?.pointer;
+        if (candidate && !matchCore.match_set_navigation(pointer, candidate))
+          throw new Error('tick-match: the core refused the navigation package');
+      } finally { local?.release(); }
+    } catch (error) {
       matchCore.match_free(pointer);
-      throw new Error('tick-match: the core refused the navigation package');
+      throw error;
     }
     this.setup = setup; this.ids = ids; this.#core = matchCore; this.#pointer = pointer;
     live.register(this, { core: matchCore, pointer }, this);
@@ -433,6 +454,11 @@ export class TickMatch {
   }
   /** A contestant's discovery memory as of the last completed tick; null for none. */
   memory(id: PlayerId): Memory | null { return this.#read(this.#core.match_memory(this.#live(), this.#actor(id)), decodeMemory); }
+  /** The remaining route in the core planner, projected on demand for diagnostics. */
+  botRoute(id: PlayerId): { x: number; y: number }[] {
+    return this.#read(this.#core.match_bot_route(this.#live(), this.#actor(id)), words =>
+      Array.from({ length: words.length / 2 }, (_, i) => ({ x: words[i * 2]!, y: words[i * 2 + 1]! })));
+  }
   /** The cues a player hears as of the last completed tick, oldest first. */
   heard(id: PlayerId): Cue[] { return this.#read(this.#core.match_heard(this.#live(), this.#actor(id)), decodeCues); }
   /** The last command sequence spent for the player, or null. */

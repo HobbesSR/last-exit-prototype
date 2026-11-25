@@ -499,8 +499,8 @@ agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 1838
    synchronously in the room worker by default. With inline rooms (`roomThreads: false`) it
    blocks the host event loop until the build finishes. Both flat variants remain opt-in.
    Rust validates both uploaded clearances together during room preparation and retains the original allocations.
-   The match holds a reference before its first tick. The current JavaScript planner borrows views from the same
-   bytes, refreshing them after WASM memory growth. The room and match release their references on disposal (#1318).
+   The match holds a reference before its first tick. The room and match release their references on disposal
+   (#1318). Starting in 4e the live planner uses the validated Rust package directly.
    At 36×18 the deferred variant reduced idle stock but took about
    eight seconds to ready a stocked room and still increased live WASM capacity. The default legacy worker
    handoff prebuilds only the gladiator clearance.
@@ -519,12 +519,30 @@ Stage 4d (#1320) adds the Rust route queries over those flat packages. A search 
 surveyed and discovered cells, observed door bits and key count. It reads tiles only after checking
 their full support, and can resume under an expansion limit with the same order as a single query.
 The hunter corridor uses the optional flat portal graph and uses the original target on graphless
-maps. The WASM diagnostics compare the queries directly with the JavaScript planner. Live bot
-planning still uses the JavaScript views, with their startup validation, until #1321 moves bot
-intent and phase-2 input.
+maps. The WASM diagnostics compare the queries directly with the JavaScript planner.
 
-**Parity.** #1215 holds the characterization fixture that the cutover (#1283 3d.4d) re-baselines, bot traces
-included. The contract leaves both bot options on #1215 open: bots in the core, or outside it driving a seat.
+Stage 4e (#1321) moves live bot planning and command consumption to the match core. Rust validates the
+combined eager or deferred package before a tick can use it. `tick::bots::BotMap` owns the entry coordinate,
+bot collision and roof queries, and the retained navigation package. They are per-arena geometry inputs to
+the planner. Content-selected behavior values travel in the setup and use the same core interaction tables as
+resolution. Discovery and authoritative collision retain their own prepared views.
+Navigation packaging can read existing JavaScript tiles, but leaves newly built tiles transient.
+It prepares widened gate shapes once per clearance. For integral map bounds the in-process
+path builds and uploads one compact clearance at a time. Rooms prepare and validate their
+package before reporting readiness, including when they receive a plain map. The match takes
+ownership at start. The preparation handle then releases its reference to the package.
+
+The 4e allocation comparison used release WASM and two 1,000-tick room runs on 90 × 45 discovery
+cells (seeds 4217 and 4218). The sparse tile cache typically held 16–31 entries and peaked at 80.
+The side cache typically held 8–15 and peaked at 76. An indexed trial reserved about 20 KB per
+live search and raised whole-core cumulative allocation by 5.5–6.0 MB and peak allocation by
+about 19 KB. Both trials produced identical bot-command digests per seed. Two timed runs per
+variant took 1.10–1.15 seconds each, with no consistent timing advantage. Of 11,057 sampled
+known-tile reads across the two sparse runs, 10,782 had no gate overlap and the maximum was three
+overlapping gate keys. The live search keeps sparse caches and the existing gate lists.
+
+**Parity.** The physics-1 fixture characterizes the live engine, including bot traces for arenas 9 and 4217.
+The tick core derives built-in bot commands. External clients can drive a seat through the normal receive path.
 
 ## The edge
 

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { botCommandDigest } from './bot-recording.js';
 import { DEFAULT_KIT, HZ, ROLES } from '../shared/simulation/rules.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
@@ -291,12 +292,13 @@ export function createRoom({
     reportError(state.recordingError);
   }
 
-  function record(frame, spent) {
+  function record(frame, spent, botWords) {
     const commands = state.inputs.splice(0);
     if (state.recordingError) return;
     try {
       if (state.writer.failed) return failRecording(state.writer.failed);
-      const accepted = state.writer.append(frame, spent?.length ? commands.concat(spent) : commands);
+      const digest = botWords === undefined ? undefined : botCommandDigest(botWords);
+      const accepted = state.writer.append(frame, spent?.length ? commands.concat(spent) : commands, digest);
       if (state.writer.failed) failRecording(state.writer.failed);
       else if (accepted === false || state.writer.droppedFrames > 0) replayStatus('partial');
     } catch (error) { failRecording(error); }
@@ -334,6 +336,7 @@ export function createRoom({
         version: match.version, schema: match.recordingSchema, minSchema: minimumReaderForMatch(),
         contentId: match.contentId, presentation: state.presentation, id: state.id,
         seed: match.seed, hz: HZ, createdAt: state.createdAt, map,
+        ...(match.botPlannerVersion === undefined ? {} : { botPlannerVersion: match.botPlannerVersion }),
       }, { onError: error => { if (!writer || state.writer === writer) failRecording(error); } });
       if (state.recordingError) state.writer?.abort?.(state.recordingError);
     } catch (error) { failRecording(error); }
@@ -609,7 +612,7 @@ export function createRoom({
 
   function advanceFrame() {
     const frame = state.match.advance();
-    profiler.start('loop.record'); record(frame, state.match.spent()); profiler.stop('loop.record');
+    profiler.start('loop.record'); record(frame, state.match.spent(), state.match.botCommands?.()); profiler.stop('loop.record');
     remember(state, frame);
     return frame;
   }

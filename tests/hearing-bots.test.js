@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { disposePhysics, step, snapshot } from '../shared/simulation.ts';
+import { disposePhysics, setInput, step, snapshot } from '../shared/simulation.ts';
 import { collectBotIntent, isOpportunistic } from '../shared/simulation/bots.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { hearShot } from '../shared/simulation/hearing.ts';
@@ -8,6 +8,7 @@ import { cellCenter, cellIndexAt } from '../shared/discovery.ts';
 import { canOccupy } from '../shared/movement.ts';
 import { openField } from './helpers/arena.js';
 import { stagePhysics } from './helpers/scenario.js';
+import { identifyItems } from './helpers/item-identity.js';
 
 // Bots act on heard gunfire under `hearingResponse: 'temperament'` (#685, 14 "Heard gunfire").
 
@@ -15,12 +16,15 @@ import { stagePhysics } from './helpers/scenario.js';
 // (an idle contestant keeps the match live). The shot is heard on the gladiator's row, 4000 east of it; the
 // exit is behind the gladiator, so a patrol leads away from the shot.
 const Y = 576, SHOT = { x: 4600, y: Y };
-const ACTORS = [{ role: 'gladiator', x: 600, y: Y }, { role: 'contestant', x: 7800, y: 150 }, { role: 'contestant', bot: false, x: 7800, y: 1000 }];
+const ACTORS = [{ role: 'gladiator', x: 600, y: Y }, { role: 'contestant', bot: false, ...SHOT }, { role: 'contestant', bot: false, x: 7800, y: 1000 }];
 const field = (extra = {}) => openField(8400, { exit: { x: 96, y: Y }, ...extra }).map;
 const heardContent = (id, response) => ({ ...contentById(id), id: 'content-hearing-test', hearing: { ticks: 80, ranges: { pistol: 20000 } },
   ...response ? { hearingResponse: response } : {} });
 async function scene(response, map = field(), content = heardContent('content-7', response)) {
   const { s, players: [gladiator, shooter] } = await stagePhysics(map, { content, actors: ACTORS });
+  shooter.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 48,
+    instanceId: 'hearing-weapon', lineageId: 'hearing-weapon' };
+  identifyItems(s);
   return { s, gladiator, shooter };
 }
 const away = (p, at) => Math.hypot(p.x - at.x, p.y - at.y);
@@ -35,7 +39,7 @@ test('a gladiator goes to where it heard a shot, long after the cue has faded', 
   for (const response of [undefined, 'temperament']) {
     const { s, gladiator, shooter } = await scene(response);
     try {
-      hearShot(s, { ...shooter, id: 'arranged', ...SHOT }, 'pistol');
+      assert.ok(setInput(s, shooter.id, { seq: 1, attack: true, aim: 0 }));
       let closest = Infinity;
       for (let tick = 0; tick < 700; tick++) { step(s); closest = Math.min(closest, away(gladiator, SHOT)); }
       runs.push(closest);
@@ -52,7 +56,7 @@ test('content-8, which hears but does not react, plays exactly as content-7', as
     try {
       const frames = [];
       for (let tick = 0; tick < 200; tick++) {
-        if (tick % 40 === 0) hearShot(s, { ...shooter, id: 'arranged', ...SHOT }, 'pistol');
+        if (tick % 40 === 0) assert.ok(setInput(s, shooter.id, { seq: tick + 1, attack: true, aim: 0 }));
         step(s); frames.push(JSON.stringify(snapshot(s)));
       }
       return frames;
