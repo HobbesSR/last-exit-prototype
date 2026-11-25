@@ -37,12 +37,19 @@ test('matches use eager and deferred flat maps across WASM growth and disposal',
   let routed = false;
   for (let i = 0; i < 24; i++) {
     const expected = current.advance();
-    routed ||= expected.players.some(p => p.route?.length);
-    for (const { match } of variants) assert.deepEqual(match.advance(), expected);
+    assert.ok(expected.players.every(p => !Object.hasOwn(p, 'route')), 'the ordinary frame omits private routes');
+    const snapshot = current.snapshot();
+    routed ||= snapshot.players.some(p => p.route?.length);
+    for (const { match } of variants) {
+      assert.deepEqual(match.advance(), expected);
+      assert.deepEqual(match.snapshot(), snapshot);
+    }
   }
   assert.ok(routed, 'the comparison covers a bot following a route');
   for (const { match, decoded } of variants) {
+    const snapshot = match.snapshot();
     match.dispose();
+    assert.deepEqual(match.snapshot(), snapshot, 'disposal retains the last private snapshot');
     assert.equal(portalGraphOf(decoded), undefined);
   }
 });

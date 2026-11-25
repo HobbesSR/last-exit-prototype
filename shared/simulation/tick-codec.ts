@@ -245,7 +245,6 @@ export interface DiscoverySample { actor: number; eye: Point }
 export interface Discovery { gates: GateObservation[]; samples: DiscoverySample[] }
 export interface DecodedTick {
   tick: Tick; inbound: Inbound[]; changes: Changes; discontinuities: Discontinuity[]; discovery: Discovery;
-  readonly botRoutes?: { actor: number; route: { x: number; y: number }[] }[];
 }
 
 export interface RememberedItem { id: number; at: Point; item: GroundItem }
@@ -1004,15 +1003,16 @@ export function decodeCompleted(words: ArrayLike<number>): DecodedTick {
   const discontinuities: Discontinuity[] = [];
   for (let i = 0; i < count; i++) discontinuities.push(getDiscontinuity(r));
   const discovery = getDiscovery(r);
-  const completed = { tick, inbound, changes, discontinuities, discovery };
-  if (!r.empty) {
-    const botRoutes = Array.from({ length: r.count(2) }, () => ({ actor: r.actor(),
-      route: Array.from({ length: r.count(2) }, () => ({ x: r.finite(), y: r.finite() })) }));
-    // Private frame compatibility data rides on the same transfer. The committed tick's transcript is unchanged.
-    Object.defineProperty(completed, 'botRoutes', { value: botRoutes });
-  }
   if (!r.empty) r.fail('trailing words');
-  return completed;
+  return { tick, inbound, changes, discontinuities, discovery };
+}
+
+export function decodeBotRoutes(words: ArrayLike<number>) {
+  const r = new Reader(words);
+  const routes = Array.from({ length: r.count(2) }, () => ({ actor: r.actor(),
+    route: Array.from({ length: r.count(2) }, () => ({ x: r.finite(), y: r.finite() })) }));
+  if (!r.empty) r.fail('trailing words');
+  return routes;
 }
 
 function getCells(r: Reader): number[] {

@@ -77,12 +77,10 @@ impl Planner {
             .map_or(&[], |bot| bot.route.route.as_slice())
     }
 
-    pub fn routes(&self) -> impl Iterator<Item = (ActorId, u64, &[Point])> {
-        self.actors.iter().filter_map(|(&id, bot)| {
-            bot.route
-                .has_plan()
-                .then_some((id, bot.route.generation, &bot.route.route[..]))
-        })
+    pub fn planned_routes(&self) -> impl Iterator<Item = (ActorId, &[Point])> {
+        self.actors
+            .iter()
+            .filter_map(|(&id, bot)| bot.route.has_plan().then_some((id, &bot.route.route[..])))
     }
 
     pub fn clear_route(&mut self, id: ActorId) {

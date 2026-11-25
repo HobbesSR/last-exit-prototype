@@ -175,6 +175,8 @@ test('the threaded host can opt into the new tick and save a schema 23 archive',
     const final = archive.frames.at(-1);
     assert.equal(final.state.tick, archive.frames.at(-2).state.tick, 'finishing adds a frame without advancing');
     assert.equal(final.botCommandDigest, undefined, 'the finish frame has no committed tick');
+    assert.ok(archive.frames.every(frame => frame.state.players.every(player => !Object.hasOwn(player, 'route'))),
+      'recorded frames omit private bot routes');
     for (const frame of archive.frames.slice(1, -1)) {
       assert.match(frame.botCommandDigest, /^[0-9a-f]{64}$/, `tick ${frame.state.tick} carries a bot digest`);
     }

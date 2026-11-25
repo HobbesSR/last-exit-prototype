@@ -2413,7 +2413,6 @@ pub struct LiveMatch {
     input: Vec<f64>,
     flags: Vec<u8>,
     output: Vec<f64>,
-    projected_routes: BTreeMap<ActorId, (u64, usize)>,
 }
 
 impl LiveMatch {
@@ -2434,7 +2433,6 @@ impl LiveMatch {
             input: Vec::new(),
             flags: Vec::new(),
             output: Vec::new(),
-            projected_routes: BTreeMap::new(),
         })
     }
 
@@ -2503,20 +2501,18 @@ impl LiveMatch {
             return false;
         };
         put_completed(&mut self.output, &tick);
-        let count_at = self.output.len();
+        true
+    }
+
+    pub fn bot_routes(&mut self) {
+        self.output.clear();
         self.output.push(0.0);
-        for (actor, generation, points) in self.game.bots.routes() {
-            let stamp = (generation, points.len());
-            if self.projected_routes.get(&actor) == Some(&stamp) {
-                continue;
-            }
-            self.projected_routes.insert(actor, stamp);
-            self.output[count_at] += 1.0;
+        for (actor, points) in self.game.bots.planned_routes() {
+            self.output[0] += 1.0;
             self.output.actor(actor);
             self.output.size(points.len());
             self.output.extend(points.iter().flatten().copied());
         }
-        true
     }
 
     pub fn snapshot(&mut self) {

@@ -270,9 +270,9 @@ export function createRoom({
     if (client.playerId && state.waiting) return { map: state.waiting.map, state: waitingView(state.waiting, client.playerId), roster: waitingSeats(state.waiting), constants: waitingConstants() };
     if (!state.match || !state.started) return { map: null, state: null, roster: state.seats.seatMetadata(), constants: null };
     const constants = state.match.constants();
-    if (client.playerId) { const frame = state.match.snapshot(); return { map: state.match.payloadMap('live'), state: state.match.project(frame, client.playerId), roster: state.match.seatMetadata(frame), constants }; }
+    if (client.playerId) { const frame = state.match.frame(); return { map: state.match.payloadMap('live'), state: state.match.project(frame, client.playerId), roster: state.match.seatMetadata(frame), constants }; }
     // A spectator is shown the delayed frame; the dev view the present one.
-    const frame = client.dev ? state.match.snapshot() : spectatorFrame(state);
+    const frame = client.dev ? state.match.frame() : spectatorFrame(state);
     return { map: state.match.payloadMap('spectator', frame), state: state.match.project(frame, null), roster: state.match.seatMetadata(frame), constants };
   }
 
@@ -359,7 +359,7 @@ export function createRoom({
     state.waiting?.dispose();
     state.waiting = null;
     state.waitingDebt = 0;
-    const frame = state.match.snapshot();
+    const frame = state.match.frame();
     openRecording(state.match);
     record(frame);
     remember(state, frame);
@@ -584,7 +584,7 @@ export function createRoom({
     }
     if (data.type === CLIENT_MESSAGE.FINISH && client.owner) {
       state.match.end({ strand: true });
-      const snapshot = state.match.snapshot();
+      const snapshot = state.match.frame();
       record(snapshot);
       remember(state, snapshot);
       broadcast(state, snapshot);
@@ -691,7 +691,7 @@ export function createRoom({
       if (wallNow() - state.emptySince >= EMPTY_ROOM_GRACE_MS) {
         state.match.end({ strand: true });
         state.inputs.push({ type: 'abandoned', reason: 'No viewers after reconnect grace' });
-        record(state.match.snapshot());
+        record(state.match.frame());
         void finish();
         return { retired: false, live: false, stepped: 0 };
       }
@@ -749,7 +749,7 @@ export function createRoom({
     discardRecording();
     if (state.started && !state.finished) {
       state.match.end();
-      record(state.match.snapshot());
+      record(state.match.frame());
       void finish();
     }
     const waitingReady = state.waiting?.ready;

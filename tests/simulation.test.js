@@ -95,7 +95,9 @@ test('snapshots are independent copies including bot routes and input acknowledg
   assert.equal(mine.lastSeq, human.lastSeq);
   assert.ok(mine.lastSeq >= 0);
   const accepted = structuredClone(mine.input), before = JSON.stringify(frame);
-  bot.route[0].x += 99; bot.route.push({ ...bot.route[0] });
+  const otherRoute = snapshot(s).players.find(p => p.id === bot.id).route;
+  otherRoute[0].x += 99; otherRoute.push({ ...otherRoute[0] });
+  assert.deepEqual(match.botRoute(bot.id), frameRoute, 'mutating a private snapshot leaves the core route intact');
   assert.ok(setInput(s, human.id, { seq: human.lastSeq + 1, x: -1, y: 0 }));
   for (let i = 0; i < 20; i++) step(s);
   assert.deepEqual(theirs.route, frameRoute);

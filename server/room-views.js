@@ -73,7 +73,7 @@ export function broadcastWaiting(room, view) {
 }
 export function spectatorFrame(room) {
   const cutoff = Math.max(0, room.match.tick - SPECTATOR_DELAY_TICKS);
-  return room.history.findLast(frame => frame.tick <= cutoff) || room.history[0] || room.match.snapshot();
+  return room.history.findLast(frame => frame.tick <= cutoff) || room.history[0] || room.match.frame();
 }
 // One entry per tick: a paused room re-broadcasts its current tick (a dev teleport), and appending each
 // of those would push the delayed frame out of the window and give spectators the present.

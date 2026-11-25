@@ -89,11 +89,9 @@ test('a dev teleport moves any active player to open ground, is recorded, and sh
     };
     const guest = h.joined(room, {}); guest.send({ type: 'dev', action: 'teleport', id: bot.id, x: spawn.x + 60, y: spawn.y });
     assert.ok(!guest.messages.some(m => m.type === 'teleport'), 'a session the policy does not admit cannot teleport');
-    bot.route = [{ x: 1, y: 1 }];
     const first = land(bot.id);
     assert.deepEqual(first.answer, { type: 'teleport', ok: true, id: bot.id });
     assert.ok(Math.hypot(bot.x - first.x, bot.y - first.y) < 20, 'the warp precedes the solve');
-    assert.deepEqual(bot.route, [], 'a bot plans again from where it lands');
     assert.deepEqual(writer.frames.at(-1).commands.find(c => c.kind === 'teleport'),
       { type: 'observation', kind: 'teleport', body: `actor:${bot.id}`, x: Math.round(first.x + 0.4), y: first.y });
     land(id);
