@@ -12,6 +12,19 @@ import { arena } from './helpers/arena.js';
 
 const tiles = map => ['gladiator', 'contestant'].map(role => packedTilesFor(map, role));
 
+function archivedGraphSections(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const sectionCount = view.getUint32(4, true);
+  const sections = [];
+  for (let section = 1; section <= 5; section++) {
+    assert.ok(section < sectionCount, `runtime package contains section ${section}`);
+    const offset = view.getUint32(8 + section * 8, true);
+    const size = view.getUint32(12 + section * 8, true);
+    sections.push(Buffer.from(bytes.subarray(offset, offset + size)).toString('base64'));
+  }
+  return { encoding: 'flat-graph-1', sections };
+}
+
 test('matches use eager and deferred flat maps across WASM growth and disposal', async t => {
   const seed = 4217, base = defaultContent();
   const content = { ...base, roster: { contestants: ['C0'], gladiators: [{ name: 'G0', kit: 'warden' }] } };
@@ -22,6 +35,7 @@ test('matches use eager and deferred flat maps across WASM growth and disposal',
   const variants = [];
   for (const deferContestant of [false, true]) {
     const packed = packRuntimeMap(map, { deferContestant });
+    const expectedGraph = archivedGraphSections(packed.runtimeNavigation);
     const received = structuredClone(packed, { transfer: packedTransfer(packed) });
     assert.equal(packed.runtimeNavigation.byteLength, 0);
     assert.equal(received.tiles.length, 0);
@@ -31,9 +45,12 @@ test('matches use eager and deferred flat maps across WASM growth and disposal',
     const core = await initCore();
     core.memory.grow(1);
     match.start();
-    variants.push({ match, decoded });
+    assert.deepEqual(match.recordingSetup().portalGraph, expectedGraph, 'setup archives the raw flat graph sections');
+    variants.push({ match, decoded, expectedGraph });
   }
   current.start();
+  assert.deepEqual(current.recordingSetup().portalGraph, variants[0].expectedGraph,
+    'plain graph-backed matches archive the same flat sections');
   let routed = false;
   for (let i = 0; i < 24; i++) {
     const expected = current.advance();
@@ -46,9 +63,10 @@ test('matches use eager and deferred flat maps across WASM growth and disposal',
     }
   }
   assert.ok(routed, 'the comparison covers a bot following a route');
-  for (const { match, decoded } of variants) {
+  for (const { match, decoded, expectedGraph } of variants) {
     const snapshot = match.snapshot();
     match.dispose();
+    assert.deepEqual(match.recordingSetup().portalGraph, expectedGraph, 'setup survives simulation and disposal');
     assert.deepEqual(match.snapshot(), snapshot, 'disposal retains the last private snapshot');
     assert.equal(portalGraphOf(decoded), undefined);
   }
@@ -75,9 +93,10 @@ test('Rust rejects malformed flat packages and accepts graphless ones', async ()
 
   for (const deferContestant of [false, true]) {
     const decoded = unpackMap(packRuntimeMap(map, { deferContestant }));
-    const { pointer, release } = await prepareRuntimeNavigation(decoded);
+    const { pointer, release, portalGraph } = await prepareRuntimeNavigation(decoded);
     try {
       assert.equal(portalGraphOf(decoded), undefined);
+      assert.equal(portalGraph, null, 'the graphless package records an explicit null');
       assert.ok(pointer);
     } finally { release(); }
   }

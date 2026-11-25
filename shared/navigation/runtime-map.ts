@@ -7,7 +7,8 @@ import type { CollisionMap, Role } from '../types.ts';
 
 /** Upload and validate navigation. The returned handle owns its buffers until release. */
 export function uploadRuntimeNavigation(core: CoreExports, map: CollisionMap,
-  primaryBytes: Uint8Array | (() => Uint8Array), contestantBytes?: () => Uint8Array) {
+  primaryBytes: Uint8Array | (() => Uint8Array), contestantBytes?: () => Uint8Array,
+  inspectPrimary?: (bytes: Uint8Array) => void) {
   let primary = 0, contestant = 0, pointer = 0, released = false;
   let primaryLength = 0, contestantLength = 0;
   const release = () => {
@@ -27,6 +28,8 @@ export function uploadRuntimeNavigation(core: CoreExports, map: CollisionMap,
       map.width, map.height, size, cols, rows, map.gates.length,
       navigationClearance('gladiator'), navigationClearance('contestant')) >>> 0;
     if (!pointer) throw new RangeError('Invalid runtime navigation (core)');
+    // A synchronous view of the validated package, while this handle still owns it.
+    inspectPrimary?.(new Uint8Array(core.memory.buffer, primary, primaryLength));
     return { pointer, release };
   } catch (error) {
     release();
@@ -35,15 +38,15 @@ export function uploadRuntimeNavigation(core: CoreExports, map: CollisionMap,
 }
 
 /** Build both layers and any attached graph for an in-process game. */
-export function createRuntimeNavigation(core: CoreExports, map: CollisionMap) {
+export function createRuntimeNavigation(core: CoreExports, map: CollisionMap, inspectPrimary?: (bytes: Uint8Array) => void) {
   // Integral bounds keep every clipped point on the compact tile's exact coordinate grid.
   if (Number.isInteger(map.width) && Number.isInteger(map.height)) {
     const layer = (role: Role, includeGraph: boolean) =>
       packRuntimeNavigation(map, [freeTilesFor(map, role, false)], { compact: true, includeGraph });
-    return uploadRuntimeNavigation(core, map, () => layer('gladiator', true), () => layer('contestant', false));
+    return uploadRuntimeNavigation(core, map, () => layer('gladiator', true), () => layer('contestant', false), inspectPrimary);
   }
   const layers = (['gladiator', 'contestant'] as const).map(role => freeTilesFor(map, role, false));
-  return uploadRuntimeNavigation(core, map, packRuntimeNavigation(map, layers));
+  return uploadRuntimeNavigation(core, map, packRuntimeNavigation(map, layers), undefined, inspectPrimary);
 }
 
 function upload(core: CoreExports, source: Uint8Array | (() => Uint8Array)): [number, number] {

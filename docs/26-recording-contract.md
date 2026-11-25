@@ -29,7 +29,7 @@ core tick and use the same archive contract below. Default content is `content-1
 #920 retired that engine and contents 1 to 5, and #953 raised `MIN_SCHEMA` to **10** so
 archives recorded before schema 10 (pre-chain-map diamond arenas, `last-exit-0.7`, and
 experimental P1/P2 schemas 8–9 without required physics presentation) are refused with the
-existing `"no longer reads"` message while remaining downloadable. The room writes schema **24**
+existing `"no longer reads"` message while remaining downloadable. The room writes schema **25**
 and `minSchema` 20 (`minimumReaderForMatch`, `RELATIONAL_SCHEMA`). Since #901, archives are stored as lines
 with delta frames ([Schema 17](#schema-17-lines-and-delta-frames-901)), which no older reader can
 read, and schema 18 (#948, #949) drops dead recorded fields (`Player.path`,
@@ -41,14 +41,29 @@ compatible with schema 17 readers; schema 19 adds tick stamps to recorded input
 descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
 
+## Schema 25: planner portal graph for replay setup (#1284)
+
+`setup.portalGraph` records the portal graph in the validated primary runtime navigation package
+supplied to the live planner. A graph is `{ encoding: 'flat-graph-1', sections }`, with five
+Base64 strings holding the little-endian sections in flat package order: float64 geometry,
+uint32 dimensions and rows, int32 cell owners, uint32 ordered adjacency, and float64 stands.
+See the [flat writer](../shared/navigation/runtime-map-write.js) for the section layout.
+Both versions of the runtime package use the same graph sections. The graph is detached from WASM
+memory and keeps the exact coordinate bits, indices and ordering. Free-space layers are outside
+the archived graph.
+
+`null` says the match ran without a graph. An absent field means the archive did not capture that
+input, including schema 24 archives with `setup.items`. Stored-frame playback ignores the setup
+object and still uses reader floor 20. Start-state reconstruction and digest verification remain
+in #1284.
+
 ## Schema 24: authored loot for replay setup (#1284)
 
 The optional `setup` header object holds inputs used to reconstruct the match. Its `items` field
 records a detached copy of the authored map items before `createGame` initializes them. It
 preserves their original IDs and authored ammo and quality values
 for match construction. Playback reads the initialized numeric records from `map.items` and uses
-reader floor 20. Older schema 23 archives are playable and lack the original loot records. The
-runtime portal graph for graph-backed maps still needs to be captured for resimulation (#1284).
+reader floor 20. Older schema 23 archives are playable and lack the original loot records.
 
 ## Schema 23: bot command checkability (#1321)
 
@@ -239,6 +254,10 @@ The schema history, with the sections that explain each step:
 
 | Schema | Added | `minSchema` written |
 | --- | --- | --- |
+| 25 | Exact planner portal graph in `setup.portalGraph` (#1284) | unchanged |
+| 24 | Authored loot in `setup.items` (#1284) | unchanged |
+| 23 | Bot planner version and command digests (#1321) | unchanged |
+| 22 | Spent inbound queue as recorded commands (#1283) | unchanged |
 | 21 | `viewLag` and `inputLead` observation commands (#1283) | unchanged |
 | 20 | Relational IDs and body owners, one physical pose, dynamic-only gates and structured localized events (#1153, 24.4) | 20 |
 | 19 | Optional input `tick` stamp on recorded commands and buffered input, and player `inputMargin`, `inputMarginNext` and `inputLeadTicks` (#1096) | unchanged |

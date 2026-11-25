@@ -97,6 +97,21 @@ test('the header is offered to the reader policy first, and unknown encodings ar
   assert.throws(() => readRecording(text.replace(FRAME_ENCODING, 'delta-9')), error => error instanceof RecordingError && error.fit === 'too-new');
 });
 
+test('schema 24 without graph data and schema 25 with a graphless setup retain the same frames', () => {
+  const frames = [{ state: { tick: 0 }, commands: [] }, { state: { tick: 1 }, commands: [] }];
+  const { text } = archive(frames, 100, 24);
+  const endOfHeader = text.indexOf('\n');
+  const header = { ...JSON.parse(text.slice(0, endOfHeader)), setup: { items: [] } };
+  const old = readRecording(JSON.stringify(header) + text.slice(endOfHeader));
+  header.schema = 25;
+  header.setup.portalGraph = null;
+  const graphless = readRecording(JSON.stringify(header) + text.slice(endOfHeader));
+  assert.equal(Object.hasOwn(old.setup, 'portalGraph'), false);
+  assert.equal(graphless.setup.portalGraph, null);
+  assert.deepEqual(graphless.frames, old.frames);
+  assert.deepEqual(old.frames, frames);
+});
+
 test('damaged and hostile input fails as damage, never as a prototype change', () => {
   const header = `{"frameEncoding":"${FRAME_ENCODING}"}`;
   const read = (...records) => readRecording([header, ...records].join('\n'));
