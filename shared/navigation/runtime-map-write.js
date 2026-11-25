@@ -1,6 +1,25 @@
 import { portalGraphOf } from './portal-graph.ts';
 import { CLIP_SCALE } from '../shape-construction.ts';
 
+const DIRECTORY_HEADER_WORDS = 2;
+const SECTION_WORDS = 2;
+const sectionEntry = section => DIRECTORY_HEADER_WORDS + section * SECTION_WORDS;
+
+/** Borrow the five graph sections of a validated primary package, or null for a graphless package. */
+export function runtimePortalGraphSections(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const readWord = word => view.getUint32(word * Uint32Array.BYTES_PER_ELEMENT, true);
+  // Both versions use the same graph flag, geometry, rows, owner grid, adjacency and stands.
+  if (!view.getUint32(readWord(sectionEntry(0)), true)) return null;
+  const sections = [];
+  for (let section = 1; section <= 5; section++) {
+    const entry = sectionEntry(section);
+    const offset = readWord(entry);
+    sections.push(bytes.subarray(offset, offset + readWord(entry + 1)));
+  }
+  return sections;
+}
+
 // The directory describes 8-byte-aligned sections. Version 2 stores points as unsigned
 // offsets from the discovery-tile origin in units of the Clipper grid.
 export function packRuntimeNavigation(map, layers, { compact = false, includeGraph = true } = {}) {
@@ -39,13 +58,13 @@ export function packRuntimeNavigation(map, layers, { compact = false, includeGra
     sections.push(16, 8, tiles.length * 10 * 4, tiles.length * 8 * 8,
       floats * Points.BYTES_PER_ELEMENT, ints * 4, sets * 2 * 4, members * 4);
   }
-  const directory = new Uint32Array(2 + sections.length * 2);
+  const directory = new Uint32Array(sectionEntry(sections.length));
   directory.set([compact ? 2 : 1, sections.length]);
   let bytes = directory.byteLength;
   for (const [i, section] of sections.entries()) {
     bytes = Math.ceil(bytes / 8) * 8;
     const length = typeof section === 'number' ? section : section.byteLength;
-    directory.set([bytes, length], 2 + i * 2);
+    directory.set([bytes, length], sectionEntry(i));
     bytes += length;
   }
   if (new Uint8Array(Uint16Array.of(1).buffer)[0] !== 1) throw new Error('Runtime navigation requires little-endian byte order');
@@ -53,9 +72,12 @@ export function packRuntimeNavigation(map, layers, { compact = false, includeGra
   packed.set(new Uint8Array(directory.buffer));
   for (let i = 0; i < layerStart; i++) {
     const section = sections[i];
-    packed.set(new Uint8Array(section.buffer, section.byteOffset, section.byteLength), directory[2 + i * 2]);
+    packed.set(new Uint8Array(section.buffer, section.byteOffset, section.byteLength), directory[sectionEntry(i)]);
   }
-  const view = (i, Type) => new Type(packed.buffer, directory[2 + i * 2], directory[3 + i * 2] / Type.BYTES_PER_ELEMENT);
+  const view = (i, Type) => {
+    const entry = sectionEntry(i);
+    return new Type(packed.buffer, directory[entry], directory[entry + 1] / Type.BYTES_PER_ELEMENT);
+  };
   for (const [layerIndex, { clearance, size, cols, tiles }] of layers.entries()) {
     const s = layerStart + layerIndex * 8;
     view(s, Float64Array).set([clearance, size]);

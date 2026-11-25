@@ -12,6 +12,7 @@ import { arena } from './helpers/arena.js';
 
 const tiles = map => ['gladiator', 'contestant'].map(role => packedTilesFor(map, role));
 
+// Read the flat sections independently to check the archive against the package the planner receives.
 function archivedGraphSections(bytes) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const sectionCount = view.getUint32(4, true);
