@@ -2,7 +2,7 @@ import { initCore } from '../shared/core.ts';
 import { freeTilesFor } from '../shared/navigation/knowledge.ts';
 import { createRuntimeNavigation, uploadRuntimeNavigation } from '../shared/navigation/runtime-map.ts';
 import { runtimePortalGraphSections } from '../shared/navigation/runtime-map-write.js';
-import { takeRuntimeNavigation } from './map-pack.js';
+import { hasRuntimeNavigation, takeRuntimeNavigation } from './map-pack.js';
 import { packRuntimeNavigation } from './runtime-map-write.js';
 
 function recordingGraph(bytes) {
@@ -27,6 +27,9 @@ function readRecordingGraph(graph) {
 
 /** Prepare both navigation layers before the room is ready. */
 export async function prepareRuntimeNavigation(map, archivedGraph) {
+  if (archivedGraph !== undefined && hasRuntimeNavigation(map)) {
+    throw new RangeError('Replay setup.portalGraph conflicts with pending runtime navigation');
+  }
   const pending = takeRuntimeNavigation(map);
   const core = await initCore();
   let portalGraph;

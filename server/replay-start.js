@@ -12,6 +12,7 @@ const seatCommands = new Set(['join', 'resume', 'choose', 'leave']);
  * the match and must dispose it. Subsequent ticks require replaying the spent inbound queue.
  */
 export async function reconstructReplayStart(archive) {
+  if (!archive || typeof archive !== 'object') throw new RangeError('Missing or invalid replay archive');
   if (archive.setup?.items === undefined) throw new RangeError('Missing replay setup.items');
   if (!Array.isArray(archive.setup.items)) throw new RangeError('Invalid replay setup.items');
   if (archive.setup.portalGraph === undefined) throw new RangeError('Missing replay setup.portalGraph');
