@@ -135,7 +135,15 @@ function matchOf(game, payloads, wire, navigation) {
     }
     return live;
   };
-  const frame = () => disposedFrame ? structuredClone(disposedFrame) : live ? live.frames.frame() : snapshot(game);
+  const capture = (privateRoutes = false) => {
+    if (disposedFrame) {
+      const frame = structuredClone(disposedFrame);
+      if (!privateRoutes) for (const player of frame.players) delete player.route;
+      return frame;
+    }
+    if (!live) return snapshot(game);
+    return privateRoutes ? live.frames.privateFrame() : live.frames.frame();
+  };
   return {
     get version() { return game.version; },
     get tick() { return game.tick; },
@@ -163,7 +171,6 @@ function matchOf(game, payloads, wire, navigation) {
       if (!live) return seats.resume(id);
       const p = connectionPlayer(game, id);
       if (!p || !live.boundary.seat(id, 'join')) return null;
-      clearRoute(p);
       return identity(p);
     },
     leave(id) { return live ? !!live.boundary.seat(id, 'leave') : seats.leave(id); },
@@ -198,10 +205,11 @@ function matchOf(game, payloads, wire, navigation) {
     teleportSucceeded: request => discontinuities.some(marker => marker.kind === 'devWarped' && marker.request === request),
     spent: () => structuredClone(spent),
     botCommands: () => botWords.slice(),
-    snapshot: frame,
+    frame: () => capture(),
+    snapshot: () => capture(true),
     dispose() {
       if (disposedFrame) return;
-      try { disposedFrame = frame(); }
+      try { disposedFrame = capture(true); }
       finally {
         try { live?.match.dispose(); }
         finally {

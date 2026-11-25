@@ -4,7 +4,6 @@ import { ItemMemory, SeenCells } from './bot-memory.ts';
 import { WEAPONS as WEAPON_ORDER } from '../enum-tables.ts';
 import { cos, sin } from '../math.ts';
 import { writeDoor } from './doors.ts';
-import { clearRoute } from './geometry.ts';
 import { effect, event, participant } from './event-records.ts';
 import { addItemsFromCore, groundItem, removeItem, replaceItem } from './ground-items.ts';
 import { sightOf } from './sight-runtime.ts';
@@ -311,7 +310,6 @@ export class TickMirror {
   /** Write one completed tick onto the mirror. */
   apply(t: DecodedTick): void {
     const s = this.s, ctx = this.ctx, ids = ctx.ids, c = t.changes, tick = t.tick, at = poseMap(c.poses);
-    for (const { actor, route } of t.botRoutes ?? []) this.#player(actor).route = route;
     s.tick = tick;
     // Records, whole.
     for (const e of c.actors) this.#actor(e, tick);
@@ -353,7 +351,6 @@ export class TickMirror {
     for (const e of c.hooks) this.hooks.set(e.id, e.hook);
     for (const marker of t.discontinuities) {
       if (marker.kind === 'removed') this.poses.delete(bodyKey(marker.body));
-      else if (marker.kind === 'devWarped' && marker.body.kind === 'actor') clearRoute(this.#player(marker.body.id));
     }
     this.lives.take(t.discontinuities);
     for (const pose of c.poses) {

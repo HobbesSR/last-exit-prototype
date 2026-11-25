@@ -46,7 +46,7 @@ use std::slice;
 /// 46: the opening discovery at setup and an unresolved nomination target (27.2 3d.4).
 /// 49: runtime map rule tables and flat navigation uploads (27, #1318).
 /// 50: committed bot planning and the setup roster (27.2, #1321).
-pub const ADAPTER_VERSION: u32 = 50;
+pub const ADAPTER_VERSION: u32 = 51;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -1671,6 +1671,19 @@ pub unsafe extern "C" fn match_bot_route(
 ) -> *const f64 {
     unsafe {
         (*game).bot_route(actor_word);
+        (*game).output().as_ptr()
+    }
+}
+
+/// The remaining routes of bots that have made a plan, including empty routes.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_bot_routes(game: *mut tick::codec::LiveMatch) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        (*game).bot_routes();
         (*game).output().as_ptr()
     }
 }

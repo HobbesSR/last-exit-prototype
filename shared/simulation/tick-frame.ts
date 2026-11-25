@@ -52,6 +52,22 @@ export class TickFrames {
     return frame;
   }
 
+  /** Private diagnostic snapshot, with remaining bot routes read from the core on request. */
+  privateFrame(): Snapshot {
+    const frame = this.frame();
+    const slots = this.mirror.ctx.ids.slotOfActor;
+    for (const { actor, route } of this.mirror.match.botRoutes()) {
+      const slot = slots.get(actor)!;
+      const player = frame.players[slot]!;
+      const fields = Object.entries(player);
+      // Keep the private checkpoint's JSON order: routes precede fields added during play.
+      const at = fields.findIndex(([key]) => key === 'transit' || key === 'aggressor' || key === 'playerIdx');
+      fields.splice(at, 0, ['route', route]);
+      frame.players[slot] = Object.fromEntries(fields) as typeof player;
+    }
+    return frame;
+  }
+
   /** The physics presentation of the mirror's last tick, in body order. */
   presentation(): FramePresentation {
     const s = this.mirror.s, ids = this.mirror.ctx.ids;

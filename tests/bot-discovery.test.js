@@ -169,6 +169,8 @@ test('a contestant routes over unknown ground with the same intent until it surv
   const actor = blocked.match.ids.actorOfPlayer.get(blocked.bot.id);
   const position = blocked.match.snapshot().poses.find(entry => entry.body.kind === 'actor' && entry.body.id === actor).at;
   assert.ok(nearCell(route), 'the speculative route targets the remembered cell across the unknown wall');
+  const privateRoute = () => snapshot(blocked.s).players.find(player => player.id === blocked.bot.id).route;
+  assert.deepEqual(privateRoute(), route, 'the private snapshot reads the planned route from the core');
   assert.ok(route.some((point, i) => !sweptClear(blocked.s.map, i ? route[i - 1] : { x: position[0], y: position[1] }, point, 12)),
     'the speculative route crosses the hidden wall');
 
@@ -176,6 +178,7 @@ test('a contestant routes over unknown ground with the same intent until it surv
   let differentInput = false;
   for (let i = 0; i < 40; i++) {
     const a = advance(blocked), b = advance(open);
+    if (i === 0) assert.deepEqual(privateRoute(), [], 'the private snapshot sees the core clear the route at the warp');
     if (!worlds.every(world => world.learnedLayout())) continue;
     differentInput ||= a.input.movement.some((value, axis) => value !== b.input.movement[axis]);
     if (differentInput && a.route?.some(({ x, y }) => x >= wall.x && x <= wall.x + wall.w

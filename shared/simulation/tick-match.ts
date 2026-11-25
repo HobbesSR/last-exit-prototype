@@ -13,7 +13,7 @@ import { sightOf } from './sight-runtime.ts';
 import { discoveryTables } from '../discovery.ts';
 import { authoredProps } from './world-physics.ts';
 import { createRuntimeNavigation } from '../navigation/runtime-map.ts';
-import { SLOT_COUNT, actorWord, decodeCompleted, decodeCues, decodeMemory, decodeSnapshot, encodeInbound, encodeSetup } from './tick-codec.ts';
+import { SLOT_COUNT, actorWord, decodeBotRoutes, decodeCompleted, decodeCues, decodeMemory, decodeSnapshot, encodeInbound, encodeSetup } from './tick-codec.ts';
 import type { Actor, ActorEntry, Presence, Window, BodyRow, SetupBody, DecodedTick, Equipment, GateEntry, GroundEntry, Inbound, Loot, MatchSetup, Memory, MotorSurface, Cue, BotLabel,
   Point, Snapshot, State, StationEntry, Tick, TrapEntry, TrapKind, Tuning, WeaponTuning } from './tick-codec.ts';
 import type { CoreExports } from '../core.ts';
@@ -372,6 +372,7 @@ interface MatchExports {
   match_snapshot(game: number): number;
   match_memory(game: number, actor: number): number;
   match_bot_route(game: number, actor: number): number;
+  match_bot_routes(game: number): number;
   match_heard(game: number, actor: number): number;
   match_acknowledged(game: number, actor: number): number;
 }
@@ -459,6 +460,8 @@ export class TickMatch {
     return this.#read(this.#core.match_bot_route(this.#live(), this.#actor(id)), words =>
       Array.from({ length: words.length / 2 }, (_, i) => ({ x: words[i * 2]!, y: words[i * 2 + 1]! })));
   }
+  /** Routes for the private snapshot. An empty plan is distinct from an actor with no plan. */
+  botRoutes() { return this.#read(this.#core.match_bot_routes(this.#live()), decodeBotRoutes); }
   /** The cues a player hears as of the last completed tick, oldest first. */
   heard(id: PlayerId): Cue[] { return this.#read(this.#core.match_heard(this.#live(), this.#actor(id)), decodeCues); }
   /** The last command sequence spent for the player, or null. */

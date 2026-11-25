@@ -51,6 +51,9 @@ A finish or abandonment can add a frame at the last tick without advancing the s
 has no digest. Human and external bot commands remain in `commands`. The digest is metadata and playback remains based on
 stored frames. Schema 23 is additive and retains `minSchema` 20. Older archives lack these fields.
 
+Remaining bot routes are private snapshot diagnostics (#1338). New frames omit them. Playback of
+archives that include the optional `Player.route` field still uses their stored frames.
+
 There is currently no recording resimulation path that reconstructs bot commands. A future resimulator can
 encode its committed bot rows and compare their digest on each available frame, using the matching planner
 version and complete history. Missing frames prevent continuous reconstruction.

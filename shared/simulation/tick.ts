@@ -37,7 +37,7 @@ export function snapshot(s: Game) {
   const session = sessions.get(s);
   if (!session) return setupSnapshot(s);
   start('sim.snapshot');
-  try { return session.frames.frame(); } finally { stop('sim.snapshot'); }
+  try { return session.frames.privateFrame(); } finally { stop('sim.snapshot'); }
 }
 
 export function disposePhysics(s: Game): void {
