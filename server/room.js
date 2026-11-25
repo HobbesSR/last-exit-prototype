@@ -337,6 +337,7 @@ export function createRoom({
         contentId: match.contentId, presentation: state.presentation, id: state.id,
         seed: match.seed, hz: HZ, createdAt: state.createdAt, map,
         ...(match.botPlannerVersion === undefined ? {} : { botPlannerVersion: match.botPlannerVersion }),
+        ...(match.recordingSetup ? { setup: match.recordingSetup() } : {}),
       }, { onError: error => { if (!writer || state.writer === writer) failRecording(error); } });
       if (state.recordingError) state.writer?.abort?.(state.recordingError);
     } catch (error) { failRecording(error); }
