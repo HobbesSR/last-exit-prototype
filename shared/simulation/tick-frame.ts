@@ -62,7 +62,7 @@ export class TickFrames {
       const fields = Object.entries(player);
       // Keep the private checkpoint's JSON order: routes precede fields added during play.
       const at = fields.findIndex(([key]) => key === 'transit' || key === 'aggressor' || key === 'playerIdx');
-      fields.splice(at, 0, ['route', route]);
+      fields.splice(at < 0 ? fields.length : at, 0, ['route', route]);
       frame.players[slot] = Object.fromEntries(fields) as typeof player;
     }
     return frame;

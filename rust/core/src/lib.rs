@@ -46,6 +46,7 @@ use std::slice;
 /// 46: the opening discovery at setup and an unresolved nomination target (27.2 3d.4).
 /// 49: runtime map rule tables and flat navigation uploads (27, #1318).
 /// 50: committed bot planning and the setup roster (27.2, #1321).
+/// 51: private bot routes move from the completed tick to `match_bot_routes` (27.2, #1338).
 pub const ADAPTER_VERSION: u32 = 51;
 
 /// Exported to JavaScript as `adapter_version`.

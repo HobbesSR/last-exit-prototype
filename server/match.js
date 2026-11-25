@@ -170,6 +170,7 @@ function matchOf(game, payloads, wire, navigation) {
     resume(id) {
       if (!live) return seats.resume(id);
       const p = connectionPlayer(game, id);
+      // The join clears the core route when the next tick processes it.
       if (!p || !live.boundary.seat(id, 'join')) return null;
       return identity(p);
     },
