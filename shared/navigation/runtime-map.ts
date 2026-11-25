@@ -37,16 +37,17 @@ export function uploadRuntimeNavigation(core: CoreExports, map: CollisionMap,
   }
 }
 
-/** Build both layers and any attached graph for an in-process game. */
-export function createRuntimeNavigation(core: CoreExports, map: CollisionMap, inspectPrimary?: (bytes: Uint8Array) => void) {
+/** Build both layers and use either archived sections or the map's attached graph. */
+export function createRuntimeNavigation(core: CoreExports, map: CollisionMap, inspectPrimary?: (bytes: Uint8Array) => void,
+  graphSections?: readonly Uint8Array[] | null) {
   // Integral bounds keep every clipped point on the compact tile's exact coordinate grid.
   if (Number.isInteger(map.width) && Number.isInteger(map.height)) {
     const layer = (role: Role, includeGraph: boolean) =>
-      packRuntimeNavigation(map, [freeTilesFor(map, role, false)], { compact: true, includeGraph });
+      packRuntimeNavigation(map, [freeTilesFor(map, role, false)], { compact: true, includeGraph, graphSections });
     return uploadRuntimeNavigation(core, map, () => layer('gladiator', true), () => layer('contestant', false), inspectPrimary);
   }
   const layers = (['gladiator', 'contestant'] as const).map(role => freeTilesFor(map, role, false));
-  return uploadRuntimeNavigation(core, map, packRuntimeNavigation(map, layers), undefined, inspectPrimary);
+  return uploadRuntimeNavigation(core, map, packRuntimeNavigation(map, layers, { graphSections }), undefined, inspectPrimary);
 }
 
 function upload(core: CoreExports, source: Uint8Array | (() => Uint8Array)): [number, number] {

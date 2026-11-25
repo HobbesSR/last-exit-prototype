@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createRoomService } from '../server/room-service.js';
+import { reconstructReplayStart } from '../server/replay-start.js';
 import { packRuntimeMap } from '../server/map-pack.js';
 import { createFileReplayStore } from '../server/replay-store.js';
 import { readServerMessage } from '../shared/wire-schema.ts';
@@ -11,7 +12,7 @@ import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
 import { readArchive } from './helpers/recordings.js';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { arena } from './helpers/arena.js';
-import { contentById } from '../shared/simulation/content.ts';
+import { contentById, defaultContent } from '../shared/simulation/content.ts';
 
 async function optInRoom(durationTicks) {
   const content = structuredClone(contentById('content-ammo-1'));
@@ -205,4 +206,57 @@ test('the threaded host archives authored loot and the planner graph beside stor
     await service.close();
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+async function openingArchive(t, { corridor, items } = {}) {
+  const seed = 9, content = defaultContent();
+  const h = roomHarness({ generateMap: () => arena({
+    cols: 6, rows: 4, seed, corridor, items,
+    spawns: content.roster.contestants.map((_, i) => ({ x: 120 + 64 * i, y: 220 })),
+    hunterSpawns: content.roster.gladiators.map((_, i) => ({ x: 800, y: 240 + 100 * i })),
+  }).map });
+  t.after(() => h.service.close());
+  const room = await h.created(seed), owner = h.joined(room, { ownerKey: room.ownerKey, name: 'Opening player' });
+  assert.equal(room.setViewLag(owner.session.connectionId, 200), true);
+  owner.send({ type: 'start' });
+  const { header, frames } = h.writers.get(room.id);
+  return { archive: JSON.parse(JSON.stringify({ ...header, frames })), room, playerId: owner.session.playerId };
+}
+
+test('a graph-backed replay rebuilds tick zero with the exact archived graph and authored loot', async t => {
+  const items = [{ id: 'authored-pistol', kind: 'weapon', weaponType: 'pistol', x: 300, y: 350 }];
+  const { archive } = await openingArchive(t, { corridor: { gaps: [1] }, items });
+  assert.equal(archive.setup.portalGraph.encoding, 'flat-graph-1');
+  assert.equal(archive.setup.items[0].id, 'authored-pistol');
+  assert.ok(archive.map.items.length > 0);
+  assert.ok(archive.map.items.every(item => typeof item.id === 'number'));
+  const rebuilt = await reconstructReplayStart(archive);
+  t.after(() => rebuilt.dispose());
+  assert.equal(rebuilt.tick, 0);
+  assert.deepEqual(rebuilt.recordingSetup(), archive.setup, 'reconstruction uploads the same graph bytes');
+});
+
+test('a graphless replay restores the opening seats and measurements and reports missing setup', async t => {
+  const { archive, room, playerId } = await openingArchive(t);
+  assert.equal(archive.setup.portalGraph, null);
+  const openingPlayer = archive.frames[0].state.players.find(player => player.id === playerId);
+  assert.ok(openingPlayer.viewLagTicks > 0 && openingPlayer.inputLeadTicks > 0);
+  const rebuilt = await reconstructReplayStart(archive);
+  t.after(() => rebuilt.dispose());
+  assert.equal(rebuilt.tick, 0);
+  assert.deepEqual(rebuilt.roster(), room.match.roster());
+  assert.deepEqual(rebuilt.recordingSetup(), archive.setup);
+  await assert.rejects(reconstructReplayStart(null), { name: 'RangeError', message: 'Missing or invalid replay archive' });
+  await assert.rejects(reconstructReplayStart({ ...archive, setup: undefined }), /Missing replay setup\.items/);
+  await assert.rejects(reconstructReplayStart({ ...archive, schema: 24, setup: { items: archive.setup.items } }),
+    /Missing replay setup\.portalGraph/);
+  await assert.rejects(reconstructReplayStart({ ...archive, frames: [] }), /Missing replay opening frame/);
+  await assert.rejects(reconstructReplayStart({ ...archive, version: 'last-exit-0.7' }), /Unsupported replay rules/);
+  await assert.rejects(reconstructReplayStart({ ...archive, contentId: 'missing-content' }), /Unknown content id/);
+  await assert.rejects(reconstructReplayStart({ ...archive, botPlannerVersion: 2 }), /Unsupported replay bot planner/);
+  const [start] = archive.frames;
+  const badRoster = { ...start, commands: [{ type: 'start' }] };
+  await assert.rejects(reconstructReplayStart({ ...archive, frames: [badRoster] }), /Unknown replay opening seat/);
+  const badFrame = { ...start, state: { ...start.state, hazardX: start.state.hazardX + 1 } };
+  await assert.rejects(reconstructReplayStart({ ...archive, frames: [badFrame] }), /opening frame differs at hazardX/);
 });

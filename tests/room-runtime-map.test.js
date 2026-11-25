@@ -94,6 +94,7 @@ test('Rust rejects malformed flat packages and accepts graphless ones', async ()
 
   for (const deferContestant of [false, true]) {
     const decoded = unpackMap(packRuntimeMap(map, { deferContestant }));
+    await assert.rejects(prepareRuntimeNavigation(decoded, null), /conflicts with pending runtime navigation/);
     const { pointer, release, portalGraph } = await prepareRuntimeNavigation(decoded);
     try {
       assert.equal(portalGraphOf(decoded), undefined);

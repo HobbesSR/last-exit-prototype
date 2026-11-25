@@ -58,5 +58,7 @@ export function takeRuntimeNavigation(map) {
   return pending;
 }
 
+export const hasRuntimeNavigation = map => pendingNavigation.has(map);
+
 /** A plain map as it is, a packed one unpacked: what a room in this thread is given. */
 export const mapHere = map => isPackedMap(map) ? unpackMap(map) : map;
