@@ -156,7 +156,7 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     ...seats,
     recordingSchema: TICK_RECORDING_SCHEMA,
     botPlannerVersion: 1,
-    recordingSetupItems: () => structuredClone(setupItems),
+    recordingSetup: () => ({ items: structuredClone(setupItems) }),
     // Scenario and benchmark tools may arrange initial state before start.
     get diagnosticState() { return game; },
     join(id, role, kit, name) {

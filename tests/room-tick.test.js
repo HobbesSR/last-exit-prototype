@@ -169,8 +169,8 @@ test('the threaded host can opt into the new tick and save authored setup items'
     await waitFor(events.get('saved').promise);
     const archive = readArchive(await readFile(path.join(dir, `${room.id}.json.gz`)));
     assert.equal(archive.schema, 24);
-    assert.ok(archive.setupItems.length > 0, 'the generated setup includes authored loot');
-    assert.deepEqual(archive.setupItems, authoredItems);
+    assert.ok(archive.setup.items.length > 0, 'the generated setup includes authored loot');
+    assert.deepEqual(archive.setup.items, authoredItems);
     assert.equal(archive.botPlannerVersion, 1);
     const first = archive.frames[0];
     assert.equal(first.state.tick, 0);
@@ -184,7 +184,7 @@ test('the threaded host can opt into the new tick and save authored setup items'
       assert.match(frame.botCommandDigest, /^[0-9a-f]{64}$/, `tick ${frame.state.tick} carries a bot digest`);
     }
     assert.equal(first.state.physics, undefined);
-    assert.ok(archive.setupItems.every(item => typeof item.id === 'string'));
+    assert.ok(archive.setup.items.every(item => typeof item.id === 'string'));
     assert.ok(archive.map.items.length > 0);
     assert.ok(archive.map.items.every(item => typeof item.id === 'number'), 'playback keeps initialized numeric item IDs');
     assert.deepEqual(first.commands.map(c => c.type), ['join', 'start']);

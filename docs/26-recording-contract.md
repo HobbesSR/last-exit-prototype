@@ -41,10 +41,11 @@ compatible with schema 17 readers; schema 19 adds tick stamps to recorded input
 descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
 
-## Schema 24: replay setup item authoring (#1284)
+## Schema 24: authored loot for replay setup (#1284)
 
-The optional header field `setupItems` records a detached copy of the authored map items before
-`createGame` initializes them. It preserves their original IDs and authored ammo and quality values
+The optional `setup` header object holds inputs used to reconstruct the match. Its `items` field
+records a detached copy of the authored map items before `createGame` initializes them. It
+preserves their original IDs and authored ammo and quality values
 for match construction. Playback reads the initialized numeric records from `map.items` and uses
 reader floor 20. Older schema 23 archives are playable and lack the original loot records. The
 runtime portal graph for graph-backed maps still needs to be captured for resimulation (#1284).
