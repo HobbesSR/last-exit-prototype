@@ -30,7 +30,7 @@ test('the opt-in room records spent inputs and keeps the same actor through a li
   const { h, room, owner, dev, spectator, writer } = await optInRoom();
   try {
     const first = writer.frames[0];
-    assert.equal(writer.header.schema, 23);
+    assert.equal(writer.header.schema, 24);
     assert.equal(writer.header.botPlannerVersion, 1);
     assert.deepEqual(first.commands.map(c => c.type), ['join', 'start']);
     assert.deepEqual([first.state.tick, first.state.physics, first.state.rng], [0, undefined, undefined]);
@@ -134,12 +134,13 @@ test('the opt-in room replies to each committed teleport and publishes a paused 
   } finally { await h.service.close(); }
 });
 
-test('the threaded host can opt into the new tick and save a schema 23 archive', { timeout: 10000 }, async t => {
+test('the threaded host can opt into the new tick and save authored setup items', { timeout: 10000 }, async t => {
   const dir = await mkdtemp(path.join(tmpdir(), 'room-tick-'));
   const replays = await createFileReplayStore(dir), errors = [];
   const service = createRoomService({ replays, threads: true, reportError: error => errors.push(error) });
   try {
-    const room = service.makeRoom(9, false, undefined, generatedMap(9));
+    const map = generatedMap(9), authoredItems = structuredClone(map.items);
+    const room = service.makeRoom(9, false, undefined, map);
     await room.ready;
     assert.deepEqual(errors, []);
     const events = new Map(['welcome', 'ready', 'saved'].map(type => [type, Promise.withResolvers()]));
@@ -167,7 +168,9 @@ test('the threaded host can opt into the new tick and save a schema 23 archive',
     service.receive(owner, { type: 'finish' });
     await waitFor(events.get('saved').promise);
     const archive = readArchive(await readFile(path.join(dir, `${room.id}.json.gz`)));
-    assert.equal(archive.schema, 23);
+    assert.equal(archive.schema, 24);
+    assert.ok(archive.setupItems.length > 0, 'the generated setup includes authored loot');
+    assert.deepEqual(archive.setupItems, authoredItems);
     assert.equal(archive.botPlannerVersion, 1);
     const first = archive.frames[0];
     assert.equal(first.state.tick, 0);
@@ -181,6 +184,9 @@ test('the threaded host can opt into the new tick and save a schema 23 archive',
       assert.match(frame.botCommandDigest, /^[0-9a-f]{64}$/, `tick ${frame.state.tick} carries a bot digest`);
     }
     assert.equal(first.state.physics, undefined);
+    assert.ok(archive.setupItems.every(item => typeof item.id === 'string'));
+    assert.ok(archive.map.items.length > 0);
+    assert.ok(archive.map.items.every(item => typeof item.id === 'number'), 'playback keeps initialized numeric item IDs');
     assert.deepEqual(first.commands.map(c => c.type), ['join', 'start']);
     assert.deepEqual(archive.frames.find(f => f.state.tick === tick).commands, [
       { type: 'command', id: welcome.id, source: 'player', tick, seq: 1, input: { movement: [1, 0], aim: 0 } },

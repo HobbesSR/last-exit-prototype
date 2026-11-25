@@ -105,6 +105,8 @@ export function createLobby(content = defaultContent()) {
 export async function createMatch(seed, size, map, content = defaultContent(), { wireKey = null } = {}) {
   const wire = wireIds(wireKey);
   map ??= generateLiveMap(seed, content, size);
+  // Match setup replaces authored loot labels and splits weapon magazines before publication.
+  const setupItems = structuredClone(map.items);
   const navigation = await prepareRuntimeNavigation(map);
   let game;
   try {
@@ -115,14 +117,14 @@ export async function createMatch(seed, size, map, content = defaultContent(), {
     const beforeGround = profiling() ? performance.now() : undefined;
     await prepareGroundItems(publishItems(game), () => preparationPause());
     if (beforeGround !== undefined) observe('prepare.ground', performance.now() - beforeGround);
-    return matchOf(game, payloads, wire, navigation);
+    return matchOf(game, payloads, wire, navigation, setupItems);
   } catch (error) {
     try { if (game) disposePhysics(game); } finally { navigation.release(); }
     throw error;
   }
 }
 
-function matchOf(game, payloads, wire, navigation) {
+function matchOf(game, payloads, wire, navigation, setupItems) {
   // Outward IDs for live payload items; recordings keep internal IDs (26).
   const outward = items => { const mapped = wireItemRecords(items, wire); if (mapped !== items) shareItemPublication(items, mapped); return mapped; };
   const seats = seatsOf(game, () => synchronizePhysics(game));
@@ -154,6 +156,7 @@ function matchOf(game, payloads, wire, navigation) {
     ...seats,
     recordingSchema: TICK_RECORDING_SCHEMA,
     botPlannerVersion: 1,
+    recordingSetupItems: () => structuredClone(setupItems),
     // Scenario and benchmark tools may arrange initial state before start.
     get diagnosticState() { return game; },
     join(id, role, kit, name) {
