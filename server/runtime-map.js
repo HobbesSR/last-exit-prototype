@@ -1,16 +1,29 @@
 import { initCore } from '../shared/core.ts';
 import { freeTilesFor } from '../shared/navigation/knowledge.ts';
 import { createRuntimeNavigation, uploadRuntimeNavigation } from '../shared/navigation/runtime-map.ts';
+import { runtimePortalGraphSections } from '../shared/navigation/runtime-map-write.js';
 import { takeRuntimeNavigation } from './map-pack.js';
 import { packRuntimeNavigation } from './runtime-map-write.js';
+
+function recordingGraph(bytes) {
+  const graph = runtimePortalGraphSections(bytes);
+  if (!graph) return null;
+  const sections = graph.map(({ buffer, byteOffset, byteLength }) =>
+    Buffer.from(buffer, byteOffset, byteLength).toString('base64'));
+  return { encoding: 'flat-graph-1', sections };
+}
 
 /** Prepare both navigation layers before the room is ready. */
 export async function prepareRuntimeNavigation(map) {
   const pending = takeRuntimeNavigation(map);
   const core = await initCore();
-  if (!pending) return createRuntimeNavigation(core, map);
-  const contestant = pending.deferContestant
+  let portalGraph;
+  const capture = bytes => { portalGraph = recordingGraph(bytes); };
+  const contestant = pending?.deferContestant
     ? () => packRuntimeNavigation(map, [freeTilesFor(map, 'contestant', false)], { compact: true, includeGraph: false })
     : undefined;
-  return uploadRuntimeNavigation(core, map, pending.bytes, contestant);
+  const navigation = pending
+    ? uploadRuntimeNavigation(core, map, pending.bytes, contestant, capture)
+    : createRuntimeNavigation(core, map, capture);
+  return { ...navigation, portalGraph };
 }

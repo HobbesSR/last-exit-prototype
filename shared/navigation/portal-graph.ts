@@ -42,7 +42,7 @@ const attached = new WeakMap<object, PortalGraph>();
 
 /**
  * Give a map its portal graph as a runtime resource (22.6): held beside the map object, never as
- * one of its fields, so no projection, snapshot, recording or clone carries it. A map that crosses
+ * one of its fields, so map projections, snapshots and clones omit it. A map that crosses
  * a worker arrives without it, and its receiver attaches what was posted alongside.
  */
 export function attachPortalGraph(map: object, graph: PortalGraph): void { attached.set(map, graph); }

@@ -4,8 +4,10 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createRoomService } from '../server/room-service.js';
+import { packRuntimeMap } from '../server/map-pack.js';
 import { createFileReplayStore } from '../server/replay-store.js';
 import { readServerMessage } from '../shared/wire-schema.ts';
+import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
 import { readArchive } from './helpers/recordings.js';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { arena } from './helpers/arena.js';
@@ -30,7 +32,8 @@ test('the opt-in room records spent inputs and keeps the same actor through a li
   const { h, room, owner, dev, spectator, writer } = await optInRoom();
   try {
     const first = writer.frames[0];
-    assert.equal(writer.header.schema, 24);
+    assert.equal(writer.header.schema, 25);
+    assert.equal(writer.header.setup.portalGraph, null);
     assert.equal(writer.header.botPlannerVersion, 1);
     assert.deepEqual(first.commands.map(c => c.type), ['join', 'start']);
     assert.deepEqual([first.state.tick, first.state.physics, first.state.rng], [0, undefined, undefined]);
@@ -134,13 +137,13 @@ test('the opt-in room replies to each committed teleport and publishes a paused 
   } finally { await h.service.close(); }
 });
 
-test('the threaded host can opt into the new tick and save authored setup items', { timeout: 10000 }, async t => {
+test('the threaded host archives authored loot and the planner graph beside stored frames', { timeout: 10000 }, async t => {
   const dir = await mkdtemp(path.join(tmpdir(), 'room-tick-'));
   const replays = await createFileReplayStore(dir), errors = [];
   const service = createRoomService({ replays, threads: true, reportError: error => errors.push(error) });
   try {
     const map = generatedMap(9), authoredItems = structuredClone(map.items);
-    const room = service.makeRoom(9, false, undefined, map);
+    const room = service.makeRoom(9, false, undefined, packRuntimeMap(map));
     await room.ready;
     assert.deepEqual(errors, []);
     const events = new Map(['welcome', 'ready', 'saved'].map(type => [type, Promise.withResolvers()]));
@@ -168,9 +171,15 @@ test('the threaded host can opt into the new tick and save authored setup items'
     service.receive(owner, { type: 'finish' });
     await waitFor(events.get('saved').promise);
     const archive = readArchive(await readFile(path.join(dir, `${room.id}.json.gz`)));
-    assert.equal(archive.schema, 24);
+    assert.equal(archive.schema, 25);
     assert.ok(archive.setup.items.length > 0, 'the generated setup includes authored loot');
     assert.deepEqual(archive.setup.items, authoredItems);
+    const { owner: graphOwner } = portalGraphOf(map);
+    assert.equal(archive.setup.portalGraph.encoding, 'flat-graph-1');
+    assert.equal(archive.setup.portalGraph.sections.length, 5);
+    assert.deepEqual(Buffer.from(archive.setup.portalGraph.sections[2], 'base64'),
+      Buffer.from(graphOwner.buffer, graphOwner.byteOffset, graphOwner.byteLength));
+    assert.equal(Object.hasOwn(archive.map, 'portalGraph'), false);
     assert.equal(archive.botPlannerVersion, 1);
     const first = archive.frames[0];
     assert.equal(first.state.tick, 0);
