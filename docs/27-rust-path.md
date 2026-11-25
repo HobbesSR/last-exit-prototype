@@ -528,8 +528,9 @@ the planner. Content-selected behavior values travel in the setup and use the sa
 resolution. Discovery and authoritative collision retain their own prepared views.
 Navigation packaging can read existing JavaScript tiles, but leaves newly built tiles transient.
 It prepares widened gate shapes once per clearance. For integral map bounds the in-process
-path builds and uploads one compact clearance at a time. After upload, the release handle
-keeps only the Rust package and buffer lengths.
+path builds and uploads one compact clearance at a time. Rooms prepare and validate their
+package before reporting readiness, including when they receive a plain map. The match takes
+ownership at start. The preparation handle then releases its reference to the package.
 
 The 4e allocation comparison used release WASM and two 1,000-tick room runs on 90 × 45 discovery
 cells (seeds 4217 and 4218). The sparse tile cache typically held 16–31 entries and peaked at 80.

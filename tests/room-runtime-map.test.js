@@ -52,7 +52,7 @@ test('Rust rejects malformed flat packages and accepts graphless ones', async ()
   const bad = packRuntimeMap(map);
   const header = new DataView(bad.runtimeNavigation.buffer);
   header.setUint32(0, 0, true);
-  await assert.rejects(prepareRuntimeNavigation(unpackMap(bad)), /Invalid runtime navigation \(core\)/);
+  await assert.rejects(createMatch(9, undefined, unpackMap(bad)), /Invalid runtime navigation \(core\)/);
 
   const badPoint = packRuntimeMap(map);
   const directory = new DataView(badPoint.runtimeNavigation.buffer);

@@ -105,8 +105,7 @@ export function createLobby(content = defaultContent()) {
 export async function createMatch(seed, size, map, content = defaultContent(), { wireKey = null } = {}) {
   const wire = wireIds(wireKey);
   map ??= generateLiveMap(seed, content, size);
-  const uploadingNavigation = prepareRuntimeNavigation(map);
-  const navigation = uploadingNavigation && await uploadingNavigation;
+  const navigation = await prepareRuntimeNavigation(map);
   let game;
   try {
     game = await createGame(seed, map, content, () => preparationPause());
@@ -118,7 +117,7 @@ export async function createMatch(seed, size, map, content = defaultContent(), {
     if (beforeGround !== undefined) observe('prepare.ground', performance.now() - beforeGround);
     return matchOf(game, payloads, wire, navigation);
   } catch (error) {
-    try { if (game) disposePhysics(game); } finally { navigation?.release(); }
+    try { if (game) disposePhysics(game); } finally { navigation.release(); }
     throw error;
   }
 }
@@ -130,7 +129,11 @@ function matchOf(game, payloads, wire, navigation) {
   let live, spent = [], botWords = new Float64Array(), discontinuities = [], disposedFrame;
   const started = () => {
     if (disposedFrame) throw new Error('match disposed');
-    return live ??= createTickSession(game, wire, navigation?.pointer);
+    if (!live) {
+      live = createTickSession(game, wire, navigation.pointer);
+      navigation.release();
+    }
+    return live;
   };
   const frame = () => disposedFrame ? structuredClone(disposedFrame) : live ? live.frames.frame() : snapshot(game);
   return {
@@ -203,7 +206,7 @@ function matchOf(game, payloads, wire, navigation) {
         try { live?.match.dispose(); }
         finally {
           try { disposePhysics(game); }
-          finally { navigation?.release(); payloads = undefined; }
+          finally { navigation.release(); payloads = undefined; }
         }
       }
     },
