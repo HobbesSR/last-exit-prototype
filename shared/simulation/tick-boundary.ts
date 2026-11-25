@@ -112,7 +112,8 @@ export function measured(ids: MatchIds, p: Player, roundTripMs: number | null | 
 /**
  * A connection taking over its seat (`resume`) or handing it to a bot (`leave`). The receive state and the buffer start
  * over, as `resetInput` leaves them, so nothing the previous connection queued is ever spent; the core clears the held
- * input, lag and spent sequence on the row.
+ * input, lag and spent sequence on the row. A relabel carries its rank just after binding the new label.
+ * The rank is relative to this observation, so another relabel queued for the same tick leaves it intact.
  */
 export function seatChanged(ids: MatchIds, p: Player, kind: 'join' | 'leave', kit?: Kit, relabeled = false): Inbound | null {
   const actor = ids.actorOfPlayer.get(p.id);

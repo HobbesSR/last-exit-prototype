@@ -1,7 +1,7 @@
 //! Local, visibility-limited avoidance around actors and pushable props.
 use super::Context;
 use crate::collision::CollisionMap;
-use crate::math::hypot;
+use crate::math::distance;
 use crate::swept::{Shape, segment_shape_distance};
 use crate::tick::{ActorId, ActorKind, Point, Presence};
 
@@ -10,9 +10,6 @@ const MARGIN: f64 = 2.0;
 const EDGES_PER_BOT: usize = 192;
 const EDGES_PER_TICK: usize = 1536;
 
-fn distance(a: Point, b: Point) -> f64 {
-    hypot(a[0] - b[0], a[1] - b[1])
-}
 fn origin(shape: &Shape) -> Point {
     match shape {
         Shape::Circle { x, y, .. } | Shape::Rect { x, y, .. } | Shape::Polygon { x, y, .. } => {
@@ -66,7 +63,9 @@ fn known_segment(ctx: &Context<'_>, id: ActorId, a: Point, b: Point, radius: f64
     let Some(memory) = ctx.memory.get(&id) else {
         return true;
     };
-    let (size, cols, rows) = ctx.grid();
+    let crate::navigation::Grid {
+        size, cols, rows, ..
+    } = ctx.grid();
     let left = (((a[0].min(b[0]) - radius) / size).floor() as isize - 1).max(0);
     let right = (((a[0].max(b[0]) + radius) / size).floor() as isize + 1).min(cols as isize - 1);
     let top = (((a[1].min(b[1]) - radius) / size).floor() as isize - 1).max(0);
@@ -83,6 +82,12 @@ fn known_segment(ctx: &Context<'_>, id: ActorId, a: Point, b: Point, radius: f64
     }
     true
 }
+pub(super) struct Waypoint {
+    pub(super) pos: Point,
+    pub(super) destination: Point,
+    pub(super) route_generation: u64,
+}
+
 impl Detour {
     pub(super) fn waypoint(
         &mut self,
@@ -90,11 +95,14 @@ impl Detour {
         collision: Option<&CollisionMap>,
         id: ActorId,
         idx: usize,
-        pos: Point,
-        destination: Point,
-        route_generation: u64,
+        waypoint: Waypoint,
         edges: &mut usize,
     ) -> Point {
+        let Waypoint {
+            pos,
+            destination,
+            route_generation,
+        } = waypoint;
         let mut bodies = Vec::new();
         for &other in ctx.lexical {
             if other == id
@@ -172,24 +180,23 @@ impl Detour {
                 && known_segment(ctx, id, a, b, radius)
                 && ctx.swept_clear(collision, Some(id), a, b, radius)
         };
-        if let Some(old) = &mut self.saved {
-            if old.generation == route_generation
-                && distance(old.last, pos) < 64.0
-                && distance(old.goal, destination) < 24.0
+        if let Some(old) = &mut self.saved
+            && old.generation == route_generation
+            && distance(old.last, pos) < 64.0
+            && distance(old.goal, destination) < 24.0
+        {
+            while old.route.first().is_some_and(|&p| distance(pos, p) < 3.0) {
+                old.route.remove(0);
+            }
+            if let Some(&next) = old.route.first()
+                && clear(pos, next)
             {
-                while old.route.first().is_some_and(|&p| distance(pos, p) < 3.0) {
-                    old.route.remove(0);
-                }
-                if let Some(&next) = old.route.first() {
-                    if clear(pos, next) {
-                        old.last = pos;
-                        return next;
-                    }
-                }
+                old.last = pos;
+                return next;
             }
         }
         self.saved = None;
-        if (ctx.view.tick as usize + idx) % 4 != 0 {
+        if !(ctx.view.tick as usize + idx).is_multiple_of(4) {
             return advance();
         }
         let mut nodes = vec![pos, goal];

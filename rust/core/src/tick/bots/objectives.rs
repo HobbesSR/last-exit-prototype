@@ -111,7 +111,7 @@ impl Pursuit {
             }
             self.cell = None;
         }
-        let (_, cols, rows) = ctx.grid();
+        let crate::navigation::Grid { cols, rows, .. } = ctx.grid();
         if cols == 0 || rows == 0 {
             return None;
         }

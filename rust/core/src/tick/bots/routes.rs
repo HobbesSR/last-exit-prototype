@@ -1,7 +1,8 @@
 //! Bot-private route lifecycle, including sliced searches and local repair (22.6).
 
 use crate::{
-    navigation::{Knowledge, RouteSearch, RouteStatus, portal::Corridor},
+    math::distance,
+    navigation::{Knowledge, RouteSearch, RouteStatus, closest, portal::Corridor},
     runtime_navigation::RuntimeNavigation,
     tick::{DoorMemory, GateId, Tick},
 };
@@ -17,22 +18,6 @@ const REPLAN_AFTER: Tick = 100;
 const SLICE: usize = 2_000;
 const BUDGET: usize = 100_000;
 const REPAIR_BUDGET: usize = 500;
-
-fn distance(a: Point, b: Point) -> f64 {
-    crate::math::hypot(a[0] - b[0], a[1] - b[1])
-}
-fn closest(p: Point, a: Point, b: Point) -> Point {
-    let dx = b[0] - a[0];
-    let dy = b[1] - a[1];
-    let length = dx * dx + dy * dy;
-    let t = if length == 0.0 {
-        0.0
-    } else {
-        ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / length
-    }
-    .clamp(0.0, 1.0);
-    [a[0] + dx * t, a[1] + dy * t]
-}
 
 struct Plan {
     goal: Point,
@@ -155,7 +140,7 @@ impl RouteState {
         player_index: usize,
         allowance: &mut usize,
     ) -> Option<RouteStatus> {
-        let scheduled = (tick as usize + player_index) % REPATH as usize == 0;
+        let scheduled = (tick as usize + player_index).is_multiple_of(REPATH as usize);
         let mut due = self
             .plan
             .as_ref()
@@ -178,29 +163,28 @@ impl RouteState {
                 allowance,
             ) == Some(false);
         }
-        if !due {
-            if let Some(plan) = &self.plan {
-                let grid = map.grid();
-                let learnt = contestant
-                    && (plan.stale
-                        || plan.doors != *doors
-                        || plan.watch.iter().any(|&cell| {
-                            grid.support(cell, clearance).all(|c| knowledge.known(c))
-                        }));
-                let changed =
-                    learnt || distance(plan.goal, target) >= TILE || plan.keys != knowledge.keys();
-                let short = matches!(
-                    plan.status,
-                    RouteStatus::Speculative | RouteStatus::BudgetExhausted
-                );
-                due = if !self.route.is_empty() {
-                    scheduled && (changed || tick.saturating_sub(plan.at) >= REPLAN_AFTER)
-                } else {
-                    changed
-                        || short && distance(plan.from, point) >= 11.0
-                        || scheduled && tick.saturating_sub(plan.at) >= REPATH
-                };
-            }
+        if !due && let Some(plan) = &self.plan {
+            let grid = map.grid();
+            let learnt = contestant
+                && (plan.stale
+                    || plan.doors != *doors
+                    || plan
+                        .watch
+                        .iter()
+                        .any(|&cell| grid.support(cell, clearance).all(|c| knowledge.known(c))));
+            let changed =
+                learnt || distance(plan.goal, target) >= TILE || plan.keys != knowledge.keys();
+            let short = matches!(
+                plan.status,
+                RouteStatus::Speculative | RouteStatus::BudgetExhausted
+            );
+            due = if !self.route.is_empty() {
+                scheduled && (changed || tick.saturating_sub(plan.at) >= REPLAN_AFTER)
+            } else {
+                changed
+                    || short && distance(plan.from, point) >= 11.0
+                    || scheduled && tick.saturating_sub(plan.at) >= REPATH
+            };
         }
         if due
             && self.search.as_ref().is_none_or(|s| {

@@ -18,6 +18,8 @@
 //! <jimr@jimr.ca>, released under the MIT License (https://github.com/jriecken/sat-js). The
 //! licence's full text is in `THIRD-PARTY-NOTICES.txt` (docs/21.1).
 
+use std::sync::Arc;
+
 use crate::math::{hypot, js_max, js_min};
 use crate::sight::{BUCKET, Edge, GateSet, Grid, SightIndex, Visited, hit_ray};
 use crate::swept::{Shape, segment_shape_distance};
@@ -229,11 +231,16 @@ pub struct CollisionMap {
     cell_size: f64,
     cols: usize,
     rows: usize,
+    tables: Arc<CollisionTables>,
+    visited: Visited,
+}
+
+// A live planner takes its own visitation scratch without duplicating the map upload.
+struct CollisionTables {
     /// One byte per playable-area cell, row-major, nonzero where the cell is playable ground.
     occupied: Vec<u8>,
     colliders: Vec<Collider>,
     grid: Grid,
-    visited: Visited,
 }
 
 /// Collider kinds in the upload.
@@ -251,25 +258,30 @@ impl CollisionMap {
         let top = a[1].min(b[1]) - radius;
         let bottom = a[1].max(b[1]) + radius;
         let mut blocked = false;
-        self.grid.each_cell_in(left, top, right, bottom, |entries| {
-            if blocked {
-                return;
-            }
-            for &index in entries {
-                let collider = &self.colliders[index as usize];
-                let [x, y, w, h] = collider.bounds;
-                if x <= right
-                    && y <= bottom
-                    && x + w >= left
-                    && y + h >= top
-                    && segment_shape_distance(a, b, &collider.shape) < radius - 0.01
-                {
-                    blocked = true;
-                    break;
+        self.tables
+            .grid
+            .each_cell_in(left, top, right, bottom, |entries| {
+                if blocked {
+                    return;
                 }
-            }
-        });
+                for &index in entries {
+                    let collider = &self.tables.colliders[index as usize];
+                    let [x, y, w, h] = collider.bounds;
+                    if x <= right
+                        && y <= bottom
+                        && x + w >= left
+                        && y + h >= top
+                        && segment_shape_distance(a, b, &collider.shape) < radius - 0.01
+                    {
+                        blocked = true;
+                        break;
+                    }
+                }
+            });
         if blocked {
+            return false;
+        }
+        if self.cols == 0 || self.rows == 0 {
             return false;
         }
         let size = self.cell_size;
@@ -353,9 +365,11 @@ impl CollisionMap {
             cell_size: constants[2],
             cols: constants[3] as usize,
             rows: constants[4] as usize,
-            occupied: occupied.to_vec(),
-            colliders,
-            grid: Grid::from_words(grid),
+            tables: Arc::new(CollisionTables {
+                occupied: occupied.to_vec(),
+                colliders,
+                grid: Grid::from_words(grid),
+            }),
             visited,
         }
     }
@@ -365,7 +379,7 @@ impl CollisionMap {
         if !(col >= 0.0 && row >= 0.0 && col < self.cols as f64 && row < self.rows as f64) {
             return false;
         }
-        self.occupied[row as usize * self.cols + col as usize] != 0
+        self.tables.occupied[row as usize * self.cols + col as usize] != 0
     }
 
     /// `insideMap`: whether a disk of `radius` at `x`, `y` lies wholly on playable ground.
@@ -412,7 +426,8 @@ impl CollisionMap {
 
     /// A collider's disk test, for the parity check: its depth, or -1 when apart.
     pub fn depth(&self, i: usize, x: f64, y: f64, radius: f64) -> f64 {
-        self.colliders
+        self.tables
+            .colliders
             .get(i)
             .and_then(|c| disk_penetration(x, y, radius, &c.body))
             .unwrap_or(-1.0)
@@ -438,26 +453,28 @@ pub fn can_occupy(
     let (left, top, right, bottom) = (x - radius, y - radius, x + radius, y + radius);
     let mut blocked = false;
     map.visited.begin();
-    let (colliders, visited) = (&map.colliders, &mut map.visited);
-    map.grid.each_cell_in(left, top, right, bottom, |list| {
-        if blocked {
-            return;
-        }
-        for &i in list {
-            let i = i as usize;
-            if !visited.first(i) {
-                continue;
-            }
-            let c = &colliders[i];
-            if (projectile && c.see_through) || !near_bounds(&c.bounds, x, y, radius) {
-                continue;
-            }
-            if disk_penetration(x, y, radius, &c.body).is_some_and(|depth| depth > 0.01) {
-                blocked = true;
+    let (colliders, visited) = (&map.tables.colliders, &mut map.visited);
+    map.tables
+        .grid
+        .each_cell_in(left, top, right, bottom, |list| {
+            if blocked {
                 return;
             }
-        }
-    });
+            for &i in list {
+                let i = i as usize;
+                if !visited.first(i) {
+                    continue;
+                }
+                let c = &colliders[i];
+                if (projectile && c.see_through) || !near_bounds(&c.bounds, x, y, radius) {
+                    continue;
+                }
+                if disk_penetration(x, y, radius, &c.body).is_some_and(|depth| depth > 0.01) {
+                    blocked = true;
+                    return;
+                }
+            }
+        });
     if blocked {
         return false;
     }

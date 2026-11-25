@@ -25,7 +25,7 @@ pub(super) fn cross(a: Point, b: Point, c: Point) -> f64 {
     (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
 }
 
-pub(super) fn closest(p: Point, a: Point, b: Point) -> Point {
+pub(crate) fn closest(p: Point, a: Point, b: Point) -> Point {
     let dx = b[0] - a[0];
     let dy = b[1] - a[1];
     let n = dx * dx + dy * dy;

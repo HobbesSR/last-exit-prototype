@@ -293,10 +293,11 @@ impl Sampler {
                 }
             }
             for &(id, _) in &held {
-                if flags.next().expect("remembered flag") && !present.contains(&id) {
-                    if memory.items.remove(&id).is_some() {
-                        memory.item_order.retain(|&item| item != id);
-                    }
+                if flags.next().expect("remembered flag")
+                    && !present.contains(&id)
+                    && memory.items.remove(&id).is_some()
+                {
+                    memory.item_order.retain(|&item| item != id);
                 }
             }
             for &(gate, _) in &doors {

@@ -6,7 +6,6 @@ use super::{
     side_edges,
 };
 use crate::{
-    math::hypot,
     runtime_map::{Layer, Tile, Values},
     runtime_navigation::RuntimeNavigation,
     tick::{DoorMemory, Gate, GateId, Memory},
@@ -192,9 +191,7 @@ impl<N: Ord> PartialEq for QueueEntry<N> {
 
 impl<N: Ord> Eq for QueueEntry<N> {}
 
-pub(super) fn distance(a: Point, b: Point) -> f64 {
-    hypot(a[0] - b[0], a[1] - b[1])
-}
+pub(super) use crate::math::distance;
 
 fn gates<'a>(tile: &Tile<'a>, triangle: usize) -> Option<Values<'a>> {
     let set = tile.triangle_gate_sets.i32(triangle);

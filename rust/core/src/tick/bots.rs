@@ -3,8 +3,8 @@ use std::rc::Rc;
 use crate::{
     collision::{CollisionMap, can_occupy, line_clear_with_gates, reach_clear_with_gates},
     discovery::Roofs,
-    math::{atan2, cos, hypot, sin},
-    navigation::{Knowledge, RouteStatus},
+    math::{atan2, cos, distance, hypot, sin},
+    navigation::{Grid, Knowledge, RouteStatus, closest},
     runtime_navigation::RuntimeNavigation,
 };
 
@@ -149,35 +149,17 @@ impl Context<'_> {
             .map_or([0.0, 0.0], |exit| exit.position)
     }
 
-    fn grid(&self) -> (f64, usize, usize) {
+    fn grid(&self) -> Grid {
         let [_, _, width, height] = self.view.bounds.unwrap_or([0.0; 4]);
-        let size = 192.0;
-        (
-            size,
-            (width / size).ceil() as usize,
-            (height / size).ceil() as usize,
-        )
+        Grid::discovery(width, height)
     }
 
-    fn cell_at(&self, [x, y]: Point) -> Option<u32> {
-        let [_, _, width, height] = self.view.bounds?;
-        if x < 0.0 || y < 0.0 || x >= width || y >= height {
-            return None;
-        }
-        let (size, cols, rows) = self.grid();
-        let x = (x / size).floor();
-        let y = (y / size).floor();
-        (x >= 0.0 && x < cols as f64 && y >= 0.0 && y < rows as f64)
-            .then(|| (y as usize * cols + x as usize) as u32)
+    fn cell_at(&self, point: Point) -> Option<u32> {
+        self.grid().cell_at(point).map(|cell| cell as u32)
     }
 
     fn centre(&self, cell: u32) -> Point {
-        let (size, cols, _) = self.grid();
-        let cell = cell as usize;
-        [
-            (cell % cols) as f64 * size + size / 2.0,
-            (cell / cols) as f64 * size + size / 2.0,
-        ]
+        self.grid().centre(cell as usize)
     }
 
     fn line(&self, a: Point, b: Point) -> bool {
@@ -264,10 +246,6 @@ fn route_body_radius(id: ActorId) -> f64 {
     clearance(id) - 2.0
 }
 
-fn distance(a: Point, b: Point) -> f64 {
-    hypot(a[0] - b[0], a[1] - b[1])
-}
-
 fn occupy(
     collision: &mut Option<CollisionMap>,
     gates: &mut GateSet,
@@ -336,15 +314,8 @@ fn passed(
     if d >= 11.0 {
         return false;
     }
-    let [x, y] = [next[0] - waypoint[0], next[1] - waypoint[1]];
-    let length = x * x + y * y;
-    let t = if length == 0.0 {
-        0.0
-    } else {
-        (((at[0] - waypoint[0]) * x + (at[1] - waypoint[1]) * y) / length).clamp(0.0, 1.0)
-    };
     let radius = route_body_radius(id);
-    if distance(at, [waypoint[0] + x * t, waypoint[1] + y * t]) > clearance(id) - radius {
+    if distance(at, closest(at, waypoint, next)) > clearance(id) - radius {
         return false;
     }
     let t = (24.0 / distance(at, next).max(1e-9)).min(1.0);
@@ -413,6 +384,8 @@ pub(super) fn collect(
             }) => {
                 controllers.insert(actor, false);
                 planner.clear_route(actor);
+                // The server ranks each label just after binding it. Apply these ranks in
+                // observation order, including when several bindings reach the same tick.
                 if let Some((rank, opportunistic)) = bot_label
                     && let Some(seat) = planner
                         .settings
@@ -667,10 +640,10 @@ fn intent(
                 bot.pursuit.abandon();
             }
             if nearest.is_none() {
-                if lead.is_some() && !contestant || lead == Some(target) {
-                    if let Some(lead) = &mut bot.lead {
-                        lead.done = true;
-                    }
+                if (lead.is_some() && !contestant || lead == Some(target))
+                    && let Some(lead) = &mut bot.lead
+                {
+                    lead.done = true;
                 }
                 if lead.is_none() && sweep.is_some() {
                     bot.sweeping.give_up(tick);
@@ -744,9 +717,11 @@ fn intent(
         collision.as_ref(),
         id,
         index,
-        pos,
-        [pos[0] + dx, pos[1] + dy],
-        bot.route.generation,
+        dynamic::Waypoint {
+            pos,
+            destination: [pos[0] + dx, pos[1] + dy],
+            route_generation: bot.route.generation,
+        },
         detour_edges,
     );
     (dx, dy) = (next[0] - pos[0], next[1] - pos[1]);
@@ -810,4 +785,50 @@ fn intent(
             .values()
             .any(|g| !g.open && distance(pos, g.position) < 85.0);
     input
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn crossing_relabels_use_the_rank_after_each_binding() {
+        let [a, b, c, d] = [0, 1, 2, 3].map(|seat| ActorId {
+            kind: ActorKind::Contestant,
+            seat,
+        });
+        let mut game = Scenario::default().start(1, 10);
+        game.bots = Planner::new(
+            Settings {
+                roster: [a, b, c, d]
+                    .into_iter()
+                    .enumerate()
+                    .map(|(rank, id)| (id, false, true, rank))
+                    .collect(),
+                ..Settings::default()
+            },
+            0.0,
+            None,
+            None,
+        );
+        let relabel = |actor, rank| {
+            Inbound::Observation(Observation::Join {
+                actor,
+                kit: None,
+                bot_label: Some((rank, true)),
+            })
+        };
+
+        // [a, b, c, d] -> [b, c, a, d] -> [c, a, d, b].
+        // Using a's final rank (1) for its observation would swap a and c.
+        collect(
+            &mut game,
+            &Combat::default(),
+            1,
+            &[relabel(a, 2), relabel(b, 3)],
+        );
+        assert_eq!(game.bots.lexical, [c, a, d, b]);
+        assert!(game.bots.settings.roster[0].1);
+        assert!(game.bots.settings.roster[1].1);
+    }
 }
