@@ -1,13 +1,12 @@
 import { discoveryGrid } from '../discovery.ts';
 import { WEAPONS as WEAPON_ORDER } from '../enum-tables.ts';
 import { cos, sin } from '../math.ts';
-import { KEPT_EVENTS } from './rules.ts';
+import { effect, event } from './event-records.ts';
 import { bodyKey } from './tick-codec.ts';
 import type { Actor, CarriedItem, Discontinuity, Equipment, Fact, GroundItem as CoreGround, Loot, Point, Projectile as CoreProjectile, Tick,
   Trap as CoreTrap, Window } from './tick-codec.ts';
 import type { MatchIds, TickMatch } from './tick-match.ts';
-import type { BodyId, Effect, EffectKind, EventParticipant, Game, GameEvent, GameEventPayload, GroundItem, InventoryItem, Player, PlayerStatus,
-  Projectile, Trap, Vec2, World } from '../types.ts';
+import type { BodyId, EventParticipant, Game, GroundItem, InventoryItem, Player, PlayerStatus, Projectile, Trap, Vec2 } from '../types.ts';
 
 // The one mapping from the core's records to the records Node's frames and mirror hold (docs/27.2 "Frames"): actors to
 // player fields, ground and carried items, traps and projectiles, T's facts to effects and events, and bodies' lifetimes.
@@ -146,22 +145,15 @@ export function projectileOf(ctx: Context, id: number, p: CoreProjectile, tick: 
     life: remaining(p.expiresAt, tick), damage: p.damage };
 }
 
-/** Where a tick's presentation goes: its effects and events, each taking its ID from `serial`. `Game` is one. */
-export interface Stage { tick: Tick; serial: number; effects: Effect[]; events: GameEvent[] }
+/** Where a tick's presentation goes (`event-records.ts`): its effects and events, each taking its ID from `serial`. */
+export type { Stage } from './event-records.ts';
+import type { Stage } from './event-records.ts';
 /** What the facts name, at the committed poses: an actor's place, aim and participant, and a trap's place. */
 export interface Cast {
   actor(word: number): Vec2 & { heading: number };
   participant(word: number): EventParticipant;
   trap(index: number): Vec2;
   blast: number;
-}
-
-export function event(stage: Stage, payload: GameEventPayload): void {
-  stage.events.push({ id: stage.serial++, tick: stage.tick, ...payload });
-  stage.events = stage.events.slice(-KEPT_EVENTS);
-}
-function effect(stage: Stage, p: Vec2, kind: EffectKind, radius: World): void {
-  stage.effects.push({ id: stage.serial++, x: p.x, y: p.y, kind, radius, life: 12 });
 }
 
 /**

@@ -5,10 +5,11 @@ import { settledLayer } from '../frame-layers.ts';
 import { shareGatePublication } from './frame-gates.ts';
 import { addItemsFromCore, groundItem, indexGround, publishItems, removeItem, replaceItem, shareItemPublication } from './ground-items.ts';
 import { bodyKey, bodyOrder } from './tick-codec.ts';
-import { BodyLives, contextOf, event, groundOf, participantOf, present, projectileOf, writeActor, writeTrap } from './tick-records.ts';
+import { event } from './event-records.ts';
+import { BodyLives, contextOf, groundOf, participantOf, present, projectileOf, writeActor, writeTrap } from './tick-records.ts';
 import type { FramePresentation } from './visibility.ts';
 import type { BodyShape, NumericHookFlight, NumericPhysicsBody, NumericPhysicsTether, PhysicsBodyOwner } from '../physics/types.ts';
-import type { Actor, BodyRef, DecodedTick, Hook, Point, PoseEntry, Projectile as CoreProjectile, Snapshot as CoreSnapshot, Tick,
+import type { Actor, BodyRef, DecodedTick, Hook, Inbound, Point, PoseEntry, Projectile as CoreProjectile, Snapshot as CoreSnapshot, Tick,
   Trap as CoreTrap } from './tick-codec.ts';
 import type { BodyLife, Cast, Context, Stage } from './tick-records.ts';
 import type { TickMatch } from './tick-match.ts';
@@ -88,6 +89,12 @@ export class TickFrames {
   #phase: Game['phase'];
   /** Contestants the room stranded when it ended the match. */
   readonly #stranded = new Set<number>();
+  /**
+   * Seat changes queued for a tick not yet completed, by actor word. The receive boundary hands a seat over at once, so
+   * a frame captured before that tick shows the seat as the tick will leave it: under its new controller, its lag and
+   * held input cleared, as the core clears them on the observation. The completed tick's records replace it (review 1102).
+   */
+  readonly #seats = new Map<number, { tick: Tick; kind: 'join' | 'leave' }>();
   readonly #stage: Stage;
   readonly #cast: Cast;
   /** Hooks and every dynamic body's whole pose (keyed `kind:id`) and lifetime. */
@@ -118,7 +125,9 @@ export class TickFrames {
     for (const item of s.items) if (byId.has(item.id)) place(item.id, [item.x, item.y]);
     for (const id of [...byId.keys()]) place(id);
     addItemsFromCore(this.#ground as Game, ground);
-    indexGround(this.#ground.items);
+    // Published first, so the records are frozen and enter their cells now; a mutable record would wait loose and move
+    // to its cell on the first query, one search of the loose list per record (review 1102).
+    indexGround(publishItems(this.#ground as Game));
     this.#itemSerial = s.itemSerial;
     this.#trapBase = s.traps.map(trap => Object.freeze({ ...trap }));
     for (const e of snap.state.traps) this.#traps[e.id] = e.trap;
@@ -138,7 +147,13 @@ export class TickFrames {
     this.lives.start(snap.poses.map(p => bodyKey(p.body)));
     for (const e of snap.state.hooks) this.hooks.set(e.id, e.hook);
     for (const e of snap.state.projectiles) this.#projectiles.set(e.id, e.projectile);
-    match.follow(t => this.take(t));
+    match.follow(t => this.take(t), (tick, rows) => this.#queued(tick, rows));
+  }
+
+  /** Rows the match queued for `tick`: a join or leave is a seat change the frame shows until that tick completes. */
+  #queued(tick: Tick, rows: readonly Inbound[]): void {
+    for (const row of rows) if (row.type === 'observation' && (row.observation.kind === 'join' || row.observation.kind === 'leave'))
+      this.#seats.set(row.observation.actor, { tick, kind: row.observation.kind });
   }
 
   #serial(id: number): void { if (this.#itemSerial === undefined || this.#itemSerial <= id) this.#itemSerial = id + 1; }
@@ -148,6 +163,7 @@ export class TickFrames {
   take(t: DecodedTick): void {
     const ctx = this.ctx, c = t.changes, tick = t.tick, ground = this.#ground as Game, at = poseMap(c.poses);
     this.#tick = tick;
+    for (const [word, seat] of this.#seats) if (seat.tick <= tick) this.#seats.delete(word);
     for (const e of c.actors) { this.#actors.set(e.word, e.actor); this.#carried(e.actor); }
     // A gate record that names a gate without changing it keeps the published list shared.
     for (const e of c.gates) {
@@ -292,7 +308,9 @@ export class TickFrames {
     const roster = this.s.players[slot]!, word = this.ctx.ids.actorAtSlot[slot]!, core: Partial<Player> = {};
     writeActor(this.ctx, core, word, a, tick);
     if (this.#stranded.has(word)) core.status = 'stranded';
-    const fields: Record<string, unknown> = { ...core, id: this.ctx.ids.playerOfActor.get(word), input: { sneak: a.sneak } };
+    const seat = tick === this.#tick ? this.#seats.get(word) : undefined;
+    if (seat) { core.bot = seat.kind === 'leave'; delete core.viewLagTicks; }
+    const fields: Record<string, unknown> = { ...core, id: this.ctx.ids.playerOfActor.get(word), input: seat ? {} : { sneak: a.sneak } };
     if (at) { fields.x = at[0]; fields.y = at[1]; }
     if (core.weapon === undefined) fields.weapon = roster.weapon;
     const out: Record<string, unknown> = {};
