@@ -41,6 +41,10 @@ jobs:
       # Through the thin reporter: a line per file with its wall time, each failure, and the
       # slowest files, so the log shows where verify's time goes (docs/31, #800).
       - id: unit
+        env:
+          # Four test files and their room workers share the container. Size each V8 heap
+          # for that concurrency instead of letting each process size it for the whole container.
+          NODE_OPTIONS: --max-old-space-size=384 --max-semi-space-size=8
         run: npm run brief -- test
       - name: Report container memory after a unit test failure
         if: failure() && steps.unit.outcome == 'failure'
