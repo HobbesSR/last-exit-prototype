@@ -526,6 +526,8 @@ combined eager or deferred package before a tick can use it. `tick::bots::BotMap
 bot collision and roof queries, and the retained navigation package. They are per-arena geometry inputs to
 the planner. Content-selected behavior values travel in the setup and use the same core interaction tables as
 resolution. Discovery and authoritative collision retain their own prepared views.
+Navigation packaging can read existing JavaScript tiles, but leaves newly built tiles transient.
+After upload, the release handle keeps only the Rust package and buffer lengths.
 
 The 4e allocation comparison used release WASM and two 1,000-tick room runs on 90 × 45 discovery
 cells (seeds 4217 and 4218). The sparse tile cache typically held 16–31 entries and peaked at 80.

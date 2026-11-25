@@ -27,7 +27,7 @@ export function packMap(map, tiles = []) {
 /** Write the flat handoff from generated tiles. Deferred maps pack only the gladiator layer here. */
 export function packRuntimeMap(map, { deferContestant = true } = {}) {
   const navigation = portalGraphOf(map) ?? null;
-  const layers = (deferContestant ? ['gladiator'] : ['gladiator', 'contestant']).map(role => freeTilesFor(map, role));
+  const layers = (deferContestant ? ['gladiator'] : ['gladiator', 'contestant']).map(role => freeTilesFor(map, role, false));
   const envelope = deferContestant ? { map, deferContestant } : { map };
   return { kind: PACKED, bytes: owned(serialize(envelope)), tiles: [],
     runtimeNavigation: packRuntimeNavigation(map, layers, { compact: deferContestant }) };

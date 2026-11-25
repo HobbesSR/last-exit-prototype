@@ -106,9 +106,9 @@ interface State {
   spent: GateId[];
 }
 
-/** Every discovery-grid tile for a clearance, in row-major order. */
-export function freeTilesFor(map: CollisionMap, role: Role) {
-  const planner = createKnowledgePlanner(map, role), { cols, rows, size } = discoveryGrid(map);
+/** Every discovery-grid tile for a clearance, in row-major order. Flat uploads can skip retaining new tiles. */
+export function freeTilesFor(map: CollisionMap, role: Role, cacheTiles = true) {
+  const planner = createKnowledgePlanner(map, role, cacheTiles), { cols, rows, size } = discoveryGrid(map);
   const all: Knowledge = { known: () => true, door: () => undefined, keys: 0, revision: 0 };
   const tiles = Array.from({ length: cols * rows }, (_, cell) => planner.tile(all, cell)!);
   return { clearance: navigationClearance(role), size, cols, tiles };
@@ -121,7 +121,7 @@ export function packedTilesFor(map: CollisionMap, role: Role): PackedTiles {
 }
 
 /** Plans for one body over the knowledge a caller supplies at each query; the map is read only through known tiles. */
-export function createKnowledgePlanner(map: CollisionMap, role: Role) {
+export function createKnowledgePlanner(map: CollisionMap, role: Role, cacheTiles = true) {
   const clearance = navigationClearance(role), { cols, rows, size } = discoveryGrid(map);
   const reach = tileReach(clearance);
   const boxOf = (cell: number): Box => {
@@ -141,7 +141,7 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role) {
 
   /** The tile of a cell if its whole support is known, else null. */
   const tile = (knowledge: Knowledge, cell: number): FreeTile | null =>
-    support(cell).every(c => knowledge.known(c)) ? freeSpaceTile(map, boxOf(cell), clearance) : null;
+    support(cell).every(c => knowledge.known(c)) ? freeSpaceTile(map, boxOf(cell), clearance, cacheTiles) : null;
 
   return {
     support,

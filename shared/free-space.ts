@@ -378,11 +378,14 @@ export const tileReach = (clearance: World): World => clearance + ERODE_MARGIN +
  * Neighbouring tiles meet edge to edge along their shared side, where both cut the same eroded
  * boundary.
  */
-export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World): FreeTile {
+export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World, cacheTile = true): FreeTile {
   const cache = cacheOf(map), key = `${box.x},${box.y},${box.w},${box.h}@${clearance}`;
   const kept = cache.tiles.get(key) ?? tileSources.get(map)?.(box, clearance)
     ?? cache.packed.reduce<FreeTile | undefined>((found, packed) => found ?? unpackTile(packed, box, clearance), undefined);
-  if (kept) { cache.tiles.set(key, kept); return kept; }
+  if (kept) {
+    if (cacheTile) cache.tiles.set(key, kept);
+    return kept;
+  }
   const reach = tileReach(clearance);
   const window = { x: box.x - reach, y: box.y - reach, w: box.w + 2 * reach, h: box.h + 2 * reach };
   const blocked = nearInBucketOrder(cache.buckets, window).map(i => shapeOf(map.obstacles[i]!));
@@ -402,7 +405,7 @@ export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World): Fr
   }
   const rings = sharePoints(pieces.map(piece => canonicalRings(piece.rings)));
   const tile = joinPieces(pieces.map((piece, i) => ({ space: meshOf(rings[i]!, clearance), gates: piece.gates })), box, reach, clearance);
-  cache.tiles.set(key, tile);
+  if (cacheTile) cache.tiles.set(key, tile);
   return tile;
 }
 
