@@ -20,7 +20,8 @@ import { publishGates, gatesJson } from '../shared/simulation/frame-gates.ts';
 import { profiling, observe } from '../shared/profiler.ts';
 import { stepMirror } from '../shared/simulation/tick-mirror.ts';
 import { createTickSession } from '../shared/simulation/tick.ts';
-import { recordedInbound } from '../shared/simulation/tick-record.ts';
+import { inboundOfRecorded, recordedInbound } from '../shared/simulation/tick-record.ts';
+import { seatChanged } from '../shared/simulation/tick-boundary.ts';
 import { encodeInbound } from '../shared/simulation/tick-codec.ts';
 
 // Only connection-facing operations resolve session labels; simulation relations use dense slots.
@@ -138,6 +139,24 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     }
     return live;
   };
+  // A live join binds a bot's seat to the new player's label, which the next tick's join observation then carries.
+  const relabel = (id, role, kit, name) => {
+    const p = joinGame(game, id, role, kit, name);
+    if (!p) return null;
+    const slot = playerSlot(game, id), ids = live.match.ids;
+    const previous = ids.playerOfActor.get(ids.actorAtSlot[slot]);
+    ids.bindPlayer(slot, id);
+    live.mirror.relabel(previous, id);
+    return p;
+  };
+  const step = boundary => {
+    const { match, mirror, frames } = started();
+    const t = stepMirror(mirror, boundary);
+    spent = t ? recordedInbound(match.ids, t.inbound) : [];
+    botWords = encodeInbound(t ? t.inbound.filter(row => row.type === 'command' && row.command.source === 'bot') : []);
+    discontinuities = t?.discontinuities ?? [];
+    return t && frames.frame();
+  };
   const capture = (privateRoutes = false) => {
     if (disposedFrame) {
       const frame = structuredClone(disposedFrame);
@@ -162,12 +181,8 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     get diagnosticState() { return game; },
     join(id, role, kit, name) {
       if (!live) return seats.join(id, role, kit, name);
-      const p = joinGame(game, id, role, kit, name);
+      const p = relabel(id, role, kit, name);
       if (!p) return null;
-      const slot = playerSlot(game, id), ids = live.match.ids;
-      const previous = ids.playerOfActor.get(ids.actorAtSlot[slot]);
-      ids.bindPlayer(slot, id);
-      live.mirror.relabel(previous, id);
       live.boundary.seat(id, 'join', p.role === 'gladiator' ? p.kit : undefined, true);
       return identity(p);
     },
@@ -220,13 +235,29 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
       return [];
     },
     teleport(id, x, y) { return started().boundary.teleport(id, [x, y]); },
-    advance() {
-      const { match, mirror, boundary, frames } = started();
-      const t = stepMirror(mirror, boundary);
-      spent = t ? recordedInbound(match.ids, t.inbound) : [];
-      botWords = encodeInbound(t ? t.inbound.filter(row => row.type === 'command' && row.command.source === 'bot') : []);
-      discontinuities = t?.discontinuities ?? [];
-      return frames.frame();
+    advance() { return step(started().boundary) ?? live.frames.frame(); },
+    /**
+     * Resimulate one recorded committed tick (#1284, docs/26 "Schema 25"): the frame's room roster commands as the live
+     * room applied them between ticks, then its spent `command` and `observation` rows in recorded order. The core
+     * regenerates its carry and the first-class bots' commands, which `spent` and `botCommands` then report. A seat
+     * relabel carries the lexical rank computed just after binding, as the live join does. False once the match is over.
+     */
+    replay(commands) {
+      const { match } = started(), labels = new Map(), rows = [];
+      for (const command of commands) {
+        if (command.type === 'command' || command.type === 'observation') rows.push(command);
+        else if (command.type === 'join') {
+          const p = relabel(command.id, command.role, command.kit, command.name);
+          if (!p) throw new RangeError(`Replay join found no seat for ${command.id}`);
+          labels.set(command.id, seatChanged(match.ids, p, 'join', undefined, true).observation.botLabel);
+        } else if (command.type === 'resume' || command.type === 'leave') {
+          const p = connectionPlayer(game, command.id);
+          if (!p) throw new RangeError(`Replay ${command.type} names no seat for ${command.id}`);
+          seatChanged(match.ids, p, command.type === 'resume' ? 'join' : 'leave');
+        } else if (command.type !== 'carried') throw new RangeError(`Replay cannot apply a ${command.type} command after the start`);
+      }
+      const inbound = inboundOfRecorded(match.ids, rows, labels);
+      return step({ due: () => inbound }) !== null;
     },
     teleportSucceeded: request => discontinuities.some(marker => marker.kind === 'devWarped' && marker.request === request),
     spent: () => structuredClone(spent),

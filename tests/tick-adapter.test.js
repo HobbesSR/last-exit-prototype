@@ -4,7 +4,7 @@ import { createGame, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { createTickMatch } from '../shared/simulation/tick-match.ts';
 import { TickBoundary, botCommand, inputOf, targetOf } from '../shared/simulation/tick-boundary.ts';
-import { recordedInbound } from '../shared/simulation/tick-record.ts';
+import { inboundOfRecorded, recordedInbound } from '../shared/simulation/tick-record.ts';
 import { emptyInput } from '../shared/simulation/tick-codec.ts';
 import { sanitizeInput } from '../shared/simulation/input.ts';
 import { CLIENT_MESSAGE, validateClientMessage } from '../shared/protocol.ts';
@@ -433,5 +433,27 @@ test('a frame records its inbound queue as the recording names it, less the comm
       { type: 'carried', kind: 'impulse', body: `prop:${ids.propLabels[0]}`, x: 1, y: 2 },
       { type: 'carried', kind: 'gateObserved', id: c.id, gate: 'd1', open: true, locked: false },
     ]);
+  });
+});
+
+test('recorded command and observation rows convert back to the rows the core queued, with each relabel bot label', async () => {
+  await run((s, match) => {
+    const ids = match.ids, [c, , g] = s.players, word = id => ids.actorOfPlayer.get(id);
+    const botLabel = { rank: 1, opportunistic: true };
+    const rows = [
+      { type: 'command', command: { actor: word(c.id), source: 'player', tick: 4, seq: 9, input: { ...emptyInput(), movement: [1, -0.5], aim: 0.25,
+        target: { kind: 'gate', id: 1 }, transit: ids.transitIndex.get('s1'), drop: { kind: 'slot', slot: 2 } } } },
+      { type: 'command', command: { actor: word(g.id), source: 'player', tick: 4, seq: 0, input: { ...emptyInput(), target: { kind: 'station', id: ids.chargerIndex.get('c0') } } } },
+      { type: 'observation', observation: { kind: 'inputLead', actor: word(c.id), ticks: 2 } },
+      { type: 'observation', observation: { kind: 'join', actor: word(g.id), kit: g.kit, botLabel } },
+      { type: 'observation', observation: { kind: 'join', actor: word(c.id) } },
+      { type: 'observation', observation: { kind: 'leave', actor: word(c.id) } },
+      { type: 'observation', observation: { kind: 'teleport', body: { kind: 'prop', id: 0 }, to: [10, 20] } },
+    ];
+    const recorded = JSON.parse(JSON.stringify(recordedInbound(ids, rows)));
+    assert.deepEqual(inboundOfRecorded(ids, recorded, new Map([[g.id, botLabel]])), rows);
+    const carried = recordedInbound(ids, [{ type: 'carried', carried: { kind: 'killReward', actor: word(c.id) } }]);
+    assert.throws(() => inboundOfRecorded(ids, carried), /carried rows are regenerated/);
+    assert.throws(() => inboundOfRecorded(ids, [{ ...recorded[0], id: 'nobody' }]), /no actor for player nobody/);
   });
 });

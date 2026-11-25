@@ -63,8 +63,19 @@ archived graph sections through the core's runtime navigation validator. It appl
 commands before the opening `start` and restores the view lag and input lead from the tick-zero
 players. It then starts the match and compares its opening frame with the stored frame in the
 archive's JSON representation. Missing inputs, unsupported versions and opening mismatches are
-reported by reconstruction. The caller owns the returned match and disposes it. Checking subsequent
-ticks against `botCommandDigest` remains in #1284.
+reported by reconstruction. The caller owns the returned match and disposes it.
+
+`verifyBotCommands` (`server/replay-verify.js`) resimulates from that start and checks every committed tick's
+`botCommandDigest`. For each frame it applies the room's roster commands as the live room did between ticks: a `join`
+binds a bot's seat to the new player's label, and the rank of that label is computed just after binding, as the live
+join's observation carries it. A `resume` or `leave` hands the seat over. It then converts the frame's spent `command` and
+`observation` rows back to the core's inbound rows in recorded order (`inboundOfRecorded` in
+`shared/simulation/tick-record.ts`), submits them for that tick and steps the match. The core regenerates its carry and the
+first-class bots' commands. The recorded inbound queue, including the `carried` rows, is a witness: the regenerated queue must
+equal it before the digest of the regenerated bot rows is compared. Verification reports the number of ticks checked. It refuses
+an archive the start reconstruction refuses, a header that records missing frames, a committed tick that does not follow the
+previous one or lacks a digest, and the first tick whose queue or digest differs. A last frame at the last tick without a digest
+(finish or abandonment) ends the check. Verification is a server tool. Playback still reads stored frames only.
 
 ## Schema 24: authored loot for replay setup (#1284)
 
@@ -87,9 +98,8 @@ stored frames. Schema 23 is additive and retains `minSchema` 20. Older archives 
 Remaining bot routes are private snapshot diagnostics (#1338). New frames omit them. Playback of
 archives that include the optional `Player.route` field still uses their stored frames.
 
-There is currently no recording resimulation path that reconstructs bot commands. A future resimulator can
-encode its committed bot rows and compare their digest on each available frame, using the matching planner
-version and complete history. Missing frames prevent continuous reconstruction.
+The resimulator that checks these digests is described under [Schema 25](#schema-25-planner-portal-graph-for-replay-setup-1284).
+It requires the matching planner version and complete history, so missing frames prevent continuous reconstruction.
 
 ## Schema 22: the inbound queue as commands (#1283)
 

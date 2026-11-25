@@ -1,7 +1,7 @@
 import { emptyInput } from './tick-codec.ts';
-import type { BodyRef, Carried, Command, Inbound, Input, Observation, Target } from './tick-codec.ts';
+import type { BodyRef, BotLabel, Carried, Command, Inbound, Input, Observation, Target } from './tick-codec.ts';
 import type { MatchIds } from './tick-match.ts';
-import type { Kit, PlayerId, Tick } from '../types.ts';
+import type { GateId, Kit, PlayerId, Tick } from '../types.ts';
 
 // What a frame on the new tick's path records as its `commands` (docs/26 "Schema 22", 27.2 Boundary): T's inbound queue as
 // the core spent it, one recorded command per row, in the queue's order, less the first-class bots' commands. The three
@@ -77,4 +77,63 @@ export function recordedInbound(ids: MatchIds, inbound: readonly Inbound[]): Rec
   return inbound.filter(row => row.type !== 'command' || row.command.source !== 'bot').map(row => row.type === 'command'
     ? { type: 'command', id: player(row.command.actor), source: row.command.source, tick: row.command.tick, seq: row.command.seq, input: input(row.command.input) }
     : row.type === 'observation' ? observation(row.observation) : carried(row.carried));
+}
+
+/**
+ * Recorded `command` and `observation` rows as the inbound rows the core queued, for resimulation (#1284, docs/26
+ * "Schema 25"). It inverts `recordedInbound` under the IDs bound when the frame was recorded. `carried` rows are refused:
+ * the core regenerates its own carry. A recorded join leaves out the bot label a seat relabel carried, so `labels` gives it
+ * back by player ID, computed when the room's join bound the label.
+ */
+export function inboundOfRecorded(ids: MatchIds, rows: readonly RecordedCommand[], labels: ReadonlyMap<PlayerId, BotLabel> = new Map()): Inbound[] {
+  const actor = (id: PlayerId): number => {
+    const word = ids.actorOfPlayer.get(id);
+    if (word === undefined) throw new RangeError(`tick-record: no actor for player ${id}`);
+    return word;
+  };
+  const number = (text: string, what: string): number => {
+    const value = Number(text);
+    if (!Number.isSafeInteger(value) || value < 0 || String(value) !== text) throw new RangeError(`tick-record: invalid ${what} ${text}`);
+    return value;
+  };
+  const body = (label: RecordedBody): BodyRef => {
+    const split = label.indexOf(':'), kind = label.slice(0, split), rest = label.slice(split + 1);
+    if (kind === 'actor') return { kind, id: actor(rest as PlayerId) };
+    if (kind === 'prop') return { kind, id: ids.propNumber.get(rest) ?? number(rest, 'prop') };
+    if (kind === 'item' || kind === 'gate' || kind === 'geometry') return { kind, id: number(rest, kind) };
+    throw new RangeError(`tick-record: invalid body ${label}`);
+  };
+  const station = (id: string): number => {
+    const index = ids.stations.findIndex(s => s.id === id);
+    if (index < 0) throw new RangeError(`tick-record: no station ${id}`);
+    return index;
+  };
+  const target = (t: RecordedTarget): Target => {
+    if (!('id' in t) || t.kind === 'item') return t as Target;
+    if (t.kind === 'station') return { kind: 'station', id: station(t.id) };
+    const gate = ids.gateIndex.get(t.id as GateId);
+    if (gate === undefined) throw new RangeError(`tick-record: no gate ${t.id}`);
+    return { kind: 'gate', id: gate };
+  };
+  const input = (recorded: RecordedInput): Input => {
+    const { target: t, transit, ...rest } = recorded;
+    return { ...emptyInput(), ...structuredClone(rest), ...(t === undefined ? {} : { target: target(t) }),
+      ...(transit === undefined ? {} : { transit: station(transit) }) };
+  };
+  return rows.map((row): Inbound => {
+    if (row.type === 'command') {
+      return { type: 'command', command: { actor: actor(row.id), source: row.source, tick: row.tick, seq: row.seq, input: input(row.input) } };
+    }
+    if (row.type !== 'observation') throw new RangeError(`tick-record: ${row.type} rows are regenerated, not replayed`);
+    switch (row.kind) {
+      case 'viewLag': case 'inputLead': return { type: 'observation', observation: { kind: row.kind, actor: actor(row.id), ticks: row.ticks } };
+      case 'join': {
+        const label = labels.get(row.id);
+        return { type: 'observation', observation: { kind: 'join', actor: actor(row.id),
+          ...(row.kit === undefined ? {} : { kit: row.kit }), ...(label === undefined ? {} : { botLabel: label }) } };
+      }
+      case 'leave': return { type: 'observation', observation: { kind: 'leave', actor: actor(row.id) } };
+      case 'teleport': return { type: 'observation', observation: { kind: 'teleport', body: body(row.body), to: [row.x, row.y] } };
+    }
+  });
 }

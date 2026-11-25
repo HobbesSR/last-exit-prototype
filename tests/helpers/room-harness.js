@@ -60,7 +60,9 @@ export function roomHarness({ finalize, reportError, reportReject = null, startW
   const replays = { start(header, options) {
     if (startWriter) { const writer = startWriter(header, options); writers.set(header.id, writer); return writer; }
     const writer = { header: structuredClone(header), frames: [], marks: [], blocked: false, finishCalls: 0,
-      append(state, commands) { this.frames.push(structuredClone({ state, commands })); },
+      append(state, commands, botCommandDigest) {
+        this.frames.push(structuredClone({ state, commands, ...(botCommandDigest === undefined ? {} : { botCommandDigest }) }));
+      },
       mark(marker) { this.marks.push(structuredClone(marker)); return true; },
       async finish(result) {
         this.finishCalls++;

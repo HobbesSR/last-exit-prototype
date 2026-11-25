@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createRoomService } from '../server/room-service.js';
 import { reconstructReplayStart } from '../server/replay-start.js';
+import { verifyBotCommands } from '../server/replay-verify.js';
 import { packRuntimeMap } from '../server/map-pack.js';
 import { createFileReplayStore } from '../server/replay-store.js';
 import { readServerMessage } from '../shared/wire-schema.ts';
@@ -85,6 +86,59 @@ test('the opt-in room records spent inputs and keeps the same actor through a li
     await room.finalization;
     assert.deepEqual(writer.frames.at(-1).commands.map(c => [c.type, c.id]), [['join', late.session.playerId]],
       'the final frame keeps room roster metadata and only committed ticks carry the inbound queue');
+  } finally { await h.service.close(); }
+});
+
+test('resimulation reproduces each committed bot command digest through a live join, resume and leave', async () => {
+  // Reconstruction resolves shipped content by ID, so this room keeps the default roster.
+  const content = defaultContent();
+  const h = roomHarness({ devTools: 'owner', generateMap: seed => arena({
+    cols: 6, rows: 4, seed, obstacles: [{ id: 'wall', x: 350, y: 480, w: 80, h: 80 }],
+    spawns: content.roster.contestants.map((_, i) => ({ x: 120 + 64 * i, y: 220 })),
+    hunterSpawns: content.roster.gladiators.map((_, i) => ({ x: 800, y: 240 + 100 * i })),
+  }).map });
+  const room = await h.created(5), owner = h.joined(room, { ownerKey: room.ownerKey });
+  const dev = h.joined(room, { mode: 'dev', ownerKey: room.ownerKey });
+  owner.send({ type: 'start' });
+  const writer = h.writers.get(room.id);
+  const run = ms => { for (let elapsed = 0; elapsed < ms; elapsed += 50) h.wake(50); };
+  try {
+    owner.send({ type: 'input', seq: 1, tick: 2, x: 1, attack: true });
+    run(150);
+    const joined = h.joined(room, { role: 'gladiator', name: 'Late join' });
+    const id = joined.messages.find(m => m.type === 'welcome').id;
+    room.setViewLag(joined.session.connectionId, 200);
+    joined.send({ type: 'input', seq: 1, tick: room.match.tick + 2, x: -1, skill: true });
+    dev.send({ type: 'dev', action: 'teleport', id: owner.session.playerId, x: 600, y: 600 });
+    run(300);
+    const resumed = h.joined(room, { resumeKey: joined.messages.find(m => m.type === 'welcome').resumeKey });
+    resumed.send({ type: 'input', seq: 0, tick: room.match.tick + 1, x: 1 });
+    run(300);
+    h.service.disconnect(resumed.session);
+    run(1000);
+    owner.send({ type: 'finish' });
+    await room.finalization;
+    const archive = JSON.parse(JSON.stringify({ ...writer.header, frames: writer.frames }));
+    const types = archive.frames.flatMap(f => f.commands ?? []).map(c => c.kind ?? c.type);
+    for (const kind of ['join', 'resume', 'leave', 'viewLag', 'teleport', 'command']) assert.ok(types.includes(kind), `the recording holds a ${kind}`);
+    assert.ok(archive.frames.some(f => f.commands?.some(c => c.type === 'command' && c.id === id)), 'the late joiner spent input');
+    const committed = archive.frames.filter(f => f.botCommandDigest !== undefined);
+    assert.ok(committed.length >= 30, `${committed.length} committed ticks`);
+    assert.deepEqual(await verifyBotCommands(archive), { ticks: committed.length });
+
+    const target = committed[Math.floor(committed.length / 2)], at = target.state.tick;
+    const tampered = structuredClone(archive);
+    tampered.frames.find(f => f.state.tick === at && f.botCommandDigest).botCommandDigest = '0'.repeat(64);
+    await assert.rejects(verifyBotCommands(tampered), { name: 'RangeError', message: `Reconstructed replay bot commands differ at tick ${at}` });
+    const gapped = { ...archive, frames: archive.frames.filter(f => f !== target) };
+    await assert.rejects(verifyBotCommands(gapped), { message: `Replay history is gapped: tick ${at + 1} follows ${at - 1}` });
+    await assert.rejects(verifyBotCommands({ ...archive, recording: { complete: false, droppedFrames: 1, endTick: at } }),
+      /Replay history has missing frames/);
+    const undigested = structuredClone(archive);
+    delete undigested.frames.find(f => f.state.tick === at && f.botCommandDigest).botCommandDigest;
+    await assert.rejects(verifyBotCommands(undigested), { message: `Missing replay bot command digest at tick ${at}` });
+    await assert.rejects(verifyBotCommands({ ...archive, botPlannerVersion: 2 }), /Unsupported replay bot planner/);
+    await assert.rejects(verifyBotCommands({ ...archive, schema: 23 }), /Missing replay setup|Unsupported replay schema/);
   } finally { await h.service.close(); }
 });
 
