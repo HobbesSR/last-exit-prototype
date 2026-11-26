@@ -50,6 +50,10 @@ export class TickProjection {
   readonly #discovered = new Map<PlayerIdx, number[]>();
   /** Each viewer's cues as the core last sent them, by roster place. */
   readonly #heard = new Map<PlayerIdx, readonly HeardCue[]>();
+  /** Whether each viewer keeps a memory, as the core last said. */
+  readonly #remembers = new Map<PlayerIdx, boolean>();
+  /** The core tick each viewer's knowledge is as of. Knowledge is asked for apart from membership (review 1134). */
+  readonly #known = new Map<PlayerIdx, Tick>();
   /** The decisions made at `#made`, by roster place. */
   readonly #decided = new Map<PlayerIdx, Admission>();
   /** What the decisions were made under: the tick and whether the room had stranded its contestants. */
@@ -80,26 +84,32 @@ export class TickProjection {
     return word === undefined ? undefined : this.#match.ids.slotOfActor.get(word);
   }
 
-  /** Ask the core, in one call, what these player viewers may receive at the last completed tick. */
+  /**
+   * Ask the core, in one call, what these player viewers may receive at its last completed tick, and what they know. The
+   * answer is a membership decision only while the frames follow the core's step; a frame store a test advanced by hand
+   * still gets the core's latest knowledge, for the rules to project with (review 1134).
+   */
   decide(ids: Iterable<PlayerId>): void {
-    if (this.#match.disposed || this.#stepped !== this.#frames.tick) return;
-    const tick: Tick = this.#frames.tick, stranded = this.#frames.stranded;
-    if (!this.#current()) { this.#decided.clear(); this.#made = { tick, stranded }; }
+    if (this.#match.disposed) return;
+    const stepped = this.#stepped, stranded = this.#frames.stranded, deciding = stepped === this.#frames.tick;
+    if (deciding && !this.#current()) { this.#decided.clear(); this.#made = { tick: stepped, stranded }; }
     const viewers: { id: PlayerId; held: number }[] = [];
     for (const id of ids) {
       const slot = this.#slotOf(id);
-      if (slot !== undefined && !this.#decided.has(slot) && !viewers.some(v => v.id === id))
-        viewers.push({ id, held: this.#discovered.get(slot)?.length ?? 0 });
+      if (slot === undefined || viewers.some(v => v.id === id)) continue;
+      if (deciding ? !this.#decided.has(slot) : this.#known.get(slot) !== stepped) viewers.push({ id, held: this.#discovered.get(slot)?.length ?? 0 });
     }
     if (!viewers.length) return;
     start('sim.admit');
     try {
       const { tick: decided, admissions } = this.#match.admit(viewers, POTENTIAL, stranded);
-      if (decided !== tick) throw new RangeError(`tick-projection: the core decided tick ${decided}, the frames hold ${tick}`);
+      if (decided !== stepped) throw new RangeError(`tick-projection: the core decided tick ${decided}, its last step was ${stepped}`);
       for (const admission of admissions) {
         const slot = this.#match.ids.slotOfActor.get(admission.actor)!;
-        this.#decided.set(slot, admission);
+        if (deciding) this.#decided.set(slot, admission);
+        this.#known.set(slot, stepped);
         this.#heard.set(slot, admission.heard.map(heardOf));
+        this.#remembers.set(slot, admission.total >= 0);
         if (admission.total < 0) continue;
         let cells = this.#discovered.get(slot);
         if (!cells) this.#discovered.set(slot, cells = []);
@@ -110,11 +120,12 @@ export class TickProjection {
   }
 
   /**
-   * A player's view of the last completed tick's frame, from the core's decision. Undefined for a viewer without a seat, a
-   * frame of another tick, or a disposed match; the caller then projects by the rules.
+   * A player's view of the frame store's current frame, from the core's decision. Undefined for a viewer without a seat, any
+   * other frame (another tick, a copy or an edit, or one captured before a same-tick finish: `TickFrames.current`), or a
+   * disposed match; the caller then projects by the rules, with the core's knowledge (review 1134).
    */
   project(frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds = wireIds()) {
-    if (id == null || frame.tick !== this.#frames.tick) return undefined;
+    if (id == null || this.#stepped !== this.#frames.tick || !this.#frames.current(frame)) return undefined;
     const slot = this.#slotOf(id);
     if (slot === undefined) return undefined;
     if (!this.#current() || !this.#decided.has(slot)) this.decide([id]);
@@ -151,7 +162,7 @@ export class TickProjection {
       }),
       projectiles: frame.projectiles.filter(p => shots.has(p.id)),
       effects: frame.effects.filter((_, i) => effects.has(i)),
-      discovered: a.total < 0 ? null : this.#discovered.get(slot)!,
+      discovered: this.#remembers.get(slot) ? this.#discovered.get(slot)! : null,
       heard: this.#heard.get(slot)!,
     };
   }
@@ -161,9 +172,9 @@ export class TickProjection {
     return this.#match.ids.playerOfActor.get(this.#match.ids.actorAtSlot[slot]!);
   }
 
-  /** Ask the core for a viewer's decision at the last completed tick unless one is held; nothing once disposed. */
+  /** Ask the core for a viewer's knowledge as of its last step unless that is held; nothing once disposed. */
   #ensure(slot: PlayerIdx): void {
-    if (this.#current() && this.#decided.has(slot)) return;
+    if (this.#match.disposed || this.#known.get(slot) === this.#stepped) return;
     const id = this.#idAt(slot);
     if (id !== undefined) this.decide([id]);
   }
@@ -175,8 +186,7 @@ export class TickProjection {
    */
   discovered(slot: PlayerIdx): readonly number[] | null {
     this.#ensure(slot);
-    const decided = this.#decided.get(slot);
-    return decided && decided.total < 0 ? null : this.#discovered.get(slot) ?? null;
+    return this.#remembers.get(slot) ? this.#discovered.get(slot) ?? null : null;
   }
 
   /** The cues a viewer hears that last past `tick`, as `discovered` reads them. */

@@ -1,5 +1,4 @@
 import { renderedPlayerView as playerView, renderedSnapshot } from './helpers/relational.js';
-import { projectView, viewSourceOf } from '../shared/simulation/visibility.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, stateOf, step as stepRaw, snapshot as snapshotRaw } from '../shared/simulation.ts';
@@ -145,11 +144,11 @@ test('the owner sees reserves and reload progress; other players and older conte
   const seen = other.players.find(r => r.id === p.id);
   assert.equal(seen.reserves, undefined); assert.equal(seen.reload, undefined);
   // Ground ammo keeps its family on the live wire, as in recorded frames. Frames come from the core, so the box is
-  // given to the projection on a frame rather than arranged on the game mid-match. The core decides only what it holds
-  // (#1357), so an edited frame is projected by the rules, whose field contract this checks.
+  // given to the projection on a frame rather than arranged on the game mid-match. An edited frame is not the core's to
+  // decide, so `playerView` projects it by the rules (#1357, review 1134).
   const id = Math.max(0, ...frame.items.map(item => item.id)) + 1;
   const boxed = { ...frame, items: [...frame.items, { id, kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }] };
-  const box = projectView(viewSourceOf(s), boxed, q.id).items.find(item => item.id === id);
+  const box = playerView(s, boxed, q.id).items.find(item => item.id === id);
   assert.equal(box.family, 'shell');
   const plain = createGameRecord(17, arena(), content('content-7'));
   assert.equal(Object.hasOwn(snapshot(plain).players[0], 'reserves'), false);

@@ -14,7 +14,7 @@ import { stepTick } from '../shared/simulation/tick-step.ts';
 import { BodyLives } from '../shared/simulation/tick-records.ts';
 import { templatesOf } from '../shared/simulation/boundary.ts';
 import { TickFrames } from '../shared/simulation/tick-frame.ts';
-import { playerView } from '../shared/simulation/visibility.ts';
+import { playerView, projectView, viewSourceOf } from '../shared/simulation/visibility.ts';
 import { createFrameEncoder, createRecordingReader } from '../shared/recording-format.ts';
 import { SCHEMA } from '../shared/recording.ts';
 import { arena } from './helpers/arena.js';
@@ -498,8 +498,14 @@ test("the core's projection keeps arranged effects aligned and redecides when a 
     // The far contestant is out of the near one's reach: the broadcast's decision leaves it out.
     projection.decide(s.players.map(p => p.id));
     assert.ok(!projection.project(frame, near.id).players.some(p => p.playerIdx === 1));
-    // The owner finishes within the tick, stranding active contestants; the final broadcast redecides.
+    // The owner finishes within the tick, stranding active contestants; the final broadcast redecides. A frame captured
+    // before the finish is no longer the core's to decide: projected by the rules, the far contestant is still active and
+    // out of reach (review 1134).
+    const before = frame;
     frames.end({ strand: true });
+    const earlier = playerView(s, before, near.id);
+    assert.ok(!earlier.players.some(p => p.playerIdx === 1), 'the capture before the finish keeps its active contestant out of reach');
+    assert.deepEqual(earlier, projectView(viewSourceOf(s), before, near.id));
     frame = frames.frame();
     assert.equal(frame.players[1].status, 'stranded');
     const view = projection.project(frame, near.id);

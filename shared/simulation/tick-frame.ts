@@ -96,6 +96,8 @@ export class TickFrames {
    */
   readonly #seats = new Map<number, { tick: Tick; kind: 'join' | 'leave' }>();
   readonly #stage: Stage;
+  /** The frames this store gave out, with the tick and stranded state each was made under. */
+  readonly #given = new WeakMap<object, { tick: Tick; stranded: boolean }>();
   /** Each stage effect's expiry, the core's deadline: its `life` is this less the frame's tick. */
   readonly #expiry = new WeakMap<object, Tick>();
   readonly #cast: Cast;
@@ -224,6 +226,16 @@ export class TickFrames {
       if (a.presence === 'active' && this.s.players[this.ctx.ids.slotOfActor.get(word)!]!.role === 'contestant') this.#stranded.add(word);
   }
 
+  /**
+   * Whether `frame` is one this store gave out (`frame`) for its last completed tick, as the room has left it since: not a
+   * copy or an edit, not another tick's, and not one captured before a same-tick finish stranded the contestants. The core
+   * decides what each viewer receives of such a frame only (review 1134).
+   */
+  current(frame: object): boolean {
+    const made = this.#given.get(frame);
+    return made !== undefined && made.tick === this.#tick && made.stranded === this.stranded;
+  }
+
   /** The frame of the match's last completed tick. */
   frame(): Snapshot {
     const s = this.s, presentation = this.presentation(), records = this.records();
@@ -232,12 +244,14 @@ export class TickFrames {
     const actorBodies = new Set(presentation.bodies.flatMap(b => b.owner.kind === 'actor' ? [b.owner.playerIdx] : []));
     const players = records.players.map((p, i) => ({ ...(actorBodies.has(i as PlayerIdx) ? omitBodyPose(p) : p), playerIdx: i as PlayerIdx }));
     const stage = this.#stage;
-    return { version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: this.#tick,
+    const frame = { version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: this.#tick,
       phase: this.#phase, hazardX: this.#hazardX, slots: this.#slots, serial: stage.serial, players, items, gates: this.#publishedGates(),
       traps: records.traps, projectiles: records.projectiles, effects: stage.effects.map(e => ({ ...e })) as Effect[],
       events: structuredClone(stage.events) as GameEvent[], ...(this.#itemSerial !== undefined ? { itemSerial: this.#itemSerial } : {}),
       physicsProfile: presentation.physicsProfile, bodies: presentation.bodies, tethers: presentation.tethers, hookFlights: presentation.hookFlights,
     } as unknown as Snapshot;
+    this.#given.set(frame, { tick: this.#tick, stranded: this.stranded });
+    return frame;
   }
 
   /** The gates as frames carry them: dynamic state only, shared from frame to frame until one changes. */
