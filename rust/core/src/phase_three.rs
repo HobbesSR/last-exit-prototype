@@ -81,7 +81,7 @@ impl PhaseThree {
         let movement = r.row();
         let utility = r.row();
         let kit_cooldown = r.vec(4);
-        let _kit_damage = r.vec(4);
+        let _kit_damage: [f64; 4] = r.row();
         let n = r.count();
         let quality_damage = r.vec(n);
         let n = r.count();
