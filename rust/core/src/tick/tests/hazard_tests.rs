@@ -415,3 +415,125 @@ fn static_cover_blocks_a_mines_damage_and_its_impulse() {
         .collect();
     assert_eq!(pushed, [BodyId::Actor(A)], "and the impulse");
 }
+
+#[test]
+fn mine_impulse_uses_linear_falloff_deterministic_zero_distance_and_canonical_body_order() {
+    let mut scenario = Scenario::default();
+    let mut actor_a = body(0.0);
+    actor_a.params.pose[1] = 40.0;
+    scenario.state.actors.insert(A, actor(Presence::Active));
+    scenario.body(BodyId::Actor(A), actor_a);
+    add_actor(&mut scenario, B, 60.0);
+
+    for (id, x) in [(BodyId::Prop(0), 0.0), (BodyId::Prop(1), 30.0)] {
+        let mut prop = body(x);
+        prop.params.kind = KIND_PROP;
+        scenario.body(id, prop);
+    }
+
+    scenario
+        .state
+        .traps
+        .insert(MINE, trap([0.0, 0.0], TrapKind::Mine { spent: false }));
+
+    let rules = Combat::default();
+    assert_eq!(rules.hazards.mine.trigger, 65.0);
+    assert_eq!(rules.hazards.mine.blast, 120.0);
+    assert_eq!(rules.hazards.mine.world_impulse, 300.0);
+    assert_eq!(rules.hazards.mine.actor_impulse_limit, 600.0);
+
+    let mut game = scenario.start(1, 10);
+    submit(
+        &mut game,
+        A,
+        1,
+        1,
+        Input {
+            movement: [0.5, 0.0],
+            ..Input::default()
+        },
+    );
+    let first = game.step(&rules).unwrap();
+    assert!(has(&first, Fact::MineExploded { trap: MINE }));
+
+    let second = game.step(&rules).unwrap();
+    let impulses: Vec<_> = second
+        .inbound
+        .iter()
+        .filter_map(|record| match *record {
+            Inbound::Carried(Carried::Impulse { body, impulse }) => Some((body, impulse)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        impulses.iter().map(|&(body, _)| body).collect::<Vec<_>>(),
+        [
+            BodyId::Actor(A),
+            BodyId::Actor(B),
+            BodyId::Prop(0),
+            BodyId::Prop(1),
+        ]
+    );
+    assert!(crate::math::hypot(impulses[0].1[0], impulses[0].1[1]) > 0.0);
+    assert_eq!(impulses[1].1, [150.0, 0.0]);
+    assert_eq!(impulses[2].1, [300.0, 0.0]);
+    assert_eq!(impulses[3].1, [225.0, 0.0]);
+}
+
+#[test]
+fn multiple_same_tick_mines_merge_into_one_carried_impulse_per_body() {
+    let mut scenario = Scenario::default();
+    let mut actor_a = body(0.0);
+    actor_a.params.pose[1] = 40.0;
+    let mut survivor = actor(Presence::Active);
+    survivor.hp = 100.0;
+    scenario.state.actors.insert(A, survivor);
+    scenario.body(BodyId::Actor(A), actor_a);
+
+    let prop = BodyId::Prop(0);
+    let mut prop_spec = body(40.0);
+    prop_spec.params.kind = KIND_PROP;
+    scenario.body(prop, prop_spec);
+
+    let mine_a = TrapId(1);
+    let mine_b = TrapId(2);
+    scenario
+        .state
+        .traps
+        .insert(mine_a, trap([0.0, 0.0], TrapKind::Mine { spent: false }));
+    scenario
+        .state
+        .traps
+        .insert(mine_b, trap([10.0, 0.0], TrapKind::Mine { spent: false }));
+
+    let rules = Combat::default();
+    let mut game = scenario.start(1, 10);
+    submit(
+        &mut game,
+        A,
+        1,
+        1,
+        Input {
+            movement: [0.5, 0.0],
+            ..Input::default()
+        },
+    );
+    let first = game.step(&rules).unwrap();
+    assert!(has(&first, Fact::MineExploded { trap: mine_a }));
+    assert!(has(&first, Fact::MineExploded { trap: mine_b }));
+
+    let second = game.step(&rules).unwrap();
+    let impulses: Vec<_> = second
+        .inbound
+        .iter()
+        .filter_map(|record| match *record {
+            Inbound::Carried(Carried::Impulse { body, impulse }) => Some((body, impulse)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        impulses.iter().map(|&(body, _)| body).collect::<Vec<_>>(),
+        [BodyId::Actor(A), prop]
+    );
+    assert_eq!(impulses[1].1, [425.0, 0.0]);
+}
