@@ -45,6 +45,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.78](42.78-tick-cutover-benchmark.md) | Tick cutover paired against the end-of-flip checkpoint, with ground-count attribution (#1283) |
 | [42.79](42.79-core-frames-benchmark.md) | Frames from the core's output paired against `main`: frame cost down, tick unchanged (#1344) |
 | [42.80](42.80-in-process-without-mirror-benchmark.md) | In-process games without the mirror's applier, paired against `main`: step 1–2% lower (#1345) |
+| [42.81](42.81-room-without-mirror-benchmark.md) | A room without the mirror's applier, paired against `main` on the room loop: tick about 1.6% lower, memory refresh up 0.016 ms (#1346) |
 
 ### Navigation
 

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
+import { stateOf } from '../shared/simulation/tick.ts';
 
 test('the dev view follows the server policy and sees the current directed frame', async () => {
   const closed = roomHarness({ reuseMaps: true }), shut = await closed.live();
@@ -72,7 +73,9 @@ test('a dev pause stops only its own room, drops owed time and leaves one mark',
 test('a dev teleport moves any active player to open ground, is recorded, and shows while paused', async () => {
   const h = roomHarness({ devTools: 'owner', reuseMaps: true }), { room, owner, writer } = await h.live();
   try {
-    const id = owner.session.playerId, bot = room.game.players.find(p => p.bot && p.status === 'active');
+    // The guest takes over a bot's place, so the bot is chosen after it joins: a frame's record is a copy that no relabel reaches.
+    const id = owner.session.playerId, guest = h.joined(room, {});
+    const bot = room.match.frame().players.find(p => p.bot && p.status === 'active');
     // Every spawn holds an actor, and a body is refused a point that overlaps another, so open ground is found by asking:
     // the first point near the spawn the room accepts (the answer, not the search, is what is checked).
     const spawn = room.game.map.spawns[0], used = new Set();
@@ -87,11 +90,12 @@ test('a dev teleport moves any active player to open ground, is recorded, and sh
       }
       assert.fail('no open ground near the spawn');
     };
-    const guest = h.joined(room, {}); guest.send({ type: 'dev', action: 'teleport', id: bot.id, x: spawn.x + 60, y: spawn.y });
+    guest.send({ type: 'dev', action: 'teleport', id: bot.id, x: spawn.x + 60, y: spawn.y });
     assert.ok(!guest.messages.some(m => m.type === 'teleport'), 'a session the policy does not admit cannot teleport');
     const first = land(bot.id);
     assert.deepEqual(first.answer, { type: 'teleport', ok: true, id: bot.id });
-    assert.ok(Math.hypot(bot.x - first.x, bot.y - first.y) < 20, 'the warp precedes the solve');
+    const warped = stateOf(room.game).players.find(p => p.id === bot.id);
+    assert.ok(Math.hypot(warped.x - first.x, warped.y - first.y) < 20, 'the warp precedes the solve');
     assert.deepEqual(writer.frames.at(-1).commands.find(c => c.kind === 'teleport'),
       { type: 'observation', kind: 'teleport', body: `actor:${bot.id}`, x: Math.round(first.x + 0.4), y: first.y });
     land(id);

@@ -7,6 +7,7 @@ import { canOccupy } from '../shared/movement.ts';
 import { SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
 import { MAX_INPUT_LEAD_TICKS } from '../shared/simulation/input.ts';
 import { reusedMap } from './helpers/room-harness.js';
+import { stateOf } from '../shared/simulation/tick.ts';
 
 await mkdir('test-results', { recursive: true });
 const { server, base, browser, close } = await serveDevWithBrowser({ roomThreads: false });
@@ -42,8 +43,9 @@ try {
   const stepped = await page.evaluate(() => ({ ...window.arenaDebug(), hud: document.getElementById('live-hud').hidden }));
   assert.equal(stepped.vision, null); assert.equal(stepped.hud, true);
   // Following someone else in their sight: the stepped-out player is just another actor to them.
-  const body = room.game.players.find(p => p.id === subject);
-  const far = room.game.players.filter(p => p.bot && p.status === 'active').sort((a, b) => Math.hypot(b.x - body.x, b.y - body.y) - Math.hypot(a.x - body.x, a.y - body.y))[0];
+  // Input bookkeeping is the receive boundary's, on the game's player; where a body is and its status are the match's.
+  const body = room.game.players.find(p => p.id === subject), bodyAt = stateOf(room.game).players.find(p => p.id === subject);
+  const far = stateOf(room.game).players.filter(p => p.bot && p.status === 'active').sort((a, b) => Math.hypot(b.x - bodyAt.x, b.y - bodyAt.y) - Math.hypot(a.x - bodyAt.x, a.y - bodyAt.y))[0];
   await page.locator('#dev-focus').selectOption(far.id);
   await page.waitForFunction(({ far, subject }) => window.arenaDebug().viewer === far && window.arenaDebug().vision
     && window.arenaDebug().actors.find(a => a.id === subject)?.visible === false, { far: far.id, subject });
@@ -213,7 +215,7 @@ try {
   });
   const countRgb = (counts, rgb) => counts.find(([k]) => k === rgb.join(','))?.[1] ?? 0;
   // Live maps cover occupied cells in regional lighting washes (42.43), so match the lit ground color.
-  const subj = room.game.players.find(p => p.id === subject);
+  const subj = stateOf(room.game).players.find(p => p.id === subject);
   const district = (room.game.map.appearance?.lighting?.fields ?? [])
     .find(f => f.id?.startsWith('district-') && subj.x >= f.bounds.x && subj.x <= f.bounds.x + f.bounds.w && subj.y >= f.bounds.y && subj.y <= f.bounds.y + f.bounds.h);
   const wash = district
@@ -245,13 +247,13 @@ try {
   await dev.locator('#dev-palette').selectOption('signature');
   // T sends the followed player to the open ground under the cursor (#247).
   const view = await dev.evaluate(() => { const box = document.querySelector('#game canvas').getBoundingClientRect(); return { ...window.arenaDebug(), left: box.left, top: box.top }; });
-  const before = room.game.players.find(p => p.id === subject);
+  const subjectAt = () => stateOf(room.game).players.find(p => p.id === subject), before = subjectAt();
   const spot = [[300, 0], [-300, 0], [0, 250], [0, -250], [250, 200], [-250, -200]].map(([dx, dy]) => ({ x: Math.round(before.x + dx), y: Math.round(before.y + dy) }))
     .find(point => canOccupy(room.game.map, point.x, point.y, 12));
   assert.ok(spot, 'there is open ground near the subject');
   await dev.mouse.move(view.left + (spot.x - view.camera.x) * view.camera.zoom, view.top + (spot.y - view.camera.y) * view.camera.zoom);
   await dev.keyboard.press('KeyT');
-  await until(() => Math.hypot(before.x - spot.x, before.y - spot.y) < 3, () => `the subject was teleported to ${JSON.stringify(spot)}: at ${before.x},${before.y}`);
+  await until(() => { const at = subjectAt(); return Math.hypot(at.x - spot.x, at.y - spot.y) < 3; }, () => `the subject was teleported to ${JSON.stringify(spot)}: at ${subjectAt().x},${subjectAt().y}`);
   await dev.waitForFunction(() => document.getElementById('toast').textContent.endsWith('moved'));
   await dev.keyboard.press('Escape');
   await dev.waitForFunction(() => window.arenaDebug().follow === null);
@@ -340,10 +342,10 @@ try {
   // must hide the death dialog, and stepping back must restore it.
   const currentRoom = server.rooms.get(await page.evaluate(() => window.arenaDebug().room));
   const currentMe = await page.evaluate(() => window.arenaDebug().me);
-  const victim = currentRoom.game.players.find(p => p.id === currentMe.id);
+  const victim = () => stateOf(currentRoom.game).players.find(p => p.id === currentMe.id);
   const attacker = currentRoom.match.join('dev-view-attacker', 'gladiator', 'warden', 'Outcome witness');
   assert.ok(attacker);
-  const { map, players, content } = currentRoom.game;
+  const { map, content } = currentRoom.game, { players } = stateOf(currentRoom.game);
   const radii = content.actorPhysics.geometry;
   const ambush = map.chargers.flatMap(at => [[42, 0], [-42, 0], [0, 42], [0, -42]].map(([x, y]) => ({ at, from: { x: at.x + x, y: at.y + y } })))
     .find(({ at, from }) => canOccupy(map, at.x, at.y, radii.contestant.bodyRadius)
@@ -351,15 +353,15 @@ try {
       && players.every(p => p.status !== 'active' || Math.hypot(p.x - at.x, p.y - at.y) > 110));
   assert.ok(ambush, 'an empty charger has space for the combat witness');
   const { at, from } = ambush;
-  assert.ok(currentRoom.match.teleport(victim.id, at.x, at.y));
+  assert.ok(currentRoom.match.teleport(currentMe.id, at.x, at.y));
   assert.ok(currentRoom.match.teleport(attacker.id, from.x, from.y));
-  await until(() => Math.hypot(victim.x - at.x, victim.y - at.y) < 1, () => 'the combat witness warps in');
-  for (let seq = 1; seq <= 8 && victim.status === 'active'; seq++) {
+  await until(() => Math.hypot(victim().x - at.x, victim().y - at.y) < 1, () => 'the combat witness warps in');
+  for (let seq = 1; seq <= 8 && victim().status === 'active'; seq++) {
     const before = currentRoom.match.tick;
     assert.ok(currentRoom.match.acceptInput(attacker.id, { seq, attack: true, skill: seq === 1, aim: Math.atan2(at.y - from.y, at.x - from.x) }));
-    await until(() => victim.status === 'eliminated' || currentRoom.match.tick >= before + 14, () => 'the combat witness advances');
+    await until(() => victim().status === 'eliminated' || currentRoom.match.tick >= before + 14, () => 'the combat witness advances');
   }
-  assert.equal(victim.status, 'eliminated');
+  assert.equal(victim().status, 'eliminated');
   await page.waitForFunction(() => !document.getElementById('outcome').hidden && window.arenaDebug().view === 'outcome');
   assert.equal(await page.locator('#outcome-label').textContent(), 'CONTESTANT ELIMINATED');
   assert.equal(await page.locator('#outcome-title').textContent(), 'End of the line.');

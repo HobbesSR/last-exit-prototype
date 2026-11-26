@@ -1,0 +1,264 @@
+{
+ "base": "6b040a5b",
+ "command": "node tests/bench-stages.mjs --size=12x6 --ticks=1500 --seed=4217",
+ "runs": [
+  {
+   "run": 1,
+   "side": "base",
+   "tickMean": 1.8224798000000033,
+   "tickP50": 1.6862999999975727,
+   "tickP99": 4.237800000002608,
+   "stages": {
+    "sim.playerView": 0.13051179999995535,
+    "sim.tick.memory": 0.03572259999999369,
+    "loop.broadcast": 0.24187513333329116,
+    "loop.record": 0.15204320000000612,
+    "loop.encode": 0.027794266666655555,
+    "loop.serialize": 0.04811713333331257,
+    "untimed": 1.4230286666666871
+   },
+   "contention": {
+    "wallMs": 27750.784200000002,
+    "selfCpuMs": 17392,
+    "otherBusyShare": 0.0981,
+    "contended": false,
+    "threshold": 0.25
+   },
+   "meta": {
+    "seed": 4217,
+    "content": "content-12",
+    "size": "12x6",
+    "rooms": 1,
+    "clients": 1,
+    "spectators": 0,
+    "recording": true,
+    "ticks": 1500,
+    "node": "v24.15.0",
+    "items": [
+     232
+    ],
+    "obstacles": [
+     3355
+    ],
+    "tilesMs": [
+     754.8448999999982
+    ]
+   }
+  },
+  {
+   "run": 2,
+   "side": "change",
+   "tickMean": 1.7921160666666414,
+   "tickP50": 1.6568999999999505,
+   "tickP99": 4.245000000002619,
+   "stages": {
+    "sim.playerView": 0.13029413333334622,
+    "sim.tick.memory": 0.05068473333334744,
+    "loop.broadcast": 0.24233026666666288,
+    "loop.record": 0.1494687333332998,
+    "loop.encode": 0.031086800000011863,
+    "loop.serialize": 0.04749020000001716,
+    "untimed": 1.3951504666666843
+   },
+   "contention": {
+    "wallMs": 27252.7639,
+    "selfCpuMs": 17813,
+    "otherBusyShare": 0.0823,
+    "contended": false,
+    "threshold": 0.25
+   },
+   "meta": {
+    "seed": 4217,
+    "content": "content-12",
+    "size": "12x6",
+    "rooms": 1,
+    "clients": 1,
+    "spectators": 0,
+    "recording": true,
+    "ticks": 1500,
+    "node": "v24.15.0",
+    "items": [
+     232
+    ],
+    "obstacles": [
+     3355
+    ],
+    "tilesMs": [
+     730.8927000000003
+    ]
+   }
+  },
+  {
+   "run": 3,
+   "side": "change",
+   "tickMean": 1.7429290666666397,
+   "tickP50": 1.648300000000745,
+   "tickP99": 3.1322000000000116,
+   "stages": {
+    "sim.playerView": 0.12831759999998274,
+    "sim.tick.memory": 0.05071900000003249,
+    "loop.broadcast": 0.23868199999998616,
+    "loop.record": 0.1472157333333174,
+    "loop.encode": 0.030098400000057153,
+    "loop.serialize": 0.045061933333313695,
+    "untimed": 1.3515930000000262
+   },
+   "contention": {
+    "wallMs": 28093.2312,
+    "selfCpuMs": 18250,
+    "otherBusyShare": 0.0742,
+    "contended": false,
+    "threshold": 0.25
+   },
+   "meta": {
+    "seed": 4217,
+    "content": "content-12",
+    "size": "12x6",
+    "rooms": 1,
+    "clients": 1,
+    "spectators": 0,
+    "recording": true,
+    "ticks": 1500,
+    "node": "v24.15.0",
+    "items": [
+     232
+    ],
+    "obstacles": [
+     3355
+    ],
+    "tilesMs": [
+     711.7203000000009
+    ]
+   }
+  },
+  {
+   "run": 4,
+   "side": "base",
+   "tickMean": 1.7708212666666283,
+   "tickP50": 1.6700999999993655,
+   "tickP99": 3.092800000002171,
+   "stages": {
+    "sim.playerView": 0.125904600000015,
+    "sim.tick.memory": 0.03407933333332645,
+    "loop.broadcast": 0.23115113333334739,
+    "loop.record": 0.14840733333333264,
+    "loop.encode": 0.02674533333327296,
+    "loop.serialize": 0.04500200000001738,
+    "untimed": 1.3860126666665806
+   },
+   "contention": {
+    "wallMs": 27613.1825,
+    "selfCpuMs": 17890,
+    "otherBusyShare": 0.0688,
+    "contended": false,
+    "threshold": 0.25
+   },
+   "meta": {
+    "seed": 4217,
+    "content": "content-12",
+    "size": "12x6",
+    "rooms": 1,
+    "clients": 1,
+    "spectators": 0,
+    "recording": true,
+    "ticks": 1500,
+    "node": "v24.15.0",
+    "items": [
+     232
+    ],
+    "obstacles": [
+     3355
+    ],
+    "tilesMs": [
+     722.4328999999998
+    ]
+   }
+  },
+  {
+   "run": 5,
+   "side": "base",
+   "tickMean": 1.8572254666666073,
+   "tickP50": 1.718700000001263,
+   "tickP99": 4.259699999998702,
+   "stages": {
+    "sim.playerView": 0.13871120000007794,
+    "sim.tick.memory": 0.03585180000002826,
+    "loop.broadcast": 0.2518767999999691,
+    "loop.record": 0.15112833333333886,
+    "loop.encode": 0.028275933333312422,
+    "loop.serialize": 0.04991086666670162,
+    "untimed": 1.448248333333293
+   },
+   "contention": {
+    "wallMs": 27402.4738,
+    "selfCpuMs": 16547,
+    "otherBusyShare": 0.0984,
+    "contended": false,
+    "threshold": 0.25
+   },
+   "meta": {
+    "seed": 4217,
+    "content": "content-12",
+    "size": "12x6",
+    "rooms": 1,
+    "clients": 1,
+    "spectators": 0,
+    "recording": true,
+    "ticks": 1500,
+    "node": "v24.15.0",
+    "items": [
+     232
+    ],
+    "obstacles": [
+     3355
+    ],
+    "tilesMs": [
+     733.2539000000006
+    ]
+   }
+  },
+  {
+   "run": 6,
+   "side": "change",
+   "tickMean": 1.817265333333345,
+   "tickP50": 1.6726999999991676,
+   "tickP99": 4.143400000000838,
+   "stages": {
+    "sim.playerView": 0.1361125999999943,
+    "sim.tick.memory": 0.05139180000000973,
+    "loop.broadcast": 0.2484654666666247,
+    "loop.record": 0.15122273333339764,
+    "loop.encode": 0.03086046666662878,
+    "loop.serialize": 0.04754286666674064,
+    "untimed": 1.4116881333333537
+   },
+   "contention": {
+    "wallMs": 28110.485,
+    "selfCpuMs": 16969,
+    "otherBusyShare": 0.0819,
+    "contended": false,
+    "threshold": 0.25
+   },
+   "meta": {
+    "seed": 4217,
+    "content": "content-12",
+    "size": "12x6",
+    "rooms": 1,
+    "clients": 1,
+    "spectators": 0,
+    "recording": true,
+    "ticks": 1500,
+    "node": "v24.15.0",
+    "items": [
+     232
+    ],
+    "obstacles": [
+     3355
+    ],
+    "tilesMs": [
+     734.3225999999995
+    ]
+   }
+  }
+ ]
+}

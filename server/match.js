@@ -32,17 +32,19 @@ const connectionPlayer = (game, id) => {
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 export const BOT_PLANNER_VERSION = 1;
 
-// Who holds which place, over any game's roster: the match's own, or a lobby's before its map exists.
-function seatsOf(game, reconcile = () => {}) {
+// Who holds which place, over any game's roster: the match's own, or a lobby's before its map exists. `places` gives each
+// place's controller and status: the game's players until the match starts, then the frame store's records, which follow
+// the core's completed ticks and show a seat change at once (docs/27.2 "Frames").
+function seatsOf(game, reconcile = () => {}, places = () => game.players) {
   const capacity = role => role === 'gladiator' ? game.content.roster.gladiators.length : game.content.roster.contestants.length;
   // A place is open while a bot holds it, for a joining player to take over.
-  const openPlaces = role => game.players.filter(p => p.bot && p.status === 'active' && p.role === role).length;
+  const openPlaces = role => places().filter(p => p.bot && p.status === 'active' && p.role === role).length;
   const seats = {
     /** Whether this match's content offers a kit, rather than whatever the process happens to ship. */
     hasKit: kit => Object.hasOwn(game.content.kits, kit),
     /** How many of a role a match holds, counted from the roster rather than repeated as a number. */
     capacity,
-    roster: () => game.players.filter(p => !p.bot).map(identity),
+    roster: () => places().filter(p => !p.bot).map(identity),
     seatMetadata: frame => seatMetadata(frame ?? game),
     player: id => identity(connectionPlayer(game, id)),
     openPlaces,
@@ -50,7 +52,7 @@ function seatsOf(game, reconcile = () => {}) {
       const open = role => openPlaces(role) > 0;
       if (['contestant', 'gladiator'].includes(preference) && open(preference)) return preference;
       const roles = ['contestant', 'gladiator'].filter(open);
-      const share = role => game.players.filter(p => p.role === role && !p.bot).length / capacity(role);
+      const held = places(), share = role => held.filter(p => p.role === role && !p.bot).length / capacity(role);
       return roles.sort((a, b) => share(a) - share(b))[0];
     },
     join(id, role, kit, name) { const player = joinGame(game, id, role, kit, name); reconcile(); return identity(player); },
@@ -129,12 +131,14 @@ export async function createMatch(seed, size, map, content = defaultContent(), {
 function matchOf(game, payloads, wire, navigation, setupItems) {
   // Outward IDs for live payload items; recordings keep internal IDs (26).
   const outward = items => { const mapped = wireItemRecords(items, wire); if (mapped !== items) shareItemPublication(items, mapped); return mapped; };
-  const seats = seatsOf(game, () => synchronizePhysics(game));
   let live, spent = [], botWords = new Float64Array(), discontinuities = [], disposedFrame;
+  // After the start the game holds the roster and the receive boundary's state, never the match's (docs/27.2 "Test API").
+  const places = () => disposedFrame?.players ?? live?.frames.players() ?? game.players;
+  const seats = seatsOf(game, () => synchronizePhysics(game), places);
   const started = () => {
     if (disposedFrame) throw new Error('match disposed');
     if (!live) {
-      live = createTickSession(game, wire, navigation.pointer, { mirror: true });
+      live = createTickSession(game, wire, navigation.pointer);
       navigation.release();
     }
     return live;
@@ -146,7 +150,6 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     const slot = playerSlot(game, id), ids = live.match.ids;
     const previous = ids.playerOfActor.get(ids.actorAtSlot[slot]);
     ids.bindPlayer(slot, id);
-    live.mirror.relabel(previous, id);
     live.frames.relabel(previous, id);
     return p;
   };
@@ -294,8 +297,8 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     end({ strand = false } = {}) {
       live?.frames.end({ strand });
       game.phase = 'finished';
-      if (strand) for (const p of game.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded';
+      if (strand && !live) for (const p of game.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded';
     },
-    result: () => ({ ticks: game.tick, escaped: game.players.filter(p => p.status === 'escaped').length })
+    result: () => ({ ticks: game.tick, escaped: places().filter(p => p.status === 'escaped').length })
   };
 }
