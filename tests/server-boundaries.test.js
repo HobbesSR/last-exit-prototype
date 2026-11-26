@@ -126,3 +126,9 @@ test('every wire message and HTTP payload sent or handled in server/ or public/ 
     assert.ok(httpBuilders.includes(arg), `server/http-api.js calls .json(${arg}...) without a checked HTTP response builder`);
   }
 });
+
+test('every module under shared/ is TypeScript, the only kind the browser asset route serves (#1351)', () => {
+  const plain = readdirSync('shared', { recursive: true }).map(String)
+    .filter(f => /\.m?js$/.test(f) && !f.split(path.sep).includes('node_modules'));
+  assert.deepEqual(plain, [], 'serveSharedModules (server/shared-assets.js) answers only .ts under /shared');
+});

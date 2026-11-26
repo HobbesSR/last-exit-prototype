@@ -1,18 +1,27 @@
 import { portalGraphOf } from './portal-graph.ts';
 import { CLIP_SCALE } from '../shape-construction.ts';
+import type { CollisionMap } from '../types.ts';
+import type { freeTilesFor } from './knowledge.ts';
+
+type NavigationLayer = ReturnType<typeof freeTilesFor>;
+export interface PackRuntimeNavigationOptions {
+  compact?: boolean;
+  includeGraph?: boolean;
+  graphSections?: readonly Uint8Array[] | null | undefined;
+}
 
 const DIRECTORY_HEADER_WORDS = 2;
 const SECTION_WORDS = 2;
 const GRAPH_SECTION_COUNT = 5;
-const sectionEntry = section => DIRECTORY_HEADER_WORDS + section * SECTION_WORDS;
+const sectionEntry = (section: number): number => DIRECTORY_HEADER_WORDS + section * SECTION_WORDS;
 
 /** Borrow the five graph sections of a validated primary package, or null for a graphless package. */
-export function runtimePortalGraphSections(bytes) {
+export function runtimePortalGraphSections(bytes: Uint8Array): Uint8Array[] | null {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const readWord = word => view.getUint32(word * Uint32Array.BYTES_PER_ELEMENT, true);
+  const readWord = (word: number): number => view.getUint32(word * Uint32Array.BYTES_PER_ELEMENT, true);
   // Both versions use the same graph flag, geometry, rows, owner grid, adjacency and stands.
   if (!view.getUint32(readWord(sectionEntry(0)), true)) return null;
-  const sections = [];
+  const sections: Uint8Array[] = [];
   for (let section = 1; section <= GRAPH_SECTION_COUNT; section++) {
     const entry = sectionEntry(section);
     const offset = readWord(entry);
@@ -23,21 +32,23 @@ export function runtimePortalGraphSections(bytes) {
 
 // The directory describes 8-byte-aligned sections. Version 2 stores points as unsigned
 // offsets from the discovery-tile origin in units of the Clipper grid.
-export function packRuntimeNavigation(map, layers, { compact = false, includeGraph = true, graphSections } = {}) {
+export function packRuntimeNavigation(map: CollisionMap, layers: readonly NavigationLayer[],
+  { compact = false, includeGraph = true, graphSections }: PackRuntimeNavigationOptions = {}): Uint8Array {
   if (layers.length !== 2 && !(compact && layers.length === 1)) throw new RangeError('Invalid navigation layers');
-  const gateSlots = new Map(map.gates.map(({ id }, slot) => [id, slot]));
+  const gateSlots = new Map<string, number>(map.gates.map(({ id }, slot) => [id, slot]));
   if (includeGraph && graphSections != null && graphSections.length !== GRAPH_SECTION_COUNT) {
     throw new RangeError('Invalid navigation graph sections');
   }
   const graph = includeGraph && graphSections === undefined ? portalGraphOf(map) : undefined;
   const hasGraph = includeGraph && (graphSections != null || !!graph);
   const Points = compact ? Uint16Array : Float64Array;
-  const sections = [Uint32Array.of(+hasGraph, layers.length)];
+  // A number describes a section to fill directly after allocating the final buffer.
+  const sections: (ArrayBufferView | number)[] = [Uint32Array.of(+hasGraph, layers.length)];
   if (hasGraph && graphSections != null) {
     sections.push(...graphSections);
   } else if (graph) {
-    const geometry = [graph.cellSize], rows = [graph.cols, graph.rows, graph.regions.length, graph.portals.length];
-    const adjacency = [], stands = [];
+    const geometry: number[] = [graph.cellSize], rows = [graph.cols, graph.rows, graph.regions.length, graph.portals.length];
+    const adjacency: number[] = [], stands: number[] = [];
     for (const region of graph.regions) {
       const { x, y, w, h } = region.box;
       geometry.push(x, y, w, h);
@@ -61,7 +72,6 @@ export function packRuntimeNavigation(map, layers, { compact = false, includeGra
       sets += tile.gateSets.length;
       for (const set of tile.gateSets) members += set.length;
     }
-    // A number describes a section to fill directly after allocating the final buffer.
     sections.push(16, 8, tiles.length * 10 * 4, tiles.length * 8 * 8,
       floats * Points.BYTES_PER_ELEMENT, ints * 4, sets * 2 * 4, members * 4);
   }
@@ -78,19 +88,20 @@ export function packRuntimeNavigation(map, layers, { compact = false, includeGra
   const packed = new Uint8Array(bytes);
   packed.set(new Uint8Array(directory.buffer));
   for (let i = 0; i < layerStart; i++) {
-    const section = sections[i];
-    packed.set(new Uint8Array(section.buffer, section.byteOffset, section.byteLength), directory[sectionEntry(i)]);
+    const section = sections[i] as ArrayBufferView;
+    packed.set(new Uint8Array(section.buffer, section.byteOffset, section.byteLength), directory[sectionEntry(i)]!);
   }
-  const view = (i, Type) => {
+  type Typed = Float64Array | Uint32Array | Int32Array | Uint16Array;
+  const view = <T extends Typed>(i: number, Type: { new (buffer: ArrayBufferLike, offset: number, length: number): T; BYTES_PER_ELEMENT: number }): T => {
     const entry = sectionEntry(i);
-    return new Type(packed.buffer, directory[entry], directory[entry + 1] / Type.BYTES_PER_ELEMENT);
+    return new Type(packed.buffer, directory[entry]!, directory[entry + 1]! / Type.BYTES_PER_ELEMENT);
   };
   for (const [layerIndex, { clearance, size, cols, tiles }] of layers.entries()) {
     const s = layerStart + layerIndex * 8;
     view(s, Float64Array).set([clearance, size]);
     view(s + 1, Uint32Array).set([cols, tiles.length]);
     const rows = view(s + 2, Uint32Array), geometry = view(s + 3, Float64Array);
-    const floats = view(s + 4, Points), ints = view(s + 5, Int32Array);
+    const floats = view<Float64Array | Uint16Array>(s + 4, Points), ints = view(s + 5, Int32Array);
     const setRows = view(s + 6, Uint32Array), members = view(s + 7, Uint32Array);
     let floatAt = 0, intAt = 0, setAt = 0, memberAt = 0;
     for (const [i, tile] of tiles.entries()) {
@@ -104,7 +115,7 @@ export function packRuntimeNavigation(map, layers, { compact = false, includeGra
         for (let j = 0; j < tile.points.length; j++) {
           const origin = j % 2 ? box.y : box.x;
           const limit = j % 2 ? maxY : maxX;
-          const point = tile.points[j], offset = (point - origin) * CLIP_SCALE;
+          const point = tile.points[j]!, offset = (point - origin) * CLIP_SCALE;
           if (!Number.isInteger(offset) || offset < 0 || offset > 0xffff || offset > limit ||
               !Object.is(origin + offset / CLIP_SCALE, point)) {
             throw new RangeError('Runtime navigation point is outside the tile coordinate grid');
@@ -120,7 +131,7 @@ export function packRuntimeNavigation(map, layers, { compact = false, includeGra
         setRows.set([memberAt, set.length], setAt * 2); setAt++;
         for (const gate of set) {
           if (!gateSlots.has(gate)) throw new RangeError(`unknown gate ${gate}`);
-          members[memberAt++] = gateSlots.get(gate);
+          members[memberAt++] = gateSlots.get(gate)!;
         }
       }
     }

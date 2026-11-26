@@ -1,7 +1,7 @@
 import { discoveryGrid } from '../discovery.ts';
 import { navigationClearance } from '../map/navigation.ts';
 import { freeTilesFor } from './knowledge.ts';
-import { packRuntimeNavigation } from './runtime-map-write.js';
+import { packRuntimeNavigation } from './runtime-map-write.ts';
 import type { CoreExports } from '../core.ts';
 import type { CollisionMap, Role } from '../types.ts';
 

@@ -1,7 +1,7 @@
 import { initCore } from '../shared/core.ts';
 import { freeTilesFor } from '../shared/navigation/knowledge.ts';
 import { createRuntimeNavigation, uploadRuntimeNavigation } from '../shared/navigation/runtime-map.ts';
-import { runtimePortalGraphSections } from '../shared/navigation/runtime-map-write.js';
+import { runtimePortalGraphSections } from '../shared/navigation/runtime-map-write.ts';
 import { hasRuntimeNavigation, takeRuntimeNavigation } from './map-pack.js';
 import { packRuntimeNavigation } from './runtime-map-write.js';
 
