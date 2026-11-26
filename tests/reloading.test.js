@@ -150,6 +150,14 @@ test('the owner sees reserves and reload progress; other players and older conte
   const boxed = { ...frame, items: [...frame.items, { id, kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }] };
   const box = playerView(s, boxed, q.id).items.find(item => item.id === id);
   assert.equal(box.family, 'shell');
+  // So is the store's own snapshot edited in place: the snapshot is the caller's, and the rules project it (review 1135).
+  frame.items = [...frame.items, { id, kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }];
+  assert.equal(playerView(s, frame, q.id).items.find(item => item.id === id)?.family, 'shell', 'an item added in place is shown');
+  const shown = playerView(s, frame, q.id).items.find(item => item.id !== id);
+  if (shown) {
+    frame.items = frame.items.filter(item => item.id !== shown.id);
+    assert.ok(!playerView(s, frame, q.id).items.some(item => item.id === shown.id), 'an item removed in place is not');
+  }
   const plain = createGameRecord(17, arena(), content('content-7'));
   assert.equal(Object.hasOwn(snapshot(plain).players[0], 'reserves'), false);
 });

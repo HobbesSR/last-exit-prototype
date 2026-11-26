@@ -79,20 +79,15 @@ export interface ViewSource {
   /** The ground list `framedItems` may use the item grid of, besides a frame store's: the unstarted game's own. */
   ground?: readonly GroundItem[] | undefined;
 }
-/** A started game's projection: the core's for a player view of the current tick, and the rules' source for the rest. */
-export interface GameProjection {
-  project(frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds): Projected<object> | undefined;
-  source: ViewSource;
-}
-const projections = new WeakMap<Game, GameProjection>();
-/** A started game's session registers its projection (`createTickSession`). */
-export function registerProjection(s: Game, projection: GameProjection): void { projections.set(s, projection); }
+const sources = new WeakMap<Game, ViewSource>();
+/** A started game's session registers its rules' source: its seats and the core's knowledge (`createTickSession`). */
+export function registerViewSource(s: Game, source: ViewSource): void { sources.set(s, source); }
 /**
  * The rules' source for a game a test or tool holds: its session's once started (the seats through `MatchIds`, knowledge
  * from the core), else its players as arranged.
  */
 export function viewSourceOf(s: Game): ViewSource {
-  return projections.get(s)?.source ?? {
+  return sources.get(s) ?? {
     slotOf: id => playerSlot(s, id),
     knowledge: {
       discovered: slot => s.players[slot]?.discovery?.discovered ?? null,
@@ -110,11 +105,12 @@ export function projectView(source: ViewSource, frame: Snapshot, id: PlayerId | 
   try { return buildPlayerView(source, frame, id, wire); } finally { stop('sim.playerView'); }
 }
 /**
- * A view for a game a test or tool holds, as a room projects it: a started game's player view of its current tick from the
- * core's decision, anything else by the rules (`viewSourceOf`).
+ * A view of a snapshot a test or tool holds, by the TypeScript rules (`viewSourceOf`): a started game's with the core's
+ * knowledge. The snapshot is the caller's to edit, so the core never decides it (review 1135); the view the core decides of
+ * the store's current frame, as a room projects it, is `currentView` (`tick.ts`).
  */
 export function playerView(s: Game, frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds = wireIds()) {
-  return projections.get(s)?.project(frame, id, wire) ?? projectView(viewSourceOf(s), frame, id, wire);
+  return projectView(viewSourceOf(s), frame, id, wire);
 }
 /** A frame player with its roster place, as `hydrateFrame` gives it. */
 export type FramePlayer = Player & { playerIdx: PlayerIdx };

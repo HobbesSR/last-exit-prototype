@@ -8,7 +8,7 @@ import { PHYSICS_VERSION } from './simulation/physics-runtime.ts';
 import { stepGame } from './simulation/tick.ts';
 export { createGame, synchronizePhysics } from './simulation/game.ts';
 export { enqueuePhysicsImpulse, enqueuePhysicsAttachment, PHYSICS_VERSION } from './simulation/physics-runtime.ts';
-export { disposePhysics, snapshot, stateOf } from './simulation/tick.ts';
+export { currentView, disposePhysics, snapshot, stateOf } from './simulation/tick.ts';
 
 /**
  * Advance a match one tick. Only a physics game steps: `createGameRecord` builds the record a game

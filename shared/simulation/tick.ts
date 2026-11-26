@@ -1,13 +1,14 @@
 import { TickProjection } from './tick-projection.ts';
 import { start, stop } from '../profiler.ts';
-import type { Game, GameEvent } from '../types.ts';
+import type { Game, GameEvent, PlayerId } from '../types.ts';
 import { TickBoundary } from './tick-boundary.ts';
 import { TickFrames } from './tick-frame.ts';
 import type { FrameRecords } from './tick-frame.ts';
 import { createTickMatch } from './tick-match.ts';
 import { stepTick } from './tick-step.ts';
 import { disposePhysics as disposeSetup } from './physics-runtime.ts';
-import { registerProjection, snapshot as setupSnapshot, type ViewSource } from './visibility.ts';
+import { projectView, registerViewSource, snapshot as setupSnapshot, viewSourceOf, type ViewSource } from './visibility.ts';
+import { wireIds } from './wire-ids.ts';
 import type { WireIds } from './wire-ids.ts';
 
 /**
@@ -25,7 +26,7 @@ export function createTickSession(game: Game, wire?: WireIds, navigation?: numbe
     // The core decides what each player viewer may receive; the room assembles from the frames (27.2, #1357).
     const projection = new TickProjection(game, match, frames);
     const view: ViewSource = { knowledge: projection, slotOf: id => { const word = ids.actorOfPlayer.get(id); return word === undefined ? undefined : ids.slotOfActor.get(word); } };
-    registerProjection(game, { project: (frame, id, keyed) => projection.project(frame, id, keyed), source: view });
+    registerViewSource(game, view);
     return { match, boundary: new TickBoundary(game, match, wire), frames, view, projection };
   } catch (error) { match.dispose(); throw error; }
 }
@@ -70,6 +71,18 @@ export function stepGame(s: Game) {
   const session = startGame(s);
   start('sim.step');
   try { return stepTick({ s, ...session }); } finally { stop('sim.step'); }
+}
+
+/**
+ * One viewer's view of a game's current frame as a room projects it (docs/27.2 "The core's projection"): for a started game
+ * the frame store's own frame, decided by the core for a seated player and by the rules for anyone else; for an unstarted
+ * game the rules' view of its setup. The frame is made here, so no caller can edit what the core decides (review 1135).
+ */
+export function currentView(s: Game, id: PlayerId | null | undefined, wire: WireIds = wireIds()) {
+  const session = sessions.get(s);
+  if (!session) return projectView(viewSourceOf(s), setupSnapshot(s), id, wire);
+  const frame = session.frames.frame();
+  return session.projection.project(frame, id, wire) ?? projectView(session.view, frame, id, wire);
 }
 
 export function snapshot(s: Game) {
