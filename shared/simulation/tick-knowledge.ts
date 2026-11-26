@@ -9,8 +9,8 @@ import type { DiscoveryMemory, Game, HeardCue, Player } from '../types.ts';
 
 // What each player knows and hears, written onto the `Game` players for `playerView` (docs/27.2 "Node adapter (3d.2)"):
 // a contestant's discovery memory and every player's heard cues, read from the match after each completed tick. It is the
-// one part of the mirror that projection still reads, until the core projects each viewer itself (#1343). Every started
-// game keeps it; the record applier (`tick-mirror.ts`) runs only for a room (#1345).
+// one part of the `Game` that projection still reads, until #1343 moves it to a knowledge cache beside the frame store.
+// Every started game keeps it.
 
 export const heardOf = (cue: Cue): HeardCue => ({ x: cue.at[0], y: cue.at[1], tick: cue.tick, until: cue.until });
 

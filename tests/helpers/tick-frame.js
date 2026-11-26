@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import { emptyMemory, heardOf, writeMemory } from '../../shared/simulation/tick-knowledge.ts';
 
-// Checks on the new tick's frames (docs/27.2 "Frames (3d.3)"), shared by tests/tick-adapter.test.js and its slow whole-match test.
+// Checks on the new tick's frames (docs/27.2 "Frames (3d.3)") and the knowledge written beside them, shared by
+// tests/tick-adapter.test.js and its slow whole-match test.
 
 /**
  * Hold a frame on the new path to the match's snapshot: one body per pose, owned by what the pose names, at the core's whole
@@ -37,4 +39,18 @@ export function checkRecords(frames, snap, tick) {
       players: records.players.map((p, slot) => { if (posed.has(words[slot])) return p; const { x, y, ...rest } = p; return rest; }) };
   };
   assert.deepEqual(comparable(frames.records()), comparable(frames.recordsOf(snap)), `tick ${tick}: records`);
+}
+
+/**
+ * Hold what the knowledge writer keeps on each `Game` player (`tick-knowledge.ts`), refreshed only for the contestants a
+ * tick's discovery names, to the core's whole memory and cues as of its last completed tick. `remembers` limits which
+ * contestants' memory is decoded: decoding every memory every tick dominates a whole match's check.
+ */
+export function checkKnowledge(s, match, ctx, tick, remembers = () => true) {
+  for (const p of s.players) {
+    assert.deepEqual(p.heard ?? [], match.heard(p.id).map(heardOf), `tick ${tick}: ${p.id} hears`);
+    if (!remembers(p)) continue;
+    const memory = p.role === 'contestant' && ctx.discovery ? match.memory(p.id) : null;
+    assert.deepEqual(p.discovery ?? null, memory ? writeMemory(ctx, emptyMemory(ctx), memory) : null, `tick ${tick}: ${p.id} remembers`);
+  }
 }

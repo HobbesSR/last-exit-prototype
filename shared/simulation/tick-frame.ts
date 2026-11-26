@@ -18,7 +18,7 @@ import type { BodyId, Effect, Game, GameEvent, GameEventPayload, GateIdx, GateSt
 // The new tick's frames (docs/27.2 "Frames"), built from the core's output: the `Snapshot` the recording writer stores and
 // `playerView` projects. The store follows the match's completed ticks (`TickMatch.follow`) and keeps the records it last
 // received, so the frame of a tick is the previous one with that tick's change list applied (27.2 "Output (3c)"). It does
-// not read the `Game` mirror (#1284). From the game it reads only what the core does not hold:
+// not read the `Game`'s simulation fields (#1284). From the game it reads only what the core does not hold:
 // - at the start, the content's constants, the traps' static fields, the order of the map's loot, and where an actor
 //   without a body stands;
 // - each frame, the roster's identity (name, role, kit, seat) and the receive boundary's per-player state (`lastSeq`,
