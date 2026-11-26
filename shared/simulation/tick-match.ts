@@ -389,6 +389,7 @@ interface MatchExports {
   match_acknowledged(game: number, actor: number): number;
   match_admit(game: number): number;
   match_stand(game: number, actor: number, x: number, y: number): void;
+  match_arrange_effect(game: number, kind: number, x: number, y: number, radius: number, expiresAt: number): number;
 }
 type MatchCore = CoreExports & MatchExports;
 
@@ -506,6 +507,10 @@ export class TickMatch {
     const pointer = core.match_admit(game) >>> 0;
     if (pointer === 0) throw new Error('tick-match: the core refused the admission request');
     return this.#read(pointer, decodeAdmissions);
+  }
+  /** An effect arranged before the start, drawn until `expiresAt`; in the frame's order, so effect indices agree. */
+  arrangeEffect(kind: number, x: number, y: number, radius: number, expiresAt: Tick): void {
+    if (!this.#core.match_arrange_effect(this.#live(), kind, x, y, radius, expiresAt)) throw new RangeError('tick-match: the core refused an arranged effect');
   }
   /** Where an actor without a body stands at the start, as the frames take it from the game. */
   stand(word: number, x: number, y: number): void { this.#core.match_stand(this.#live(), word, x, y); }

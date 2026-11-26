@@ -1706,6 +1706,24 @@ pub unsafe extern "C" fn match_heard(
     }
 }
 
+/// An effect a scenario arranged before the start, in the frame's order: 1 when taken, 0 when
+/// refused. The caller makes these once after `match_new`, before the first step.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_arrange_effect(
+    game: *mut tick::codec::LiveMatch,
+    kind: f64,
+    x: f64,
+    y: f64,
+    radius: f64,
+    expires_at: f64,
+) -> u32 {
+    // SAFETY: the caller's contract.
+    unsafe { u32::from((*game).arrange_effect(kind, [x, y], radius, expires_at)) }
+}
+
 /// Where an actor stands when it has no body at the start, taken only when none is known. The
 /// caller makes it once after `match_new`.
 ///

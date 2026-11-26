@@ -90,6 +90,19 @@ impl Presentation {
         }
     }
 
+    /// An effect a scenario arranged before the start, drawn until `expires_at` as a made one is.
+    /// The frame store hands each one over in its order, so the effects' indices stay aligned
+    /// with the frame's (review 1132).
+    pub fn arrange(&mut self, kind: EffectKind, at: Point, radius: f64, expires_at: Tick) {
+        self.effects.push(Effect {
+            event: u32::MAX,
+            kind,
+            at,
+            radius,
+            expires_at,
+        });
+    }
+
     /// Where an actor stands when it has no body at the start, if nothing is known yet.
     pub fn stand(&mut self, actor: ActorId, at: Point) {
         self.at.entry(actor).or_insert(at);
@@ -196,5 +209,20 @@ impl Presentation {
 impl EffectKind {
     pub fn code(self) -> u32 {
         self as u32
+    }
+
+    pub fn from_code(code: u32) -> Option<Self> {
+        [
+            Self::Slash,
+            Self::Shock,
+            Self::Scan,
+            Self::Upgrade,
+            Self::Loot,
+            Self::Rail,
+            Self::Charge,
+            Self::Grapple,
+        ]
+        .get(code as usize)
+        .copied()
     }
 }

@@ -151,12 +151,14 @@ export interface Cast {
 }
 
 /**
- * Age the stage's effects by one tick, then present T's facts on it: their events, and the effects the core made of them
- * (`made`, by event index), each taking the next serial in fact order. Returns whether the match finished. `escaped` gives
- * `pod_powered` with the slots left after that escape; `eliminated` takes its source from T's `killCredited`.
+ * Present T's facts on the stage: their events, and the effects the core made of them (`made`, by event index), each taking
+ * the next serial in fact order. An effect's `life` is the core's expiry less the stage's tick, so the frame draws it exactly
+ * while the core admits it (one deadline, review 1131); `expiry` holds each stage effect's. Returns whether the match
+ * finished. `escaped` gives `pod_powered` with the slots left after that escape; `eliminated` takes its source from T's
+ * `killCredited`.
  */
-export function present(stage: Stage, facts: readonly Fact[], made: readonly MadeEffect[], cast: Cast): boolean {
-  for (const e of stage.effects) e.life--;
+export function present(stage: Stage, facts: readonly Fact[], made: readonly MadeEffect[], cast: Cast, expiry: WeakMap<object, Tick>): boolean {
+  for (const e of stage.effects) e.life = remaining(expiry.get(e)!, stage.tick);
   stage.effects = stage.effects.filter(e => e.life > 0);
   const credited = new Map<number, number>(), effects = new Map(made.map(e => [e.event, e] as const));
   let finished = false;
@@ -175,7 +177,12 @@ export function present(stage: Stage, facts: readonly Fact[], made: readonly Mad
       default: break;
     }
     const e = effects.get(index);
-    if (e) effect(stage, { x: e.at[0], y: e.at[1] }, e.kind, e.radius);
+    if (e) {
+      effect(stage, { x: e.at[0], y: e.at[1] }, e.kind, e.radius);
+      const record = stage.effects.at(-1)!;
+      expiry.set(record, e.expiresAt);
+      record.life = remaining(e.expiresAt, stage.tick);
+    }
   });
   return finished;
 }

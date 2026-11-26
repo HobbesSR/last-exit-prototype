@@ -244,7 +244,7 @@ export interface GateObservation { actor: number; gate: number; open: boolean; l
 export interface DiscoverySample { actor: number; eye: Point }
 export interface Discovery { gates: GateObservation[]; samples: DiscoverySample[] }
 /** An effect a tick's fact made, as the core presents it: the index of its event in T's events, and where it is drawn. */
-export interface MadeEffect { event: number; kind: EffectKind; at: Point; radius: number }
+export interface MadeEffect { event: number; kind: EffectKind; at: Point; radius: number; /** The first tick it is no longer drawn. */ expiresAt: Tick }
 export interface DecodedTick {
   tick: Tick; inbound: Inbound[]; changes: Changes; discontinuities: Discontinuity[]; discovery: Discovery;
 }
@@ -389,8 +389,8 @@ export const SAMPLE_STRIDE = 3;
 export const REMEMBERED_ITEM_STRIDE = 2 + ITEM_STRIDE;
 export const DOOR_MEMORY_STRIDE = 3;
 export const CUE_STRIDE = 4;
-/** Words per effect a live step made (`put_effects`): event index, kind code, `at`, radius. */
-export const EFFECT_STRIDE = 5;
+/** Words per effect a live step made (`put_effects`): event index, kind code, `at`, radius, expiry. */
+export const EFFECT_STRIDE = 6;
 /** The effects' kinds by code (`EffectKind` in `rust/core/src/tick/presentation.rs`). */
 export const EFFECT_KINDS = ['slash', 'shock', 'scan', 'upgrade', 'loot', 'rail', 'charge', 'grapple'] as const satisfies readonly EffectKind[];
 /** A body row's words before its vertices: the body (2) and `queue_add_body`'s row after its key. */
@@ -1040,7 +1040,7 @@ export function decodeStep(words: ArrayLike<number>): { completed: DecodedTick; 
   for (let i = 0; i < count; i++) {
     const event = r.u32(), code = r.u32(), kind = EFFECT_KINDS[code];
     if (kind === undefined) r.fail(`effect kind ${code}`);
-    effects.push({ event, kind: kind!, at: r.point(), radius: r.finite() });
+    effects.push({ event, kind: kind!, at: r.point(), radius: r.finite(), expiresAt: r.u32() });
   }
   if (!r.empty) r.fail('trailing words');
   return { completed: { tick, inbound, changes, discontinuities, discovery }, presented: { effects } };

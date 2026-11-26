@@ -105,7 +105,7 @@
 //! | Discovery sample | [`SAMPLE_STRIDE`] 3: actor, eye |
 //! | Discovery | a section of gate observations, a section of samples |
 //! | Completed tick | tick, inbound section, changes, discontinuities section, discovery. The solved paths stay in Rust |
-//! | Live step | a completed tick, then the effects it made (a section of [`EFFECT_STRIDE`] 5: event index, kind code, `at`, radius; `presentation.rs`) |
+//! | Live step | a completed tick, then the effects it made (a section of [`EFFECT_STRIDE`] 6: event index, kind code, `at`, radius, the first tick it is no longer drawn; `presentation.rs`) |
 //! | Admission | tick, viewer count, then per viewer: its actor word; sections (a count, then rows) of players (actor words), items (IDs), bodies (2 words each), tethers, flights, traps, projectiles (IDs) and effects (indices into the live effects); the count of its discovered cells, or -1 for none; a section of the cells from the caller's `held` on, in the order learned; its live cues, in the layout of Cue (`admission.rs`) |
 //! | Memory | presence word (0 for no memory), then `discovered`, `seen`, `surveyed` (sections of cell words), items (a section of [`REMEMBERED_ITEM_STRIDE`] 18: position, ground item row), gates (a section of [`DOOR_MEMORY_STRIDE`] 3: gate, open, locked), revision |
 //! | Cue | [`CUE_STRIDE`] 4: `at`, tick, until. Heard is a section of cues, oldest first |
@@ -1898,8 +1898,8 @@ pub fn put_completed(w: &mut Vec<f64>, tick: &CompletedTick) {
     put_discovery(w, &tick.discovery);
 }
 
-/// Words per effect a live step made: event index, kind code, `at`, radius.
-pub const EFFECT_STRIDE: usize = 5;
+/// Words per effect a live step made: event index, kind code, `at`, radius, expiry.
+pub const EFFECT_STRIDE: usize = 6;
 
 pub fn put_effects(w: &mut Vec<f64>, effects: &[super::presentation::Effect]) {
     w.size(effects.len());
@@ -1908,6 +1908,7 @@ pub fn put_effects(w: &mut Vec<f64>, effects: &[super::presentation::Effect]) {
         w.int(effect.kind.code());
         w.extend(effect.at);
         w.push(effect.radius);
+        w.int(effect.expires_at);
     }
 }
 
@@ -2613,6 +2614,26 @@ impl LiveMatch {
 
     /// Records where an actor stands when it has no body at the start. Nothing changes once a
     /// place is known.
+    /// An effect arranged before the start (`Presentation::arrange`). False for an unknown kind,
+    /// a non-finite place or radius, or an expiry that is not a tick.
+    pub fn arrange_effect(&mut self, kind: f64, at: Point, radius: f64, expires_at: f64) -> bool {
+        let kind = (kind >= 0.0 && kind.fract() == 0.0 && kind <= u32::MAX as f64)
+            .then(|| super::presentation::EffectKind::from_code(kind as u32))
+            .flatten();
+        let expiry =
+            (expires_at >= 0.0 && expires_at.fract() == 0.0 && expires_at <= Tick::MAX as f64)
+                .then_some(expires_at as Tick);
+        match (kind, expiry) {
+            (Some(kind), Some(expiry))
+                if at.iter().all(|v| v.is_finite()) && radius.is_finite() =>
+            {
+                self.presented.arrange(kind, at, radius, expiry);
+                true
+            }
+            _ => false,
+        }
+    }
+
     pub fn stand(&mut self, actor: f64, at: Point) {
         if let Some(actor) = word_actor(actor) {
             self.presented.stand(actor, at);

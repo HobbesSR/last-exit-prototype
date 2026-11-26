@@ -96,6 +96,8 @@ export class TickFrames {
    */
   readonly #seats = new Map<number, { tick: Tick; kind: 'join' | 'leave' }>();
   readonly #stage: Stage;
+  /** Each stage effect's expiry, the core's deadline: its `life` is this less the frame's tick. */
+  readonly #expiry = new WeakMap<object, Tick>();
   readonly #cast: Cast;
   /** Hooks and every dynamic body's whole pose (keyed `kind:id`) and lifetime. */
   readonly hooks = new Map<number, Hook>();
@@ -137,6 +139,8 @@ export class TickFrames {
     this.#hazardX = snap.state.hazardX ?? s.hazardX;
     this.#phase = s.phase;
     this.#stage = { tick: snap.tick, serial: s.serial, effects: structuredClone(s.effects), events: structuredClone(s.events) };
+    // An arranged effect is drawn for its `life` from the start, as the core is told (`TickProjection`): one deadline each.
+    for (const e of this.#stage.effects) this.#expiry.set(e, snap.tick + e.life);
     this.#cast = {
       participant: word => { const slot = ctx.ids.slotOfActor.get(word)!; return participantOf(slot, s.players[slot]!); },
     };
@@ -201,7 +205,7 @@ export class TickFrames {
       if (pose.body.kind === 'actor') this.#at.set(pose.body.id, pose.at);
     }
     this.#stage.tick = tick;
-    if (present(this.#stage, c.events.map(e => e.fact), presented.effects, this.#cast)) this.#phase = 'finished';
+    if (present(this.#stage, c.events.map(e => e.fact), presented.effects, this.#cast, this.#expiry)) this.#phase = 'finished';
   }
 
   /** A roster place's outward label changed: ground records name their dropper by label, so they follow it. */
