@@ -92,6 +92,7 @@ try {
   assert.deepEqual(chrome[2].tethers, trace[2].tethers);
   assert.deepEqual(trace[3].flight, []);
   assert.deepEqual(trace[3].tethers, []);
+  assert.deepEqual(chrome[3].tethers, []);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, browser: browser.version(), checks: [
     'Node/Chrome complete state equality', 'Chrome authorized flight playback', 'renderer coordinates', 'pending hit and next-tick tether', 'cancel removal' ] }));

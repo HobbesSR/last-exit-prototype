@@ -3,8 +3,9 @@
 // and a hazard area at every eleventh, with the gladiators' views lagging so phase 5 reads the rewind frames. It hashes,
 // every tick, the versioned digest projection (snapshot, stateOf(s).traps and stateOf(s).projectiles, plus the c0, g0
 // and spectator views).
-// Run --out in a pristine export of the base commit, then --compare on it from the change: equal hashes mean the change
-// preserved what the trace reaches. Usage: node tools/trap-continuity.mjs --out FILE | --compare FILE
+// Run --out with this script against a pristine export of the base revision (so both sides hash the same projection
+// version), then --compare against the changed revision: equal hashes mean the change preserved what the trace reaches.
+// Usage: node tools/trap-continuity.mjs --out FILE | --compare FILE
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { deserialize } from 'node:v8';
@@ -58,6 +59,11 @@ if (args.includes('--out')) {
   console.log(JSON.stringify(Object.fromEntries(Object.entries(result).map(([seed, r]) => [seed, { ticks: r.ticks, ...r.counts }]))));
 } else {
   const expected = JSON.parse(readFileSync(at('--compare'), 'utf8'));
+  for (const seed of Object.keys(expected)) {
+    if (expected[seed]?.projectionVersion !== PROJECTION_VERSION) {
+      throw new Error(`Incompatible baseline for seed ${seed}: projectionVersion ${expected[seed]?.projectionVersion} !== ${PROJECTION_VERSION}; recapture with this script`);
+    }
+  }
   // Chunk for chunk, and the same count, so a trace that ran longer or shorter differs too (review 987).
   const differ = Object.keys(expected).flatMap(seed => [
     ...expected[seed].chunks.filter((chunk, i) => chunk.hash !== result[seed]?.chunks[i]?.hash).map(chunk => `seed ${seed} by tick ${chunk.tick}`),
