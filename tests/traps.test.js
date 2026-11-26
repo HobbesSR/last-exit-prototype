@@ -1,10 +1,10 @@
 import { startGame } from '../shared/simulation/tick.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { disposePhysics, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { disposePhysics, setInput, stateOf, step, snapshot, playerView } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openField } from './helpers/arena.js';
-import { stagePhysics } from './helpers/scenario.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 
 // Traps on the shipped content and its engine (#920): a contestant beside one trap on open ground, a
 // gladiator far off, all played by the test. A second contestant stands far off too, so the match goes on
@@ -24,13 +24,15 @@ async function fixture(kind, { extra = {}, cover = false } = {}) {
 test('motion mine ignores stationary players and damages either role when triggered once', async () => {
   const { s, p, g, trap } = await fixture('mine');
   try {
+    // The trap's placement is the start's; whether it has gone off is the core's.
+    const spent = () => stateOf(s).traps[0].spent, life = q => now(s, q).hp + now(s, q).shield;
     g.x = trap.x + 30; g.y = trap.y;
-    step(s); assert.equal(trap.spent, false);
-    const hp = { p: p.hp + p.shield, g: g.hp + g.shield };
+    step(s); assert.equal(spent(), false);
+    const hp = { p: life(p), g: life(g) };
     setInput(s, p.id, { seq: 1, x: 1 }); step(s);
-    assert.equal(trap.spent, true);
-    assert.ok(p.hp + p.shield < hp.p, 'the contestant is hurt'); assert.ok(g.hp + g.shield < hp.g, 'so is the gladiator');
-    const after = p.hp; step(s); assert.equal(p.hp, after, 'a spent mine does nothing more');
+    assert.equal(spent(), true);
+    assert.ok(life(p) < hp.p, 'the contestant is hurt'); assert.ok(life(g) < hp.g, 'so is the gladiator');
+    const after = now(s, p).hp; step(s); assert.equal(now(s, p).hp, after, 'a spent mine does nothing more');
   } finally { disposePhysics(s); }
 });
 
@@ -54,21 +56,22 @@ test('a flame trap exposes warning and firing states in committed frames', async
     for (let i = 0; i < 4; i++) step(s);
     trap = snapshot(s).traps[0];
     assert.deepEqual([trap.warning, trap.firing], [false, true]);
-    assert.ok(p.hp + p.shield < 100, 'the firing cone damaged the contestant');
+    assert.ok(now(s, p).hp + now(s, p).shield < 100, 'the firing cone damaged the contestant');
   } finally { disposePhysics(s); }
 });
 
 test('spiders grapple either role, release targets beyond the leash, and keep target IDs private', async () => {
   const { s, p, g, trap } = await fixture('spider');
   try {
-    step(s); assert.ok(p.stun > 0, 'grappled'); assert.ok(p.hp < 100);
+    step(s); assert.ok(now(s, p).stun > 0, 'grappled'); assert.ok(now(s, p).hp < 100);
     const view = playerView(s, snapshot(s), p.id); assert.equal(Object.hasOwn(view.traps[0], 'targetId'), false);
-    assert.ok(startGame(s).boundary.teleport(p.id, [trap.homeX - 500, p.y]));
-    step(s); assert.equal(trap.targetId, null);
-    assert.ok(Math.hypot(trap.x - trap.homeX, trap.y - trap.homeY) <= 360);
+    assert.ok(startGame(s).boundary.teleport(p.id, [trap.homeX - 500, now(s, p).y]));
+    step(s); assert.equal(stateOf(s).traps[0].targetId, null);
+    const crawled = stateOf(s).traps[0];
+    assert.ok(Math.hypot(crawled.x - trap.homeX, crawled.y - trap.homeY) <= 360);
     assert.ok(startGame(s).boundary.teleport(g.id, [trap.homeX + 50, trap.homeY]));
-    const before = g.hp;
+    const before = now(s, g).hp;
     for (let i = 0; i <= s.content.traps.spider.cooldown; i++) step(s);
-    assert.ok(g.stun > 0); assert.ok(g.hp < before);
+    assert.ok(now(s, g).stun > 0); assert.ok(now(s, g).hp < before);
   } finally { disposePhysics(s); }
 });

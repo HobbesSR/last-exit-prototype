@@ -11,6 +11,7 @@ import { teleport } from '../shared/simulation/dev.ts';
 import { atan2 } from '../shared/math.ts';
 import { openArea } from './helpers/arena.js';
 import { identifyItems } from './helpers/item-identity.js';
+import { now } from './helpers/scenario.js';
 import { createWaiting, enterWaiting, leaveWaiting, waitingView } from '../shared/simulation/waiting.ts';
 import { waitingYard } from '../shared/waiting-yard.ts';
 import { createMatch } from '../server/match.js';
@@ -146,7 +147,7 @@ async function stagedScene(observe) {
     setInput(s, g.id, { seq: g.lastSeq + 1, skill: true, aim: atan2(a.y - g.y, a.x - g.x) });
     step(s); step(s);
     const frame = snapshot(s);
-    assert.ok(a.reload && frame.projectiles.length && frame.hookFlights?.length, 'the scene stages all three');
+    assert.ok(now(s, a).reload && frame.projectiles.length && frame.hookFlights?.length, 'the scene stages all three');
     observe(s, frame);
   } finally { disposePhysics(s); }
 }

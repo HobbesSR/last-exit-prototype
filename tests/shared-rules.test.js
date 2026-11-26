@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { disposePhysics, step, setInput } from '../shared/simulation.ts';
+import { disposePhysics, snapshot, stateOf, step, setInput } from '../shared/simulation.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { nearbyGate } from '../shared/gate-query.ts';
@@ -10,7 +10,7 @@ import { setDoor } from '../shared/simulation/doors.ts';
 import { sightOf } from '../shared/simulation/sight-runtime.ts';
 import { GATE_REACH, RESPAWN_CLEARANCE_RADIUS, RESPAWN_HAZARD_MARGIN } from '../shared/simulation/rules.ts';
 import { openField } from './helpers/arena.js';
-import { stagePhysics } from './helpers/scenario.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 
 const gate = (id, x, y, extra = {}) => ({ id, x, y, w: 26, h: 54, open: false, locked: false, kind: 'door', ...extra });
 const area = (gates, obstacles = []) => ({ width: 4000, height: 4000, obstacles, gates });
@@ -63,27 +63,26 @@ const dispose = async (made, body) => { try { await body(made); } finally { disp
 test('the nearest gate takes the interaction even when it cannot be used', async () => {
   await dispose(await arena({ gates: [gate('locked', 3040, y, { locked: true }), gate('free', 3060, y)] }), ({ s, p }) => {
     press(s, p, { interact: true });
-    assert.deepEqual(s.map.gates.map(g => g.open), [false, false], 'a locked keyless door does not fall through to the next');
+    assert.deepEqual(stateOf(s).gates.map(g => g.open), [false, false], 'a locked keyless door does not fall through to the next');
   });
   await dispose(await arena({ gates: [gate('old', 3040, y, { kind: 'gate', locked: undefined })] }), ({ s, p }) => {
     press(s, p, { interact: true });
-    assert.equal(s.map.gates[0].open, false, 'a non-door gate without a lock flag is locked');
+    assert.equal(stateOf(s).gates[0].open, false, 'a non-door gate without a lock flag is locked');
   });
 });
 
+// The door state has two owners. The game's sight and its gate records (`doors.ts`) are the arrangement a match starts
+// from, and `setDoor` writes both; a started match keeps its own, which `stateOf` and the frame read (27.2 "Test API").
 test('the core keeps the doors\' state, and the gate records mirror it (#1214 stage 6a)', async () => {
   const unflagged = gate('old', 3040, y, { kind: 'gate' });
   delete unflagged.locked;
-  await dispose(await arena({ gates: [unflagged, gate('free', 3100, y)] }), ({ s, p }) => {
+  await dispose(await arena({ gates: [unflagged, gate('free', 3100, y)] }), ({ s }) => {
+    // The game before its first step: the rules that arrange it write the sight and the records together.
     const sight = sightOf(s), gates = s.map.gates;
     const core = () => gates.map((_, i) => sight.readGate(s.map, i));
     const mirror = () => gates.map(g => ({ open: g.open, locked: g.locked == null ? 0 : g.locked ? 1 : 2 }));
     assert.deepEqual(core(), mirror(), 'the core takes the records\' state when the game is made');
     assert.throws(() => { gates[1].open = true; }, TypeError, 'nothing but the change lists writes the mirror');
-    p.keys = 1; press(s, p, { interact: true });
-    assert.deepEqual(gates.map(g => g.open), [true, false]);
-    assert.deepEqual(core(), mirror(), 'an interaction reaches both');
-    assert.deepEqual(Object.keys(gates[0]).slice(-2), ['kind', 'locked'], 'an absent lock is added last, as the rule added it');
     setDoor(s, 1, { open: true, locked: true });
     assert.deepEqual(core(), mirror(), 'a between-tick command reaches both');
     assert.deepEqual([gates[1].open, gates[1].locked], [true, true]);
@@ -96,6 +95,23 @@ test('the core keeps the doors\' state, and the gate records mirror it (#1214 st
     assert.equal(sight.lineClear(s.map, west, east, gates[1].id), true, 'ignored, it does not');
     assert.deepEqual(core(), mirror(), 'and the core keeps it closed afterwards');
     assert.equal(sight.lineClear(s.map, west, east), false);
+  });
+});
+
+test('a started match keeps the doors\' state in the core, and the frame follows it (#1214 stage 6a)', async () => {
+  const unflagged = gate('old', 3040, y, { kind: 'gate' });
+  delete unflagged.locked;
+  await dispose(await arena({ gates: [unflagged, gate('free', 3100, y)] }), ({ s, p }) => {
+    // The game's records are the start's; what the match did is read through `stateOf` and the frame.
+    const records = s.map.gates.map(g => ({ open: g.open, locked: g.locked }));
+    const core = () => stateOf(s).gates.map(g => ({ open: g.open, locked: g.locked }));
+    const framed = () => snapshot(s).gates.map(g => ({ open: g.open, locked: g.locked }));
+    p.keys = 1; press(s, p, { interact: true });
+    assert.deepEqual(core().map(g => g.open), [true, false], 'an interaction reaches the core');
+    assert.deepEqual(framed(), core(), 'and the frame');
+    assert.deepEqual(s.map.gates.map(g => g.open), records.map(g => g.open), 'the records are the start\'s: the match does not write them');
+    assert.deepEqual(core()[0], { open: true, locked: false }, 'a key opens the gate that carried no lock flag, and the core holds its lock as a boolean');
+    assert.deepEqual(snapshot(s).gates.map(g => g.gateIdx), [0, 1], 'the frame names each gate by its slot');
   });
 });
 
@@ -113,7 +129,7 @@ test('a bot skips open gates; a locked gate near a rail station stops transit', 
     assert.deepEqual([p.x, p.y], [x, y], 'no fall through to the rail station');
     // The gates are part of the pinned map, so the player and a station pair move out of their reach instead.
     s.map.stations = [{ id: 'clear', x: 2400, y }, { id: 'far', x: 1800, y }];
-    Object.assign(p, { x: 2400, railCd: 0 }); step(s);
+    Object.assign(p, { x: 2400, railCd: 0 });
     interact(s, p);
     assert.deepEqual([p.x, p.y], [1800, y], 'which carries them once no gate is in reach');
   });
@@ -130,7 +146,7 @@ test('closing a door is refused while an active body overlaps it, at each body r
         const gap = closes ? radius + 0.01 : radius - 0.01;
         Object.assign(other, { x: 3053 + gap, y, status: 'active' });
         press(s, p, { interact: true });
-        assert.equal(s.map.gates[0].open, !closes, `${role} at ${gap}`);
+        assert.equal(stateOf(s).gates[0].open, !closes, `${role} at ${gap}`);
       });
     }
   }
@@ -138,7 +154,7 @@ test('closing a door is refused while an active body overlaps it, at each body r
     const g = s.players.find(q => q.role === 'gladiator');
     Object.assign(g, { x: 3060, y, status: 'respawning', respawnAt: s.tick + 1000 });
     press(s, p, { interact: true });
-    assert.equal(s.map.gates[0].open, false, 'only active players block');
+    assert.equal(stateOf(s).gates[0].open, false, 'only active players block');
   });
 });
 
@@ -152,7 +168,7 @@ test('respawn needs the 25-unit clearance, not the gladiator body', async () => 
       assert.equal(canOccupy(s.map, station.x, station.y, RESPAWN_CLEARANCE_RADIUS), returns);
       Object.assign(g, { status: 'respawning', respawnAt: s.tick + 1 });
       step(s);
-      assert.equal(g.status, returns ? 'active' : 'respawning', `gap ${gap}`);
+      assert.equal(now(s, g).status, returns ? 'active' : 'respawning', `gap ${gap}`);
     });
   }
 });

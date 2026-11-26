@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { isDeepStrictEqual } from 'node:util';
 import { phaseThree } from '../shared/simulation/phase-three.ts';
 import { Writable } from 'node:stream';
-import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step as stepRaw, snapshot as snapshotRaw, synchronizePhysics } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, stateOf, step as stepRaw, snapshot as snapshotRaw, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectInstanceEquipment as collectRaw } from '../shared/equipment.ts';
 import { allocateItemId, commitItemAllocation, forkItemAllocation, itemIdForLabel, itemLabel, registerItemLabel } from '../shared/item-instances.ts';
@@ -20,6 +20,7 @@ import { createReplayTimeline } from '../public/replay-timeline.js';
 import { openArea } from './helpers/arena.js';
 import { readArchive } from './helpers/recordings.js';
 import { identifyItems, registeredItemId as itemId } from './helpers/item-identity.js';
+import { now } from './helpers/scenario.js';
 
 // No generated map, bots or hazards: only the world/inventory transition is under test.
 const arena = () => ({ width: 600, height: 400,
@@ -224,14 +225,15 @@ test('E swap is atomic at capacity and a successful swap cannot repick its own d
     synchronizePhysics(s); // Admit the staged pickup before a split-stack swap commits its outgoing copies.
     const before = structuredClone({ inventory: p.inventory, items: s.items, itemSerial: s.itemSerial });
     setInput(s, p.id, { seq: 1, interact: true }); step(s);
+    const after = stateOf(s), me = now(s, p);
     if (capacity === 1) {
-      assert.deepEqual({ inventory: p.inventory, items: s.items, itemSerial: s.itemSerial }, before);
+      assert.deepEqual({ inventory: me.inventory, items: after.items, itemSerial: snapshot(s).itemSerial }, before);
     } else {
-      assert.equal(p.inventory[0].instanceId, itemId(s, 'incoming'));
-      assert.equal(p.inventory[0].charge, 73);
-      assert.equal(s.items.length, 2);
-      assert.ok(s.items.some(i => i.id === itemId(s, 'owned-0')));
-      assert.ok(s.items.every(i => i.kind === 'med' && i.count === 1 && i.droppedBy === p.id && i.pickupAfter > s.tick));
+      assert.equal(me.inventory[0].instanceId, itemId(s, 'incoming'));
+      assert.equal(me.inventory[0].charge, 73);
+      assert.equal(after.items.length, 2);
+      assert.ok(after.items.some(i => i.id === itemId(s, 'owned-0')));
+      assert.ok(after.items.every(i => i.kind === 'med' && i.count === 1 && i.droppedBy === p.id && i.pickupAfter > after.tick));
     }
   }
 });
@@ -383,8 +385,9 @@ test('identical traces yield identical identities, counters, quantities and snap
     s.items.push(ground('med', 'med', { count: 2 }), ground('cell', 'cell', { charge: 41, x: 300 }));
     step(s);
     setInput(s, p.id, { seq: 1, slot: 0, drop: true }); step(s);
-    return { inventory: p.inventory, items: s.items, itemSerial: s.itemSerial,
-      rng: s.rng, serial: s.serial, frame: snapshot(s) };
+    // What the match did (docs/27.2 "Test API"); the record's rng and serial no longer follow it.
+    const frame = snapshot(s);
+    return { inventory: now(s, p).inventory, items: stateOf(s).items, itemSerial: frame.itemSerial, frame };
   }
   assert.deepEqual(await trace(), await trace());
 });
@@ -417,11 +420,11 @@ test('recording roundtrip and backward seeks retain exact item-instance frames',
   startGame(s); retain();
   step(s); retain();
   const byId = rows => rows.sort((a, b) => a[0] - b[0]);
-  assert.deepEqual(byId(p.inventory.filter(Boolean).map(i => [i.instanceId, i.lineageId, i.quality])),
+  assert.deepEqual(byId(now(s, p).inventory.filter(Boolean).map(i => [i.instanceId, i.lineageId, i.quality])),
     byId([['med-root', 'med-root', undefined], ['rifle-root', 'rifle-root', 2], ['cell-root', 'cell-root', undefined]].map(([id, lineage, quality]) => [itemId(s, id), itemId(s, lineage), quality])));
   const press = input => { assert.ok(setInput(s, p.id, { seq: p.lastSeq + 1, ...input })); step(s); retain(); };
   for (let slot = 0; slot < 3; slot++) {
-    if (slot !== p.selectedSlot) press({ slot });
+    if (slot !== now(s, p).selectedSlot) press({ slot });
     press({ drop: true });
   }
   const finalItems = frames.at(-1).items;

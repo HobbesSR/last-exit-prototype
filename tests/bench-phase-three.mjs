@@ -64,7 +64,9 @@ try {
       });
     }
     const game = await createGame(seed, map, content);
-    const advance = () => { step(game); snapshot(game); };
+    // The workload is counted from each tick's frame, which both sides build, rather than from the game (#1345).
+    let frame;
+    const advance = () => { step(game); frame = snapshot(game); };
     profiler.enable(true);
     for (let i = 0; i < 300; i++) { advance(); profiler.frame(); }
     profiler.reset(); profiler.enable(true);
@@ -72,8 +74,8 @@ try {
     let activeSum = 0, groundSum = 0, samples = 0;
     for (let i = 0; i < 600; i++) {
       advance(); profiler.frame();
-      activeSum += game.players.filter(p => p.role === 'contestant' && p.status === 'active').length;
-      groundSum += game.items.length; samples++;
+      activeSum += frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length;
+      groundSum += frame.items.length; samples++;
     }
     const elapsedMs = performance.now() - started;
     const rows = profiler.report();

@@ -1,7 +1,7 @@
 import { renderedPlayerView as playerView } from './helpers/relational.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, disposePhysics, setInput, snapshot, step, synchronizePhysics,
+import { createGame, disposePhysics, setInput, snapshot, stateOf, step, synchronizePhysics,
   enqueuePhysicsImpulse } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
@@ -127,17 +127,42 @@ test('pickup and drop retain instance identity, quantity, charge, and physical p
     assert.equal(runtime.world.hasBody('item:cell-1'), true);
     const before = { ...s.items[0] };
     step(s);
-    const after = s.items[0];
+    const after = stateOf(s).items[0];
     assert.ok(Math.hypot(after.x - before.x, after.y - before.y) > 0);
     const frame = snapshot(s), body = frame.bodies.find(b => b.owner.kind === 'item' && b.owner.itemId === itemId(s, 'cell-1'));
     assert.equal(typeof body.id, 'number');
     assert.equal('x' in frame.items[0], false, 'only the body carries physical pose');
     assert.deepEqual({ x: after.x, y: after.y }, { x: body.x, y: body.y });
+  } finally { disposePhysics(s); }
+});
+
+// A unit test of the drop rule on the arranged record: it does not step (docs/27.2 "Test API").
+test('a dropped stack splits into single instances that keep its lineage', async () => {
+  const { s, p } = await game();
+  try {
     p.inventory[0] = carried('med-3', 'med', { count: 3, quality: 2 });
     identifyItems(s);
     assert.equal(dropInventorySlot(s, p, 0), true);
     assert.equal(s.items.filter(i => itemLabel(s, i.lineageId) === 'med-3').length, 3);
     assert.equal(s.items.filter(i => itemLabel(s, i.lineageId) === 'med-3').reduce((n, i) => n + i.count, 0), 3);
+  } finally { disposePhysics(s); }
+});
+
+test('stateOf hands out copies of the ground: editing a fresh drop changes no later read or frame (review 1105)', async () => {
+  const { s, p } = await game();
+  try {
+    p.inventory = [carried('rifle-a', 'weapon', { weaponType: 'rifle', ammo: 7 }), null, null, null, null, null];
+    identifyItems(s);
+    setInput(s, p.id, { seq: 1, drop: true }); step(s);
+    // Before any frame publishes it, the drop is the frame store's own record. The arena has no other loot.
+    const read = () => stateOf(s).items.find(i => i.kind === 'weapon');
+    const dropped = read(), kept = { ...dropped };
+    assert.equal(kept.ammo, 7);
+    Object.assign(dropped, { x: dropped.x + 100, ammo: 0 });
+    assert.deepEqual(read(), kept, 'a fresh read keeps the core record');
+    const framed = snapshot(s).items.find(i => i.kind === 'weapon');
+    assert.equal(framed.ammo, 7, 'the frame keeps the core record');
+    assert.ok(!('x' in framed) || framed.x === kept.x, 'the frame keeps its place');
   } finally { disposePhysics(s); }
 });
 

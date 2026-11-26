@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
-import { PHYSICS_VERSION, createGame, disposePhysics, step } from '../shared/simulation.ts';
+import { PHYSICS_VERSION, createGame, disposePhysics, stateOf, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 
 const map = { seed: 448, width: 1200, height: 800,
@@ -20,9 +20,10 @@ const expected = [];
 try {
   for (let tick = 0; tick < 360 && game.phase === 'live'; tick++) {
     step(game);
-    expected.push([game.tick, game.players[0].x, game.players[0].y, game.players[0].status, game.slots]);
+    const state = stateOf(game), p = state.players[0];
+    expected.push([state.tick, p.x, p.y, p.status, state.slots]);
   }
-  assert.equal(game.players[0].status, 'escaped', JSON.stringify(expected.at(-1)));
+  assert.equal(expected.at(-1)[3], 'escaped', JSON.stringify(expected.at(-1)));
   assert.ok(expected.some(frame => Math.abs(frame[2] - 400) > 20), 'autonomous bot detoured around the crate');
 } finally { disposePhysics(game); }
 const { server, base, browser } = await serveWithBrowser({ replayDir: 'test-results/physics-navigation-replays', devTools: 'all' });
@@ -43,12 +44,13 @@ try {
   await page.addScriptTag({ content: await readFile('node_modules/clipper-lib/clipper.js', 'utf8') });
   await page.addScriptTag({ content: await readFile('node_modules/delaunator/delaunator.min.js', 'utf8') });
   const actual = await page.evaluate(async ({ map, content }) => {
-    const { createGame, disposePhysics, step } = await import('/shared/simulation.ts');
+    const { createGame, disposePhysics, step, stateOf } = await import('/shared/simulation.ts');
     const game = await createGame(448, map, content), trace = [];
     try {
       for (let tick = 0; tick < 360 && game.phase === 'live'; tick++) {
         step(game);
-        trace.push([game.tick, game.players[0].x, game.players[0].y, game.players[0].status, game.slots]);
+        const state = stateOf(game), p = state.players[0];
+        trace.push([state.tick, p.x, p.y, p.status, state.slots]);
       }
       return { version: game.version, trace };
     } finally { disposePhysics(game); }

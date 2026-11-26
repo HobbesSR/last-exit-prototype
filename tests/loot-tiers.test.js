@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameRecord, createGame, disposePhysics, setInput, step as stepRaw, snapshot as snapshotRaw } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, setInput, stateOf, step as stepRaw, snapshot as snapshotRaw } from '../shared/simulation.ts';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { collectInstanceEquipment as collectRaw } from '../shared/equipment.ts';
 import { dropInventorySlot as dropRaw } from '../shared/simulation/loot.ts';
+import { now } from './helpers/scenario.js';
 import { generatedMap } from './helpers/room-harness.js';
 import { virtualZone, spatialMix, noveltyBand, qualityFromWeights, itemRoll, assignWeaponQualities, qualityDamage, STARTER_RESERVE } from '../shared/loot-tiers.ts';
 import { openArea } from './helpers/arena.js';
@@ -120,13 +121,14 @@ test('an authored quality is kept; quality scales damage only', async t => {
   assert.equal(s.items[0].quality, 4);
   // A pickup needs a tick that spends an input.
   setInput(s, p.id, { seq: 0 }); step(s);
-  const carried = p.inventory.find(Boolean);
+  const carried = now(s, p).inventory.find(Boolean);
   assert.deepEqual([carried.instanceId, carried.quality], [itemId(s, 'rifle-q4'), 4]);
   setInput(s, p.id, { seq: 1, attack: true, aim: 0 }); step(s);
   const rifle = s.content.weapons.rifle;
-  assert.equal(s.projectiles.length, rifle.spread.length);
-  assert.ok(s.projectiles.every(b => b.damage === rifle.damage * 1.24), `damage ${s.projectiles.map(b => b.damage)}`);
-  assert.equal(p.attackCd, rifle.cooldown);
+  const { projectiles } = stateOf(s);
+  assert.equal(projectiles.length, rifle.spread.length);
+  assert.ok(projectiles.every(b => b.damage === rifle.damage * 1.24), `damage ${projectiles.map(b => b.damage)}`);
+  assert.equal(now(s, p).attackCd, rifle.cooldown);
 });
 
 test('different qualities never merge or refill; quality survives drop and pickup', async t => {

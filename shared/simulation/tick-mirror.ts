@@ -1,54 +1,24 @@
-import { start as profileStart, stop as profileStop } from '../profiler.ts';
-import { attachDiscovery } from '../discovery.ts';
-import { ItemMemory, SeenCells } from './bot-memory.ts';
 import { writeDoor } from './doors.ts';
 import { addItemsFromCore, groundItem, removeItem, replaceItem } from './ground-items.ts';
 import { sightOf } from './sight-runtime.ts';
-import { acknowledge } from './tick-boundary.ts';
+import { TickKnowledge, emptyMemory, heardOf, writeMemory } from './tick-knowledge.ts';
 import { contextOf, countdowns, groundOf, participantOf, present, projectileOf, remaining, writeActor, writeTrap } from './tick-records.ts';
 import type { Cast, Context } from './tick-records.ts';
 import { bodyKey } from './tick-codec.ts';
-import type { TickBoundary } from './tick-boundary.ts';
-import type { Actor, ActorEntry, Cue, DecodedTick, Inbound, Memory, Point, PoseEntry, Snapshot, Tick, Trap as CoreTrap } from './tick-codec.ts';
+import type { Actor, ActorEntry, DecodedTick, Point, PoseEntry, Snapshot, Tick, Trap as CoreTrap } from './tick-codec.ts';
 import type { TickMatch } from './tick-match.ts';
 import type { DiscoveryMemory, Game, HeardCue, Player, PlayerId, Projectile, Trap, GroundItem } from '../types.ts';
 
 // The mirror applier of the new tick (docs/27.2 "Node adapter (3d.2)"): one function writes a completed tick's change list
-// onto `Game`, the mirror that in-process tools, tests and the room's roster read until #1284 removes it. Frames no longer
-// read it: they are built from the core's output (`tick-frame.ts`). `mirrorOf` maps a whole snapshot the same way, which
+// onto `Game`, the mirror that the room's roster reads until #1284 removes it. Frames no longer read it: they are built
+// from the core's output (`tick-frame.ts`), and in-process games, tests and tools do not run it (#1345): they read the
+// frame store's records (`stateOf`). What each player knows and hears is `tick-knowledge.ts`, which the mirror runs too. `mirrorOf` maps a whole snapshot the same way, which
 // is what a test holds the incrementally applied mirror equal to on every tick. The mapping itself is `tick-records.ts`.
 //
 // - **Countdowns.** Unchanged records are not resent, so the mirror recomputes them every tick from the deadlines it last
 //   received, for actors (the roster) and for the traps and projectiles still counting (the active set). A passed
 //   deadline reads as zero, so the mirror holds no past.
 // - **Identity.** `itemSerial` follows the largest item ID seen.
-
-const heardOf = (cue: Cue): HeardCue => ({ x: cue.at[0], y: cue.at[1], tick: cue.tick, until: cue.until });
-
-/** An empty memory in the bots' own structures (`bot-memory.ts`), which keep the frontier and the loot grid. */
-function emptyMemory(ctx: Context): DiscoveryMemory {
-  return { discovered: new Set(), seen: new SeenCells(ctx.grid.cols, ctx.grid.rows), surveyed: new Set(), items: new ItemMemory(),
-    gates: new Map(), revision: 0 };
-}
-
-/**
- * Write the core's memory into a contestant's. The revision counts only what plans read (cells discovered, surveyed
- * cells, doors), as `discover` counts it, so a sample that only sees cells or loot leaves it, and every sample is written.
- * Cells are only ever learned, so they are added; remembered items and doors
- * are set under their keys and a forgotten item deleted. Adding and setting keep what a bot met first first, as its ties
- * expect until #1215 (R11).
- */
-function writeMemory(ctx: Context, d: DiscoveryMemory, m: Memory): DiscoveryMemory {
-  for (const cell of m.discovered) d.discovered.add(cell);
-  for (const cell of m.seen) d.seen!.add(cell);
-  for (const cell of m.surveyed) d.surveyed!.add(cell);
-  const items = d.items!, kept = new Set(m.items.map(r => r.id));
-  for (const id of items.keys()) if (!kept.has(id)) items.delete(id);
-  for (const r of m.items) items.set(r.id as never, groundOf(ctx, r.id, r.item, r.at));
-  for (const g of m.gates) d.gates!.set(ctx.ids.gateIds[g.gate]!, { open: g.open, locked: g.locked });
-  d.revision = m.revision;
-  return d;
-}
 
 /** What the mirror holds, in one comparable shape: from the game (`viewOf`) or from a snapshot (`mirrorOf`). */
 export interface MirrorView {
@@ -79,6 +49,7 @@ export class TickMirror {
 
   readonly s: Game;
   readonly match: TickMatch;
+  readonly knowledge: TickKnowledge;
   readonly #cast: Cast;
 
   constructor(s: Game, match: TickMatch) {
@@ -92,6 +63,7 @@ export class TickMirror {
       blast: this.ctx.blast,
     };
     this.#load(match.snapshot());
+    this.knowledge = new TickKnowledge(s, match, this.ctx);
   }
 
   /** Make the game the snapshot's, whole: once, at the start. */
@@ -104,7 +76,6 @@ export class TickMirror {
       if (old) replaceItem(s, old, next, true); else addItemsFromCore(s, [next]);
     }
     snap.state.traps.forEach(e => this.#trap(e.id, e.trap, snap.tick));
-    for (const p of s.players) this.#memory(p, true);
   }
 
   #player(word: number): Player { return this.s.players[this.ctx.ids.slotOfActor.get(word)!]!; }
@@ -129,21 +100,9 @@ export class TickMirror {
     if (t.readyAt > tick) this.#counting.set(index, t.readyAt); else this.#counting.delete(index);
   }
   #serial(id: number): void { if (this.s.itemSerial === undefined || this.s.itemSerial <= id) this.s.itemSerial = id + 1; }
-  /** Refresh a contestant's memory from the match; `fresh` starts it over, as at the start, where the core's holds nothing yet. */
-  #memory(p: Player, fresh = false): void {
-    if (p.role !== 'contestant' || !this.ctx.discovery) return;
-    profileStart('sim.tick.memory');
-    try {
-      const memory = this.match.memory(p.id);
-      if (!memory) return;
-      if (fresh || !p.discovery) attachDiscovery(p, emptyMemory(this.ctx));
-      writeMemory(this.ctx, p.discovery!, memory);
-    } finally { profileStop('sim.tick.memory'); }
-  }
-
   /** Write one completed tick onto the mirror. */
   apply(t: DecodedTick): void {
-    const s = this.s, ctx = this.ctx, ids = ctx.ids, c = t.changes, tick = t.tick, at = poseMap(c.poses);
+    const s = this.s, ctx = this.ctx, c = t.changes, tick = t.tick, at = poseMap(c.poses);
     s.tick = tick;
     // Records, whole.
     for (const e of c.actors) this.#actor(e, tick);
@@ -191,17 +150,6 @@ export class TickMirror {
     for (const p of s.projectiles) p.life = remaining(this.#expires.get(p.id)!, tick);
     // Presentation, from the facts.
     if (present(s, c.events.map(e => e.fact), this.#cast)) s.phase = 'finished';
-    // What each player knows and hears.
-    const learned = new Set([...t.discovery.gates.map(g => g.actor), ...t.discovery.samples.map(x => x.actor)]);
-    for (const p of s.players) {
-      const word = ids.actorOfPlayer.get(p.id)!;
-      if (learned.has(word)) this.#memory(p);
-      const cues = this.match.heard(p.id);
-      if (cues.length || p.heard?.length) {
-        if (!p.heard) Object.defineProperty(p, 'heard', { value: [], writable: true, configurable: true, enumerable: false });
-        p.heard = cues.map(heardOf);
-      }
-    }
   }
 
 
@@ -260,17 +208,3 @@ function poseMap(poses: readonly PoseEntry[]): Map<string, Point> {
   return new Map(poses.map(p => [bodyKey(p.body), p.at] as const));
 }
 function byId(list: readonly Projectile[]): Map<number, Projectile> { return new Map(list.map(p => [p.id, p] as const)); }
-
-/**
- * Submit the player input due for T, then step the core and apply its completed tick to the mirror.
- * The core derives bot intent from the committed T−1 state. Returns null once the match is over.
- */
-export function stepMirror(mirror: TickMirror, boundary?: TickBoundary): DecodedTick | null {
-  const { s, match } = mirror;
-  if (s.phase !== 'live') return null;
-  const tick = s.tick + 1, rows: Inbound[] = boundary?.due(tick) ?? [];
-  if (rows.length && !match.submit(tick, rows).every(Boolean)) throw new Error(`tick-mirror: the match refused a command for ${tick}`);
-  const completed = match.step();
-  if (completed) { mirror.apply(completed); acknowledge(s, match); }
-  return completed;
-}

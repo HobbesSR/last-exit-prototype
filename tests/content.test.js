@@ -11,7 +11,7 @@ import { collectInstanceEquipment, WEAPONS } from '../shared/equipment.ts';
 import { KITS, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS } from '../shared/simulation/rules.ts';
 import { openField } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';
-import { stagePhysics } from './helpers/scenario.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 
 // On the shipped content and the room arena (#920). Cases that never step build the game without its physics
 // world; cases that step stage the engine on open ground.
@@ -140,7 +140,7 @@ test('the simulation reads the pinned content, not the shipped constants', async
       shooter.selectedSlot = shooter.inventory.findIndex(i => i?.kind === 'weapon');
       assert.ok(setInput(s, shooter.id, { seq: 1, attack: true, aim: 0 }));
       for (let i = 0; i < 6; i++) step(s);
-      return target.hp;
+      return now(s, target).hp;
     } finally { disposePhysics(s); }
   };
   const standard = await shoot(defaultContent());
@@ -264,7 +264,7 @@ test('trap balance is read from the match, not from the module it defaults in', 
       s.traps = [{ id: 'trap', kind: 'mine', x: victim.x + 40, y: victim.y, homeX: victim.x + 40, homeY: victim.y, heading: Math.PI, cooldown: 0, offset: 0 }];
       setInput(s, victim.id, { seq: 1, x: 1 });
       step(s);
-      return victim.hp;
+      return now(s, victim).hp;
     } finally { disposePhysics(s); }
   };
   const standard = await detonate(defaultContent());

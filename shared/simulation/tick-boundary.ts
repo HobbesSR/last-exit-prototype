@@ -94,14 +94,15 @@ export function rollMargin(p: Player): void {
 /**
  * What each connection has had spent by the last completed tick, on its player: the sequence the core acknowledged, how
  * many ticks an active player has gone without a new one, and the margin the tick reports. Bots have none. Run once per
- * completed tick, after the step.
+ * completed tick, after the step. `active` says whether a player is active as of that tick: the boundary's own
+ * (`TickBoundary.active`), or the mirror's status where a test steps the mirror without a boundary.
  */
-export function acknowledge(s: Game, match: TickMatch): void {
+export function acknowledge(s: Game, match: TickMatch, active: (p: Player) => boolean = p => p.status === 'active'): void {
   for (const p of s.players) {
     if (p.bot) continue;
     const sequence = match.acknowledged(p.id) ?? -1;
     if (sequence !== p.lastSeq) p.inputStalled = 0;
-    else if (p.status === 'active') p.inputStalled = (p.inputStalled ?? 0) + 1;
+    else if (active(p)) p.inputStalled = (p.inputStalled ?? 0) + 1;
     p.lastSeq = sequence;
     rollMargin(p);
   }
@@ -147,9 +148,9 @@ export function seatChanged(ids: MatchIds, p: Player, kind: 'join' | 'leave', ki
  * A dev teleport of an active player's body (24), to the rounded point as the old operation took it. The core refuses a
  * point the body could not stand on (`Match::teleport_clear`), warps it before T's solve otherwise, and marks the frame.
  */
-export function teleported(ids: MatchIds, p: Player, to: Point): Inbound | null {
+export function teleported(ids: MatchIds, p: Player, to: Point, active: boolean): Inbound | null {
   const actor = ids.actorOfPlayer.get(p.id);
-  if (actor === undefined || p.status !== 'active' || !finite(to[0]) || !finite(to[1])) return null;
+  if (actor === undefined || !active || !finite(to[0]) || !finite(to[1])) return null;
   return { type: 'observation', observation: { kind: 'teleport', body: { kind: 'actor', id: actor }, to: [Math.round(to[0]), Math.round(to[1])] } };
 }
 
@@ -183,7 +184,25 @@ export class TickBoundary {
   readonly match: TickMatch;
   /** The match's outward ID mapping (#1164), which a nominated item's ID arrives through. */
   readonly wire: WireIds;
-  constructor(s: Game, match: TickMatch, wire: WireIds = wireIds()) { this.s = s; this.match = match; this.wire = wire; }
+  /**
+   * The actors active as of the last completed tick, by actor word. The boundary follows the match for them, as the frame
+   * store does, so whether a player's input is due or a teleport admissible never reads the `Game` mirror (#1345).
+   */
+  readonly #active = new Set<number>();
+  constructor(s: Game, match: TickMatch, wire: WireIds = wireIds()) {
+    this.s = s; this.match = match; this.wire = wire;
+    for (const e of match.snapshot().state.actors) if (e.actor.presence === 'active') this.#active.add(e.word);
+    match.follow(t => {
+      for (const e of t.changes.actors) if (e.actor.presence === 'active') this.#active.add(e.word); else this.#active.delete(e.word);
+    });
+  }
+  /** Whether `p` is active as of the last completed tick. */
+  active(p: Player): boolean {
+    const word = this.match.ids.actorOfPlayer.get(p.id);
+    return word !== undefined && this.#active.has(word);
+  }
+  /** Acknowledge the last completed tick on each connection's player (`acknowledge`), with the boundary's presence. */
+  acknowledge(): void { acknowledge(this.s, this.match, p => this.active(p)); }
   #player(id: PlayerId): Player | undefined { return playerById(this.s, id); }
   #observe(rows: readonly Inbound[]): void {
     if (rows.length && !this.match.submit(this.s.tick + 1, rows).every(Boolean)) throw new Error('tick-boundary: the match refused an observation');
@@ -205,7 +224,7 @@ export class TickBoundary {
   due(tick: Tick): Inbound[] {
     const rows: Inbound[] = [];
     for (const p of this.s.players) {
-      if (p.bot || p.status !== 'active') continue;
+      if (p.bot || !this.active(p)) continue;
       const row = dueCommand(this.match.ids, p, tick, this.wire, this.s.content.transit === 'selectable');
       if (row) rows.push(row);
     }
@@ -225,7 +244,7 @@ export class TickBoundary {
     return row;
   }
   teleport(id: PlayerId, to: Point): Inbound | null {
-    const p = this.#player(id), row = p ? teleported(this.match.ids, p, to) : null;
+    const p = this.#player(id), row = p ? teleported(this.match.ids, p, to, this.active(p)) : null;
     if (row) this.#observe([row]);
     return row;
   }

@@ -1,4 +1,6 @@
-import { createGame, disposePhysics, setInput, step } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, snapshot, stateOf, step } from '../../shared/simulation.ts';
+import { framesOf } from '../../shared/simulation/tick.ts';
+import { attachSolidPropReader } from '../../shared/simulation/dynamic-navigation.ts';
 import { createDiscovery, discoveryGrid } from '../../shared/discovery.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
 import { openField } from './arena.js';
@@ -24,6 +26,31 @@ function cast(map, content, actors) {
 function settle(s, actors, players) {
   actors.forEach((a, i) => { players[i].bot = a.bot ?? true; if (a.knows) know(s, players[i], a.knows); });
   return { s, players };
+}
+
+/**
+ * `p`'s record as of the last completed tick (docs/27.2 "Test API"). A started game's players are the roster and the
+ * arrangement, not the match: read what the match did here, by roster place, and arrange mid-match through commands.
+ */
+export const now = (s, p) => stateOf(s).players[s.players.indexOf(p)];
+
+/**
+ * A view of `s` for a retained TypeScript rule (#1241) that reads a `Game` while the match runs, such as the JavaScript
+ * planner and dynamic navigation: a copy whose players and clock follow the match through `stateOf` after each `step`,
+ * and whose solid props are the frame's prop bodies. The rule reads `v`; the match is still `s`. It goes when those
+ * rules retire (#1346).
+ */
+export function tracked(s) {
+  const v = { ...s, players: s.players.map(p => ({ ...p })) };
+  attachSolidPropReader(v, () => snapshot(s).bodies.filter(b => b.owner.kind === 'prop')
+    .map(b => ({ spec: { shape: b.shape }, transform: b })));
+  const sync = () => {
+    if (!framesOf(s)) return;
+    const state = stateOf(s);
+    v.tick = state.tick;
+    v.players.forEach((q, i) => Object.assign(q, state.players[i]));
+  };
+  return { s, v, sync, step: () => { step(s); sync(); } };
 }
 
 /** A physics game on `map` with exactly `actors`, each a bot unless `bot: false`; the shipped content unless given. Dispose of it with `disposePhysics`. */
@@ -82,6 +109,6 @@ export async function gunfight(distance, { content, weapon = 'pistol', every = 2
   identifyItems(s);
   try {
     return run(s, { ticks, events: [{ every, until, act: s => setInput(s, shooter.id, { seq: s.tick + 1, attack: true, aim: 0 }) }],
-      done: () => Math.hypot(g.x - at.x, g.y - at.y) < 400 });
+      done: () => { const here = now(s, g); return Math.hypot(here.x - at.x, here.y - at.y) < 400; } });
   } finally { disposePhysics(s); }
 }
