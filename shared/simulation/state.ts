@@ -107,10 +107,14 @@ function attachSeat(player: Player, seat: number): void {
 export function makePlayer(id: PlayerId, name: string, role: Role, kit: Kit, index: number): Player {
   return { id, name, role, kit, bot: true, x: role === 'contestant' ? 1500 + index * 33 : WORLD_WIDTH - 1700 - index * 130, y: WORLD_HEIGHT / 2 + (role === 'contestant' ? (index % 3 - 1) * 25 : 0), hp: role === 'contestant' ? 100 : 360, maxHp: role === 'contestant' ? 100 : 360, shield: 0, keys: 0, weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0, input: {}, lastSeq: -1 };
 }
-export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: Kit = DEFAULT_KIT, name = 'You'): Player | null {
+/**
+ * A player takes over a bot's place of `role`. Before the start the game's players say which places are open. A started
+ * match's status is the core's, not the game's, so its caller passes the `slot` it chose from the match's records.
+ */
+export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: Kit = DEFAULT_KIT, name = 'You', slot?: number): Player | null {
   if (s.phase !== 'live') return null;
-  const p = s.players.find(p => p.bot && p.role === role && p.status === 'active');
-  if (!p) return null;
+  const p = slot === undefined ? s.players.find(p => p.bot && p.role === role && p.status === 'active') : s.players[slot];
+  if (!p || !p.bot || p.role !== role) return null;
   p.id = id; p.name = name.slice(0, MAX_PLAYER_NAME); p.bot = false;
   if (Object.hasOwn(s.content.kits, kit)) p.kit = kit;
   indexRoster(s.players, true);
