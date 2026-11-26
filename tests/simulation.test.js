@@ -7,7 +7,7 @@ import { startGame } from '../shared/simulation/tick.ts';
 import { moveBody } from '../shared/movement.ts';
 import { lineClear } from '../shared/sight.ts';
 import { initCoreSight } from '../shared/sight-core.ts';
-import { collectInstanceEquipment, carriedCell } from '../shared/equipment.ts';
+import { carriedCell } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { arena, openField } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';

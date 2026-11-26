@@ -5,13 +5,11 @@ import { createGame, disposePhysics, setInput, snapshot, stateOf, step, synchron
   enqueuePhysicsImpulse } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
-import { interact } from '../shared/simulation/interactions.ts';
-import { eliminate } from '../shared/simulation/lifecycle.ts';
 import { addItems, removeItem, unadmittedItems } from '../shared/simulation/ground-items.ts';
 import { synchronize } from '../shared/simulation/game.ts';
 import { openArea } from './helpers/arena.js';
 import { identifyItems, itemId, itemLabel } from './helpers/item-identity.js';
+import { now } from './helpers/scenario.js';
 
 const arena = () => ({ seed: 17, width: 800, height: 400,
   playableArea: openArea(800, 400, 100),
@@ -108,43 +106,47 @@ test('admission packs the items awaiting a body in chunks, and reaches one behin
 });
 
 test('pickup and drop retain instance identity, quantity, charge, and physical pose', async () => {
-  const { s, p, runtime } = await game();
+  // The rules are the core's (`rust/core/src/tick/tests/item_tests.rs`); this follows one cell through the started match.
+  const map = arena(); map.items.push(item('cell-1', 'cell', { charge: 73, quality: 4 }));
+  const { s, p } = await game(map);
   try {
-    s.items.push(item('cell-1', 'cell', { charge: 73, quality: 4 }));
-    identifyItems(s);
-    synchronizePhysics(s);
-    assert.equal(runtime.world.hasBody('item:cell-1'), true);
+    const cellBodies = frame => frame.bodies.filter(b => b.owner.kind === 'item' && b.owner.itemId === itemId(s, 'cell-1'));
     p.x = 300; p.y = 200;
-    automaticPickups(s, p, {});
-    assert.equal(runtime.world.hasBody('item:cell-1'), false);
-    assert.equal(itemLabel(s, p.inventory[0].instanceId), 'cell-1');
-    assert.equal(p.inventory[0].charge, 73);
-    assert.equal(p.inventory[0].quality, 4);
-    assert.equal(dropInventorySlot(s, p, 0), true);
-    assert.equal(p.inventory[0], null);
-    assert.equal(itemLabel(s, s.items[0].id), 'cell-1');
-    assert.equal(s.items[0].charge, 73);
-    assert.equal(runtime.world.hasBody('item:cell-1'), true);
-    const before = { ...s.items[0] };
+    setInput(s, p.id, { seq: 1 }); step(s);
+    assert.equal(stateOf(s).items.length, 0, 'the pickup took the whole record');
+    assert.equal(cellBodies(snapshot(s)).length, 0, 'and its body');
+    const carried = now(s, p).inventory[0];
+    assert.equal(itemLabel(s, carried.instanceId), 'cell-1');
+    assert.equal(carried.charge, 73);
+    assert.equal(carried.quality, 4);
+    setInput(s, p.id, { seq: 2, drop: true }); step(s);
+    assert.equal(now(s, p).inventory[0], null);
+    const dropped = stateOf(s).items[0];
+    assert.equal(itemLabel(s, dropped.id), 'cell-1');
+    assert.equal(dropped.charge, 73);
+    assert.equal(dropped.quality, 4);
+    assert.equal(cellBodies(snapshot(s)).length, 1, 'the drop has a body');
     step(s);
     const after = stateOf(s).items[0];
-    assert.ok(Math.hypot(after.x - before.x, after.y - before.y) > 0);
-    const frame = snapshot(s), body = frame.bodies.find(b => b.owner.kind === 'item' && b.owner.itemId === itemId(s, 'cell-1'));
+    assert.ok(Math.hypot(after.x - dropped.x, after.y - dropped.y) > 0, 'the dropped item moves');
+    const frame = snapshot(s), [body] = cellBodies(frame);
     assert.equal(typeof body.id, 'number');
     assert.equal('x' in frame.items[0], false, 'only the body carries physical pose');
     assert.deepEqual({ x: after.x, y: after.y }, { x: body.x, y: body.y });
   } finally { disposePhysics(s); }
 });
 
-// A unit test of the drop rule on the arranged record: it does not step (docs/27.2 "Test API").
+// A dropped stack leaves as single instances of one lineage, on the arranged inventory (docs/27.2 "Test API").
 test('a dropped stack splits into single instances that keep its lineage', async () => {
   const { s, p } = await game();
   try {
     p.inventory[0] = carried('med-3', 'med', { count: 3, quality: 2 });
     identifyItems(s);
-    assert.equal(dropInventorySlot(s, p, 0), true);
-    assert.equal(s.items.filter(i => itemLabel(s, i.lineageId) === 'med-3').length, 3);
-    assert.equal(s.items.filter(i => itemLabel(s, i.lineageId) === 'med-3').reduce((n, i) => n + i.count, 0), 3);
+    setInput(s, p.id, { seq: 1, drop: true }); step(s);
+    const pieces = stateOf(s).items.filter(i => itemLabel(s, i.lineageId) === 'med-3');
+    assert.equal(pieces.length, 3);
+    assert.ok(pieces.every(i => i.count === 1 && i.quality === 2));
+    assert.equal(new Set(pieces.map(i => i.id)).size, 3);
   } finally { disposePhysics(s); }
 });
 
@@ -170,66 +172,28 @@ test('a delayed view retains its captured item and body after the live item is c
   const map = arena(); map.items.push(item('delayed', 'cell', { charge: 41, x: 300, y: 200 }));
   const { s, p } = await game(map);
   try {
-    p.x = 300; p.y = 200;
-    synchronizePhysics(s);
-    const captured = snapshot(s);
-    assert.equal(s.items[0].id, itemId(s, 'delayed'), 'runtime ground carries the numeric item identity');
-    assert.ok(playerView(s, captured, p.id).bodies.some(body => body.owner.kind === 'item' && body.owner.itemId === itemId(s, 'delayed')));
-    automaticPickups(s, p, {});
-    const current = snapshot(s);
-    assert.equal(s.items.length, 0, 'the live item was consumed');
-    assert.ok(playerView(s, captured, p.id).items.some(record => record.id === itemId(s, 'delayed')), 'the captured item remains available to a delayed view');
-    assert.ok(playerView(s, captured, p.id).bodies.some(body => body.owner.kind === 'item' && body.owner.itemId === itemId(s, 'delayed')), 'the captured body remains associated');
-    assert.equal(playerView(s, current, p.id).items.some(record => record.id === itemId(s, 'delayed')), false);
-    assert.equal(playerView(s, current, p.id).bodies.some(body => body.owner.kind === 'item' && body.owner.itemId === itemId(s, 'delayed')), false);
+    const owns = (view, id) => view.bodies.some(body => body.owner.kind === 'item' && body.owner.itemId === id);
+    // Walk east until the pickup consumes it; the frame before that is the delayed view.
+    setInput(s, p.id, { seq: 1, x: 1 }); step(s);
+    let captured = snapshot(s);
+    for (let seq = 2; stateOf(s).items.length && seq < 200; seq++) {
+      captured = snapshot(s);
+      setInput(s, p.id, { seq, x: 1 }); step(s);
+    }
+    assert.equal(stateOf(s).items.length, 0, 'the live item was consumed');
+    const id = itemId(s, 'delayed'), current = snapshot(s);
+    assert.ok(playerView(s, captured, p.id).items.some(record => record.id === id), 'the captured item remains available to a delayed view');
+    assert.ok(owns(playerView(s, captured, p.id), id), 'the captured body remains associated');
+    assert.equal(playerView(s, current, p.id).items.some(record => record.id === id), false);
+    assert.equal(owns(playerView(s, current, p.id), id), false);
   } finally { disposePhysics(s); }
 });
 
-test('exhausted physical slots reject optional drops atomically but retain mandatory death loot', async () => {
-  const { s, p, runtime } = await game();
-  try {
-    fillDynamic(runtime);
-    assert.equal(runtime.world.canAddBodies(1), false);
-    p.inventory[0] = carried('charged', 'cell', { charge: s.content.cellChargeTicks, quality: 3 });
-    p.inventory[1] = carried('second', 'cell', { charge: 19, quality: 2 });
-    identifyItems(s);
-    const before = structuredClone({ inventory: p.inventory, items: s.items, itemSerial: s.itemSerial });
-    assert.equal(dropInventorySlot(s, p, 0), false);
-    assert.deepEqual({ inventory: p.inventory, items: s.items, itemSerial: s.itemSerial }, before);
-    eliminate(s, p, null);
-    const fallen = s.items.find(i => i.id === itemId(s, 'charged'));
-    assert.equal(fallen.charge, s.content.cellChargeTicks);
-    assert.equal(fallen.quality, 3);
-    assert.equal(s.items.length, 2);
-    assert.equal(Number(runtime.world.hasBody('item:charged')) + Number(runtime.world.hasBody('item:second')), 0,
-      'reserved roster capacity leaves overflow as logical loot');
-    assert.ok(p.inventory.every(i => i === null));
-  } finally { disposePhysics(s); }
-});
-
-test('full-inventory E swap uses the incoming body slot and removes a sleeping pickup with its joint', async () => {
-  // Keep the incoming pickup inside pickup reach (45) and clear of the actor's body + loot radius so admission succeeds.
-  const { s, p, runtime } = await game(arena(), content());
-  try {
-    for (let i = 0; i < 6; i++) p.inventory[i] = carried(`held-${i}`, 'cell', { charge: i + 1 });
-    s.items.push(item('incoming', 'cell', { x: p.x + 35, charge: 79 }));
-    identifyItems(s);
-    synchronizePhysics(s);
-    runtime.world.queueAddConstraint({ id: 'item-rope', a: 'item:incoming', b: 'actor:c0', maxDistance: 40 });
-    runtime.world.commitMutations();
-    for (let i = 0; i < 240 && !runtime.world.getTransform('item:incoming').sleeping; i++) runtime.world.step();
-    assert.equal(runtime.world.getTransform('item:incoming').sleeping, true);
-    fillDynamic(runtime);
-    assert.equal(runtime.world.canAddBodies(1), false);
-    interact(s, p);
-    assert.equal(itemLabel(s, p.inventory[0].instanceId), 'incoming');
-    assert.equal(p.inventory[0].charge, 79);
-    assert.equal(runtime.world.hasBody('item:incoming'), false);
-    assert.equal(runtime.world.counts().constraints, 0);
-    assert.equal(runtime.world.hasBody('item:held-0'), true);
-    assert.equal(s.items.find(i => i.id === itemId(s, 'held-0')).charge, 1);
-  } finally { disposePhysics(s); }
-});
+// Retired with the rules they called (#1358): optional drops refused for lack of a body slot and mandatory death loot kept as
+// logical overflow are the core's (`item_tests.rs`: `an_optional_drop_with_no_body_slot_or_no_clear_spot_is_refused_and_keeps_the_inventory`,
+// `bodiless_death_drops_keep_value_and_are_claimable_next_tick`), and a full-inventory swap reserving its incoming body slot is
+// `a_swap_reserves_its_body_slot_before_a_due_arrival`. A world filled, put to sleep or roped on the diagnostic engine is not
+// loaded by the start, so neither case can be arranged on a started game.
 
 test('world physics authoring is validated and match-pinned', async () => {
   const bad = arena();

@@ -1,11 +1,11 @@
 import { renderedPlayerView as playerView } from './helpers/relational.js';
-import { identifyItems, itemId } from './helpers/item-identity.js';
+import { identifyItems } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { isDeepStrictEqual } from 'node:util';
 import { phaseThree } from '../shared/simulation/phase-three.ts';
 import { disposePhysics, setInput, stateOf, step, snapshot, } from '../shared/simulation.ts';
-import { collectInstanceEquipment, WEAPONS, SLOT_COUNT } from '../shared/equipment.ts';
+import { WEAPONS, SLOT_COUNT } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openField } from './helpers/arena.js';
 import { now, stagePhysics } from './helpers/scenario.js';
@@ -28,39 +28,21 @@ const moveSlot = (s, p, from, to) => {
   phaseThree(s, s.players.map(actor => actor === p ? { input: { moveSlot: { from, to } } } : undefined));
   return !isDeepStrictEqual(state(), before);
 };
-const ground = (s, fields) => {
-  const item = { id: itemId(s, `ground-${s.itemSerial}`), x: 0, y: 0, ...fields };
-  s.items.push(item);
-  return item;
+// The pickup rules (a duplicate weapon topping up, utility stacks capping, a full inventory) are the core's: see
+// `rust/core/src/tick/tests/item_tests.rs`, `a_duplicate_firearm_tops_up_to_capacity_and_the_rest_stays_on_the_ground`
+// and `partial_stacks_fill_remaining_capacity_in_claim_order`. What follows arranges inventory on the game before the start.
+const carried = (s, p, slot, fields) => {
+  p.inventory[slot] = { instanceId: `held-${slot}`, lineageId: `held-${slot}`, ...fields };
+  identifyItems(s);
 };
 
-test('six slots hold distinct weapons, a cell and capped utility stacks without consuming excess loot', scene(({ s, p }) => {
-  for (const weaponType of Object.keys(WEAPONS)) assert.ok(collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType })));
-  assert.equal(collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType: 'pistol' })), true);
-  assert.equal(p.inventory[0].ammo, WEAPONS.pistol.ammo * 2);
-  for (let i = 0; i < 3; i++) assert.ok(collectInstanceEquipment(s, p, ground(s, { kind: 'med' })));
-  for (let i = 0; i < 3; i++) assert.ok(collectInstanceEquipment(s, p, ground(s, { kind: 'shield' })));
-  collectInstanceEquipment(s, p, ground(s, { kind: 'cell' }));
-  assert.equal(p.inventory.length, 6); assert.equal(collectInstanceEquipment(s, p, ground(s, { kind: 'med' })), false);
-}));
-
 test('weapons stop firing at zero ammo', scene(({ s, p }) => {
-  collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType: 'pistol', ammo: 1 }));
+  carried(s, p, 0, { kind: 'weapon', weaponType: 'pistol', ammo: 1 });
   setInput(s, p.id, { seq: 1, attack: true }); step(s);
   assert.equal(now(s, p).inventory[0].ammo, 0); assert.equal(stateOf(s).projectiles.length, 1);
   for (let i = 0; i < WEAPONS.pistol.life; i++) step(s);
   setInput(s, p.id, { seq: 2, attack: true }); step(s);
   assert.equal(stateOf(s).projectiles.length, 0);
-}));
-
-// A unit test of the pickup rule on the arranged record: it does not step (docs/27.2 "Test API").
-test('matching pickups replenish without losing excess rounds', scene(({ s, p }) => {
-  collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType: 'pistol', ammo: 1 }));
-  p.inventory[0].ammo = WEAPONS.pistol.maxAmmo - 2;
-  const loot = ground(s, { kind: 'weapon', weaponType: 'pistol', ammo: 10 });
-  assert.equal(collectInstanceEquipment(s, p, loot), false);
-  assert.equal(loot.ammo, 8); assert.equal(p.inventory[0].ammo, WEAPONS.pistol.maxAmmo);
-  assert.equal(collectInstanceEquipment(s, p, loot), false); assert.equal(loot.ammo, 8);
 }));
 
 // The merge and rejection rules, on the arranged record (a unit test of phase three: it does not step).
@@ -95,8 +77,8 @@ test('dropped weapons keep remaining ammo and a sixth-slot item can be selected'
 }));
 
 test('slot selection is validated and held; firing uses the selected weapon and utilities consume charges', scene(({ s, p }) => {
-  for (const weaponType of Object.keys(WEAPONS)) collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType }));
-  collectInstanceEquipment(s, p, ground(s, { kind: 'med' }));
+  Object.keys(WEAPONS).forEach((weaponType, slot) => carried(s, p, slot, { kind: 'weapon', weaponType, ammo: WEAPONS[weaponType].ammo }));
+  carried(s, p, Object.keys(WEAPONS).length, { kind: 'med', count: 1 });
   p.hp = 50;
   setInput(s, p.id, { seq: 1, slot: 2 }); step(s);
   assert.equal(now(s, p).selectedSlot, 2);

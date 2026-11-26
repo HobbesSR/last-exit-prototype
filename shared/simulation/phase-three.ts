@@ -349,9 +349,3 @@ export function eliminateInCore(s: Game, player: Player, killer: Player | null):
     stage = result.stage;
   }
 }
-export function planDropInCore(s: Game, player: Player, item: InventoryItem, mandatory: boolean, items: readonly GroundItem[], source: Game): DropPlan | null {
-  return call(s, [], { mode: 2, player, item, mandatory, items, source }).plan;
-}
-export function planAmmoInCore(s: Game, player: Player, family: AmmoFamily, count: number, mandatory: boolean): DropPlan | null {
-  return call(s, [], { mode: 3, player, family, count, mandatory }).plan;
-}

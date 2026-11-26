@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, disposePhysics, snapshot, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, snapshot, stateOf, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { dropInventorySlot } from '../shared/simulation/loot.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
-import { identifyItems, itemLabel } from './helpers/item-identity.js';
+import { identifyItems } from './helpers/item-identity.js';
+import { now } from './helpers/scenario.js';
 
 // A real 12x6 map has hundreds of ground items and the world has 128 dynamic bodies for actors, props and loot.
 // Without a reserve the items take every slot at tick 0 and a player's voluntary drop has nowhere to go (#523).
@@ -15,6 +15,7 @@ const map = generateLiveMap(4217, contentById('content-6'), DEFAULT_LIVE_ZONE_SI
 async function room(content = contentById('content-6')) {
   const s = await createGame(4217, structuredClone(map), content);
   const p = s.players.find(q => q.role === 'contestant');
+  p.bot = false;
   p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 48, instanceId: 'held-1', lineageId: 'held-1' };
   identifyItems(s);
   p.selectedSlot = 0;
@@ -28,9 +29,13 @@ test('content without a reserve fills the world with map items, so no drop can b
   try {
     assert.ok(s.items.length > 128, 'a real map has more items than the world has slots');
     assert.equal(r.world.canAddBodies(1), false, 'the world is full at tick 0');
-    const held = p.inventory[0];
-    dropInventorySlot(s, p, 0);
-    assert.deepEqual(p.inventory[0], held, 'an optional drop with no slot preserves the inventory');
+    // The refusal itself is the core's (`item_tests.rs`, `an_optional_drop_with_no_body_slot_or_no_clear_spot_is_refused_and_keeps_the_inventory`).
+    // Here the content's own sizing is what leaves no slot: the player's drop, played on the started match, changes nothing.
+    const held = p.inventory[0].weaponType;
+    step(s); // the first tick admits the map's items, which take every slot
+    setInput(s, p.id, { seq: 1, drop: true }); step(s);
+    assert.equal(now(s, p).inventory[0]?.weaponType, held, 'an optional drop with no slot preserves the inventory');
+    assert.equal(stateOf(s).items.some(item => item.droppedBy === p.id), false);
   } finally { disposePhysics(s); }
 });
 
@@ -39,14 +44,12 @@ test('the shipped content leaves a reserve, so a player can drop and the item ge
   try {
     const reserve = s.content.worldPhysics.dropReserve, free = () => 128 - r.world.counts().dynamic;
     assert.ok(reserve > 0 && free() >= reserve, `ordinary items leave the reserve free: ${free()} of ${reserve}`);
-    const held = p.inventory[0];
-    dropInventorySlot(s, p, 0);
-    assert.equal(p.inventory[0], null, 'the drop empties the slot');
-    assert.ok(s.items.some(item => item.id === held.instanceId), 'and the item is on the ground');
-    step(s);
-    assert.equal(r.items.has(`item:${itemLabel(s, held.instanceId)}`), true, 'with a body, admitted from the reserve');
-    assert.ok(free() >= reserve - 1, 'one slot used, the rest still free');
-    assert.doesNotThrow(() => snapshot(s));
+    const held = p.inventory[0].instanceId;
+    setInput(s, p.id, { seq: 1, drop: true }); step(s);
+    assert.equal(now(s, p).inventory[0], null, 'the drop empties the slot');
+    assert.ok(stateOf(s).items.some(item => item.id === held), 'and the item is on the ground');
+    const frame = snapshot(s);
+    assert.ok(frame.bodies.some(body => body.owner.kind === 'item' && body.owner.itemId === held), 'with a body, admitted from the reserve');
   } finally { disposePhysics(s); }
 });
 

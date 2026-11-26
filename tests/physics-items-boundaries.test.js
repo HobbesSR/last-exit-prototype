@@ -1,17 +1,14 @@
 import { renderedSnapshot } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, disposePhysics, enqueuePhysicsImpulse, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, snapshot } from '../shared/simulation.ts';
+import { startGame, stepGame } from '../shared/simulation/tick.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
-import { replaceItem } from '../shared/simulation/ground-items.ts';
-import { teleport } from '../shared/simulation/dev.ts';
 import { createMatch } from '../server/match.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 import { enqueueExplosionImpulses } from '../shared/simulation/explosion-physics.ts';
 import { openArea } from './helpers/arena.js';
-import { identifyItems, itemLabel } from './helpers/item-identity.js';
 
 const parts = () => ({ map: { seed: 445, width: 800, height: 400,
   playableArea: openArea(800, 400, 100),
@@ -22,24 +19,20 @@ const parts = () => ({ map: { seed: 445, width: 800, height: 400,
   entry: { x: 50, y: 200 }, exit: { x: 750, y: 200 }, spawns: [{ x: 120, y: 200 }] },
   content: { ...structuredClone(contentById('content-6')), roster: { contestants: ['A'], gladiators: [] }, discovery: false } });
 
-test('loot never blocks actor placement, pickup emits a typed removal, and replacement rejects stale impulses', async () => {
+// The pickup and the drop are the core's (`rust/core/src/tick/tests/item_tests.rs`); this holds that loot never blocks a
+// placement and that the removal and the placement reach the frame as typed discontinuities. A stale impulse on a replaced
+// body is the world's (`world.rs`), which a started game does not let a test arrange.
+test('loot never blocks actor placement, and its pickup and drop are typed discontinuities', async () => {
   const { map, content } = parts(), s = await createGame(445, map, content);
   try {
-    const p = s.players[0], r = physicsRuntime(s); p.bot = false;
-    assert.deepEqual(teleport(s, p.id, 300, 200), { x: 300, y: 200 });
-    synchronizePhysics(s);
-    enqueuePhysicsImpulse(s, 'item:sleeping', { x: 300, y: 0 });
-    const generation = r.world.getGeneration('item:sleeping');
-    automaticPickups(s, p, {});
-    assert.equal(r.world.hasBody('item:sleeping'), false);
-    assert.ok(snapshot(s).physics.discontinuities.some(d => d.id === 'item:sleeping' && d.kind === 'removed' && d.generation === generation));
-    assert.equal(dropInventorySlot(s, p, 0), true);
-    assert.notEqual(r.world.getGeneration('item:sleeping'), generation);
-    // Remove the authored drop velocity so any stale explosion impulse is observable.
-    const pose = r.world.getTransform('item:sleeping');
-    r.world.setTransform('item:sleeping', pose);
-    step(s);
-    assert.equal(r.world.getTransform('item:sleeping').vx, 0);
+    const p = s.players[0]; p.bot = false;
+    stepGame(s); // the first tick admits the item's body
+    assert.ok(startGame(s).boundary.teleport(p.id, [300, 200]), 'a placement onto loot is accepted');
+    const seen = [];
+    for (let seq = 1; seq <= 3; seq++) { setInput(s, p.id, { seq }); seen.push(...stepGame(s).discontinuities); }
+    assert.ok(seen.some(d => d.kind === 'removed' && d.body.kind === 'item'), 'the pickup removes the body');
+    setInput(s, p.id, { seq: 4, drop: true });
+    assert.ok(stepGame(s).discontinuities.some(d => d.kind === 'placed' && d.body.kind === 'item'), 'the drop places it again');
   } finally { disposePhysics(s); }
 });
 
@@ -68,32 +61,8 @@ test('client maps omit crate authoring while recordings retain engine-free physi
   } finally { match.dispose(); }
 });
 
-test('staged swaps reserve full batches ahead of older mandatory overflow', async () => {
-  const { interact } = await import('../shared/simulation/interactions.ts');
-  for (const copies of [1, 2]) {
-    const { map, content } = parts(), s = await createGame(445, map, content);
-    try {
-      const p = s.players[0], r = physicsRuntime(s);
-      p.bot = false; p.x = 300; p.y = 200;
-      for (let i = 0; i < 6; i++) p.inventory[i] = { kind: 'cell', charge: i, instanceId: `out-${i}`, lineageId: `out-${i}` };
-      if (copies === 2) p.inventory[0] = { kind: 'med', count: 2, instanceId: 'out-0', lineageId: 'out-0' };
-      identifyItems(s);
-      let n = 0;
-      // The two-unit drop needs its incoming slot plus one currently free slot.
-      while (r.world.canAddBodies(copies)) r.world.queueAddBody({ id: `filler-${n++}`, kind: 'prop',
-        x: 700, y: 50, shape: { kind: 'circle', radius: 2 } });
-      r.world.commitMutations();
-      s.items.push({ id: 'aaa-overflow', kind: 'cell', charge: 100, x: 500, y: 200 });
-      identifyItems(s);
-      interact(s, p);
-      assert.equal(itemLabel(s, p.inventory[0].instanceId), 'sleeping');
-      const outgoing = s.items.filter(i => itemLabel(s, i.lineageId) === 'out-0');
-      assert.equal(outgoing.length, copies);
-      assert.ok(outgoing.every(i => r.world.hasBody(`item:${itemLabel(s, i.id)}`)));
-      assert.equal(r.world.hasBody('item:aaa-overflow'), false);
-    } finally { disposePhysics(s); }
-  }
-});
+// Retired with the rules they called (#1358): a swap reserving its drop's body slots ahead of older overflow is the core's
+// (`item_tests.rs`: `a_swap_reserves_its_body_slot_before_a_due_arrival`, `a_successful_swap_reuses_capacity_and_locks_out_only_the_dropper`).
 
 test('invalid tiny physical profiles are refused before item/body admission', async () => {
   for (const change of [p => p.loot.radius = 0.01, p => p.loot.mass = 1e-9, p => p.prop.hx = 0.01]) {
@@ -102,29 +71,5 @@ test('invalid tiny physical profiles are refused before item/body admission', as
   }
 });
 
-test('forty physical pickup/drop cycles conserve the objective without body or joint growth', async () => {
-  const { map, content } = parts(), s = await createGame(445, map, content);
-  try {
-    const p = s.players[0], r = physicsRuntime(s); p.bot = false;
-    p.x = 300; p.y = 200; automaticPickups(s, p, {});
-    const baseline = r.world.counts().dynamic;
-    let generation = 0;
-    for (let cycle = 0; cycle < 40; cycle++) {
-      p.x = 120; p.y = 200; synchronizePhysics(s);
-      assert.equal(dropInventorySlot(s, p, 0), true);
-      const dropped = s.items[0];
-      assert.equal(itemLabel(s, dropped.id), 'sleeping'); assert.equal(dropped.charge, 100);
-      assert.equal(r.world.counts().dynamic, baseline + 1);
-      const nextGeneration = r.world.getGeneration('item:sleeping');
-      assert.ok(nextGeneration > generation); generation = nextGeneration;
-      // Through the ground helpers: the core's store, which phase 6 reads (#1214 stage 6d.6c.1), sees no raw edit.
-      p.x = dropped.x; p.y = dropped.y; replaceItem(s, dropped, { ...dropped, pickupAfter: 0 });
-      automaticPickups(s, p, {});
-      assert.equal(itemLabel(s, p.inventory[0].instanceId), 'sleeping'); assert.equal(p.inventory[0].charge, 100);
-      assert.equal(s.items.length, 0);
-      assert.equal(r.world.counts().dynamic, baseline);
-      assert.equal(r.world.counts().constraints, 0);
-      assert.equal(r.pendingImpulses.length, 0); assert.equal(r.pendingAttachments.length, 0);
-    }
-  } finally { disposePhysics(s); }
-});
+// Forty pickup/drop cycles that conserve the objective and grow no bodies are the core's
+// (`item_tests.rs`: `forty_transfers_between_actors_conserve_units_rounds_charge_and_identity`).

@@ -3,10 +3,8 @@ import test from 'node:test';
 import { createGame, disposePhysics, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { dropInventorySlot, planDrop, scatterPoint } from '../shared/simulation/loot.ts';
-import { interact } from '../shared/simulation/interactions.ts';
+import { scatterPoint } from '../shared/simulation/loot.ts';
 import { openArea } from './helpers/arena.js';
-import { identifyItems, itemId, itemLabel } from './helpers/item-identity.js';
 
 const map = (props = []) => ({ seed: 448, width: 800, height: 800,
   playableArea: openArea(800, 800, 100),
@@ -15,8 +13,9 @@ const map = (props = []) => ({ seed: 448, width: 800, height: 800,
   entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns: [{ x: 120, y: 400 }] });
 const content = () => ({ ...structuredClone(contentById('content-6')), dynamicNavigation: true,
   roster: { contestants: ['A'], gladiators: [] }, discovery: false });
-const carried = id => ({ kind: 'cell', charge: 37, instanceId: id, lineageId: id });
 
+// The drops themselves (crowded and unplaceable optional drops, a swap's outgoing drop, the mandatory fallback) are the core's:
+// `rust/core/src/tick/tests/item_tests.rs` and `admission_tests.rs`. What stays is the scatter search over the live engine.
 test('scatter avoids active actor footprints and rotated prop colliders', async () => {
   const s = await createGame(448, map([{ id: 'crate', profile: 'crate', x: 350, y: 400, angle: Math.PI / 4 }]), content());
   try {
@@ -37,80 +36,5 @@ test('scatter avoids active actor footprints and rotated prop colliders', async 
     assert.notDeepEqual(byActor, { x: actor.x, y: actor.y });
     assert.ok(Math.hypot(byActor.x - actor.x, byActor.y - actor.y)
       >= s.content.worldPhysics.loot.radius + s.content.actorPhysics.geometry[actor.role].bodyRadius);
-  } finally { disposePhysics(s); }
-});
-
-test('crowded optional physical drop refuses atomically without consuming inventory or IDs', async () => {
-  const s = await createGame(448, map(), content());
-  try {
-    const p = s.players[0], r = physicsRuntime(s);
-    p.inventory[0] = carried('held');
-    identifyItems(s);
-    let count = 0;
-    while (r.world.canAddBodies(1)) r.world.queueAddBody({ id: `crowd:${count++}`, kind: 'prop',
-      shape: { kind: 'circle', radius: 2 }, x: 700, y: 700 });
-    r.world.commitMutations();
-    const before = { serial: s.itemSerial, items: s.items.length, bodyCount: r.world.counts().dynamic };
-    assert.ok(planDrop(s, p, p.inventory[0]));
-    const synchronize = r.synchronize;
-    r.synchronize = () => { throw new Error('planning must not synchronize the runtime'); };
-    try { assert.equal(dropInventorySlot(s, p, 0), false); }
-    finally { r.synchronize = synchronize; }
-    assert.deepEqual(p.inventory[0], { ...carried('held'), instanceId: itemId(s, 'held'), lineageId: itemId(s, 'held') });
-    assert.equal(s.itemSerial, before.serial);
-    assert.equal(s.items.length, before.items);
-    assert.equal(r.world.counts().dynamic, before.bodyCount);
-  } finally { disposePhysics(s); }
-});
-
-test('a full-inventory swap stages its serial but still checks rotated prop occupancy', async () => {
-  const s = await createGame(448, map([{ id: 'crate', profile: 'crate', x: 600, y: 600, angle: Math.PI / 4 }]), content());
-  try {
-    const p = s.players[0], r = physicsRuntime(s);
-    p.bot = false; p.x = 300; p.y = 400;
-    synchronizePhysics(s);
-    for (let i = 0; i < p.inventory.length; i++) p.inventory[i] = carried(`held-${i}`);
-    p.selectedSlot = 0;
-    s.items.push({ id: 'incoming', lineageId: 'incoming', kind: 'cell', charge: 91, x: 300, y: 420 });
-    identifyItems(s);
-    synchronizePhysics(s);
-    const phase = s.itemSerial ?? 0, first = { x: p.x + Math.cos(phase * 2.39996) * 36,
-      y: p.y + Math.sin(phase * 2.39996) * 36 };
-    r.world.setTransform('prop:crate', { ...first, angle: Math.PI / 4 });
-    assert.equal(r.world.overlapsProp(first.x, first.y, s.content.worldPhysics.loot.radius), true);
-    const serial = s.itemSerial;
-    interact(s, p);
-    assert.equal(itemLabel(s, p.inventory[0].instanceId), 'incoming');
-    assert.equal(s.itemSerial, serial, 'a whole-instance swap allocates no ID');
-    const outgoing = s.items.find(item => item.id === itemId(s, 'held-0'));
-    assert.ok(outgoing);
-    assert.notDeepEqual({ x: outgoing.x, y: outgoing.y }, first);
-    assert.equal(r.world.overlapsProp(outgoing.x, outgoing.y, s.content.worldPhysics.loot.radius), false);
-    assert.equal(r.world.hasBody('item:held-0'), true);
-  } finally { disposePhysics(s); }
-});
-
-test('mandatory fallback remains logical and pickable, then admits a body after actor clears it', async () => {
-  const s = await createGame(448, map(), content());
-  try {
-    const p = s.players[0], r = physicsRuntime(s);
-    const carriedItem = { ...carried('mandatory'), charge: 71,
-      instanceId: itemId(s, 'mandatory'), lineageId: itemId(s, 'mandatory') };
-    const blockers = Array.from({ length: 180 }, (_, j) => {
-      const angle = ((s.itemSerial ?? 0) + j) * 2.39996, radius = 36 + Math.floor(j / 12) * 24;
-      return { x: p.x + Math.cos(angle) * radius, y: p.y + Math.sin(angle) * radius };
-    });
-    const plan = planDrop(s, p, carriedItem, true, blockers);
-    assert.ok(plan);
-    const item = plan.records[0];
-    assert.deepEqual({ x: item.x, y: item.y }, { x: p.x, y: p.y });
-    s.items.push(item);
-    synchronizePhysics(s);
-    assert.equal(r.world.hasBody('item:mandatory'), false);
-    assert.deepEqual(s.items[0], item);
-    p.x = 300; p.y = 400;
-    synchronizePhysics(s);
-    assert.equal(r.world.hasBody('item:mandatory'), true);
-    assert.equal(s.items[0].charge, 71);
   } finally { disposePhysics(s); }
 });

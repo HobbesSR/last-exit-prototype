@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import { createGameRecord, createGame, disposePhysics, playerView, setInput, snapshot, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { automaticPickups, scatterPoint } from '../shared/simulation/loot.ts';
+import { scatterPoint } from '../shared/simulation/loot.ts';
 import { addItems, admitItem, framedItems, groundItem, groundList, groundPosition, itemsJson, itemsNear, poseItems, publishItems, removeItem, replaceItem, unadmittedItems } from '../shared/simulation/ground-items.ts';
+import { startGame } from '../shared/simulation/tick.ts';
 import { openArea } from './helpers/arena.js';
+import { now } from './helpers/scenario.js';
 import { identifyItems, itemId, itemLabel } from './helpers/item-identity.js';
 
 // #655 stage 1 (22.1 "Frames"): frames share the ground list and its records, and a change replaces only what it touches.
@@ -118,25 +120,24 @@ test('an unchanged ground is shared between frames, frozen, and never cloned', (
 });
 
 test('a partial pickup replaces only its own record; published frames keep what they showed', async () => {
-  // Pickups run in the core (`phase_six.rs`, #1230), which needs the game's physics world.
+  // The pickup is the core's (`rust/core/src/tick/tests/item_tests.rs`); this holds what the frames do with it. The
+  // reserve is arranged on the game before the start, and the player is moved to the pile by the dev teleport.
   const s = await createGame(17, arena([pile('near', 120), pile('far', 500)]), content('content-ammo-1'));
   const p = s.players[0];
   for (const q of s.players) q.bot = false;
-  p.x = 120; p.y = 300; p.reserves.pistol = 72;
-  const before = snapshot(s), [near, far] = before.items;
-  const unchangedRuntimeItems = s.items;
-  automaticPickups(s, p, {});
-  assert.equal(s.items, unchangedRuntimeItems, 'a full reserve changes nothing, so nothing is copied');
-  assert.equal(snapshot(s).items, before.items, 'unchanged legacy projections reuse their list');
-  p.reserves.pistol = 60;
-  automaticPickups(s, p, {});
-  const after = snapshot(s);
-  assert.notEqual(after.items, before.items);
-  assert.equal(after.items[1], far, 'an untouched record is the same object');
-  assert.deepEqual([after.items[0].count, near.count, p.reserves.pistol], [8, 20, 72]);
-  // A record with a body projects its pose apart from the runtime record, so only the value is compared here.
-  assert.deepEqual([groundItem(s, itemId(s, 'near')).id, groundItem(s, itemId(s, 'near')).count], [after.items[0].id, 8]);
-  disposePhysics(s);
+  p.x = 300; p.y = 300; p.reserves.pistol = 60;
+  try {
+    step(s);
+    const before = snapshot(s), [near, far] = before.items;
+    assert.equal(near.count, 20);
+    assert.ok(startGame(s).boundary.teleport(p.id, [120, 300]));
+    step(s);
+    const after = snapshot(s);
+    assert.notEqual(after.items, before.items);
+    assert.equal(after.items[1], far, 'an untouched record is the same object');
+    assert.deepEqual([after.items[0].count, near.count, now(s, p).reserves.pistol], [8, 20, 72]);
+    assert.equal(before.items[0].count, 20, 'the earlier frame keeps what it showed');
+  } finally { disposePhysics(s); }
 });
 
 test('adding to a published ground copies the list once and leaves the frame alone', () => {
