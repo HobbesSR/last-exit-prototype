@@ -12,9 +12,10 @@ const recorded = value => JSON.parse(JSON.stringify(value));
  * regenerates its carry and the first-class bots' commands. The recorded inbound queue, carry included, is a witness the
  * regenerated one must equal before the digest is compared. Reports the number of ticks checked, or throws a RangeError
  * naming the first tick that cannot be reconstructed or differs. An archive with missing frames is refused: the bots'
- * commands depend on complete history.
+ * commands depend on complete history. `labels: false` replays seat relabels without their bot label ranks: a witness
+ * only, which a recording whose bots decided by a label must fail (`tools/bot-label-witness.mjs`).
  */
-export async function verifyBotCommands(archive) {
+export async function verifyBotCommands(archive, { labels = true } = {}) {
   if (archive?.recording?.complete === false) throw new RangeError('Replay history has missing frames');
   const match = await reconstructReplayStart(archive);
   try {
@@ -27,7 +28,7 @@ export async function verifyBotCommands(archive) {
       if (at !== tick + 1) throw new RangeError(`Replay history is gapped: tick ${at} follows ${tick}`);
       if (typeof frame.botCommandDigest !== 'string') throw new RangeError(`Missing replay bot command digest at tick ${at}`);
       if (!Array.isArray(frame.commands)) throw new RangeError(`Missing replay commands at tick ${at}`);
-      if (!match.replay(frame.commands)) throw new RangeError(`Reconstructed replay ended before tick ${at}`);
+      if (!match.replay(frame.commands, { labels })) throw new RangeError(`Reconstructed replay ended before tick ${at}`);
       if (!isDeepStrictEqual(recorded(match.spent()), frame.commands.filter(command => spentTypes.has(command?.type)))) {
         throw new RangeError(`Reconstructed replay inbound queue differs at tick ${at}`);
       }

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameRecord, createGame, disposePhysics, snapshot, playerView, step } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, snapshot, playerView } from '../shared/simulation.ts';
+import { startGame } from '../shared/simulation/tick.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { generatedMap } from './helpers/room-harness.js';
 import { gatesJson } from '../shared/simulation/frame-gates.ts';
@@ -32,13 +33,25 @@ test('a frame shares its gate list until a gate changes, then shares every uncha
   assert.equal('note' in snapshot(s).gates[0], false);
 });
 
+/** A completed tick that changes only one gate: what the frame store takes from the core when a door moves. */
+const gateTick = (tick, id, gate) => ({ tick, inbound: [], discontinuities: [], discovery: { gates: [], samples: [] },
+  changes: { actors: [], items: [], projectiles: [], hooks: [], gates: [{ id, gate }], traps: [], extraction: null, hazardX: null,
+    removed: [], poses: [], events: [] } });
+
 test('frame gates serialize, project and encode as cloned gates did (#655)', async () => {
+  // Frames come from the core (27.2 "Frames"), so a door changes by a completed tick's gate record, given to the frame
+  // store directly; the expected list is the store's gate states as those ticks leave them.
   const s = await createGame(4217, generatedMap(), defaultContent()), encoders = new Map();
   try {
-    for (let tick = 0; tick < 12; tick++) {
-      if (tick % 4 === 2) setDoor(s, tick % s.map.gates.length, { open: !s.map.gates[tick % s.map.gates.length].open });
-      step(s);
-      const frame = snapshot(s), expected = s.map.gates.map((g, gateIdx) => ({ gateIdx, open: g.open, locked: g.locked }));
+    const { frames } = startGame(s), states = s.map.gates.map(g => ({ open: g.open, locked: g.locked }));
+    let previous;
+    for (let tick = 1; tick <= 12; tick++) {
+      const at = tick % states.length;
+      if (tick % 4 === 2) states[at] = { ...states[at], open: !states[at].open };
+      frames.take(gateTick(tick, at, states[at]));
+      const frame = snapshot(s), expected = states.map((g, gateIdx) => ({ gateIdx, open: g.open, locked: g.locked }));
+      if (previous && tick % 4 !== 2) assert.equal(frame.gates, previous, 'an unchanged gate keeps the list shared');
+      previous = frame.gates;
       assert.equal(JSON.stringify(frame.gates), JSON.stringify(expected));
       assert.equal(gatesJson(frame.gates), JSON.stringify(expected));
       const views = [...s.players.map(p => p.id), null].map(id => playerView(s, frame, id));

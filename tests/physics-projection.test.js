@@ -147,7 +147,7 @@ test('live capture respects filtered hooks without mutating them and rejects det
 });
 
 test('physics recording floor is explicit and stamped by the room writer', async () => {
-  assert.equal(SCHEMA, 25);
+  assert.equal(SCHEMA, 26);
   // Lines with delta frames (#901) need a reader of at least schema 17; this build still reads from MIN_SCHEMA.
   assert.equal(minimumReaderForMatch(), 20);
   assert.equal(MIN_SCHEMA, 10);

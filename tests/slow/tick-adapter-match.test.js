@@ -10,7 +10,7 @@ import { createTickMatch } from '../../shared/simulation/tick-match.ts';
 import { TickMirror, stepMirror } from '../../shared/simulation/tick-mirror.ts';
 import { TickFrames } from '../../shared/simulation/tick-frame.ts';
 import { playerView } from '../../shared/simulation/visibility.ts';
-import { checkFrame } from '../helpers/tick-frame.js';
+import { checkFrame, checkRecords } from '../helpers/tick-frame.js';
 
 // A whole bot match on the new tick's path (27.2 "Node adapter (3d.2)"), on a chain arena stored in the frozen fixture, so no
 // map is generated here. The match runs with today's default content to its end, and the mirror the applier keeps is held
@@ -29,7 +29,7 @@ function play() {
     let match;
     try {
       match = createTickMatch(s);
-      const mirror = new TickMirror(s, match), frames = new TickFrames(mirror), facts = new Map();
+      const mirror = new TickMirror(s, match), frames = new TickFrames(s, match), facts = new Map();
       const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
       let t;
       while ((t = stepMirror(mirror))) {
@@ -41,6 +41,8 @@ function play() {
         assert.deepEqual(mirror.view(expected), expected, `tick ${t.tick}`);
         const frame = frames.frame();
         checkFrame(frame, snap, t.tick, words);
+        // The frame store's records are folded from the change lists; a drift persists, so every tenth tick catches it.
+        if (whole || t.tick % 10 === 0) checkRecords(frames, snap, t.tick);
         // One player's view a tick, in turn: every player is projected hundreds of times over the match.
         const i = t.tick % s.players.length;
         assert.equal(playerView(s, frame, s.players[i].id).self.playerIdx, i);

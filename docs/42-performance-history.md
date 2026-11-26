@@ -43,6 +43,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.76](42.76-state-flip-benchmark.md) | End-of-flip tick and boundary cost against pre-6a, with and without traps (#1214) |
 | [42.77](42.77-tick-inventory-checkpoint.md) | Tick and snapshot cost at the mechanic inventory checkpoint (#1279 step 1), with a 13% unpaired timing drift on the same code |
 | [42.78](42.78-tick-cutover-benchmark.md) | Tick cutover paired against the end-of-flip checkpoint, with ground-count attribution (#1283) |
+| [42.79](42.79-core-frames-benchmark.md) | Frames from the core's output paired against `main`: frame cost down, tick unchanged (#1344) |
 
 ### Navigation
 

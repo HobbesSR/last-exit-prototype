@@ -34,7 +34,7 @@ test('the opt-in room records spent inputs and keeps the same actor through a li
   const { h, room, owner, dev, spectator, writer } = await optInRoom();
   try {
     const first = writer.frames[0];
-    assert.equal(writer.header.schema, 25);
+    assert.equal(writer.header.schema, 26);
     assert.equal(writer.header.setup.portalGraph, null);
     assert.equal(writer.header.botPlannerVersion, 1);
     assert.deepEqual(first.commands.map(c => c.type), ['join', 'start']);
@@ -86,6 +86,35 @@ test('the opt-in room records spent inputs and keeps the same actor through a li
     await room.finalization;
     assert.deepEqual(writer.frames.at(-1).commands.map(c => [c.type, c.id]), [['join', late.session.playerId]],
       'the final frame keeps room roster metadata and only committed ticks carry the inbound queue');
+  } finally { await h.service.close(); }
+});
+
+test('a frame captured before the next tick shows a seat change, and a finish in that tick archives it', async () => {
+  // The receive boundary hands a seat over at once; the core spends the change at the next tick. Frames come from the
+  // core's output (27.2 "Frames"), so until that tick a frame shows the seat under its new controller (review 1102).
+  const { h, room, owner, writer } = await optInRoom();
+  const run = ms => { for (let elapsed = 0; elapsed < ms; elapsed += 50) h.wake(50); };
+  try {
+    run(100);
+    const first = h.joined(room, { role: 'gladiator', name: 'First' });
+    const slot = first.messages.find(m => m.type === 'welcome').state.self.playerIdx;
+    room.setViewLag(first.session.connectionId, 200);
+    run(150);
+    const seat = () => room.match.frame().players[slot];
+    assert.deepEqual([seat().id, seat().bot, seat().viewLagTicks > 0], [first.session.playerId, false, true], 'the first joiner plays, lagged');
+    const tick = room.match.tick;
+    h.service.disconnect(first.session);
+    assert.equal(room.match.tick, tick, 'no tick ran');
+    assert.deepEqual([seat().bot, seat().viewLagTicks, seat().input], [true, undefined, {}], 'a leave hands the seat to its bot at once');
+    const second = h.joined(room, { role: 'gladiator', name: 'Second' });
+    assert.equal(second.messages.find(m => m.type === 'welcome').state.self.playerIdx, slot, 'the second joiner takes the same seat');
+    assert.deepEqual([seat().id, seat().bot, seat().viewLagTicks, seat().input], [second.session.playerId, false, undefined, {}],
+      'a join hands it over at once, without the previous occupant lag');
+    owner.send({ type: 'finish' });
+    await room.finalization;
+    assert.equal(room.match.tick, tick, 'the finish ran no tick');
+    const last = writer.frames.at(-1).state.players[slot];
+    assert.deepEqual([last.id, last.bot, last.viewLagTicks], [second.session.playerId, false, undefined], 'the archive keeps the new controller');
   } finally { await h.service.close(); }
 });
 
@@ -226,7 +255,7 @@ test('the threaded host archives authored loot and the planner graph beside stor
     service.receive(owner, { type: 'finish' });
     await waitFor(events.get('saved').promise);
     const archive = readArchive(await readFile(path.join(dir, `${room.id}.json.gz`)));
-    assert.equal(archive.schema, 25);
+    assert.equal(archive.schema, 26);
     assert.ok(archive.setup.items.length > 0, 'the generated setup includes authored loot');
     assert.deepEqual(archive.setup.items, authoredItems);
     const { owner: graphOwner } = portalGraphOf(map);

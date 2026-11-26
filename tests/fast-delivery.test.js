@@ -6,7 +6,8 @@ import { MissingBaseline } from '../shared/wire-codec.ts';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '../shared/discovery.ts';
 import { ANGLE_QUANTUM, createEventWindow, createFastHistory, createFastReader, fastFrame, holdItemBodies, keptEvents, quantize, FAST_HISTORY_TICKS, FAST_QUANTA, DATAGRAM_PAYLOAD_BYTES, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
-import { event, participant } from '../shared/simulation/event-records.ts';
+import { participant } from '../shared/simulation/event-records.ts';
+import { framesOf } from '../shared/simulation/tick.ts';
 import { KEPT_EVENTS } from '../shared/simulation/rules.ts';
 import { deliversFast } from '../server/room-views.js';
 import { EFFECT_KINDS } from '../shared/enum-tables.ts';
@@ -137,9 +138,10 @@ test('through bursts of loss every event reaches the client once, where the last
   const { other, client, projected, largest } = await play({
     lose: n => n < 100 && n % 20 >= 4 && n % 20 < 12, ackDelay: 3, ackEvery: 2,
     each: (i, room) => {
-      if (!burst(i) || !room.game) return;
+      const frames = room.game && framesOf(room.game);
+      if (!burst(i) || !frames) return;
       const actor = participant(room.game, room.game.players[0]);
-      for (let k = 0; k < 2; k++) event(room.game, { kind: 'respawned', actor });
+      for (let k = 0; k < 2; k++) frames.arrangeEvent({ kind: 'respawned', actor });
     },
   });
   const ticks = [...projected.keys()].sort((a, b) => a - b);

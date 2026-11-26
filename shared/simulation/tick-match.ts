@@ -440,12 +440,28 @@ export class TickMatch {
     new Float64Array(core.memory.buffer, input, words.length).set(words);
     core.match_submit(game, tick, rows.length);
     const flags = core.match_submit_flags(game) >>> 0;
-    return Array.from(new Uint8Array(core.memory.buffer, flags, rows.length), flag => flag === 1);
+    const queued = Array.from(new Uint8Array(core.memory.buffer, flags, rows.length), flag => flag === 1);
+    const accepted = rows.filter((_, i) => queued[i]);
+    if (accepted.length) for (const take of this.#submitted) take(tick, accepted);
+    return queued;
+  }
+  readonly #followers: ((completed: DecodedTick) => void)[] = [];
+  readonly #submitted: ((tick: Tick, rows: readonly Inbound[]) => void)[] = [];
+  /**
+   * Hand every completed tick to `take` as the step decodes it, before the step returns, and, given `submitted`, the rows
+   * the match queued for a tick as they are submitted (the frames, `tick-frame.ts`).
+   */
+  follow(take: (completed: DecodedTick) => void, submitted?: (tick: Tick, rows: readonly Inbound[]) => void): void {
+    this.#followers.push(take);
+    if (submitted) this.#submitted.push(submitted);
   }
   /** Step one tick, or null once the match is over. */
   step(): DecodedTick | null {
     const pointer = this.#core.match_step(this.#live()) >>> 0;
-    return pointer === 0 ? null : this.#read(pointer, decodeCompleted);
+    if (pointer === 0) return null;
+    const completed = this.#read(pointer, decodeCompleted);
+    for (const take of this.#followers) take(completed);
+    return completed;
   }
   snapshot(): Snapshot { return this.#read(this.#core.match_snapshot(this.#live()), decodeSnapshot); }
   #actor(id: PlayerId): number {
