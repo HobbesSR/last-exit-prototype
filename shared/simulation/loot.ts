@@ -28,4 +28,3 @@ export function scatterPoint(s: Game, origin: Vec2, phase: number, items: readon
 
 /** A drop, fully represented but not yet committed. */
 export type { DropPlan } from './action-records.ts';
-
