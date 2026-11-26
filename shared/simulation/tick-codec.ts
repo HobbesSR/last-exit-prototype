@@ -1,4 +1,4 @@
-import type { AmmoFamily, Kit, WeaponType } from '../types.ts';
+import type { AmmoFamily, EffectKind, Kit, WeaponType } from '../types.ts';
 
 // The TypeScript mirror of `rust/core/src/tick/codec.rs`, which owns the word layout (27.2 "Live adapter (3d.1)"). Every
 // constant here has the Rust name and value, and every row is written and read in the order its module documentation gives.
@@ -243,9 +243,18 @@ export type Discontinuity = { kind: 'placed' | 'warped' | 'removed'; body: BodyR
 export interface GateObservation { actor: number; gate: number; open: boolean; locked: boolean }
 export interface DiscoverySample { actor: number; eye: Point }
 export interface Discovery { gates: GateObservation[]; samples: DiscoverySample[] }
+/** An effect a tick's fact made, as the core presents it: the index of its event in T's events, and where it is drawn. */
+export interface MadeEffect { event: number; kind: EffectKind; at: Point; radius: number }
 export interface DecodedTick {
   tick: Tick; inbound: Inbound[]; changes: Changes; discontinuities: Discontinuity[]; discovery: Discovery;
 }
+/**
+ * What a live step presents beside its completed tick (`presentation.rs`): the effects T's facts made, in event order.
+ * Derived, never the core's truth, so it is kept apart from the completed tick a recording or the fixture pins.
+ */
+export interface Presented { effects: MadeEffect[] }
+/** A tick that presents nothing: a test's hand-built tick. */
+export const PRESENTS_NOTHING: Presented = Object.freeze({ effects: Object.freeze([]) as unknown as MadeEffect[] });
 
 export interface RememberedItem { id: number; at: Point; item: GroundItem }
 export interface DoorMemory { gate: number; open: boolean; locked: boolean }
@@ -380,6 +389,10 @@ export const SAMPLE_STRIDE = 3;
 export const REMEMBERED_ITEM_STRIDE = 2 + ITEM_STRIDE;
 export const DOOR_MEMORY_STRIDE = 3;
 export const CUE_STRIDE = 4;
+/** Words per effect a live step made (`put_effects`): event index, kind code, `at`, radius. */
+export const EFFECT_STRIDE = 5;
+/** The effects' kinds by code (`EffectKind` in `rust/core/src/tick/presentation.rs`). */
+export const EFFECT_KINDS = ['slash', 'shock', 'scan', 'upgrade', 'loot', 'rail', 'charge', 'grapple'] as const satisfies readonly EffectKind[];
 /** A body row's words before its vertices: the body (2) and `queue_add_body`'s row after its key. */
 export const BODY_HEADER = 2 + 23;
 export const SURFACE_ROW = 11;
@@ -1011,8 +1024,8 @@ function getDiscovery(r: Reader): Discovery {
   return { gates, samples };
 }
 
-/** A completed tick: `match_step`'s words. The solved paths stay in Rust. */
-export function decodeCompleted(words: ArrayLike<number>): DecodedTick {
+/** A live step: `match_step`'s words, the completed tick and what it presents. The solved paths stay in Rust. */
+export function decodeStep(words: ArrayLike<number>): { completed: DecodedTick; presented: Presented } {
   const r = new Reader(words), tick = r.u32();
   let count = r.count(INBOUND_STRIDE);
   const inbound: Inbound[] = [];
@@ -1022,8 +1035,15 @@ export function decodeCompleted(words: ArrayLike<number>): DecodedTick {
   const discontinuities: Discontinuity[] = [];
   for (let i = 0; i < count; i++) discontinuities.push(getDiscontinuity(r));
   const discovery = getDiscovery(r);
+  count = r.count(EFFECT_STRIDE);
+  const effects: MadeEffect[] = [];
+  for (let i = 0; i < count; i++) {
+    const event = r.u32(), code = r.u32(), kind = EFFECT_KINDS[code];
+    if (kind === undefined) r.fail(`effect kind ${code}`);
+    effects.push({ event, kind: kind!, at: r.point(), radius: r.finite() });
+  }
   if (!r.empty) r.fail('trailing words');
-  return { tick, inbound, changes, discontinuities, discovery };
+  return { completed: { tick, inbound, changes, discontinuities, discovery }, presented: { effects } };
 }
 
 export function decodeBotRoutes(words: ArrayLike<number>) {

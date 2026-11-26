@@ -427,8 +427,27 @@ The backend has three natural cuts. They move in this order:
 | Cut | What it holds | Determinism | Order |
 | --- | --- | --- | --- |
 | Network edge | Transport termination: QUIC, TLS, WebTransport sessions, datagram framing and size limits; later the WebSocket too | None. It touches no simulation, fixture or replay | First, a full conversion (#1095, [24.5](24.5-transport.md)) |
-| Core | The tick, geometry, navigation, physics ownership, projection | The hard part (below) | Module by module through an adapter (#1175), then the state flip (#1066) |
-| Room host | Threads, scheduler, room lifecycle, delivery, recording, lobbies | Follows the core | Last; native or hosting WASM is decided then |
+| Core | The tick, geometry, navigation, physics ownership, projection: what each viewer may receive | The hard part (below) | Module by module through an adapter (#1175), then the state flip (#1066) |
+| Room host | Threads, scheduler, room lifecycle, delivery, recording, lobbies; encoding: the frame store's records, field lists, wire key, codec, deltas and acknowledgements | Follows the core | Last; native or hosting WASM is decided then |
+
+**Projection and encoding (#1357, an agent decision of 2026-11-26, comment 19240).** Projection is split between
+the core and the room host. This is boundary C of #1352. Corey's principle is the control plane in Node, and simulation
+plus match networking and the wire in Rust. He left the exact boundary to agents.
+- **The core decides what each player viewer may receive at the current tick.** That covers fog and the potential
+  radius, the reveal exception, which bodies and tethers are authorized, and the viewer's own discovered cells and cues.
+  It answers for all viewers in one call per tick. The answer crosses as index lists keyed by the core's own identities,
+  never as records.
+- **The room host assembles and encodes.** It keeps the frame store's records and body identity, the closed field lists
+  (which are the codec's schema) and the directed and delayed views, which need no decision. It also keeps the wire key,
+  Codec D, the layer and discovery deltas, per-view history and acknowledgements, and event windows.
+- **Why not A, where Rust also encodes:**
+  - Acknowledgements depend on packet arrival, which no recording reproduces, so they stay out of the deterministic core
+    that the browser also loads.
+  - Codec D's encoder would be Rust while the client's decoder is TypeScript, two implementations of one contract.
+  - Recordings and the shared views read the frame store in Node, so A would need the frames in both places.
+- **When the wire moves.** The wire reaches Rust with the room host, the last cut. Encoding then moves with delivery and
+  sessions, so nothing is ported twice.
+- **Stages** are in [27.2](27.2-tick-architecture.md#projection-and-knowledge-1343-1352).
 
 **Map generation stays in Node.** Where its edge lies already exists: a generated map crosses into a room as one
 transferable package (`server/map-pack.js`, #1089). Its format does not suit Rust yet.
@@ -567,7 +586,8 @@ Review 907 on PR #1172 raised these.
 - **The local framing** between the edge and Node is a contract with its own version. A future Rust host absorbs it,
   or keeps it as the edge in 28.1's topology.
 - **What the edge holds.** Datagram size enforcement and 24.2's fragmentation belong to the edge. Acknowledgements,
-  history and deltas are application-owned and stay with whatever owns the projection.
+  history and deltas are application-owned. They stay with whatever owns delivery and encoding: the room host, which
+  projects from the core's decision ([Boundaries](#boundaries), #1357).
 
 ## The core and its adapter
 
