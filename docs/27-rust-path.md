@@ -240,12 +240,15 @@ explodes, the hazards run does what `enqueueExplosionImpulses` did at the stop (
 - **Node's part.** The adapter sends the sync's words (the markers' capacity, the roster, the impulse limits and the
   markers) whenever the trap list holds a mine. It applies the sync's log and reads the queues' mirror back after the
   call.
-- **`hazards_run`** takes the whole world (the hazards move out while they run) and the swept map.
+- **`hazards_run`** took the whole world (the hazards move out while they run) and the swept map. It retired with the other
+  phase entry points (#1358).
 - **`enqueueExplosionImpulses`** is no longer called by play. Two tests still call it directly
   (`physics-explosion`, `physics-items-boundaries`), and it stays as their retained copy.
 - **The witness.** `tools/trap-continuity.mjs` hashes the pending impulses every tick. Its bot matches set off 15
   mines, all inside the run (counted with a temporary probe), and it matched a pristine export of `02e47403` hash for
-  hash. `physics-explosion`'s real games cover falloff, cover and order.
+  hash. Falloff, cover and order are held natively since #1358: `tick/tests/hazard_tests.rs`,
+  `mine_requires_solved_motion_and_pushes_only_existing_surviving_bodies_next_tick` and
+  `static_cover_blocks_a_mines_damage_and_its_impulse`.
 - **Cost:** measured once, at the end of step 6.
 
 **Step 6e.1, the item registry in the core (#1214, adapter version 35).** The core keeps the item registry
@@ -290,7 +293,7 @@ in phase 5 or the hazards, and an elimination's mandatory drops, are carried out
 
   The registry gives the phases and identities (6e.1). What the stores do not hold crosses with the outer call: the
   item and scatter serials, the gladiators' respawn delay, the markers and their capacity, and the drop speed.
-- **Phase 5** (`combat_run`) runs to the kill, eliminates, and resumes with the serial the elimination left, as Node's
+- **Phase 5** (`combat_run`, retired in #1358) ran to the kill, eliminates, and resumes with the serial the elimination left, as Node's
   `drive` did; one damage stops after its elimination. Its output is one call's:
   - the store's rows at the end;
   - every part's log, with each elimination's phase 3 output between them (`OP_ELIMINATED`, 9);
@@ -330,7 +333,7 @@ from Node's records between them, so they can become one call (6e.5).
     store as in the mirror.
   - Phase 3 fills each context actor's cues from the store, and the adapter sends none. It no longer asks whether the
     call can hear: cues matter only where a shot is heard.
-  - `hearShot`, the retained TypeScript, writes the mirror between ticks, which the next upload carries.
+  - `hearShot`, the TypeScript that wrote the mirror between ticks, retired in #1358; the core records the cues.
 - **Phase 6's bot and discovery flags** are in the store (`Extra::bot`, `discovery`), uploaded with the players; nothing
   changes them inside a tick.
 - **Phase 4's ground poses are the core's.** Right after the step, `ground_poses_after_step` (`World::item_poses_after_step`)
@@ -372,7 +375,8 @@ phase's input from the intents and its stores:
   and the players' and ground's poses in the stores.
 - **Phase 5:** the projectiles from the store with each player's path from the step's own output (`paths_of`), the
   hook's tip over the same paths, then the casters from the intents in ID order. `actions_run`'s and `combat_run`'s
-  bodies are now functions both the exports and `tick_finish` call (`actions_call`, `combat_call`).
+  bodies were functions both the exports and `tick_finish` called (`actions_call`, `combat_call`); `combat_run` and
+  `combat_call` retired in #1358.
 
 **Node's part.** It applies each step's section with that step's applier: `applyLoop`, `adoptFloorDrag`, the commit's
 facts, `parseStep` and the players' poses, `applyItemPoses`, `applyCombat`, `applyHookOutput`, then `applyCombat` again.
@@ -397,15 +401,16 @@ a tick is `tick_begin`, Node's phase 2, then `tick_finish(intents)`, which now a
 
   The serial, the item serials and the slots are threaded through the call.
 - **Phase 7 runs in the call:** the sync, `finishMatch`, the second sync, and the rewind frame. `actions_run`,
-  `combat_run`, `interactions_run`, `hazards_run` and `phase_seven_run` now share their bodies with `tick_finish`
-  (`*_call`).
+  `combat_run`, `interactions_run`, `hazards_run` and `phase_seven_run` shared their bodies with `tick_finish`
+  (`*_call`); the first three exports and bodies retired in #1358.
 - **At this stage, Node ran discovery after the call** (`advanceDiscovery`). A contestant stranded by the terminal
   result stopped sampling on that tick. The [authoritative tick cutover](27.2-tick-architecture.md#the-cutover-3d4d)
   retired this Node pass and kept its position after terminal resolution and rewind capture.
 - **Node applies each section** with that step's applier, now including `applyInteractions`, `applyHazards` and
   `applyFinish`. It reads a section the call did not reach (after a refusal) as empty. Phases 3 to 7 are timed as
   `sim.finish`.
-- **Removed:** `setInRunStops` and 6d.6c.2's A/B test. The tick no longer runs `phaseSix`.
+- **Removed:** `setInRunStops` and 6d.6c.2's A/B test. The tick no longer runs `phaseSix`; `phase-six.ts` itself, with
+  `phase-five.ts` and `hazards.ts`, was deleted in #1358.
 - **Cost (6e.6):** the end-of-flip comparison found a repeatable whole-tick increase and boundary costs above the requested comparisons; see [42.76](42.76-state-flip-benchmark.md) for the breakdown, limits and candidates. No optimization was made.
 
 **Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
@@ -1039,9 +1044,9 @@ and event and effect records in the leaf `event-records.ts`, so the core adapter
 
   | Rule and core owner | Remaining TypeScript caller | Equality evidence | One owner again |
   | --- | --- | --- | --- |
-  | Motor, `action_combat::motor` | Client prediction's `movementSpeed` and `characterMotor` | `physics-prediction-contract` compares actual core motors across roles, boost/stun/sneak, zero input and surface ties; parameters are shared | #1241 decides a batched core caller versus retained prediction arithmetic with parity |
+  | Motor, `action_combat::motor` | Client prediction's `movementSpeed` and `characterMotor` | `tests/fixtures/motor-parity.txt` holds one table (roles, boost/stun/sneak, zero input, surface ties) that `physics-prediction-contract` checks `characterMotor` and `movementSpeed` against and `tick/motor.rs` (`motor_matches_the_parity_table`) checks the core's `motor` against; parameters are shared | #1241 decides a batched core caller versus retained prediction arithmetic with parity |
   | Utility outcome, `action_combat::attack` | None: the bots' preview and the bare-record attack retired (#1358) | `utility-use` holds that a bot commits a use only when it applies and its cooldown allows, and the core's own tests hold the caps and refusal | Done |
-  | Contestant attack/hearing, `action_combat::attack` and `phase_three.rs` | `combat.ts`'s `attack`, a scenario entry into the core, and `hearing.ts`'s `hearShot`, which tests arrange with (the bare-record copy retired, #1358) | `action-parity` directly compares firearm, utility and heard-cue state/facts with the core; frozen characterization covers live calls. The gladiator's melee has had no TypeScript copy since 5d.2 | #1241 |
+  | Contestant attack/hearing, `action_combat::attack` and `phase_three.rs` | `combat.ts`'s `attack`, a scenario entry into the core (the bare-record copy and `hearing.ts`'s `hearShot` retired, #1358) | `action-parity` directly compares firearm, utility and heard-cue state/facts with the core; frozen characterization covers live calls. The gladiator's melee has had no TypeScript copy since 5d.2 | #1241 |
   | Non-warden skill and hook launch/cancel, `phase_three.rs`/`action_combat.rs` | The hook's scenario entry point in `hook.ts` (`combat.ts`'s `skill` retired, #1358) | `action-parity` compares specter/striker and hook launch/cancel with the core; `phase-three-core` covers key-zero capacity and refusal ordering | #1241. The hook's later rules (5d.1) and the warden skill (5d.2) moved with no TypeScript copy |
   | Drop plans, `drop_planner.rs` | Bare setup planners in `loot.ts` | `action-parity` compares complete plans, staged allocations and NaN/fallback refusals on common empty-world geometry; 5c.1 documents the intentional physics-only loot-body test | #1241 |
   | Item allocation, `item_allocation.rs` | Explicitly unbound setup records | `item-id-allocation` checks selection before/after another game initializes, actual Rust operations and fork isolation; setup/live suites check the same allocation expectations | #1241 |
@@ -1086,8 +1091,8 @@ Launch and cancel are phase 3's, as before.
 **Step 5d.2, the rest of phase 5 (#1242, adapter version 15).** `rust/core/src/combat.rs` runs projectile flight
 (`solvePhysicsProjectiles`), the end-of-tick casters (the warden skill, then the gladiator attack, in `ordered(s)`
 order) and `damage`, with the rewind reads (`asSeenBy`) the casters resolve against. The elimination (`eliminate`) is
-`actions_run`'s mode 4 in `phase_three.rs`, beside the drop planner it calls. `shared/simulation/phase-five.ts` is the
-adapter; `combat.ts`'s `damage` is an entry point into it, and `lifecycle.ts`'s `eliminate`, once one, was retired (#1358).
+`actions_run`'s mode 4 in `phase_three.rs`, beside the drop planner it calls. `shared/simulation/phase-five.ts` was the
+adapter, deleted with `combat.ts`'s `damage` entry and `lifecycle.ts`'s `eliminate` (#1358).
 - **The order is 29.2's.** Projectiles first: every bullet is swept (the shot policy of `swept.rs`, radius 2, against
   each actor's substep path, `impact` and `hit_radius` now in `swept.rs`), then the hits apply by time of impact, bullet
   ID and target ID. `finishHooks` runs next, in Node as before, then the casters, each one's status read at its turn.
@@ -1110,7 +1115,8 @@ adapter; `combat.ts`'s `damage` is an entry point into it, and `lifecycle.ts`'s 
   `event-records.ts`, so the adapters build the records the core's facts name without importing their callers.
 - **No TypeScript copy.** `damage`, `eliminate`, the warden skill, the gladiator attack and the projectile sweep have
   no record-level copy: their only bare-record callers were tests, which now build real games
-  (`tests/physics-projectiles.test.js`, the mine case in `tests/physics-explosion.test.js`), and `action-parity` no
+  (`tests/physics-projectiles.test.js` and the mine cases of `tests/physics-explosion.test.js`, both retired in #1358 for
+  native tests in `tick/tests/combat_tests.rs`, `tick/sweep.rs` and `tick/tests/hazard_tests.rs`), and `action-parity` no
   longer compares melee. Scenario `attack` and `skill` calls for a gladiator or warden run the caster run, which skips
   a caster that is not active, as the tick did. Phase 6's environment and traps call the core's damage directly
   since 5e.2 (#1245).
@@ -1119,8 +1125,8 @@ adapter; `combat.ts`'s `damage` is an entry point into it, and `lifecycle.ts`'s 
 **Step 5e.1, phase 6's per-actor loop (#1230, adapter version 16).** `rust/core/src/phase_six.rs` runs, in `ordered(s)`
 order, each active actor's `interact`, its chosen `transit`, then, while it is still active, `advanceCharging` and
 the automatic pickups. That covers extraction, the start of charging, the swap's staged pickup and drop, gates with their
-keys, a gladiator's transit and the sensors' reveal. `shared/simulation/phase-six.ts` is the adapter. `interact` and
-`transit` are entry points into it; `advanceCharging` and `automaticPickups` were retired (#1358).
+keys, a gladiator's transit and the sensors' reveal. `shared/simulation/phase-six.ts` was the adapter; it, `interact`,
+`transit()`, `advanceCharging` and `automaticPickups` were retired (#1358).
 - **Every write is an ordered fact.** Several writes create keys where they are absent, so the call writes no rows
   back. Each write returns as a fact, in the TypeScript's order, and Node applies the facts in turn. Those keys are a
   player's `charging`, `selectedSlot` and `transit`, a gate's `locked` and a carried cell's `charge`. Node-owned
@@ -1163,7 +1169,7 @@ keys, a gladiator's transit and the sensors' reveal. `shared/simulation/phase-si
 **Step 5e.2, the rest of phase 6 and phase 7 (#1245, adapter version 17).** `rust/core/src/hazards.rs` runs
 `applyEnvironment` (the hazard wall, then the hazard areas) for each active actor in `ordered(s)` order, then `stepTraps`
 (mine, turret, flame and spider) in map order, in one call. `rust/core/src/phase_seven.rs` runs `finishMatch` and keeps
-the rewind frames. `shared/simulation/hazards.ts` and `phase-seven.ts` are their adapters. `shared/traps.ts` and the
+the rewind frames. `shared/simulation/hazards.ts` (deleted in #1358) and `phase-seven.ts` were their adapters. `shared/traps.ts` and the
 TypeScript `applyEnvironment`, `finishMatch`, `recordRewind` and `asSeenBy` are gone.
 - **Damage is the core's, called directly** (`combat::Run::damage`). The hazards run packs the roster as phase 5's rows,
   plus each actor's `movedThisTick`, so the two phases share one row format and one write-back (`phase-five.ts`).
@@ -1194,7 +1200,7 @@ TypeScript `applyEnvironment`, `finishMatch`, `recordRewind` and `asSeenBy` are 
 - **`itemRoll` is not ported (D6).** No tick calls it. Its only caller is match setup (`assignWeaponQualities` in
   `createGameRecord`), which stays in TypeScript and hands the core finished qualities. A port now would be a second
   copy whose only caller is its parity test. It moves with setup, with a parity test then. #1214 holds the pickup.
-- **No TypeScript copy.** `tests/physics-explosion.test.js` and `tests/traps.test.js` run real games. The bare-record
+- **No TypeScript copy.** `tests/traps.test.js` runs real games, and the native hazard tests hold the mine (#1358). The bare-record
   mine case and `tests/player-relations.test.js`'s rewind case are gone: the core keeps frames by roster slot and never
   reads an ID, and `tests/rewind.test.js` covers lagged reads through the core.
 - **Continuity.** The frozen fixture clears traps, and its maps place none, so it does not witness this stage's

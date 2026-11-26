@@ -6,7 +6,6 @@ import { contentById } from '../shared/simulation/content.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { setDoor } from '../shared/simulation/doors.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { solvePhysicsProjectiles } from '../shared/simulation/phase-five.ts';
 import { openArea } from './helpers/arena.js';
 
 function parts(contestants = 2, contentId = 'content-6') {
@@ -36,19 +35,8 @@ const byId = s => Object.fromEntries(s.players.map(p => [p.id, p]));
 const body = (s, id) => snapshot(s).physics.world.bodies.find(b => b.spec.id === `actor:${id}`);
 const input = (s, id, fields) => assert.ok(setInput(s, id, { seq: s.tick + 1, ...fields }));
 
-test('projectiles retain their old hit envelope beyond the narrower movement body', async () => {
-  const s = await game(parts(1));
-  try {
-    for (const [id, offset] of [['c0', 14], ['g0', 25]]) {
-      const target = byId(s)[id], hp = target.hp, shield = target.shield;
-      s.projectiles.push({ id: ++s.serial, owner: 'absent', x: target.x - 50, y: target.y + offset,
-        dx: 100, dy: 0, life: 10, damage: 7 });
-      solvePhysicsProjectiles(s, {});
-      assert.equal(target.hp + target.shield, hp + shield - 7, `${id} retains old projectile allowance`);
-      assert.equal(s.projectiles.length, 0);
-    }
-  } finally { disposePhysics(s); }
-});
+// The projectile hit envelope (the contestant's 15 and the gladiator's 26, wider than the movement bodies) is held by
+// `rust/core/src/tick/sweep.rs` `a_shot_hurts_inside_the_old_hit_envelope_and_not_outside_it`.
 
 test('content-6 pins measured narrow bodies and keeps the hurt radius', async () => {
   const p2 = await game();

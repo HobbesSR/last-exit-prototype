@@ -504,3 +504,178 @@ fn projectile_allocation_and_expiry_use_the_firing_tick_and_spread_order() {
     game.step(&rules).unwrap();
     assert!(game.state().projectiles.is_empty());
 }
+
+/// A shot from an eliminated owner (nothing it hits is its own), one tick from its first sweep.
+fn shot(id: u32, from: [f64; 2], velocity: [f64; 2]) -> (ProjectileId, Projectile) {
+    (
+        ProjectileId(id),
+        Projectile {
+            source: Entity::Actor(A),
+            position: from,
+            velocity,
+            damage: 10.0,
+            active_from: 0,
+            expires_at: 10,
+        },
+    )
+}
+
+/// The shooter A (eliminated, so it is no target) and one victim C at `x`, with `shapes` as the map's statics
+/// (`true`: shots see it too) and `gates` its doors (`true`: open), and the shot below.
+fn lane(
+    x: f64,
+    statics: Vec<(Shape, bool)>,
+    gates: Vec<(Shape, bool)>,
+    (id, projectile): (ProjectileId, Projectile),
+) -> (Match, CompletedTick) {
+    let mut scenario = Scenario::default();
+    scenario.state.actors.insert(A, actor(Presence::Eliminated));
+    add(&mut scenario, C, x, 90.0, None);
+    keep_open(&mut scenario);
+    for (index, (_, open)) in gates.iter().enumerate() {
+        scenario.state.gates.insert(
+            GateId(index as u32),
+            Gate {
+                building: None,
+                position: [0.0, 0.0],
+                open: *open,
+                door: true,
+                ..Gate::default()
+            },
+        );
+    }
+    scenario.geometry(Arc::new(SweptMap::new(
+        statics.iter().map(|(shape, _)| shape.clone()).collect(),
+        statics.iter().map(|(_, shots)| *shots).collect(),
+        gates.into_iter().map(|(shape, _)| shape).collect(),
+    )));
+    scenario.state.projectiles.insert(id, projectile);
+    let mut game = scenario.start(7, 10);
+    let tick = game.step(&Combat::default()).unwrap();
+    (game, tick)
+}
+
+fn wall(x: f64) -> Shape {
+    Shape::Rect {
+        x,
+        y: -20.0,
+        w: 2.0,
+        h: 40.0,
+    }
+}
+
+#[test]
+fn shot_blocking_statics_and_closed_gates_stop_a_shot_while_see_through_ones_and_open_gates_pass() {
+    // `true` in a static's flag: the map's voids, boundary and solid obstacles. `false`: a window or fence.
+    let thrown = || shot(1, [20.0, 0.0], [65.0, 0.0]);
+    let outcome = |statics, gates| {
+        let (game, tick) = lane(70.0, statics, gates, thrown());
+        assert!(game.state().projectiles.is_empty(), "consumed either way");
+        has(&tick, hit_target(A, C))
+    };
+    assert!(
+        !outcome(vec![(wall(50.0), true)], vec![]),
+        "a void or wall stops the shot"
+    );
+    assert!(
+        outcome(vec![(wall(50.0), false)], vec![]),
+        "a window passes it"
+    );
+    assert!(
+        !outcome(vec![], vec![(wall(50.0), false)]),
+        "a closed gate stops it"
+    );
+    assert!(
+        outcome(vec![], vec![(wall(50.0), true)]),
+        "an open gate passes it"
+    );
+    assert!(
+        outcome(vec![], vec![]),
+        "nothing in the lane: the control hits"
+    );
+}
+
+#[test]
+fn geometry_beats_a_later_actor_while_an_earlier_actor_wins_and_an_equal_time_tie_goes_to_geometry()
+{
+    let thrown = || shot(1, [20.0, 0.0], [65.0, 0.0]);
+    let blocks = |x: f64| {
+        let (game, tick) = lane(x, vec![(wall(50.0), true)], vec![], thrown());
+        assert!(game.state().projectiles.is_empty());
+        (has(&tick, hit_target(A, C)), game.state().actors[&C].hp)
+    };
+    assert_eq!(blocks(70.0), (false, 90.0), "the wall comes first");
+    assert_eq!(
+        blocks(36.0),
+        (true, 80.0),
+        "an actor before the wall is hit"
+    );
+    // The contestant's hit radius 15 meets the wall's contact at the shot's radius 2 at x = 48: the same instant.
+    assert_eq!(
+        blocks(63.0),
+        (false, 90.0),
+        "geometry wins an equal-time contact"
+    );
+    // Exactly equal: a shot that starts touching the wall and overlapping the actor meets both at time zero.
+    let (game, tick) = lane(
+        60.0,
+        vec![(wall(50.0), true)],
+        vec![],
+        shot(1, [49.0, 0.0], [65.0, 0.0]),
+    );
+    assert!(game.state().projectiles.is_empty());
+    assert!(
+        !has(&tick, hit_target(A, C)),
+        "geometry wins a tie at time zero"
+    );
+}
+
+#[test]
+fn two_lethal_shots_in_one_tick_eliminate_in_hit_order_and_each_drops_its_loot() {
+    let mut scenario = Scenario::default();
+    scenario.state.actors.insert(A, actor(Presence::Eliminated));
+    for (n, (id, x)) in [(C, 300.0), (B, 600.0)].into_iter().enumerate() {
+        add(&mut scenario, id, x, 5.0, None);
+        let cell = ItemId(40 + n as u32);
+        scenario.state.actors.get_mut(&id).unwrap().inventory.slots[0] = Some(CarriedItem {
+            id: cell,
+            lineage: cell,
+            equipment: Equipment {
+                kind: EquipmentKind::Cell { charge: 100 },
+                quality: 1,
+            },
+        });
+    }
+    keep_open(&mut scenario);
+    let (first, a) = shot(1, [255.0, 0.0], [40.0, 0.0]);
+    let (second, b) = shot(2, [555.0, 0.0], [40.0, 0.0]);
+    scenario.state.projectiles.extend([(first, a), (second, b)]);
+    let items = scenario.state.items.len();
+    let mut game = scenario.start(7, 10);
+    let tick = game.step(&Combat::default()).unwrap();
+    let eliminated: Vec<_> = tick
+        .changes
+        .events
+        .iter()
+        .filter_map(|event| match event.fact {
+            Fact::Eliminated { actor } => Some(actor),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(eliminated, [C, B]);
+    assert_eq!(
+        game.state().items.len(),
+        items + 2,
+        "each death dropped its cell"
+    );
+    for id in [C, B] {
+        assert!(
+            game.state().actors[&id]
+                .inventory
+                .slots
+                .iter()
+                .all(Option::is_none)
+        );
+    }
+    assert!(game.state().projectiles.is_empty());
+}

@@ -341,20 +341,6 @@ export function replaceItem(s: Game, item: GroundItem, next: GroundItem, fromCor
   else sinks.get(s)?.replace(before, length, at, next);
 }
 
-/** A record's writable copy, for rules that change a ground item as they inspect it. */
-export const draftItem = (item: GroundItem): GroundItem => ({ ...item });
-
-/** `item` when the draft changed nothing, else the draft. Equal values keep the shared record. */
-export function settledItem(item: GroundItem, draft: GroundItem): GroundItem {
-  const keys = Object.keys(item), changed = Object.keys(draft);
-  if (keys.length !== changed.length) return draft;
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i]! as keyof GroundItem;
-    if (key !== changed[i] || !Object.is(item[key], draft[key])) return draft;
-  }
-  return item;
-}
-
 /** Freeze the ground list and its new records for frames to share. Free when nothing changed since the last frame. */
 export function publishItems(s: Game): readonly GroundItem[] {
   const list = s.items;

@@ -2,8 +2,6 @@ import { renderedPlayerView as playerView } from './helpers/relational.js';
 import { identifyItems } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isDeepStrictEqual } from 'node:util';
-import { phaseThree } from '../shared/simulation/phase-three.ts';
 import { disposePhysics, setInput, stateOf, step, snapshot, } from '../shared/simulation.ts';
 import { WEAPONS, SLOT_COUNT } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
@@ -18,15 +16,6 @@ const scene = body => async () => {
     { role: 'contestant', bot: false, x: 600, y: 200 }, { role: 'gladiator', bot: false, x: 2400, y: 1000 }] });
   for (const q of s.players) q.input = {};
   try { await body({ s, p }); } finally { disposePhysics(s); }
-};
-// Exercise only this actor's phase-three action, without unrelated ground pickups.
-const moveSlot = (s, p, from, to) => {
-  identifyItems(s);
-  const state = () => ({ inventory: p.inventory, selectedSlot: p.selectedSlot, weapon: p.weapon,
-    itemSerial: s.itemSerial, scatterSerial: s.scatterSerial });
-  const before = structuredClone(state());
-  phaseThree(s, s.players.map(actor => actor === p ? { input: { moveSlot: { from, to } } } : undefined));
-  return !isDeepStrictEqual(state(), before);
 };
 // The pickup rules (a duplicate weapon topping up, utility stacks capping, a full inventory) are the core's: see
 // `rust/core/src/tick/tests/item_tests.rs`, `a_duplicate_firearm_tops_up_to_capacity_and_the_rest_stays_on_the_ground`
@@ -45,12 +34,8 @@ test('weapons stop firing at zero ammo', scene(({ s, p }) => {
   assert.equal(stateOf(s).projectiles.length, 0);
 }));
 
-// The merge and rejection rules, on the arranged record (a unit test of phase three: it does not step).
-test('slot moves merge compatible stacks and reject invalid requests', scene(({ s, p }) => {
-  p.inventory[0] = { kind: 'med', count: 2 }; p.inventory[1] = { kind: 'med', count: 2 };
-  assert.ok(moveSlot(s, p, 0, 1)); assert.equal(p.inventory[0].count, 1); assert.equal(p.inventory[1].count, 3);
-  assert.equal(moveSlot(s, p, 0, 1), false);
-}));
+// Stack merging, swapping by quality and the rejected requests are the core's: `rust/core/src/tick/tests/item_tests.rs`,
+// `slot_moves_merge_compatible_stacks_swap_otherwise_follow_selection_and_reject_invalid_requests`.
 
 test('slot moves follow selection and swap cells', scene(({ s, p }) => {
   p.inventory[2] = { kind: 'cell', charge: 71, instanceId: 'cell-71', lineageId: 'cell-71' };

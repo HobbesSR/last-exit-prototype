@@ -26,7 +26,7 @@ named owner decides. Smaller owners that the parts don't list:
 - `shared/equipment.ts` owns the default weapon table, slot count and inventory
   item operations; a match reads its pinned copy (22.1, "content").
 - `rust/core/src/hazards.rs` owns trap and hazard effects, calling the core's
-  damage directly; `shared/simulation/hazards.ts` is its adapter (27, step 5e.2).
+  damage directly (27, step 5e.2); the TypeScript adapter retired with the old-world run (#1358).
 - `shared/profiler.ts` owns the off-by-default sampling profiler shared by the
   server loop, the bench and the client ([21](21-stack.md), [24](24-networking-privacy.md)).
 - `public/diagnostics.js` owns the client's bounded timing sample and its

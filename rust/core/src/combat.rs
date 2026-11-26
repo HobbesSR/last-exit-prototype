@@ -9,7 +9,7 @@
 //! **Elimination stops the run, inside the call.** When damage kills, the run returns before anything of the
 //! elimination is written. What the run must remember across that (the sorted hits, which bullets were spent, the
 //! caster and target it stopped at) is kept here. Since #1214 stage 6e.2 the call carries the elimination out itself
-//! (`combat_run` in `lib.rs`, `phase_three::eliminate_in_world`) and resumes the run, as Node's `drive` did, so a resume
+//! (`phase_three::eliminate_in_world`) and resumes the run, as Node's `drive` did, so a resume
 //! still reads what the elimination and its syncs left in the stores.
 use crate::action_combat::{self, Fact};
 use crate::action_types::{Player, Rules};
@@ -361,75 +361,7 @@ fn gladiator_attack(
     None
 }
 
-/// The projectiles' flight, written back to the world's store (#1214 stage 6e.3) as Node writes its mirror: each bullet's
-/// position and life from the first part's rows, then, once the call ended, the spent and expired ones removed.
-pub(crate) fn fly(projectiles: &mut Vec<[f64; 8]>, first: &[f64], last: &[f64]) {
-    let rows = OUT_HEADER + first[5] as usize * OUT_ROW + first[6] as usize;
-    for (k, b) in projectiles.iter_mut().enumerate().take(first[7] as usize) {
-        let at = rows + k * 3;
-        (b[2], b[3], b[6]) = (first[at], first[at + 1], first[at + 2]);
-    }
-    if last[2] != 0.0 {
-        return;
-    }
-    let removed_at =
-        OUT_HEADER + last[5] as usize * OUT_ROW + last[6] as usize + last[7] as usize * 3;
-    let removed: Vec<usize> = last[removed_at..removed_at + last[8] as usize]
-        .iter()
-        .map(|&i| i as usize)
-        .collect();
-    let mut k = 0;
-    projectiles.retain(|_| {
-        let keep = !removed.contains(&k);
-        k += 1;
-        keep
-    });
-}
-
 impl Combat {
-    /// Put the store's projectiles where a projectile call's adapter packed its bullets (6e.3).
-    pub(crate) fn stored_bullets(&mut self, projectiles: &[[f64; 8]]) {
-        let h = &self.input;
-        let (mode, resume, players) = (h[0] as usize, h[1] != 0.0, h[4] as usize);
-        let mut at = HEADER;
-        if mode == MODE_PROJECTILES && !resume {
-            at += players * PATH_ROW;
-        }
-        let mut input = self.input[..at].to_vec();
-        input[5] = projectiles.len() as f64;
-        input.extend(projectiles.iter().flatten());
-        input.extend_from_slice(&self.input[at..]);
-        self.input = input;
-    }
-
-    /// The elimination words of a call that carries out its kills itself (`IN_RUN`), and the markers.
-    pub(crate) fn elimination_words(&self) -> Option<(crate::phase_three::Elimination, Vec<u32>)> {
-        let h = &self.input;
-        if h.len() <= IN_RUN || h[IN_RUN] == 0.0 {
-            return None;
-        }
-        let (mode, resume, players) = (h[0] as usize, h[1] != 0.0, h[4] as usize);
-        let mut at = HEADER;
-        if mode == MODE_PROJECTILES && !resume {
-            at += players * PATH_ROW;
-        }
-        at += h[5] as usize * BULLET_ROW + h[6] as usize * CASTER_ROW;
-        let w = &h[at..];
-        let markers = w[5] as usize;
-        Some((
-            crate::phase_three::Elimination {
-                tick: h[2],
-                serial: h[3],
-                item_serial: w[0],
-                scatter_serial: w[1],
-                respawn: w[2],
-                capacity: w[3],
-                drop_speed: w[4],
-            },
-            w[6..6 + markers].iter().map(|&k| k as u32).collect(),
-        ))
-    }
-
     /// Run a call. `swept` is needed only by a fresh projectile call; `rewind` is phase 7's frames.
     pub fn run(
         &mut self,

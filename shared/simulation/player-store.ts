@@ -28,7 +28,7 @@ export function appendItem(data: number[], item: InventoryItem | null, token: nu
  * The carried records the core's tokens name (#1214 stage 6c.3c.2), per runtime: a token is a record's index. Each upload
  * numbers the carried records in roster and slot order; a new record the core reports is filed with `adoptCarried` in the
  * order the adapter builds it, which is the order the store gives new items their tokens (`players::put_items`); a
- * swap's clone takes its original's token (`replaceCarried`). Phases 3 and 6 name carried records by these tokens.
+ * swap's clone took its original's token. Phase 3 names carried records by these tokens.
  */
 interface CarriedTable { items: InventoryItem[]; tokens: Map<InventoryItem, number> }
 const tables = new WeakMap<PhysicsRuntime, CarriedTable>();
@@ -42,15 +42,9 @@ export const carriedToken = (r: PhysicsRuntime, item: InventoryItem): number | u
 /** The carried record a token names. */
 export const carriedItem = (r: PhysicsRuntime, token: number): InventoryItem | undefined => tableOf(r).items[token];
 /** File a new carried record under the next token, as the store gives the new item it. */
-export function adoptCarried(r: PhysicsRuntime, item: InventoryItem): void {
+function adoptCarried(r: PhysicsRuntime, item: InventoryItem): void {
   const table = tableOf(r);
   table.tokens.set(item, table.items.length); table.items.push(item);
-}
-/** A swap's clone takes its original's token. */
-export function replaceCarried(r: PhysicsRuntime, token: number, item: InventoryItem): void {
-  const table = tableOf(r), old = table.items[token];
-  if (old) table.tokens.delete(old);
-  table.items[token] = item; table.tokens.set(item, token);
 }
 
 /**

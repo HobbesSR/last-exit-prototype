@@ -1327,3 +1327,89 @@ fn a_swaps_outgoing_drop_avoids_a_rotated_solid_prop() {
     let local = [dx * cos + dy * sin, dy * cos - dx * sin];
     assert!(local[0].abs() > 26.0 || local[1].abs() > 26.0);
 }
+
+#[test]
+fn slot_moves_merge_compatible_stacks_swap_otherwise_follow_selection_and_reject_invalid_requests()
+{
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 0.0);
+    equip_quality(&mut scenario, A, 0, 10, stack(3), 3);
+    equip_quality(&mut scenario, A, 1, 11, stack(1), 3);
+    equip_quality(&mut scenario, A, 2, 12, stack(1), 4);
+    equip(&mut scenario, A, 3, 13, cell(71));
+    scenario
+        .state
+        .actors
+        .get_mut(&A)
+        .unwrap()
+        .inventory
+        .selected = 3;
+    let mut game = scenario.start(30, 20);
+    let rules = Combat::default();
+    let rejected = Fact::Rejected {
+        actor: A,
+        reason: Rejection::MoveSlot,
+    };
+    let mut tick_no = 0;
+    let mut mv = |game: &mut Match, from: u8, to: u8| {
+        tick_no += 1;
+        submit(
+            game,
+            A,
+            tick_no,
+            u64::from(tick_no),
+            Input {
+                move_slot: Some((from, to)),
+                ..Input::default()
+            },
+        );
+        has(&game.step(&rules).unwrap(), rejected)
+    };
+    let slot = |game: &Match, n: usize| {
+        game.state().actors[&A].inventory.slots[n].map(|item| (item.id, item.equipment))
+    };
+    let med = |id: u32, count: u32, quality: u8| {
+        Some((
+            ItemId(id),
+            Equipment {
+                kind: stack(count),
+                quality,
+            },
+        ))
+    };
+
+    assert!(mv(&mut game, 1, 0), "a full target cannot absorb more");
+    assert_eq!(slot(&game, 0), med(10, 3, 3));
+    assert!(!mv(&mut game, 0, 1));
+    assert_eq!(
+        slot(&game, 1),
+        med(11, 3, 3),
+        "the target keeps its identity"
+    );
+    assert_eq!(
+        slot(&game, 0),
+        med(10, 1, 3),
+        "the source keeps the remainder"
+    );
+    assert!(!mv(&mut game, 0, 2));
+    assert_eq!(
+        slot(&game, 0),
+        med(12, 1, 4),
+        "different qualities swap, never blend"
+    );
+    assert_eq!(slot(&game, 2), med(10, 1, 3));
+
+    assert!(!mv(&mut game, 3, 5));
+    assert_eq!(
+        game.state().actors[&A].inventory.selected,
+        5,
+        "selection follows its item"
+    );
+    assert!(slot(&game, 3).is_none());
+    assert_eq!(slot(&game, 5).unwrap().1.kind, cell(71));
+    let before = game.state().actors[&A].inventory;
+    for (from, to) in [(5, 6), (5, 5), (3, 4), (4, 0)] {
+        assert!(mv(&mut game, from, to), "{from} to {to}");
+        assert_eq!(game.state().actors[&A].inventory, before);
+    }
+}
