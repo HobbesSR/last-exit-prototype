@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createGame, disposePhysics, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime, physicsState } from '../shared/simulation/physics-runtime.ts';
-import { capturePhysicsPresentation, projectPhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
+import { capturePhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
 import { POTENTIAL } from '../shared/simulation/visibility.ts';
 import { arena } from './helpers/arena.js';
 

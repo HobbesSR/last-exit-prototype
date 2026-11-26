@@ -8,12 +8,16 @@
 //!   who may receive it needs (#1357).
 //! - **Where an actor stands.** Its body's committed pose, or, without a body, where it last
 //!   stood.
+//! - **Who may receive what, and what each contestant has learned** (`admission.rs`, #1357): the
+//!   spatial index of the map-sized records, kept from each completed tick's output, and the
+//!   order each contestant's discovered cells were learned in.
 
 use std::collections::BTreeMap;
 
+use super::admission::{Learned, Radii, Spatial};
 use super::apply::{Event, Fact};
-use super::output::Changes;
-use super::{ActorId, BodyId, Point, State, Tick};
+use super::output::{Changes, Discontinuity, Pose};
+use super::{ActorId, BodyId, Memory, Point, State, Tick};
 use crate::math::{cos, sin};
 
 /// How long an effect is drawn, in ticks: its `life` on the tick it is made.
@@ -56,18 +60,67 @@ pub struct Effect {
 
 #[derive(Default)]
 pub struct Presentation {
+    /// The last completed tick.
+    pub(super) tick: Tick,
     /// Where each actor last stood: its body's pose, kept when the body leaves.
     at: BTreeMap<ActorId, Point>,
     /// The effects still drawn, oldest first.
     effects: Vec<Effect>,
+    /// Where the drawn bodies, ground items and traps are, indexed by cell.
+    pub(super) space: Spatial,
+    /// Each remembering contestant's discovered cells, in the order they were learned.
+    learned: BTreeMap<ActorId, Learned>,
 }
 
 impl Presentation {
-    /// Where each actor stands at the start.
-    pub fn new(at: impl IntoIterator<Item = (ActorId, Point)>) -> Self {
+    /// The match at its start: the state and every dynamic body's pose, and the radii the bodies
+    /// are drawn with. Where an actor stands is its body's pose; one without a body is told by
+    /// [`Presentation::stand`].
+    pub fn start(state: &State, poses: &BTreeMap<BodyId, Pose>, radii: Radii) -> Self {
+        let at = poses.iter().filter_map(|(&body, pose)| match body {
+            BodyId::Actor(actor) => Some((actor, pose.at)),
+            _ => None,
+        });
         Self {
-            at: at.into_iter().collect(),
+            tick: 0,
+            at: at.collect(),
             effects: Vec::new(),
+            space: Spatial::start(state, poses, radii),
+            learned: BTreeMap::new(),
+        }
+    }
+
+    /// An effect a scenario arranged before the start, drawn until `expires_at` as a made one is.
+    /// The frame store hands each one over in its order, so the effects' indices stay aligned
+    /// with the frame's (review 1132).
+    pub fn arrange(&mut self, kind: EffectKind, at: Point, radius: f64, expires_at: Tick) {
+        self.effects.push(Effect {
+            event: u32::MAX,
+            kind,
+            at,
+            radius,
+            expires_at,
+        });
+    }
+
+    /// Where an actor stands when it has no body at the start, if nothing is known yet.
+    pub fn stand(&mut self, actor: ActorId, at: Point) {
+        self.at.entry(actor).or_insert(at);
+    }
+
+    /// An actor's discovered cells as of the last refresh, in the order they were learned, or
+    /// none when it keeps no memory.
+    pub fn learned(&self, actor: ActorId) -> Option<&[u32]> {
+        self.learned.get(&actor).map(Learned::cells)
+    }
+
+    /// Refresh an actor's learned cells from its memory: the cells not yet known, ascending.
+    pub fn learn(&mut self, actor: ActorId, memory: Option<&Memory>) {
+        if let Some(memory) = memory {
+            self.learned
+                .entry(actor)
+                .or_default()
+                .learn(&memory.discovered);
         }
     }
 
@@ -82,7 +135,16 @@ impl Presentation {
     }
 
     /// A completed tick: its committed poses, then the effects its facts make. Returns those.
-    pub fn take(&mut self, tick: Tick, changes: &Changes, state: &State, blast: f64) -> &[Effect] {
+    pub fn take(
+        &mut self,
+        tick: Tick,
+        changes: &Changes,
+        discontinuities: &[Discontinuity],
+        state: &State,
+        blast: f64,
+    ) -> &[Effect] {
+        self.tick = tick;
+        self.space.take(changes, discontinuities);
         for (&body, pose) in &changes.poses {
             if let BodyId::Actor(actor) = body {
                 self.at.insert(actor, pose.at);
@@ -147,5 +209,20 @@ impl Presentation {
 impl EffectKind {
     pub fn code(self) -> u32 {
         self as u32
+    }
+
+    pub fn from_code(code: u32) -> Option<Self> {
+        [
+            Self::Slash,
+            Self::Shock,
+            Self::Scan,
+            Self::Upgrade,
+            Self::Loot,
+            Self::Rail,
+            Self::Charge,
+            Self::Grapple,
+        ]
+        .get(code as usize)
+        .copied()
     }
 }

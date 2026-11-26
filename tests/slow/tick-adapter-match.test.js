@@ -9,7 +9,7 @@ import { attachPortalGraph } from '../../shared/navigation/portal-graph.ts';
 import { startGame } from '../../shared/simulation/tick.ts';
 import { stepTick } from '../../shared/simulation/tick-step.ts';
 import { playerView } from '../../shared/simulation/visibility.ts';
-import { checkFrame, checkKnowledge, checkRecords } from '../helpers/tick-frame.js';
+import { checkFrame, checkKnowledge, checkProjection, checkRecords } from '../helpers/tick-frame.js';
 
 // A whole bot match on the new tick's path (27.2 "Node adapter (3d.2)"), on a chain arena stored in the frozen fixture, so no
 // map is generated here. The match runs on an in-process session with today's default content to its end. Each tick's
@@ -28,6 +28,7 @@ function play() {
     const s = await createGame(9, map, defaultContent());
     try {
       const session = startGame(s), { match, frames, knowledge } = session, facts = new Map();
+      let views = checkProjection(s, session.projection, frames.frame(), 0);
       const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
       let t;
       while ((t = stepTick({ s, ...session }))) {
@@ -44,8 +45,10 @@ function play() {
         // One player's view a tick, in turn: every player is projected hundreds of times over the match.
         const i = t.tick % s.players.length;
         assert.equal(playerView(s, frame, s.players[i].id).self.playerIdx, i);
+        // Every player's view from the core's decision equals the TypeScript rules', every tick (#1357).
+        views += checkProjection(s, session.projection, frame, t.tick);
       }
-      return { phase: s.phase, facts };
+      return { phase: s.phase, facts, views };
     } finally { disposePhysics(s); }
   })();
 }

@@ -85,11 +85,21 @@ export function capturePhysicsPresentation(s: Game): PhysicsPresentation | undef
   return captured;
 }
 
-/** Apply existing potential-visibility authorization to the captured tick, including delayed views. `items` are the frame's items the view holds. */
-export function projectPhysicsPresentation(frame: Snapshot, viewer: (Player<ItemKey> & { playerIdx: PlayerIdx }) | undefined, authorizedPlayers: Set<PlayerIdx>, items: readonly GroundItem<ItemKey>[], inRange: (p: Vec2 & { radius?: number }) => boolean, wire: WireIds = wireIds()) {
-  if (!frame.bodies) return {};
+/** The physics presentation a viewer may receive of a frame: its bodies, tethers and hook flights, in the frame's order. */
+export interface AuthorizedPresentation {
+  bodies: NonNullable<Snapshot['bodies']>;
+  tethers: NonNullable<Snapshot['tethers']>;
+  hookFlights: Snapshot['hookFlights'];
+}
+
+/**
+ * The TypeScript information rule for the physics presentation (24 "Layered frames"), including delayed views. `items` are
+ * the frame's items the view holds. An actor's body goes with its player, an item's with its item, and a tether only with
+ * both ends. The core decides the same for a live player view (`tick-projection.ts`, #1357).
+ */
+export function authorizePresentation(frame: Snapshot, viewer: (Player<ItemKey> & { playerIdx: PlayerIdx }) | undefined, authorizedPlayers: ReadonlySet<PlayerIdx>, items: readonly GroundItem<ItemKey>[], inRange: (p: Vec2 & { radius?: number }) => boolean): AuthorizedPresentation {
   const authorizedItems = new Set<string | number>(items.map(i => i.id));
-  const bodies = frame.bodies.filter(body => {
+  const bodies = (frame.bodies ?? []).filter(body => {
     if (body.owner.kind === 'actor') return authorizedPlayers.has(body.owner.playerIdx);
     if (body.owner.kind === 'item' && !authorizedItems.has(body.owner.itemId)) return false;
     return !viewer || inRange({ x: body.x, y: body.y, radius: bodyRadius(body.shape) });
@@ -98,11 +108,15 @@ export function projectPhysicsPresentation(frame: Snapshot, viewer: (Player<Item
   const ids = new Set(bodies.map(body => body.id));
   const actorIds = new Set(bodies.filter(body => body.owner.kind === 'actor' && authorizedPlayers.has(body.owner.playerIdx)).map(body => body.id));
   // Omit the whole tether when either endpoint is unauthorized. Never send hidden IDs/anchors.
-  const tethers: PhysicsTetherView[] = (frame.tethers ?? []).filter(t => ids.has(t.a) && ids.has(t.b)).map(t => physicsTetherFields(t, wire));
-  const hookFlights = frame.hookFlights?.filter(hook => actorIds.has(hook.a) && inRange({ x: hook.x, y: hook.y }))
-    .map(hook => physicsHookFlightFields(hook, wire));
-  // The profile is a match constant (PredictionConstants), not part of each frame.
+  const tethers = (frame.tethers ?? []).filter(t => ids.has(t.a) && ids.has(t.b));
+  const hookFlights = frame.hookFlights?.filter(hook => actorIds.has(hook.a) && inRange({ x: hook.x, y: hook.y }));
+  return { bodies, tethers, hookFlights };
+}
+
+/** The authorized presentation through the closed field contracts. The profile is a match constant (PredictionConstants). */
+export function presentationFields({ bodies, tethers, hookFlights }: AuthorizedPresentation, viewer: { playerIdx: PlayerIdx } | undefined, wire: WireIds = wireIds()) {
+  const flights = hookFlights?.map(hook => physicsHookFlightFields(hook, wire));
   return {
     bodies: bodies.map(body => physicsBodyFields(body, !viewer || body.owner.kind !== 'actor' || body.owner.playerIdx === viewer.playerIdx, wire)),
-    tethers, ...(hookFlights ? { hookFlights } : {}) };
+    tethers: tethers.map(t => physicsTetherFields(t, wire)) as PhysicsTetherView[], ...(flights ? { hookFlights: flights } : {}) };
 }

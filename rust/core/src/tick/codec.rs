@@ -105,7 +105,8 @@
 //! | Discovery sample | [`SAMPLE_STRIDE`] 3: actor, eye |
 //! | Discovery | a section of gate observations, a section of samples |
 //! | Completed tick | tick, inbound section, changes, discontinuities section, discovery. The solved paths stay in Rust |
-//! | Live step | a completed tick, then the effects it made (a section of [`EFFECT_STRIDE`] 5: event index, kind code, `at`, radius; `presentation.rs`) |
+//! | Live step | a completed tick, then the effects it made (a section of [`EFFECT_STRIDE`] 6: event index, kind code, `at`, radius, the first tick it is no longer drawn; `presentation.rs`) |
+//! | Admission | tick, viewer count, then per viewer: its actor word; sections (a count, then rows) of players (actor words), items (IDs), bodies (2 words each), tethers, flights, traps, projectiles (IDs) and effects (indices into the live effects); the count of its discovered cells, or -1 for none; a section of the cells from the caller's `held` on, in the order learned; its live cues, in the layout of Cue (`admission.rs`) |
 //! | Memory | presence word (0 for no memory), then `discovered`, `seen`, `surveyed` (sections of cell words), items (a section of [`REMEMBERED_ITEM_STRIDE`] 18: position, ground item row), gates (a section of [`DOOR_MEMORY_STRIDE`] 3: gate, open, locked), revision |
 //! | Cue | [`CUE_STRIDE`] 4: `at`, tick, until. Heard is a section of cues, oldest first |
 //!
@@ -1897,8 +1898,8 @@ pub fn put_completed(w: &mut Vec<f64>, tick: &CompletedTick) {
     put_discovery(w, &tick.discovery);
 }
 
-/// Words per effect a live step made: event index, kind code, `at`, radius.
-pub const EFFECT_STRIDE: usize = 5;
+/// Words per effect a live step made: event index, kind code, `at`, radius, expiry.
+pub const EFFECT_STRIDE: usize = 6;
 
 pub fn put_effects(w: &mut Vec<f64>, effects: &[super::presentation::Effect]) {
     w.size(effects.len());
@@ -1907,6 +1908,7 @@ pub fn put_effects(w: &mut Vec<f64>, effects: &[super::presentation::Effect]) {
         w.int(effect.kind.code());
         w.extend(effect.at);
         w.push(effect.radius);
+        w.int(effect.expires_at);
     }
 }
 
@@ -2500,15 +2502,18 @@ impl LiveMatch {
             handles.collision.cloned(),
             handles.roofs.map(DiscoveryMap::roofs),
         );
+        let radii = super::admission::Radii::of(&setup.bodies);
         let (scenario, rules, seed, time_limit) = setup.into_scenario(handles);
         let mut game = scenario.start(seed, time_limit);
         game.bots = planner;
-        let actors: Vec<ActorId> = game.state().actors.keys().copied().collect();
-        let presented = super::presentation::Presentation::new(
-            actors
-                .into_iter()
-                .filter_map(|id| game.position(BodyId::Actor(id)).map(|at| (id, at))),
-        );
+        let start = game.snapshot();
+        let mut presented =
+            super::presentation::Presentation::start(&start.state, &start.poses, radii);
+        if game.sampler.is_some() {
+            for &actor in start.state.actors.keys() {
+                presented.learn(actor, game.memory(actor));
+            }
+        }
         Ok(Self {
             game,
             rules,
@@ -2587,11 +2592,143 @@ impl LiveMatch {
         let made = self.presented.take(
             tick.tick,
             &tick.changes,
+            &tick.discontinuities,
             self.game.state(),
             self.rules.hazards.mine.blast,
         );
         put_effects(&mut self.output, made);
+        if self.game.sampler.is_some() {
+            let named: BTreeSet<ActorId> = tick
+                .discovery
+                .gates
+                .iter()
+                .map(|gate| gate.actor)
+                .chain(tick.discovery.samples.iter().map(|sample| sample.actor))
+                .collect();
+            for actor in named {
+                self.presented.learn(actor, self.game.memory(actor));
+            }
+        }
         true
+    }
+
+    /// Records where an actor stands when it has no body at the start. Nothing changes once a
+    /// place is known.
+    /// An effect arranged before the start (`Presentation::arrange`). False for an unknown kind,
+    /// a non-finite place or radius, or an expiry that is not a tick.
+    pub fn arrange_effect(&mut self, kind: f64, at: Point, radius: f64, expires_at: f64) -> bool {
+        let kind = (kind >= 0.0 && kind.fract() == 0.0 && kind <= u32::MAX as f64)
+            .then(|| super::presentation::EffectKind::from_code(kind as u32))
+            .flatten();
+        let expiry =
+            (expires_at >= 0.0 && expires_at.fract() == 0.0 && expires_at <= Tick::MAX as f64)
+                .then_some(expires_at as Tick);
+        match (kind, expiry) {
+            (Some(kind), Some(expiry))
+                if at.iter().all(|v| v.is_finite()) && radius.is_finite() =>
+            {
+                self.presented.arrange(kind, at, radius, expiry);
+                true
+            }
+            _ => false,
+        }
+    }
+
+    pub fn stand(&mut self, actor: f64, at: Point) {
+        if let Some(actor) = word_actor(actor) {
+            self.presented.stand(actor, at);
+        }
+    }
+
+    /// What each viewer in the input buffer may receive at the last completed tick (the
+    /// Admission row of the Outputs table). The input is the reach, whether the room stranded its
+    /// contestants, a viewer count, then each viewer's actor word and how many discovered cells
+    /// its caller holds. False when the input does not decode.
+    pub fn admit(&mut self) -> bool {
+        self.output.clear();
+        if self.write_admission().is_err() {
+            self.output.clear();
+            return false;
+        }
+        true
+    }
+
+    fn write_admission(&mut self) -> Result<()> {
+        let Self {
+            game,
+            presented,
+            input,
+            output: w,
+            ..
+        } = self;
+        let mut r = Reader::new(input);
+        let reach = r.finite()?;
+        let stranded = r.bool()?;
+        let viewers = r.count(2)?;
+        let tick = game.tick;
+        w.int(tick);
+        w.size(viewers);
+        for _ in 0..viewers {
+            let word = r.finite()?;
+            let held = r.u32()? as usize;
+            w.push(word);
+            let viewer = word_actor(word).filter(|id| game.state().actors.contains_key(id));
+            let admitted = viewer
+                .map(|viewer| presented.admit(game.state(), viewer, reach, stranded))
+                .unwrap_or_default();
+            w.size(admitted.players.len());
+            for &actor in &admitted.players {
+                w.actor(actor);
+            }
+            w.size(admitted.items.len());
+            for id in &admitted.items {
+                w.int(id.0);
+            }
+            w.size(admitted.bodies.len());
+            for &body in &admitted.bodies {
+                w.body(body);
+            }
+            for ids in [&admitted.tethers, &admitted.flights] {
+                w.size(ids.len());
+                for id in ids {
+                    w.int(id.0);
+                }
+            }
+            w.size(admitted.traps.len());
+            for id in &admitted.traps {
+                w.int(id.0);
+            }
+            w.size(admitted.projectiles.len());
+            for id in &admitted.projectiles {
+                w.int(id.0);
+            }
+            w.size(admitted.effects.len());
+            for &index in &admitted.effects {
+                w.int(index);
+            }
+            match viewer.and_then(|viewer| presented.learned(viewer)) {
+                Some(cells) => {
+                    w.size(cells.len());
+                    let fresh = super::admission::since(cells, held);
+                    w.size(fresh.len());
+                    for &cell in fresh {
+                        w.int(cell);
+                    }
+                }
+                None => {
+                    w.push(-1.0);
+                    w.size(0);
+                }
+            }
+            let heard: Vec<Cue> = viewer
+                .map(|viewer| game.heard(viewer))
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|cue| cue.until > tick)
+                .collect();
+            put_cues(w, &heard);
+        }
+        Ok(())
     }
 
     pub fn bot_routes(&mut self) {

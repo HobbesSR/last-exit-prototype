@@ -1,3 +1,4 @@
+import { TickProjection } from './tick-projection.ts';
 import { start, stop } from '../profiler.ts';
 import type { Game, GameEvent } from '../types.ts';
 import { TickBoundary } from './tick-boundary.ts';
@@ -26,7 +27,9 @@ export function createTickSession(game: Game, wire?: WireIds, navigation?: numbe
     const ids = match.ids;
     const view: ViewSource = { knowledge, slotOf: id => { const word = ids.actorOfPlayer.get(id); return word === undefined ? undefined : ids.slotOfActor.get(word); } };
     registerViewSource(game, view);
-    return { match, knowledge, boundary: new TickBoundary(game, match, wire), frames, view };
+    // The core decides what each player viewer may receive; the room assembles from the frames (27.2, #1357).
+    const projection = new TickProjection(game, match, frames);
+    return { match, knowledge, boundary: new TickBoundary(game, match, wire), frames, view, projection };
   } catch (error) { match.dispose(); throw error; }
 }
 

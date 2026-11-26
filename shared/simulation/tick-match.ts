@@ -12,7 +12,7 @@ import { sightOf } from './sight-runtime.ts';
 import { discoveryTables } from '../discovery.ts';
 import { authoredProps } from './world-physics.ts';
 import { createRuntimeNavigation } from '../navigation/runtime-map.ts';
-import { SLOT_COUNT, actorWord, decodeBotRoutes, decodeStep, decodeCues, decodeMemory, decodeSnapshot, encodeInbound, encodeSetup } from './tick-codec.ts';
+import { SLOT_COUNT, actorWord, decodeAdmissions, decodeBotRoutes, decodeStep, decodeCues, decodeMemory, decodeSnapshot, encodeInbound, encodeSetup } from './tick-codec.ts';
 import type { Actor, ActorEntry, Presence, Window, BodyRow, SetupBody, DecodedTick, Presented, Equipment, GateEntry, GroundEntry, Inbound, KnownSetup, Loot, MatchSetup, Memory, MotorSurface, Cue, BotLabel,
   Point, Snapshot, State, StationEntry, Tick, TrapEntry, TrapKind, Tuning, WeaponTuning } from './tick-codec.ts';
 import type { CoreExports } from '../core.ts';
@@ -387,6 +387,9 @@ interface MatchExports {
   match_bot_routes(game: number): number;
   match_heard(game: number, actor: number): number;
   match_acknowledged(game: number, actor: number): number;
+  match_admit(game: number): number;
+  match_stand(game: number, actor: number, x: number, y: number): void;
+  match_arrange_effect(game: number, kind: number, x: number, y: number, radius: number, expiresAt: number): number;
 }
 type MatchCore = CoreExports & MatchExports;
 
@@ -491,12 +494,34 @@ export class TickMatch {
   /** Routes for the private snapshot. An empty plan is distinct from an actor with no plan. */
   botRoutes() { return this.#read(this.#core.match_bot_routes(this.#live()), decodeBotRoutes); }
   /** The cues a player hears as of the last completed tick, oldest first. */
+  /**
+   * What each viewer may receive at the last completed tick, decided by the core in one call (docs/27.2 "The core's
+   * projection"). `held` is how many of its discovered cells the caller already holds; `stranded`, whether the room ended the
+   * match stranding its active contestants. `reach` is the potential radius.
+   */
+  admit(viewers: readonly { id: PlayerId; held: number }[], reach: number, stranded: boolean): ReturnType<typeof decodeAdmissions> {
+    const game = this.#live(), core = this.#core;
+    const words = [reach, stranded ? 1 : 0, viewers.length, ...viewers.flatMap(v => [this.#actor(v.id), v.held])];
+    const input = core.match_input(game, words.length) >>> 0;
+    new Float64Array(core.memory.buffer, input, words.length).set(words);
+    const pointer = core.match_admit(game) >>> 0;
+    if (pointer === 0) throw new Error('tick-match: the core refused the admission request');
+    return this.#read(pointer, decodeAdmissions);
+  }
+  /** An effect arranged before the start, drawn until `expiresAt`; in the frame's order, so effect indices agree. */
+  arrangeEffect(kind: number, x: number, y: number, radius: number, expiresAt: Tick): void {
+    if (!this.#core.match_arrange_effect(this.#live(), kind, x, y, radius, expiresAt)) throw new RangeError('tick-match: the core refused an arranged effect');
+  }
+  /** Where an actor without a body stands at the start, as the frames take it from the game. */
+  stand(word: number, x: number, y: number): void { this.#core.match_stand(this.#live(), word, x, y); }
   heard(id: PlayerId): Cue[] { return this.#read(this.#core.match_heard(this.#live(), this.#actor(id)), decodeCues); }
   /** The last command sequence spent for the player, or null. */
   acknowledged(id: PlayerId): number | null {
     const seq = this.#core.match_acknowledged(this.#live(), this.#actor(id));
     return seq < 0 ? null : seq;
   }
+  /** Whether `dispose` has freed the match, after which nothing can be asked of it. */
+  get disposed(): boolean { return this.#pointer === 0; }
   dispose(): void {
     if (this.#pointer === 0) return;
     live.unregister(this);

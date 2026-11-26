@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { heardOf } from '../../shared/simulation/tick-knowledge.ts';
+import { playerView } from '../../shared/simulation/visibility.ts';
 
 // Checks on the new tick's frames (docs/27.2 "Frames (3d.3)") and the knowledge written beside them, shared by
 // tests/tick-adapter.test.js and its slow whole-match test.
@@ -58,4 +59,19 @@ export function checkKnowledge(s, match, knowledge, tick, remembers = () => true
     assert.deepEqual(cells && [...cells].sort((a, b) => a - b), memory && [...memory.discovered].sort((a, b) => a - b),
       `tick ${tick}: ${p.id} has discovered`);
   });
+}
+
+/**
+ * The A/B check of the core's projection (docs/27.2 "The core's projection", #1357): every player's view of `frame`, from the
+ * core's decision in one call, equals the TypeScript rules' view of it, field for field. Each view is required to come from
+ * the core: a missing decision fails rather than letting the rules stand in. Returns how many views were compared.
+ */
+export function checkProjection(s, projection, frame, tick, ids = s.players.map(p => p.id)) {
+  projection.decide(ids);
+  for (const id of ids) {
+    const core = projection.project(frame, id);
+    assert.ok(core, `tick ${tick}: no core decision for ${id}`);
+    assert.deepEqual(core, playerView(s, frame, id), `tick ${tick}: ${id}'s view`);
+  }
+  return ids.length;
 }

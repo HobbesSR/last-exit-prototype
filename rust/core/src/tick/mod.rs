@@ -1,6 +1,7 @@
 //! The unwired intake → solve → resolve → apply runner (27.2).
 //! The WASM adapter still calls the seven-phase tick.
 
+mod admission;
 mod apply;
 mod bots;
 pub mod codec;

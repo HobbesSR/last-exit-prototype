@@ -294,7 +294,10 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
         }
       }
     },
-    project: (frame, id) => projectView(live ? live.view : viewSourceOf(game), frame, id, wire),
+    /** Ask the core what these players may receive of the current tick, in one call, before projecting their views (#1357). */
+    decide(ids) { live?.projection.decide(ids); },
+    // A player's view of the current tick is the core's decision; a directed view, or a frame of another tick, the rules'.
+    project: (frame, id) => live?.projection.project(frame, id, wire) ?? projectView(live ? live.view : viewSourceOf(game), frame, id, wire),
     /** What a client predicts with that never changes in this match (24.3 proposal 3): sent with the map. */
     constants: () => predictionConstants(game.version, game.content.actorPhysics),
     map: () => structuredClone(wholeMap(game, live ? dynamicOf(capture()) : { gates: mergeGateGeometry({ gates: publishGates(game) }), items: publishItems(game) })),

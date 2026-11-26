@@ -244,7 +244,7 @@ export interface GateObservation { actor: number; gate: number; open: boolean; l
 export interface DiscoverySample { actor: number; eye: Point }
 export interface Discovery { gates: GateObservation[]; samples: DiscoverySample[] }
 /** An effect a tick's fact made, as the core presents it: the index of its event in T's events, and where it is drawn. */
-export interface MadeEffect { event: number; kind: EffectKind; at: Point; radius: number }
+export interface MadeEffect { event: number; kind: EffectKind; at: Point; radius: number; /** The first tick it is no longer drawn. */ expiresAt: Tick }
 export interface DecodedTick {
   tick: Tick; inbound: Inbound[]; changes: Changes; discontinuities: Discontinuity[]; discovery: Discovery;
 }
@@ -389,8 +389,8 @@ export const SAMPLE_STRIDE = 3;
 export const REMEMBERED_ITEM_STRIDE = 2 + ITEM_STRIDE;
 export const DOOR_MEMORY_STRIDE = 3;
 export const CUE_STRIDE = 4;
-/** Words per effect a live step made (`put_effects`): event index, kind code, `at`, radius. */
-export const EFFECT_STRIDE = 5;
+/** Words per effect a live step made (`put_effects`): event index, kind code, `at`, radius, expiry. */
+export const EFFECT_STRIDE = 6;
 /** The effects' kinds by code (`EffectKind` in `rust/core/src/tick/presentation.rs`). */
 export const EFFECT_KINDS = ['slash', 'shock', 'scan', 'upgrade', 'loot', 'rail', 'charge', 'grapple'] as const satisfies readonly EffectKind[];
 /** A body row's words before its vertices: the body (2) and `queue_add_body`'s row after its key. */
@@ -1040,7 +1040,7 @@ export function decodeStep(words: ArrayLike<number>): { completed: DecodedTick; 
   for (let i = 0; i < count; i++) {
     const event = r.u32(), code = r.u32(), kind = EFFECT_KINDS[code];
     if (kind === undefined) r.fail(`effect kind ${code}`);
-    effects.push({ event, kind: kind!, at: r.point(), radius: r.finite() });
+    effects.push({ event, kind: kind!, at: r.point(), radius: r.finite(), expiresAt: r.u32() });
   }
   if (!r.empty) r.fail('trailing words');
   return { completed: { tick, inbound, changes, discontinuities, discovery }, presented: { effects } };
@@ -1073,6 +1073,32 @@ export function decodeMemory(words: ArrayLike<number>): Memory | null {
   const memory = { discovered, seen, surveyed, items, gates, revision: r.u64() };
   if (!r.empty) r.fail('trailing words');
   return memory;
+}
+/**
+ * What the core decided one player viewer may receive at the last completed tick (`match_admit`, docs/27.2 "The core's
+ * projection"), in the core's identities: actor words, ground item IDs, bodies, hook IDs (tethers and flights), trap and
+ * projectile IDs, and indices into the effects still drawn. `discovered` holds the cells past the caller's `held` count,
+ * in the order learned, of `total` (-1 for none kept).
+ */
+export interface Admission {
+  actor: number; players: number[]; items: number[]; bodies: BodyRef[]; tethers: number[]; flights: number[]; traps: number[];
+  projectiles: number[]; effects: number[]; total: number; discovered: number[]; heard: Cue[];
+}
+/** `match_admit`'s words: the tick, then each viewer's admission in the order asked. */
+export function decodeAdmissions(words: ArrayLike<number>): { tick: Tick; admissions: Admission[] } {
+  const r = new Reader(words), tick = r.u32(), count = r.count(1), admissions: Admission[] = [];
+  const ids = () => Array.from({ length: r.count(1) }, () => r.u32());
+  for (let i = 0; i < count; i++) {
+    const actor = r.actor(), players = Array.from({ length: r.count(1) }, () => r.actor()), items = ids();
+    const bodies = Array.from({ length: r.count(2) }, () => r.body());
+    const tethers = ids(), flights = ids(), traps = ids(), projectiles = ids(), effects = ids();
+    const total = r.finite(), discovered = ids();
+    const heard: Cue[] = [];
+    for (let n = r.count(CUE_STRIDE), c = 0; c < n; c++) heard.push({ at: r.point(), tick: r.u32(), until: r.u32() });
+    admissions.push({ actor, players, items, bodies, tethers, flights, traps, projectiles, effects, total, discovered, heard });
+  }
+  if (!r.empty) r.fail('trailing words');
+  return { tick, admissions };
 }
 /** A listener's cues, oldest first: `match_heard`'s words (a count word, then rows). */
 export function decodeCues(words: ArrayLike<number>): Cue[] {

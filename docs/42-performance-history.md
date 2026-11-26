@@ -47,6 +47,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.80](42.80-in-process-without-mirror-benchmark.md) | In-process games without the mirror's applier, paired against `main`: step 1–2% lower (#1345) |
 | [42.81](42.81-room-without-mirror-benchmark.md) | A room without the mirror's applier, paired against `main` on the room loop: tick about 1.6% lower, memory refresh up 0.016 ms (#1346) |
 | [42.82](42.82-projection-from-core-output-benchmark.md) | Projection from the core's output and a knowledge cache, eleven viewers, paired against its base: projection and encoding unchanged, memory refresh 0.05 → 0.02 ms (#1343) |
+| [42.83](42.83-core-projection-decision-benchmark.md) | The core decides each player view (#1357, stage 1b), eleven viewers, paired against its base: decision plus assembly equals the TypeScript projection; flat from 12x6 to 24x12 |
 
 ### Navigation
 

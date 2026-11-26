@@ -18,7 +18,7 @@ import { playerView } from '../shared/simulation/visibility.ts';
 import { createFrameEncoder, createRecordingReader } from '../shared/recording-format.ts';
 import { SCHEMA } from '../shared/recording.ts';
 import { arena } from './helpers/arena.js';
-import { checkFrame, checkKnowledge, checkRecords } from './helpers/tick-frame.js';
+import { checkFrame, checkKnowledge, checkProjection, checkRecords } from './helpers/tick-frame.js';
 import { now } from './helpers/scenario.js';
 
 // The Node adapter (27.2 "Node adapter (3d.2)"): the receive boundary, bot commands and knowledge, on a small arena, and the
@@ -65,9 +65,10 @@ async function run(fn, content) {
 }
 
 test('a bot match on the new path holds the frame store records and knowledge equal to the match snapshot every tick', async () => {
-  await run((s, { match, frames, knowledge }, step) => {
+  await run((s, { match, frames, knowledge, projection }, step) => {
     assert.ok(s.players.every(p => p.bot));
     const kinds = new Set(), record = recordingRoundTrip();
+    checkProjection(s, projection, frames.frame(), 0);
     const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
     checkKnowledge(s, match, knowledge, 0);
     let previous = checkFrame(frames.frame(), match.snapshot(), 0, words), placed = 0;
@@ -91,8 +92,10 @@ test('a bot match on the new path holds the frame store records and knowledge eq
         }
       }
       previous = bodies;
-      // The recording stores it and reads it back whole; every player's view projects from it.
+      // The recording stores it and reads it back whole; every player's view projects from it, the core's decision equal
+      // to the TypeScript rules'.
       assert.deepEqual(record(frame), JSON.parse(JSON.stringify(frame)), `tick ${t.tick}`);
+      checkProjection(s, projection, frame, t.tick);
       for (const p of s.players) {
         const view = playerView(s, frame, p.id);
         assert.equal(view.self.playerIdx, s.players.indexOf(p));
@@ -461,4 +464,47 @@ test('recorded command and observation rows convert back to the rows the core qu
     assert.throws(() => inboundOfRecorded(ids, carried), /carried rows are regenerated/);
     assert.throws(() => inboundOfRecorded(ids, [{ ...recorded[0], id: 'nobody' }]), /no actor for player nobody/);
   });
+});
+
+// The core's projection on an arena wider than the potential radius (1693): the view holds what is out of reach apart, so
+// range, arranged effects and a same-tick finish can each disagree with the rules (#1357, review 1132).
+test("the core's projection keeps arranged effects aligned and redecides when a finish strands contestants within the tick", async () => {
+  const { map } = arena({ cols: 14, rows: 3, seed: 11,
+    items: [{ id: 'i0', kind: 'med', x: 160, y: 290 }],
+    spawns: [{ x: 150, y: 290 }, { x: 2500, y: 290 }], hunterSpawns: [{ x: 1300, y: 290 }] });
+  const c = structuredClone(contentById('content-ammo-1'));
+  c.roster = { contestants: ['C0', 'C1'], gladiators: [{ name: 'G', kit: 'striker' }] };
+  const s = await createGame(11, map, c);
+  try {
+    // Two effects a scenario arranged before the start: one beside C0, one beside the far contestant, which outlives it.
+    s.effects = [{ id: 900, x: 150, y: 290, kind: 'scan', radius: 30, life: 6 }, { id: 901, x: 2500, y: 290, kind: 'shock', radius: 30, life: 40 }];
+    const session = startGame(s), { boundary, frames, projection } = session, step = () => stepTick({ s, ...session });
+    const [near, far] = s.players;
+    let frame = frames.frame();
+    checkProjection(s, projection, frame, 0);
+    assert.deepEqual(projection.project(frame, near.id).effects.map(e => e.id), [900], 'the far arranged effect is out of reach');
+    // C0 picks up the med kit at its feet: a loot effect is made while both arranged ones are drawn.
+    boundary.seat(near.id, 'join');
+    let made = false;
+    for (let seq = 1; seq <= 20 && !made; seq++) {
+      boundary.input(near.id, { seq, interact: true });
+      step();
+      frame = frames.frame();
+      checkProjection(s, projection, frame, s.tick);
+      made = frame.effects.some(e => e.kind === 'loot');
+    }
+    assert.ok(made, 'the pickup made a loot effect');
+    assert.ok(frame.effects.some(e => e.id === 901), 'the far arranged effect is still drawn');
+    // The far contestant is out of the near one's reach: the broadcast's decision leaves it out.
+    projection.decide(s.players.map(p => p.id));
+    assert.ok(!projection.project(frame, near.id).players.some(p => p.playerIdx === 1));
+    // The owner finishes within the tick, stranding active contestants; the final broadcast redecides.
+    frames.end({ strand: true });
+    frame = frames.frame();
+    assert.equal(frame.players[1].status, 'stranded');
+    const view = projection.project(frame, near.id);
+    assert.ok(view.players.some(p => p.playerIdx === 1), 'a stranded contestant is sent at any range');
+    assert.deepEqual(view, playerView(s, frame, near.id));
+    checkProjection(s, projection, frame, s.tick);
+  } finally { disposePhysics(s); }
 });
