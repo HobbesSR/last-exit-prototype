@@ -268,3 +268,101 @@ impl Detour {
         advance()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::tests::{contestant, standing, standing_on};
+    use super::*;
+    use crate::navigation::Grid;
+    use crate::tick::Memory;
+    use std::collections::{BTreeMap, BTreeSet};
+
+    #[test]
+    fn a_crowd_among_authored_props_keeps_local_planning_within_its_edge_caps() {
+        // 40 bots lined up before a field of 64 crates they must pass: every bot has a blocked straight line.
+        let places: Vec<Point> = (0..40)
+            .map(|i| {
+                [
+                    880.0 + f64::from(i % 4) * 30.0,
+                    200.0 + f64::from(i / 4) * 40.0,
+                ]
+            })
+            .collect();
+        let props: Vec<Shape> = (0..64)
+            .map(|i| Shape::Rect {
+                x: 1000.0 + f64::from(i % 8) * 60.0 - 12.0,
+                y: 200.0 + f64::from(i / 8) * 60.0 - 24.0,
+                w: 24.0,
+                h: 48.0,
+            })
+            .collect();
+        let mut spent = 0;
+        // Each bot plans on every fourth tick, staggered by its place, so each tick ten of them compete.
+        for tick in 0..4 {
+            standing(&places, props.clone(), tick, |ctx, ids| {
+                let mut edges = 0;
+                for (idx, &id) in ids.iter().enumerate() {
+                    let pos = places[idx];
+                    let before = edges;
+                    Detour::default().waypoint(
+                        ctx,
+                        None,
+                        id,
+                        idx,
+                        Waypoint {
+                            pos,
+                            destination: [pos[0] + 600.0, pos[1]],
+                            route_generation: 0,
+                        },
+                        &mut edges,
+                    );
+                    assert!(
+                        edges - before <= EDGES_PER_BOT,
+                        "one bot's edges stay capped"
+                    );
+                }
+                assert!(edges <= EDGES_PER_TICK, "tick {tick}: {edges} edges");
+                spent += edges;
+            });
+        }
+        assert!(spent > 0, "the crowd exercised the bounded edge planning");
+    }
+
+    #[test]
+    fn a_contestant_detours_only_over_ground_it_has_surveyed() {
+        // A bot walks east at a contestant that stands in its way, with room beside it.
+        let size = [800.0, 800.0];
+        let grid = Grid::discovery(size[0], size[1]);
+        let places = [[150.0, 400.0], [300.0, 400.0]];
+        let next = |surveyed: BTreeSet<u32>| {
+            let memory = BTreeMap::from([(
+                contestant(0),
+                Memory {
+                    surveyed,
+                    ..Memory::default()
+                },
+            )]);
+            standing_on(size, memory, &places, Vec::new(), 0, |ctx, ids| {
+                Detour::default().waypoint(
+                    ctx,
+                    None,
+                    ids[0],
+                    0,
+                    Waypoint {
+                        pos: places[0],
+                        destination: [480.0, 400.0],
+                        route_generation: 0,
+                    },
+                    &mut 0,
+                )
+            })
+        };
+        // Nothing surveyed: no side step is known clear, so it advances along its line toward the observed actor.
+        let blind = next(BTreeSet::new());
+        assert!(blind[0] > places[0][0] && blind[0] < places[1][0]);
+        assert_eq!(blind[1], places[0][1]);
+        // Fully surveyed, it plans a lateral detour.
+        let sighted = next((0..(grid.cols * grid.rows) as u32).collect());
+        assert_ne!(sighted[1], places[0][1]);
+    }
+}

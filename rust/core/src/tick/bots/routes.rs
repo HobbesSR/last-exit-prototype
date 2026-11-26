@@ -380,3 +380,60 @@ impl RouteState {
         Some(repaired)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // The planner keeps a route's legs a body's clearance from walls, 2 beyond a contestant's body (#473 review).
+    const MARGIN: f64 = 2.0;
+
+    #[test]
+    fn a_late_route_is_joined_only_within_its_margin_else_by_the_trail_back() {
+        // The bot walked round a wall while its search ran: the nearest segment lies beyond it.
+        let round = [[100.0, 100.0], [180.0, 620.0], [400.0, 900.0]];
+        let back = join_route(
+            [400.0, 100.0],
+            &round,
+            &[[100.0, 100.0], [250.0, 100.0], [400.0, 100.0]],
+            MARGIN,
+        );
+        assert_eq!(
+            back[..3],
+            [[400.0, 100.0], [250.0, 100.0], [100.0, 100.0]],
+            "it walks back the way it came"
+        );
+        assert_eq!(back[3..], round[1..]);
+
+        // Beside a segment along the wall, 10 units off it: only the trail is known clear.
+        let along = [[186.0, 100.0], [186.0, 900.0]];
+        let stepped = join_route(
+            [196.0, 100.0],
+            &along,
+            &[[186.0, 100.0], [196.0, 100.0]],
+            MARGIN,
+        );
+        assert_eq!(stepped, [[196.0, 100.0], [186.0, 100.0], [186.0, 900.0]]);
+
+        // Within the margin it joins where it is.
+        assert_eq!(
+            join_route(
+                [187.5, 100.0],
+                &along,
+                &[[186.0, 100.0], [187.5, 100.0]],
+                MARGIN
+            ),
+            [[186.0, 900.0]]
+        );
+        assert_eq!(
+            join_route(
+                [140.0, 360.0],
+                &round,
+                &[[100.0, 100.0], [140.0, 360.0]],
+                MARGIN
+            ),
+            round[1..],
+            "on the route"
+        );
+    }
+}

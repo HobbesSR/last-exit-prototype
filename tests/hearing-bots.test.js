@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { disposePhysics, setInput, step, snapshot } from '../shared/simulation.ts';
-import { collectBotIntent, isOpportunistic } from '../shared/simulation/bots.ts';
+import { startGame, stepGame } from '../shared/simulation/tick.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { hearShot } from '../shared/simulation/hearing.ts';
 import { cellCenter, cellIndexAt } from '../shared/discovery.ts';
 import { canOccupy } from '../shared/movement.ts';
 import { openField } from './helpers/arena.js';
@@ -65,24 +64,27 @@ test('content-8, which hears but does not react, plays exactly as content-7', as
   assert.deepEqual(await play('content-8'), await play('content-7'));
 });
 
-test('a contestant chooses where to go from what it knows, not from geometry it has not discovered', async () => {
-  // The cue's cell centre, as hearing fuzzes it; an unseen crate there must not move the contestant's goal (15, 22.6.2).
-  // A cell along the shot's row whose centre is open, so only the unseen crate can make it a place not to stand.
-  const bare = field(), cue = Array.from({ length: 20 }, (_, i) => cellCenter(bare, cellIndexAt(bare, SHOT.x + i * 192, SHOT.y)))
-    .find(at => canOccupy(bare, at.x, at.y, 40));
-  // The contestant knows nothing yet: no surveyed cell, so a crate in a cell it has not discovered is not in its plan.
-  const inputs = [];
-  for (const hidden of [false, true]) {
-    const map = field({ obstacles: hidden ? [{ id: 'unseen', kind: 'crate', x: cue.x - 10, y: cue.y - 10, w: 20, h: 20 }] : [] });
-    const { s, players: [, p, other] } = await stagePhysics(map, { content: heardContent('content-7', 'temperament'),
-      actors: [{ role: 'gladiator', x: 600, y: Y }, { role: 'contestant', x: 3000, y: Y, knows: {} }, { role: 'contestant', bot: false, x: 7800, y: 1000 }] });
-    try {
-      assert.ok(isOpportunistic(p), 'the first contestant is the opportunistic one');
-      hearShot(s, { ...other, id: 'arranged', ...cue }, 'pistol');
-      const steps = [0, 1, 2].map(() => { const input = collectBotIntent(s, p).input; s.tick++; return input; });
-      inputs.push({ steps, goal: p.route?.at(-1) });
-    } finally { disposePhysics(s); }
-  }
-  assert.ok(inputs[0].goal, 'the contestant is heading for the shot');
-  assert.deepEqual(inputs[1], inputs[0]);
+test('a contestant chooses where to go from what it knows, not from geometry it has not discovered', async t => {
+  // A crate where the listener plans to stand must not move a contestant's goal, which knows nothing yet: no surveyed
+  // cell, so geometry it has not discovered is not in its plan (15, 22.6.2). A gladiator knows the map, so it does move
+  // its goal: the control. Each match hears the same shot.
+  const play = async (role, crate) => {
+    const map = field({ obstacles: crate ? [{ id: 'unseen', kind: 'crate', x: crate.x - 10, y: crate.y - 10, w: 20, h: 20 }] : [] });
+    const { s, players: [bot, shooter] } = await stagePhysics(map, { content: heardContent('content-7', 'temperament'),
+      actors: [{ role, x: 3000, y: Y, ...role === 'contestant' && { knows: {} } }, { role: 'contestant', bot: false, ...SHOT }, { role: 'contestant', bot: false, x: 7800, y: 1000 }] });
+    t.after(() => disposePhysics(s));
+    shooter.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 48, instanceId: 'hearing-weapon', lineageId: 'hearing-weapon' };
+    identifyItems(s);
+    const { match } = startGame(s), actor = match.ids.actorOfPlayer.get(bot.id), steps = [];
+    assert.ok(setInput(s, shooter.id, { seq: 1, attack: true, aim: 0 }));
+    for (let i = 0; i < 60; i++) {
+      const { input } = stepGame(s).inbound.find(row => row.type === 'command' && row.command.source === 'bot' && row.command.actor === actor).command;
+      steps.push({ movement: input.movement, goal: match.botRoute(bot.id).at(-1) });
+    }
+    return steps;
+  };
+  const clear = await play('contestant'), goal = clear.at(-1).goal;
+  assert.ok(goal && Math.hypot(goal.x - SHOT.x, goal.y - SHOT.y) < 400, 'the contestant is heading for the shot');
+  assert.deepEqual(await play('contestant', goal), clear, 'a crate it has not seen changes nothing it plans');
+  assert.notDeepEqual(await play('gladiator', goal), await play('gladiator'), 'one a gladiator knows of does');
 });

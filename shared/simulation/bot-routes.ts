@@ -189,7 +189,7 @@ const TURN_AHEAD: World = 24;
  * and presses into the obstacle: near a waypoint, the bot turns only once the first stretch of the
  * next leg is clear for its body, or when it is on the waypoint itself, and within `margin` of
  * that leg, since the leg may run along a wall beyond the stretch swept (#473 review); within
- * 9 units steering slows to land on the waypoint, so it gets there. Exported for its test.
+ * 9 units steering slows to land on the waypoint, so it gets there.
  */
 export function passed(s: Game, p: Player, waypoint: Vec2, next: Vec2): boolean {
   const d = distance(p, waypoint);
@@ -390,9 +390,8 @@ export function abandonLeg(p: Player): void {
  * have walked along, the way straight to the segment's end stays inside the cleared space (its
  * distance from the segment only shrinks along the way) and the bot joins there. Otherwise nothing
  * it knows says the way onto the route is clear, and it walks its trail back to the route's start.
- * Exported for its test.
  */
-export function joinRoute(p: Player, points: readonly Vec2[], trail: readonly Vec2[]): Vec2[] {
+function joinRoute(p: Player, points: readonly Vec2[], trail: readonly Vec2[]): Vec2[] {
   let walked = 0;
   for (let i = 1; i < trail.length; i++) walked += distance(trail[i - 1]!, trail[i]!);
   let best = 0, nearest = Infinity, along = 0;

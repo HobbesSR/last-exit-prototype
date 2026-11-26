@@ -1,101 +1,75 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, disposePhysics, HZ, setInput, snapshot, stateOf, step } from '../shared/simulation.ts';
+import { HZ, disposePhysics, setInput, snapshot } from '../shared/simulation.ts';
+import { startGame, stepGame } from '../shared/simulation/tick.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
-import { dynamicWaypoint } from '../shared/simulation/dynamic-navigation.ts';
-import { openArea } from './helpers/arena.js';
-import { tracked } from './helpers/scenario.js';
+import { arena } from './helpers/arena.js';
+import { now, stagePhysics } from './helpers/scenario.js';
+
+// A bot in a 60-unit corridor behind a leader, or behind a crate that fills it, driven by the core's planner,
+// which runs in every started game. The bot walks toward a cell at the corridor's far end.
 
 const walls = [
   { id: 'top', x: 100, y: 100, w: 600, h: 270 },
   { id: 'bottom', x: 100, y: 430, w: 600, h: 270 },
 ];
 
-async function game({ spawns = [{ x: 150, y: 400 }], props = [] } = {}) {
-  const map = { seed: 448, width: 800, height: 800,
-    playableArea: openArea(800, 800, 100),
-    buildings: [], obstacles: walls, gates: [], hazards: [], gaps: [], stations: [],
-    chargers: [], sensors: [], items: [], traps: [], physicsProps: props,
-    entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns,
-    hunterSpawns: [{ x: 300, y: 400 }] };
-  const content = structuredClone(contentById('content-6'));
-  content.roster = { contestants: spawns.map((_, i) => `C${i}`), gladiators: [] };
-  content.discovery = false;
-  const s = await createGame(448, map, content);
-  for (const p of s.players) p.bot = false;
-  return s;
+async function corridor(t, { leader, props }) {
+  const map = arena({ cols: 8, rows: 8, cellSize: 100, seed: 448, obstacles: walls, physicsProps: props,
+    items: [{ id: 'goal-cell', kind: 'cell', charge: 0, x: 750, y: 400 }], entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 } }).map;
+  const { s, players } = await stagePhysics(map, { seed: 448, content: { ...contentById('content-6'), discovery: false },
+    actors: [{ role: 'contestant', x: 150, y: 400 }, ...leader ? [{ role: 'contestant', bot: false, x: 350, y: 400 }] : []] });
+  t.after(() => disposePhysics(s));
+  startGame(s);
+  return { s, players };
 }
 
-/**
- * The retained navigation rule reads a `Game`, and a started game keeps only its roster (docs/27.2 "Test API"). This is
- * a copy of the game whose players and clock follow the match, read through `stateOf`; `step` steps the match and syncs.
- * Props are the frame's. Arrange and drive through `s`; ask the rule through `v`.
- */
-
-function move(t, p, target) {
-  const { s } = t, at = dynamicWaypoint(t.v, p, target);
-  const dx = at.x - p.x, dy = at.y - p.y;
-  const length = Math.max(9, Math.hypot(dx, dy));
-  assert.ok(setInput(s, p.id, { seq: s.tick + 1, x: dx / length, y: dy / length }));
-  return at;
+/** Step the match, checking the bot's pose moves no faster than the motor allows and stays inside the corridor. */
+function checkedStep(s, p, before) {
+  stepGame(s);
+  const here = now(s, p);
+  const pose = snapshot(s).bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === s.players.indexOf(p));
+  assert.ok(pose && Math.hypot(pose.x - here.x, pose.y - here.y) < 0.01, `gameplay and body poses agree at tick ${s.tick}`);
+  assert.ok(Math.hypot(here.x - before.x, here.y - before.y) <= s.content.actorPhysics.maxSpeed / HZ + 0.02,
+    `actor jumped at tick ${s.tick}: ${JSON.stringify({ before, after: { x: here.x, y: here.y } })}`);
+  assert.ok(here.y >= 370 + actorRadius(s, here) - 0.6 && here.y <= 430 - actorRadius(s, here) + 0.6,
+    `actor crossed corridor wall at tick ${s.tick}: y=${here.y}`);
 }
 
-function checkedStep(t, p, before) {
-  const { s } = t;
-  t.step();
-  const pose = snapshot(s).bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === t.v.players.indexOf(p));
-  assert.ok(pose && Math.hypot(pose.x - p.x, pose.y - p.y) < 0.01,
-    `gameplay and body poses agree at tick ${s.tick}`);
-  assert.ok(Math.hypot(p.x - before.x, p.y - before.y) <= s.content.actorPhysics.maxSpeed / HZ + 0.02,
-    `actor jumped at tick ${s.tick}: ${JSON.stringify({ before, after: { x: p.x, y: p.y } })}`);
-  assert.ok(p.y >= 370 + actorRadius(s, p) - 0.6 && p.y <= 430 - actorRadius(s, p) + 0.6,
-    `actor crossed corridor wall at tick ${s.tick}: y=${p.y}`);
-}
-
-test('a follower closes the gap in a 60-unit corridor and resumes when its leader moves', async () => {
-  const s = await game({ spawns: [{ x: 150, y: 400 }, { x: 350, y: 400 }] });
-  try {
-    const t = tracked(s), [follower, leader] = t.v.players;
-    let closest = Infinity;
-    for (let i = 0; i < 400; i++) {
-      const before = { x: follower.x, y: follower.y };
-      move(t, follower, { x: 750, y: 400 });
-      if (leader.x < 700) assert.ok(setInput(s, leader.id, { seq: s.tick + 1, x: 1, y: 0 }));
-      else assert.ok(setInput(s, leader.id, { seq: s.tick + 1, x: 0, y: 0 }));
-      checkedStep(t, follower, before);
-      if (leader.x >= 695) closest = Math.min(closest, leader.x - follower.x);
-    }
-    const contact = actorRadius(s, follower) + actorRadius(s, leader) + 2;
-    assert.ok(closest <= contact + 5, `follower stayed too far behind: closest ${closest}, contact ${contact}`);
-    assert.ok(follower.x < leader.x - 15, 'follower did not tunnel through leader');
-    const beforeResume = follower.x;
-    for (let i = 0; i < 40; i++) {
-      const before = { x: follower.x, y: follower.y };
-      move(t, follower, { x: 750, y: 400 });
-      assert.ok(setInput(s, leader.id, { seq: s.tick + 1, x: 1, y: 0 }));
-      checkedStep(t, follower, before);
-    }
-    assert.ok(follower.x > beforeResume + 10, `follower did not resume: ${beforeResume} -> ${follower.x}`);
-  } finally { disposePhysics(s); }
+test('a follower closes the gap in a 60-unit corridor and resumes when its leader moves', async t => {
+  const { s, players: [follower, leader] } = await corridor(t, { leader: true });
+  let closest = Infinity;
+  for (let i = 0; i < 400; i++) {
+    const before = { ...now(s, follower) };
+    // The leader walks east to 700 and stops there, 50 short of the cell.
+    assert.ok(setInput(s, leader.id, { seq: s.tick + 1, x: now(s, leader).x < 700 ? 1 : 0, y: 0 }));
+    checkedStep(s, follower, before);
+    if (now(s, leader).x >= 695) closest = Math.min(closest, now(s, leader).x - now(s, follower).x);
+  }
+  const contact = actorRadius(s, now(s, follower)) + actorRadius(s, now(s, leader)) + 2;
+  assert.ok(closest <= contact + 5, `follower stayed too far behind: closest ${closest}, contact ${contact}`);
+  assert.ok(now(s, follower).x < now(s, leader).x - 15, 'follower did not tunnel through leader');
+  const beforeResume = now(s, follower).x;
+  for (let i = 0; i < 40; i++) {
+    const before = { ...now(s, follower) };
+    assert.ok(setInput(s, leader.id, { seq: s.tick + 1, x: 1, y: 0 }));
+    checkedStep(s, follower, before);
+  }
+  assert.ok(now(s, follower).x > beforeResume + 10, `follower did not resume: ${beforeResume} -> ${now(s, follower).x}`);
 });
 
-test('the motor pushes a corridor-filling crate forward without tunneling or teleporting', async () => {
-  const s = await game({ props: [{ id: 'crate', profile: 'crate', x: 350, y: 400, angle: Math.PI / 2 }] });
-  try {
-    const t = tracked(s), p = t.v.players[0], prop = () => snapshot(s).bodies.find(b => b.owner.kind === 'prop');
-    const startCrate = prop().x;
-    for (let i = 0; i < 400 && p.x < 650; i++) {
-      const before = { x: p.x, y: p.y };
-      move(t, p, { x: 750, y: 400 });
-      checkedStep(t, p, before);
-      const crate = prop();
-      const verticalExtent = Math.abs(Math.sin(crate.angle)) * 24 + Math.abs(Math.cos(crate.angle)) * 12;
-      assert.ok(crate.y - verticalExtent >= 370 - 0.6 && crate.y + verticalExtent <= 430 + 0.6,
-        `crate crossed corridor wall at tick ${s.tick}: pose=${JSON.stringify(crate)}`);
-    }
-    assert.ok(prop().x > startCrate + 100,
-      `crate was not pushed: ${startCrate} -> ${prop().x}`);
-    assert.ok(p.x >= 650, `actor did not reach x=650 after pushing: ${p.x}`);
-  } finally { disposePhysics(s); }
+test('the motor pushes a corridor-filling crate forward without tunneling or teleporting', async t => {
+  const { s, players: [p] } = await corridor(t, { props: [{ id: 'crate', profile: 'crate', x: 350, y: 400, angle: Math.PI / 2 }] });
+  const prop = () => snapshot(s).bodies.find(b => b.owner.kind === 'prop');
+  const startCrate = prop().x;
+  for (let i = 0; i < 400 && now(s, p).x < 650; i++) {
+    checkedStep(s, p, { ...now(s, p) });
+    const crate = prop();
+    const verticalExtent = Math.abs(Math.sin(crate.angle)) * 24 + Math.abs(Math.cos(crate.angle)) * 12;
+    assert.ok(crate.y - verticalExtent >= 370 - 0.6 && crate.y + verticalExtent <= 430 + 0.6,
+      `crate crossed corridor wall at tick ${s.tick}: pose=${JSON.stringify(crate)}`);
+  }
+  assert.ok(prop().x > startCrate + 100, `crate was not pushed: ${startCrate} -> ${prop().x}`);
+  assert.ok(now(s, p).x >= 650, `actor did not reach x=650 after pushing: ${now(s, p).x}`);
 });

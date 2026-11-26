@@ -1,66 +1,65 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { collectBotIntent } from '../shared/simulation/bots.ts';
+import { disposePhysics } from '../shared/simulation.ts';
+import { startGame, stepGame } from '../shared/simulation/tick.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import * as profiler from '../shared/profiler.ts';
 import { arena } from './helpers/arena.js';
+import { stagePhysics } from './helpers/scenario.js';
 
-// Under `hunterPlanning: 'portals'` a gladiator plans a trip across regions a leg at a time (#682, 22.6).
+// Under `hunterPlanning: 'portals'` a gladiator plans a trip across regions a leg at a time (#682, 22.6). The core's
+// planner runs in every started game, so these start one and read the gladiator's planned route from the core.
 
 const CELL = 192, REGIONS = 4, WIDTH = 4 * CELL;
 
 /**
  * Four regions side by side, walled from each other except for one gap each, with the exit in the last. Each wall
- * leaves a gap at y 0–192, 384–576 or 0–192 in turn, so a trip zigzags.
+ * leaves a gap at y 0–192, 384–576 or 0–192 in turn, so a trip zigzags. A contestant stands in the last region, so
+ * the gladiator has a long trip to make.
  */
-const corridorMap = () => arena({ cols: 4 * REGIONS, rows: 3, cellSize: CELL, corridor: { gaps: [0, 2, 0] } });
-
-function hunterScene(contentId, planning) {
-  const { map, crossings } = corridorMap();
-  const content = planning ? { ...contentById(contentId), hunterPlanning: planning } : contentById(contentId);
-  const p = { id: 'g0', name: 'hunter', role: 'gladiator', kit: 'warden', bot: true, x: 300, y: 480, hp: 360, maxHp: 360, shield: 0, keys: 0,
-    weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0,
-    input: {}, lastSeq: -1 };
-  const s = { tick: 0, phase: 'live', content, map, players: [p], projectiles: [], effects: [], events: [], hazardX: -80, slots: 3, serial: 0 };
-  return { s, p, crossings };
+async function hunt(planning, { graph = true } = {}) {
+  const { map, crossings } = arena({ cols: 4 * REGIONS, rows: 3, cellSize: CELL, corridor: { gaps: [0, 2, 0] } });
+  const content = planning ? { ...contentById('content-6'), hunterPlanning: planning } : contentById('content-6');
+  // A copy of the map carries no portal graph.
+  const { s, players: [gladiator] } = await stagePhysics(graph ? map : { ...map }, { content,
+    actors: [{ role: 'gladiator', x: 300, y: 480 }, { role: 'contestant', bot: false, x: 2900, y: 288 }] });
+  const { match, boundary } = startGame(s);
+  /** Step until the gladiator has a route that begins east of `x`; its points. */
+  const plan = (after = 0) => {
+    for (let i = 0; i < 120; i++) { stepGame(s); const route = match.botRoute(gladiator.id); if (route[0]?.x > after) return route; }
+    return null;
+  };
+  return { s, crossings, exit: map.exit, gladiator, boundary, plan };
 }
+const length = route => route.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - route[i].x, p.y - route[i].y), 0);
 
-/** Run the bot until it has a route, without moving it. */
-function firstRoute({ s, p }) {
-  for (; s.tick < 200 && !p.route?.length; s.tick++) { collectBotIntent(s, p); profiler.frame(); }
-  return p.route;
-}
-
-test('a gladiator plans only as far as the crossing after next, then on to the goal', () => {
-  const scene = hunterScene('content-6', 'portals'), { s, p, crossings } = scene;
-  const route = firstRoute(scene);
+test('a gladiator plans only as far as the crossing after next, then on to the goal', async t => {
+  const { s, crossings, exit, gladiator, boundary, plan } = await hunt('portals');
+  t.after(() => disposePhysics(s));
+  const route = plan();
   assert.ok(route?.length, 'it plans');
   assert.deepEqual(route.at(-1), crossings[1], 'the first leg ends at the second crossing');
   // Standing in the third region, the next crossing leads into the goal's region, so the leg is the trip's end.
-  p.x = 2 * WIDTH + 200; p.y = 480; p.route = [];
-  for (const end = s.tick + 40; s.tick < end && !(p.route?.length && p.route.at(-1).x === s.map.exit.x); s.tick++) collectBotIntent(s, p);
-  assert.deepEqual(p.route.at(-1), s.map.exit, 'it plans to the exit');
+  assert.ok(boundary.teleport(gladiator.id, [2 * WIDTH + 200, 480]));
+  assert.deepEqual(plan(1700)?.at(-1), exit, 'it plans to the exit');
 });
 
-test('without the setting, or on a map without a portal graph, a gladiator plans the whole way', () => {
-  const scene = hunterScene('content-6');
-  assert.deepEqual(firstRoute(scene).at(-1), scene.s.map.exit);
-  const bare = hunterScene('content-6', 'portals');
-  bare.s.map = { ...bare.s.map };
-  assert.deepEqual(firstRoute(bare).at(-1), bare.s.map.exit, 'a copied map carries no graph');
+test('without the setting, or on a map without a portal graph, a gladiator plans the whole way', async t => {
+  for (const options of [[undefined], ['portals', { graph: false }]]) {
+    const { s, exit, plan } = await hunt(...options);
+    t.after(() => disposePhysics(s));
+    assert.deepEqual(plan()?.at(-1), exit, options.length > 1 ? 'a copied map carries no graph' : 'no setting');
+  }
 });
 
-test('a leg searches less than the whole trip', () => {
-  const expansions = planning => {
-    const scene = hunterScene('content-6', planning);
-    profiler.reset(); profiler.enable(true);
-    firstRoute(scene);
-    const row = profiler.report().find(r => r.name === 'work.route.expansions');
-    profiler.enable(false);
-    return Math.round(row.mean * row.samples);
-  };
-  const whole = expansions(undefined), leg = expansions('portals');
-  assert.ok(leg < whole, `leg ${leg} against whole ${whole}`);
+test('a leg is a shorter plan than the whole trip', async t => {
+  const trips = {};
+  for (const planning of [undefined, 'portals']) {
+    const { s, plan } = await hunt(planning);
+    t.after(() => disposePhysics(s));
+    trips[planning ?? 'whole'] = plan();
+  }
+  assert.ok(trips.portals.length < trips.whole.length, `${trips.portals.length} points against ${trips.whole.length}`);
+  assert.ok(length(trips.portals) < length(trips.whole), 'and covers less ground');
 });
 
 test('content-7 is content-6 with gladiators planning over the portal graph', () => {

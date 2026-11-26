@@ -1,6 +1,4 @@
-import { createGame, disposePhysics, setInput, snapshot, stateOf, step } from '../../shared/simulation.ts';
-import { framesOf } from '../../shared/simulation/tick.ts';
-import { attachSolidPropReader } from '../../shared/simulation/dynamic-navigation.ts';
+import { createGame, disposePhysics, setInput, stateOf, step } from '../../shared/simulation.ts';
 import { createDiscovery, discoveryGrid } from '../../shared/discovery.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
 import { openField } from './arena.js';
@@ -33,25 +31,6 @@ function settle(s, actors, players) {
  * arrangement, not the match: read what the match did here, by roster place, and arrange mid-match through commands.
  */
 export const now = (s, p) => stateOf(s).players[s.players.indexOf(p)];
-
-/**
- * A view of `s` for a retained TypeScript rule (#1241) that reads a `Game` while the match runs, such as the JavaScript
- * planner and dynamic navigation: a copy whose players and clock follow the match through `stateOf` after each `step`,
- * and whose solid props are the frame's prop bodies. The rule reads `v`; the match is still `s`. It goes when those
- * rules retire (#1346).
- */
-export function tracked(s) {
-  const v = { ...s, players: s.players.map(p => ({ ...p })) };
-  attachSolidPropReader(v, () => snapshot(s).bodies.filter(b => b.owner.kind === 'prop')
-    .map(b => ({ spec: { shape: b.shape }, transform: b })));
-  const sync = () => {
-    if (!framesOf(s)) return;
-    const state = stateOf(s);
-    v.tick = state.tick;
-    v.players.forEach((q, i) => Object.assign(q, state.players[i]));
-  };
-  return { s, v, sync, step: () => { step(s); sync(); } };
-}
 
 /** A physics game on `map` with exactly `actors`, each a bot unless `bot: false`; the shipped content unless given. Dispose of it with `disposePhysics`. */
 export async function stagePhysics(map, { seed = 4217, content = defaultContent(), actors }) {

@@ -7,9 +7,8 @@ import { actorRadius } from './actor-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { visiblePoint, visibleTo } from './visibility.ts';
 import type { CollisionMap, Game, Player, Vec2 } from '../types.ts';
-import type { BodySpec, Transform } from '../physics/types.ts';
 import { cos, hypot, sin } from '../math.ts';
-import { count, start, stop } from '../profiler.ts';
+import { start, stop } from '../profiler.ts';
 
 // Local overlays never enter the static mesh, discovery, snapshots or replay state.
 const RANGE = 192, MARGIN = 2, EDGES_PER_BOT = 192, EDGES_PER_TICK = 1536;
@@ -19,30 +18,17 @@ interface ObservedBody { kind: 'actor' | 'prop'; shape: Shape }
 const detours = new WeakMap<Player, Detour>();
 const work = new WeakMap<Game, { tick: number; edges: number }>();
 const localMaps = new WeakMap<Player, { source: CollisionMap; doors: string; map: CollisionMap }>();
-type SolidProp = { spec: Pick<BodySpec, 'shape'>; transform: Pick<Transform, 'x' | 'y' | 'angle'> };
-const liveProps = new WeakMap<Game, () => SolidProp[]>();
-export function attachSolidPropReader(s: Game, read: () => SolidProp[]): void { liveProps.set(s, read); }
-const solidProps = (s: Game) => liveProps.get(s)?.() ?? physicsRuntime(s)?.world.solidPropStates() ?? [];
-const collectionObservations = new WeakMap<Game, { players: Player[]; props: SolidProp[] }>();
+const solidProps = (s: Game) => physicsRuntime(s)?.world.solidPropStates() ?? [];
 export function dynamicNavigationWork(s: Game): number { return work.get(s)?.tick === s.tick ? work.get(s)!.edges : 0; }
 
 const sortedPlayers = (s: Game) => [...s.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-/** Scope sharing to the immutable pre-movement collection, never merely to a tick number. */
-export function beginDynamicNavigationCollection(s: Game): void {
-  if (!s.players.some(p => p.bot && p.status === 'active')) return;
-  const props = solidProps(s);
-  count('work.bots.props', props.length);
-  collectionObservations.set(s, { players: sortedPlayers(s), props });
-}
-export function endDynamicNavigationCollection(s: Game): void { collectionObservations.delete(s); }
-
 /** Current sight only, including for full-map gladiators; sleep never changes eligibility. */
 function observations(s: Game, p: Player): ObservedBody[] {
-  const bodies: ObservedBody[] = [], shared = collectionObservations.get(s);
-  for (const other of shared?.players ?? sortedPlayers(s)) if (other !== p && other.status === 'active' && distance(p, other) <= RANGE
+  const bodies: ObservedBody[] = [];
+  for (const other of sortedPlayers(s)) if (other !== p && other.status === 'active' && distance(p, other) <= RANGE
     && visibleTo(s, p, other)) bodies.push({ kind: 'actor', shape: { kind: 'circle', x: other.x, y: other.y, r: actorRadius(s, other) } });
   const sees = (at: Vec2) => distance(p, at) <= RANGE && visiblePoint(s, p, at);
-  for (const body of shared?.props ?? solidProps(s)) {
+  for (const body of solidProps(s)) {
     if (!sees(body.transform)) continue;
     const at = body.transform, shape = body.spec.shape;
     if (shape.kind === 'circle') bodies.push({ kind: 'prop', shape: { kind: 'circle', x: at.x, y: at.y, r: shape.radius } });
@@ -55,7 +41,6 @@ function observations(s: Game, p: Player): ObservedBody[] {
   }
   return bodies;
 }
-export function observedBlockers(s: Game, p: Player): Shape[] { return observations(s, p).map(body => body.shape); }
 
 // A contestant's local static sweep must not learn a hidden door's current state.
 function localMap(s: Game, p: Player): CollisionMap {
