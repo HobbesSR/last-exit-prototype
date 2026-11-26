@@ -1,79 +1,71 @@
 import { start as profileStart, stop as profileStop } from '../profiler.ts';
-import { attachDiscovery } from '../discovery.ts';
-import { ItemMemory, SeenCells } from './bot-memory.ts';
-import { groundOf } from './tick-records.ts';
 import type { Context } from './tick-records.ts';
-import type { Cue, DecodedTick, Memory } from './tick-codec.ts';
+import type { Cue, DecodedTick } from './tick-codec.ts';
 import type { TickMatch } from './tick-match.ts';
-import type { DiscoveryMemory, Game, HeardCue, Player } from '../types.ts';
+import type { ViewKnowledge } from './view-source.ts';
+import type { Game, HeardCue, PlayerIdx, Tick } from '../types.ts';
 
-// What each player knows and hears, written onto the `Game` players for `playerView` (docs/27.2 "Node adapter (3d.2)"):
-// a contestant's discovery memory and every player's heard cues, read from the match after each completed tick. It is the
-// one part of the mirror that projection still reads, until the core projects each viewer itself (#1343). Every started
-// game keeps it; the record applier (`tick-mirror.ts`) runs only for a room (#1345).
+// The knowledge cache beside the frame store (docs/27.2 "Projection and knowledge (#1343, #1352)"): what projection needs
+// of each player's knowledge that frames do not carry, by roster place. The core keeps the whole memory and the cues, which
+// its rules and bots read. The cache keeps only the wire's subset: each contestant's discovered cells and each player's
+// live cues. A started game's `Game` players hold neither (#1343).
+//
+// - A contestant's cells are refreshed only when a tick's discovery names it.
+// - A player's cues are queried only while it holds a live one, or when T's facts say it heard something.
 
 export const heardOf = (cue: Cue): HeardCue => ({ x: cue.at[0], y: cue.at[1], tick: cue.tick, until: cue.until });
 
-/** An empty memory in the bots' own structures (`bot-memory.ts`), which keep the frontier and the loot grid. */
-export function emptyMemory(ctx: Context): DiscoveryMemory {
-  return { discovered: new Set(), seen: new SeenCells(ctx.grid.cols, ctx.grid.rows), surveyed: new Set(), items: new ItemMemory(),
-    gates: new Map(), revision: 0 };
-}
-
-/**
- * Write the core's memory into a contestant's. The revision counts only what plans read (cells discovered, surveyed
- * cells, doors), as `discover` counts it, so a sample that only sees cells or loot leaves it, and every sample is written.
- * Cells are only ever learned, so they are added; remembered items and doors
- * are set under their keys and a forgotten item deleted. Adding and setting keep what a bot met first first, as its ties
- * expect until #1215 (R11).
- */
-export function writeMemory(ctx: Context, d: DiscoveryMemory, m: Memory): DiscoveryMemory {
-  for (const cell of m.discovered) d.discovered.add(cell);
-  for (const cell of m.seen) d.seen!.add(cell);
-  for (const cell of m.surveyed) d.surveyed!.add(cell);
-  const items = d.items!, kept = new Set(m.items.map(r => r.id));
-  for (const id of items.keys()) if (!kept.has(id)) items.delete(id);
-  for (const r of m.items) items.set(r.id as never, groundOf(ctx, r.id, r.item, r.at));
-  for (const g of m.gates) d.gates!.set(ctx.ids.gateIds[g.gate]!, { open: g.open, locked: g.locked });
-  d.revision = m.revision;
-  return d;
-}
-
-/** The knowledge writer of one match. Construct it on the game the match was set up from, before the first step. */
-export class TickKnowledge {
+/** The knowledge cache of one match. Construct it on the game the match was set up from, before the first step. */
+export class TickKnowledge implements ViewKnowledge {
   readonly s: Game;
   readonly match: TickMatch;
   readonly ctx: Context;
+  /**
+   * Each remembering contestant's discovered cells, by roster place, in the order they were learned: cells are only ever
+   * learned, so a refresh adds, and the projected list keeps its order across ticks.
+   */
+  readonly #discovered = new Map<number, Set<number>>();
+  /** Each player's cues as of the last query, by roster place; absent once none is live. */
+  readonly #heard = new Map<number, HeardCue[]>();
 
   constructor(s: Game, match: TickMatch, ctx: Context) {
     this.s = s; this.match = match; this.ctx = ctx;
-    for (const p of s.players) this.#memory(p, true);
+    // From here on the core's memory is the knowledge; the game's setup copies would only go stale.
+    for (const p of s.players) { delete p.discovery; delete p.heard; }
+    for (let slot = 0; slot < s.players.length; slot++) this.#memory(slot);
   }
 
-  /** Refresh a contestant's memory from the match; `fresh` starts it over, as at the start, where the core's holds nothing yet. */
-  #memory(p: Player, fresh = false): void {
-    if (p.role !== 'contestant' || !this.ctx.discovery) return;
+  /** Refresh a contestant's cells from the match. */
+  #memory(slot: number): void {
+    if (this.s.players[slot]!.role !== 'contestant' || !this.ctx.discovery) return;
     profileStart('sim.tick.memory');
     try {
-      const memory = this.match.memory(p.id);
+      const memory = this.match.memory(this.#id(slot));
       if (!memory) return;
-      if (fresh || !p.discovery) attachDiscovery(p, emptyMemory(this.ctx));
-      writeMemory(this.ctx, p.discovery!, memory);
+      let cells = this.#discovered.get(slot);
+      if (!cells) this.#discovered.set(slot, cells = new Set());
+      for (const cell of memory.discovered) cells.add(cell);
     } finally { profileStop('sim.tick.memory'); }
   }
 
-  /** After a completed tick: the memory of each contestant the tick's discovery names, and every player's cues. */
+  #id(slot: number) { return this.ctx.ids.playerOfActor.get(this.ctx.ids.actorAtSlot[slot]!)!; }
+
+  /** After a completed tick: the cells of each contestant the tick's discovery names, and the cues that can have changed. */
   apply(t: DecodedTick): void {
-    const ids = this.ctx.ids;
-    const learned = new Set([...t.discovery.gates.map(g => g.actor), ...t.discovery.samples.map(x => x.actor)]);
-    for (const p of this.s.players) {
-      const word = ids.actorOfPlayer.get(p.id)!;
-      if (learned.has(word)) this.#memory(p);
-      const cues = this.match.heard(p.id);
-      if (cues.length || p.heard?.length) {
-        if (!p.heard) Object.defineProperty(p, 'heard', { value: [], writable: true, configurable: true, enumerable: false });
-        p.heard = cues.map(heardOf);
-      }
+    const slots = this.ctx.ids.slotOfActor;
+    for (const word of new Set([...t.discovery.gates.map(g => g.actor), ...t.discovery.samples.map(x => x.actor)])) {
+      this.#memory(slots.get(word)!);
+    }
+    const hearing = new Set<number>();
+    for (const e of t.changes.events) if (e.fact.kind === 'heard') hearing.add(slots.get(e.fact.listener)!);
+    for (const [slot, cues] of this.#heard) if (cues.some(cue => cue.until > t.tick)) hearing.add(slot);
+    for (const slot of this.#heard.keys()) if (!hearing.has(slot)) this.#heard.delete(slot);
+    for (const slot of hearing) {
+      const cues = this.match.heard(this.#id(slot)).map(heardOf);
+      if (cues.length) this.#heard.set(slot, cues); else this.#heard.delete(slot);
     }
   }
+
+  discovered(slot: PlayerIdx): ReadonlySet<number> | null { return this.#discovered.get(slot) ?? null; }
+  heard(slot: PlayerIdx, tick: Tick): readonly HeardCue[] { return this.#heard.get(slot)?.filter(cue => cue.until > tick) ?? []; }
 }

@@ -1,4 +1,3 @@
-import { itemLabel } from '../item-instances.ts';
 import { canOccupy } from '../movement.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
@@ -9,9 +8,6 @@ import { hypot } from '../math.ts';
 import { groundItem, replaceItem } from './ground-items.ts';
 
 const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
-const reserveActors = (s: Game, r: PhysicsRuntime) => Math.max(0, s.players.length - r.actors.size);
-const ITEM_PREFIX = 'item:';
-const bodyId = (s: Game, item: GroundItem) => `${ITEM_PREFIX}${itemLabel(s, item.id)}`;
 
 /** Reject authoring before allocating a solver. All numbers are match-pinned tuning. */
 export function validateWorldPhysics(content: MatchContent, map: Omit<GameMap, 'items' | 'traps'>): void {
@@ -53,14 +49,6 @@ export function authoredProps(s: Game): Array<{ label: string; spec: BodySpec }>
 export function addAuthoredProps(s: Game, r: PhysicsRuntime): void {
   for (const { spec } of authoredProps(s)) r.world.queueAddBody(spec);
   r.world.commitMutations();
-}
-
-/** Preflight staged swaps too: removed physical pickups release their body slots. */
-export function canRepresentPhysicalDrop(s: Game, count: number, removed: GroundItem[] = []): boolean {
-  const r = physicsRuntime(s);
-  if (!r) return true;
-  const released = removed.filter(item => r.items.has(bodyId(s, item))).length;
-  return r.world.canAddBodies(Math.max(0, count - released) + reserveActors(s, r));
 }
 
 export function launchPhysicalDrops(s: Game, items: GroundItem[], from: Vec2): void {

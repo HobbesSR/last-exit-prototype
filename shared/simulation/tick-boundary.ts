@@ -18,7 +18,7 @@ import type { Game, InputTarget, Kit, Player, PlayerId, PlayerInput, Tick } from
 // input first in, first out to its depth. Only the input the next tick spends leaves the buffer (`takeQueued`), as that
 // tick's command row, so a seat change, a supersession or an overflow never meets a row already in the core. The core
 // spends, holds and acknowledges. Measured lag, lead, joins, leaves and dev teleports become observation rows. Bot intent
-// becomes `CommandSource::Bot` rows. Acknowledgment comes back from the match after each step (`tick-mirror.ts`).
+// becomes `CommandSource::Bot` rows. Acknowledgment comes back from the match after each step (`acknowledge`).
 
 /** The view lag last reported per player, queued or committed, which a new measurement is compared with. */
 const reportedLag = new WeakMap<Player, Tick>();
@@ -94,10 +94,9 @@ export function rollMargin(p: Player): void {
 /**
  * What each connection has had spent by the last completed tick, on its player: the sequence the core acknowledged, how
  * many ticks an active player has gone without a new one, and the margin the tick reports. Bots have none. Run once per
- * completed tick, after the step. `active` says whether a player is active as of that tick: the boundary's own
- * (`TickBoundary.active`), or the mirror's status where a test steps the mirror without a boundary.
+ * completed tick, after the step. `active` says whether a player is active as of that tick (`TickBoundary.active`).
  */
-export function acknowledge(s: Game, match: TickMatch, active: (p: Player) => boolean = p => p.status === 'active'): void {
+function acknowledge(s: Game, match: TickMatch, active: (p: Player) => boolean): void {
   for (const p of s.players) {
     if (p.bot) continue;
     const sequence = match.acknowledged(p.id) ?? -1;
@@ -111,7 +110,7 @@ export function acknowledge(s: Game, match: TickMatch, active: (p: Player) => bo
 /**
  * A measured round trip as observation rows: the view lag the core rewinds by and the input lead this boundary admits
  * by. Only a change from the last report is a row, as `setViewLag` records it. The lead stays here (27.2 "Output (3c)");
- * the lag is the core's, and reaches the mirror through the change list.
+ * the lag is the core's, and reaches the frame store through the change list.
  */
 export function measured(ids: MatchIds, p: Player, roundTripMs: number | null | undefined): Inbound[] {
   const actor = ids.actorOfPlayer.get(p.id);
@@ -186,7 +185,7 @@ export class TickBoundary {
   readonly wire: WireIds;
   /**
    * The actors active as of the last completed tick, by actor word. The boundary follows the match for them, as the frame
-   * store does, so whether a player's input is due or a teleport admissible never reads the `Game` mirror (#1345).
+   * store does, so whether a player's input is due or a teleport admissible never reads the `Game` (#1345).
    */
   readonly #active = new Set<number>();
   constructor(s: Game, match: TickMatch, wire: WireIds = wireIds()) {

@@ -2,8 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord, createGame, disposePhysics, setInput, stateOf, step as stepRaw, snapshot as snapshotRaw } from '../shared/simulation.ts';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
-import { collectInstanceEquipment as collectRaw } from '../shared/equipment.ts';
-import { dropInventorySlot as dropRaw } from '../shared/simulation/loot.ts';
 import { now } from './helpers/scenario.js';
 import { generatedMap } from './helpers/room-harness.js';
 import { virtualZone, spatialMix, noveltyBand, qualityFromWeights, itemRoll, assignWeaponQualities, qualityDamage, STARTER_RESERVE } from '../shared/loot-tiers.ts';
@@ -26,8 +24,6 @@ const fixture = async (t, map) => {
 };
 const step = s => { identifyItems(s); return stepRaw(s); };
 const snapshot = s => { identifyItems(s); return snapshotRaw(s); };
-const collectInstanceEquipment = (s, ...args) => { identifyItems(s); return collectRaw(s, ...args); };
-const dropInventorySlot = (s, ...args) => { identifyItems(s); return dropRaw(s, ...args); };
 
 test('the 5 x 5 selector reproduces the diamond drawing and caps at mix 5', () => {
   const grid = [0, 1, 2, 3, 4].map(row => [0, 1, 2, 3, 4].map(col => spatialMix({ col, row })));
@@ -131,19 +127,8 @@ test('an authored quality is kept; quality scales damage only', async t => {
   assert.equal(now(s, p).attackCd, rifle.cooldown);
 });
 
-test('different qualities never merge or refill; quality survives drop and pickup', async t => {
-  const { s, p } = await fixture(t);
-  const take = item => { s.items.push(item); const done = collectInstanceEquipment(s, p, item); if (done) s.items = s.items.filter(i => i !== item); return done; };
-  assert.equal(take({ id: 'p1', kind: 'weapon', weaponType: 'pistol', x: 120, y: 200, ammo: 10, quality: 1 }), true);
-  assert.equal(take({ id: 'p3', kind: 'weapon', weaponType: 'pistol', x: 120, y: 200, ammo: 10, quality: 3 }), true);
-  assert.deepEqual(p.inventory.filter(Boolean).map(i => [i.instanceId, i.quality, i.ammo]), [[itemId(s, 'p1'), 1, 10], [itemId(s, 'p3'), 3, 10]]);
-  assert.equal(take({ id: 'p3b', kind: 'weapon', weaponType: 'pistol', x: 120, y: 200, ammo: 5, quality: 3 }), true);
-  assert.deepEqual(p.inventory.filter(Boolean).map(i => [i.instanceId, i.quality, i.ammo]), [[itemId(s, 'p1'), 1, 10], [itemId(s, 'p3'), 3, 15]], 'only the equal quality refills');
-  assert.equal(dropInventorySlot(s, p, 1), true);
-  const dropped = s.items.find(i => i.id === itemId(s, 'p3'));
-  assert.deepEqual([dropped.quality, dropped.ammo, dropped.lineageId], [3, 15, itemId(s, 'p3')]);
-});
-
+// Different qualities never merge or refill, and quality survives a drop and pickup: the core's
+// (`rust/core/src/tick/tests/item_tests.rs`, `different_qualities_never_merge_and_quality_survives_a_drop`).
 test('the same match replays to identical quality-bearing frames', async t => {
   const run = async () => {
     const map = arena();

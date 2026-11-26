@@ -1693,4 +1693,102 @@ mod tests {
         let unknown = intern(&mut world, "actor:none");
         assert_eq!(world.set_motor(unknown, 0.0, 0.0, 0.0), E_UNKNOWN_DYNAMIC);
     }
+
+    /// A bounded rope from `a` to `b`, as the hooks module lays one out.
+    fn queue_rope(world: &mut World, key: Key, a: Key, b: Key) -> i32 {
+        let mut row = [0.0; CONSTRAINT_ROW];
+        row[..10].copy_from_slice(&[
+            f64::from(key),
+            f64::from(a),
+            f64::from(b),
+            1.0,
+            40.0,
+            0.0,
+            50.0,
+            1.0,
+            1000.0,
+            400.0,
+        ]);
+        world.queue_constraint_row(&row)
+    }
+
+    /// The x velocity of `key`'s body after the last step.
+    fn speed_x(world: &mut World, key: Key) -> f64 {
+        assert!(world.transform(key), "a live body");
+        world.output()[3]
+    }
+
+    #[test]
+    fn a_replaced_body_takes_no_stale_push_and_its_rope_goes_with_the_old_one() {
+        let mut world = World::new();
+        let (item, actor, rope) = (
+            intern(&mut world, "item:a"),
+            intern(&mut world, "actor:b"),
+            intern(&mut world, "rope:1"),
+        );
+        queue_ball(&mut world, item, physics::KIND_PROP, 0.0);
+        queue_ball(&mut world, actor, physics::KIND_ACTOR, 30.0);
+        assert_eq!(world.commit(), 0);
+        assert_eq!(queue_rope(&mut world, rope, item, actor), 0);
+        assert_eq!(world.commit(), 0);
+        assert!(world.has_constraint(rope));
+        let before = world.generation(item);
+        // A push queued for the old body, then the body leaves and a new one with its ID enters in one commit.
+        assert_eq!(world.queue_push(true, item, 500.0, 0.0), 0);
+        assert_eq!(world.queue_remove_body(item), 0);
+        queue_ball(&mut world, item, physics::KIND_PROP, 0.0);
+        assert_eq!(world.commit(), 0);
+        assert!(
+            world.generation(item) > before,
+            "the replacement is a new generation"
+        );
+        assert!(world.impulses.is_empty(), "the old body's push is dropped");
+        assert!(!world.has_constraint(rope), "its rope leaves with it");
+        assert_eq!(world.constraint_count(), 0);
+        world.step(true);
+        assert_eq!(
+            speed_x(&mut world, item),
+            0.0,
+            "nothing pushes the replacement"
+        );
+        // A push queued for the replacement itself still applies.
+        assert_eq!(world.queue_push(true, item, 500.0, 0.0), 0);
+        world.step(true);
+        assert!(speed_x(&mut world, item) > 0.0);
+    }
+
+    #[test]
+    fn forty_pickup_and_drop_cycles_leave_no_constraint_push_or_pending_mutation() {
+        let mut world = World::new();
+        let actor = intern(&mut world, "actor:b");
+        queue_ball(&mut world, actor, physics::KIND_ACTOR, 30.0);
+        assert_eq!(world.commit(), 0);
+        let mut generation = world.generation(actor);
+        for cycle in 0..40 {
+            // Dropped: the item's body enters, tethered and pushed.
+            let (item, rope) = (
+                intern(&mut world, &format!("item:{cycle}")),
+                intern(&mut world, &format!("rope:{cycle}")),
+            );
+            queue_ball(&mut world, item, physics::KIND_PROP, 0.0);
+            assert_eq!(world.commit(), 0);
+            assert_eq!(queue_rope(&mut world, rope, item, actor), 0);
+            assert_eq!(world.commit(), 0);
+            assert!(world.generation(item) > generation);
+            generation = world.generation(item);
+            assert_eq!(world.queue_push(true, item, 10.0, 0.0), 0);
+            world.step(true);
+            // Picked up: the body leaves with a push still queued.
+            assert_eq!(world.queue_push(true, item, 10.0, 0.0), 0);
+            assert_eq!(world.queue_remove_body(item), 0);
+            assert_eq!(world.commit(), 0);
+            assert_eq!(world.constraint_count(), 0, "cycle {cycle}");
+            assert!(
+                world.impulses.is_empty() && world.forces.is_empty(),
+                "cycle {cycle}"
+            );
+            assert_eq!(world.queued_count(), 0, "cycle {cycle}");
+            assert_eq!(world.dynamic, [actor], "cycle {cycle}");
+        }
+    }
 }

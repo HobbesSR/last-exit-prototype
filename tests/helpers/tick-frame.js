@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import { heardOf } from '../../shared/simulation/tick-knowledge.ts';
 
-// Checks on the new tick's frames (docs/27.2 "Frames (3d.3)"), shared by tests/tick-adapter.test.js and its slow whole-match test.
+// Checks on the new tick's frames (docs/27.2 "Frames (3d.3)") and the knowledge written beside them, shared by
+// tests/tick-adapter.test.js and its slow whole-match test.
 
 /**
  * Hold a frame on the new path to the match's snapshot: one body per pose, owned by what the pose names, at the core's whole
@@ -37,4 +39,23 @@ export function checkRecords(frames, snap, tick) {
       players: records.players.map((p, slot) => { if (posed.has(words[slot])) return p; const { x, y, ...rest } = p; return rest; }) };
   };
   assert.deepEqual(comparable(frames.records()), comparable(frames.recordsOf(snap)), `tick ${tick}: records`);
+}
+
+/**
+ * Hold the knowledge cache (`tick-knowledge.ts`), refreshed only for the contestants a tick's discovery names and the
+ * players who hear something, to the core's whole memory and cues as of its last completed tick; and hold that a started
+ * game's players keep neither (#1343). `remembers` limits which contestants' memory is decoded: decoding every memory
+ * every tick dominates a whole match's check.
+ */
+export function checkKnowledge(s, match, knowledge, tick, remembers = () => true) {
+  s.players.forEach((p, slot) => {
+    assert.equal(p.discovery ?? p.heard, undefined, `tick ${tick}: ${p.id}'s knowledge is the cache's, not the game's`);
+    const live = match.heard(p.id).map(heardOf).filter(cue => cue.until > tick);
+    assert.deepEqual([...knowledge.heard(slot, tick)], live, `tick ${tick}: ${p.id} hears`);
+    if (!remembers(p)) return;
+    const memory = p.role === 'contestant' && knowledge.ctx.discovery ? match.memory(p.id) : null;
+    const cells = knowledge.discovered(slot);
+    assert.deepEqual(cells && [...cells].sort((a, b) => a - b), memory && [...memory.discovered].sort((a, b) => a - b),
+      `tick ${tick}: ${p.id} has discovered`);
+  });
 }

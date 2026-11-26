@@ -756,3 +756,574 @@ fn a_utility_charge_is_spent_before_damage_and_heal_merge() {
     assert_eq!(game.state().actors[&A].hp, 26.0);
     assert!(game.state().actors[&A].inventory.selected_item().is_none());
 }
+
+/// Slot `slot` of `actor`, with an explicit quality (`equip` fixes it at 1).
+fn equip_quality(
+    scenario: &mut Scenario,
+    actor: ActorId,
+    slot: usize,
+    id: u32,
+    kind: EquipmentKind,
+    quality: u8,
+) {
+    equip(scenario, actor, slot, id, kind);
+    scenario
+        .state
+        .actors
+        .get_mut(&actor)
+        .unwrap()
+        .inventory
+        .slots[slot]
+        .as_mut()
+        .unwrap()
+        .equipment
+        .quality = quality;
+}
+
+fn pickups(tick: &CompletedTick) -> usize {
+    tick.changes
+        .events
+        .iter()
+        .filter(|event| matches!(event.fact, Fact::Pickup { .. }))
+        .count()
+}
+
+#[test]
+fn a_duplicate_firearm_tops_up_to_capacity_and_the_rest_stays_on_the_ground() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 20.0);
+    equip(&mut scenario, A, 0, 10, pistol(190));
+    let spare = ItemId(40);
+    add_loot(&mut scenario, spare, 24.0, loot(pistol(7)));
+    let mut game = scenario.start(30, 10);
+    let rules = Combat::default();
+    let tick = game.step(&rules).unwrap();
+    assert!(has(
+        &tick,
+        Fact::Pickup {
+            actor: A,
+            item: spare,
+            count: 2
+        }
+    ));
+    let held = game.state().actors[&A].inventory.slots;
+    assert_eq!(
+        held[0].unwrap().id,
+        ItemId(10),
+        "the carried instance keeps its identity"
+    );
+    assert_eq!(held[0].unwrap().equipment.kind, pistol(192));
+    assert_eq!(
+        held.iter().flatten().count(),
+        1,
+        "the duplicate takes no slot"
+    );
+    assert_eq!(game.state().items[&spare].loot, loot(pistol(5)));
+    let following = game.step(&rules).unwrap();
+    assert_eq!(pickups(&following), 0, "a full weapon takes nothing more");
+    assert_eq!(game.state().items[&spare].loot, loot(pistol(5)));
+}
+
+#[test]
+fn different_qualities_never_merge_and_quality_survives_a_drop() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 0.0);
+    equip_quality(&mut scenario, A, 0, 10, pistol(10), 1);
+    equip_quality(&mut scenario, A, 1, 11, pistol(10), 3);
+    let refill = ItemId(40);
+    let other = ItemId(41);
+    add_loot(&mut scenario, refill, 20.0, loot(pistol(5)));
+    scenario.state.items.get_mut(&refill).unwrap().loot = Loot::Equipment(Equipment {
+        kind: pistol(5),
+        quality: 3,
+    });
+    add_loot(&mut scenario, other, -20.0, loot(pistol(8)));
+    scenario.state.items.get_mut(&other).unwrap().loot = Loot::Equipment(Equipment {
+        kind: pistol(8),
+        quality: 2,
+    });
+    let mut game = scenario.start(30, 10);
+    let rules = Combat::default();
+    let tick = game.step(&rules).unwrap();
+    assert_eq!(pickups(&tick), 2);
+    let slots = game.state().actors[&A].inventory.slots;
+    let carried = |slot: usize| {
+        let item = slots[slot].unwrap();
+        (item.id, item.equipment.quality, item.equipment.kind)
+    };
+    assert_eq!(
+        carried(0),
+        (ItemId(10), 1, pistol(10)),
+        "quality 1 is not refilled"
+    );
+    assert_eq!(
+        carried(1),
+        (ItemId(11), 3, pistol(15)),
+        "only the equal quality refills"
+    );
+    assert_eq!(
+        carried(2),
+        (other, 2, pistol(8)),
+        "a third quality takes its own slot"
+    );
+    submit(
+        &mut game,
+        A,
+        2,
+        1,
+        Input {
+            drop: Some(DropSlot::Slot(1)),
+            ..Input::default()
+        },
+    );
+    let drop = game.step(&rules).unwrap();
+    assert!(has(
+        &drop,
+        Fact::Placed {
+            source: Entity::Actor(A),
+            placed: Entity::Item(ItemId(11))
+        }
+    ));
+    let dropped = game.state().items[&ItemId(11)];
+    assert_eq!(
+        dropped.loot,
+        Loot::Equipment(Equipment {
+            kind: pistol(15),
+            quality: 3
+        })
+    );
+    assert_eq!(dropped.lineage, Some(ItemId(11)));
+}
+
+#[test]
+fn an_optional_drop_with_no_body_slot_or_no_clear_spot_is_refused_and_keeps_the_inventory() {
+    for crowded in [true, false] {
+        let mut scenario = Scenario::default();
+        if !crowded {
+            scenario.bounds([-5.0, -5.0], [5.0, 5.0]);
+        }
+        add_actor(&mut scenario, A, 0.0);
+        equip(&mut scenario, A, 0, 10, cell(80));
+        equip(&mut scenario, A, 1, 11, stack(2));
+        let before = scenario.state.actors[&A].inventory;
+        let mut game = scenario.start(30, 10);
+        let mut rules = Combat::default();
+        if crowded {
+            rules.items.drops.optional_body_capacity = 0;
+        }
+        submit(
+            &mut game,
+            A,
+            1,
+            1,
+            Input {
+                drop: Some(DropSlot::Slot(1)),
+                ..Input::default()
+            },
+        );
+        let tick = game.step(&rules).unwrap();
+        assert!(has(
+            &tick,
+            Fact::Rejected {
+                actor: A,
+                reason: Rejection::Drop
+            }
+        ));
+        assert_eq!(game.state().actors[&A].inventory, before);
+        assert!(game.state().items.is_empty());
+    }
+}
+
+fn rifle(rounds: u32) -> EquipmentKind {
+    EquipmentKind::Firearm {
+        kind: WeaponKind::Rifle,
+        rounds,
+    }
+}
+
+#[test]
+fn death_drops_every_reserve_family_and_the_magazines_and_ends_a_reload() {
+    let mut scenario = Scenario::default();
+    scenario.bounds([-5.0, -5.0], [5.0, 5.0]);
+    add_actor(&mut scenario, A, 0.0);
+    add_actor(&mut scenario, C, 10.0);
+    add_actor(&mut scenario, B, -20.0);
+    scenario.state.actors.get_mut(&B).unwrap().kit = Some(Kit::Warden);
+    let victim = scenario.state.actors.get_mut(&A).unwrap();
+    victim.hp = 6.0;
+    victim.inventory.reserves = [40, 0, 9];
+    equip(&mut scenario, A, 0, 20, pistol(7));
+    equip(&mut scenario, A, 1, 21, rifle(3));
+    scenario.state.actors.get_mut(&A).unwrap().inventory.reload = Some(Reload {
+        slot: 0,
+        item: ItemId(20),
+        ready_at: 99,
+    });
+    let mut game = scenario.start(21, 10);
+    submit(
+        &mut game,
+        B,
+        1,
+        1,
+        Input {
+            attack: true,
+            ..Input::default()
+        },
+    );
+    let mut rules = Combat::default();
+    rules.items.reloading = true;
+    rules.items.drops.ground_capacity = 0;
+    rules.items.drops.body_capacity = 3;
+    let tick = game.step(&rules).unwrap();
+    assert!(has(&tick, Fact::Eliminated { actor: A }));
+    assert_eq!(game.state().actors[&A].inventory, Inventory::default());
+    let dropped: Vec<Loot> = game.state().items.values().map(|item| item.loot).collect();
+    assert_eq!(dropped.len(), 4);
+    for expected in [
+        loot(pistol(7)),
+        loot(rifle(3)),
+        Loot::Ammo {
+            family: AmmoFamily::Pistol,
+            count: 40,
+        },
+        Loot::Ammo {
+            family: AmmoFamily::Shell,
+            count: 9,
+        },
+    ] {
+        assert!(dropped.contains(&expected), "{expected:?} is on the ground");
+    }
+    let next = game.step(&rules).unwrap();
+    assert_eq!(pickups(&next), 4, "every drop is recoverable");
+    let taken = game.state().actors[&C].inventory;
+    assert_eq!(taken.reserves, [40, 0, 9]);
+    let carried: Vec<_> = taken
+        .slots
+        .iter()
+        .flatten()
+        .map(|item| item.equipment.kind)
+        .collect();
+    assert_eq!(carried, [pistol(7), rifle(3)]);
+    assert!(game.state().items.is_empty());
+}
+
+#[test]
+fn ammo_fills_a_reserve_with_six_full_slots_and_a_full_reserve_leaves_the_pile() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 0.0);
+    for slot in 0..SLOT_COUNT {
+        equip(&mut scenario, A, slot, 10 + slot as u32, stack(3));
+    }
+    scenario
+        .state
+        .actors
+        .get_mut(&A)
+        .unwrap()
+        .inventory
+        .reserves = [60, 0, 0];
+    let pile = ItemId(40);
+    add_loot(
+        &mut scenario,
+        pile,
+        20.0,
+        Loot::Ammo {
+            family: AmmoFamily::Pistol,
+            count: 20,
+        },
+    );
+    let mut game = scenario.start(30, 10);
+    let mut rules = Combat::default();
+    rules.items.reloading = true;
+    let tick = game.step(&rules).unwrap();
+    assert!(has(
+        &tick,
+        Fact::Pickup {
+            actor: A,
+            item: pile,
+            count: 12
+        }
+    ));
+    assert_eq!(game.state().actors[&A].inventory.reserves, [72, 0, 0]);
+    let remainder = Loot::Ammo {
+        family: AmmoFamily::Pistol,
+        count: 8,
+    };
+    assert_eq!(game.state().items[&pile].loot, remainder);
+    let following = game.step(&rules).unwrap();
+    assert_eq!(pickups(&following), 0);
+    assert_eq!(game.state().actors[&A].inventory.reserves, [72, 0, 0]);
+    assert_eq!(game.state().items[&pile].loot, remainder);
+}
+
+#[test]
+fn an_interaction_never_swaps_out_the_selected_item_for_a_duplicate_firearm() {
+    for reloading in [false, true] {
+        let mut scenario = Scenario::default();
+        add_actor(&mut scenario, A, 20.0);
+        equip(&mut scenario, A, 0, 10, stack(2));
+        equip(&mut scenario, A, 1, 11, pistol(190));
+        for slot in 2..SLOT_COUNT {
+            equip(&mut scenario, A, slot, 10 + slot as u32, cell(0));
+        }
+        scenario
+            .state
+            .actors
+            .get_mut(&A)
+            .unwrap()
+            .inventory
+            .reserves = [70, 0, 0];
+        let spare = ItemId(40);
+        add_loot(&mut scenario, spare, 23.0, loot(pistol(7)));
+        let mut game = scenario.start(30, 10);
+        let mut rules = Combat::default();
+        rules.items.reloading = reloading;
+        submit(
+            &mut game,
+            A,
+            1,
+            1,
+            Input {
+                interact: true,
+                ..Input::default()
+            },
+        );
+        let tick = game.step(&rules).unwrap();
+        assert!(!tick.changes.events.iter().any(|event| matches!(
+            event.fact,
+            Fact::Placed {
+                source: Entity::Actor(A),
+                ..
+            }
+        )));
+        assert!(!tick.changes.events.iter().any(|event| matches!(
+            event.fact,
+            Fact::Rejected {
+                reason: Rejection::Swap(_),
+                ..
+            }
+        )));
+        let inventory = game.state().actors[&A].inventory;
+        assert_eq!(inventory.selected_item().unwrap().id, ItemId(10));
+        // The duplicate only tops up (a weapon to its capacity, or the reserve); it never replaces a slot.
+        let (held, reserve) = if reloading { (190, 72) } else { (192, 70) };
+        assert_eq!(inventory.slots[1].unwrap().equipment.kind, pistol(held));
+        assert_eq!(inventory.reserves[0], reserve);
+        assert_eq!(game.state().items[&spare].loot, loot(pistol(5)));
+        assert_eq!(game.state().items.len(), 1);
+    }
+}
+
+#[test]
+fn an_unnominated_swap_takes_the_lowest_id_among_equidistant_pickups_and_never_its_own_drop() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 0.0);
+    for slot in 0..SLOT_COUNT {
+        equip(&mut scenario, A, slot, 10 + slot as u32, cell(80));
+    }
+    for (id, x, charge) in [(41, -20.0, 5), (40, 20.0, 6), (42, 300.0, 7)] {
+        add_loot(&mut scenario, ItemId(id), x, loot(cell(charge)));
+    }
+    let bystander = ItemId(43);
+    add_loot(&mut scenario, bystander, 500.0, loot(stack(1)));
+    let mut game = scenario.start(30, 10);
+    let rules = Combat::default();
+    let interact = |game: &mut Match, tick: Tick| {
+        submit(
+            game,
+            A,
+            tick,
+            tick as u64,
+            Input {
+                interact: true,
+                ..Input::default()
+            },
+        );
+    };
+    interact(&mut game, 1);
+    let first = game.step(&rules).unwrap();
+    assert!(has(
+        &first,
+        Fact::Pickup {
+            actor: A,
+            item: ItemId(40),
+            count: 1
+        }
+    ));
+    assert_eq!(
+        game.state().actors[&A]
+            .inventory
+            .selected_item()
+            .unwrap()
+            .id,
+        ItemId(40)
+    );
+    let ground: Vec<_> = game.state().items.keys().copied().collect();
+    assert_eq!(
+        ground,
+        [ItemId(10), ItemId(41), ItemId(42), bystander],
+        "the swap leaves every other record where it was"
+    );
+    interact(&mut game, 2);
+    let second = game.step(&rules).unwrap();
+    assert!(has(
+        &second,
+        Fact::Pickup {
+            actor: A,
+            item: ItemId(41),
+            count: 1
+        }
+    ));
+    interact(&mut game, 3);
+    let third = game.step(&rules).unwrap();
+    assert_eq!(pickups(&third), 0, "its own fresh drops are locked out");
+    assert_eq!(
+        game.state().actors[&A]
+            .inventory
+            .selected_item()
+            .unwrap()
+            .id,
+        ItemId(41)
+    );
+}
+
+#[test]
+fn forty_transfers_between_actors_conserve_units_rounds_charge_and_identity() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 0.0);
+    add_actor(&mut scenario, C, 2.0);
+    add_loot(&mut scenario, ItemId(40), 10.0, loot(stack(3)));
+    add_loot(&mut scenario, ItemId(41), 12.0, loot(rifle(7)));
+    add_loot(&mut scenario, ItemId(42), 14.0, loot(cell(100)));
+    let mut game = scenario.start(30, 5_000);
+    let rules = Combat::default();
+    let mut tick = 0;
+    // Units, rounds and charge across both inventories and the ground, and whether each carried or ground ID is unique.
+    let audit = |game: &Match| {
+        let state = game.state();
+        let mut ids = Vec::new();
+        let (mut units, mut rounds, mut charge) = (0, 0, 0);
+        let mut count = |kind: EquipmentKind| match kind {
+            EquipmentKind::Stack { count, .. } => units += count,
+            EquipmentKind::Firearm { rounds: r, .. } => rounds += r,
+            EquipmentKind::Cell { charge: c } => charge += c,
+        };
+        for actor in state.actors.values() {
+            for item in actor.inventory.slots.iter().flatten() {
+                ids.push(item.id);
+                count(item.equipment.kind);
+            }
+        }
+        for (&id, item) in &state.items {
+            ids.push(id);
+            if let Loot::Equipment(equipment) = item.loot {
+                count(equipment.kind);
+            }
+        }
+        let live = ids.len();
+        ids.sort();
+        ids.dedup();
+        assert_eq!(ids.len(), live, "each live instance has one ID");
+        assert_eq!((units, rounds, charge), (3, 7, 100));
+    };
+    audit(&game);
+    for cycle in 0..40 {
+        let (owner, taker) = if cycle % 2 == 0 { (A, C) } else { (C, A) };
+        for slot in 0..SLOT_COUNT as u8 {
+            if game.state().actors[&owner].inventory.slots[slot as usize].is_none() {
+                continue;
+            }
+            tick += 1;
+            submit(
+                &mut game,
+                owner,
+                tick,
+                tick as u64,
+                Input {
+                    drop: Some(DropSlot::Slot(slot)),
+                    ..Input::default()
+                },
+            );
+            game.step(&rules).unwrap();
+            audit(&game);
+        }
+        assert!(
+            game.state().actors[&owner]
+                .inventory
+                .slots
+                .iter()
+                .all(Option::is_none)
+        );
+        for _ in 0..40 {
+            if game.state().items.is_empty() {
+                break;
+            }
+            tick += 1;
+            game.step(&rules).unwrap();
+            audit(&game);
+        }
+        assert!(
+            game.state().items.is_empty(),
+            "cycle {cycle}: the taker collects everything"
+        );
+        for id in 1..200 {
+            assert!(
+                game.position(BodyId::Item(ItemId(id))).is_none(),
+                "cycle {cycle}: item {id} keeps no body once collected"
+            );
+        }
+        assert!(
+            game.state().actors[&taker]
+                .inventory
+                .slots
+                .iter()
+                .flatten()
+                .count()
+                >= 3
+        );
+    }
+}
+
+#[test]
+fn a_swaps_outgoing_drop_avoids_a_rotated_solid_prop() {
+    // Where the outgoing item lands is fixed by the seed, so a prop placed on that spot must move it.
+    let landing = |prop: Option<Point>| {
+        let mut scenario = Scenario::default();
+        add_actor(&mut scenario, A, 0.0);
+        for slot in 0..SLOT_COUNT {
+            equip(&mut scenario, A, slot, 10 + slot as u32, cell(80));
+        }
+        let incoming = ItemId(40);
+        add_loot(&mut scenario, incoming, 8.0, loot(pistol(5)));
+        if let Some([x, y]) = prop {
+            let mut crate_ = body(x);
+            crate_.params.kind = crate::physics::KIND_PROP;
+            crate_.params.pose = [x, y, std::f64::consts::FRAC_PI_4, 0.0, 0.0, 0.0];
+            crate_.shape = crate::physics::SHAPE_BOX;
+            crate_.dimensions = [20.0, 20.0];
+            scenario.body(BodyId::Prop(0), crate_);
+        }
+        let mut game = scenario.start(30, 10);
+        nominate(&mut game, A, incoming);
+        let tick = game.step(&Combat::default()).unwrap();
+        assert!(has(
+            &tick,
+            Fact::Placed {
+                source: Entity::Actor(A),
+                placed: Entity::Item(ItemId(10))
+            }
+        ));
+        game.position(BodyId::Item(ItemId(10)))
+            .expect("the outgoing item has a body")
+    };
+    let free = landing(None);
+    let blocked = landing(Some(free));
+    assert_ne!(blocked, free);
+    // In the box's own frame, clear of its 20-unit half extent by the loot's radius.
+    let [dx, dy] = [blocked[0] - free[0], blocked[1] - free[1]];
+    let (sin, cos) = (
+        crate::math::sin(std::f64::consts::FRAC_PI_4),
+        crate::math::cos(std::f64::consts::FRAC_PI_4),
+    );
+    let local = [dx * cos + dy * sin, dy * cos - dx * sin];
+    assert!(local[0].abs() > 26.0 || local[1].abs() > 26.0);
+}

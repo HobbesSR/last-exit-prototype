@@ -1,7 +1,9 @@
 import { hydrateFrame, mergeGateGeometry } from '../shared/relational-frame.ts';
 import { TICK_RECORDING_SCHEMA } from '../shared/recording.ts';
 import { playerSlot, seatMetadata } from '../shared/simulation/relations.ts';
-import { createGameRecord, createGame, disposePhysics, joinGame, playerView, snapshot, synchronizePhysics } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, joinGame, snapshot, synchronizePhysics } from '../shared/simulation.ts';
+import { projectView } from '../shared/simulation/visibility.ts';
+import { viewSourceOf } from '../shared/simulation/view-source.ts';
 import { inputLeadFrom, MAX_INPUT_LEAD_TICKS, resetInput } from '../shared/simulation/input.ts';
 import { changeSeat, wholeMap } from '../shared/simulation/state.ts';
 import { MAX_REWIND_TICKS, viewLagFrom } from '../shared/simulation/rewind.ts';
@@ -292,7 +294,7 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
         }
       }
     },
-    project: (frame, id) => playerView(game, frame, id, wire),
+    project: (frame, id) => projectView(live ? live.view : viewSourceOf(game), frame, id, wire),
     /** What a client predicts with that never changes in this match (24.3 proposal 3): sent with the map. */
     constants: () => predictionConstants(game.version, game.content.actorPhysics),
     map: () => structuredClone(wholeMap(game, live ? dynamicOf(capture()) : { gates: mergeGateGeometry({ gates: publishGates(game) }), items: publishItems(game) })),

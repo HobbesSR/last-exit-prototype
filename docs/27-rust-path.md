@@ -158,7 +158,7 @@ the core does all of that where the loop committed the drop (`phase_three.rs`, `
 **Step 6d.6c.1, phase 6 reads the ground from the core (#1214, adapter version 32).** The ground store keeps a grid
 (`ground.rs`, `Ground::near`), as `ground-items.ts` keeps its own. Phase 6 reads each actor's ground from it
 (`phase_six::read_ground`), where its adapter packed records before:
-- **The near records:** those in a box one unit past `automaticPickups`' reach, in the list's order. This is
+- **The near records:** those in a box one unit past the automatic pickup's reach, in the list's order. This is
   `inReach(itemsNear(…))`'s rule; a NaN coordinate passes.
 - **A swap's candidates** (`itemsNear(s, p, PICKUP_REACH)`), each with whether its body is held and its label's rank
   among them. The keys' ID order is the labels' order.
@@ -1026,7 +1026,7 @@ and event and effect records in the leaf `event-records.ts`, so the core adapter
   | Drop plans, `drop_planner.rs` | Bare setup planners in `loot.ts` | `action-parity` compares complete plans, staged allocations and NaN/fallback refusals on common empty-world geometry; 5c.1 documents the intentional physics-only loot-body test | #1241 |
   | Item allocation, `item_allocation.rs` | Explicitly unbound setup records | `item-id-allocation` checks selection before/after another game initializes, actual Rust operations and fork isolation; setup/live suites check the same allocation expectations | #1241 |
   | Equipment access, validation and weapon selection, `action_equipment.rs` | Bot reads in `equipment.ts`/`item-instances.ts` | `equipment`, `item-instances`, `action-parity` and frozen characterization cover the core action and retained validation paths; weapon parameters remain content-owned | #1215 moves bot reads, #1241 owns remaining setup callers. Phase 6's writers moved in 5e.1 (next row) |
-  | Pickup transfer, `phase_six.rs` (`collect_equipment`, `collect_ammo`) | `collectInstanceEquipment` and `collectAmmo` in `equipment.ts`, which tests and scenarios use to arrange inventories | `phase-six-core` compares each kind of pickup (new, merged, split, refilled, reserve, key, refused) on games with and without reloading: inventory as JSON, so key order counts, plus the reserves, the keys, the record left and both counters | #1241 |
+  | Pickup transfer, `phase_six.rs` (`collect_equipment`, `collect_ammo`) | None: `collectInstanceEquipment` and `collectAmmo` were retired (#1358); tests arrange inventories on the `Game` before the start | The core's own tests (`tick/tests/item_tests.rs`, `phase_six.rs`) hold each kind of pickup | Closed (#1358) |
   | Transit options and time, `phase_six.rs` (`transit`) | `transitOptions` (the client's menu) and `transitTicks` (gladiator bots' hunting) in `transit.ts` | `transit` covers each refused destination, plain interact's next station and a delayed arrival's tick against `transitTicks` | #1215 moves the bots' read; the client's menu stays a presentation copy |
 
 - **Cost:** [42.69](42.69-phase-three-core.md), under 42.58's state-flip exception; remeasure at #1214.
@@ -1067,7 +1067,7 @@ Launch and cancel are phase 3's, as before.
 (`solvePhysicsProjectiles`), the end-of-tick casters (the warden skill, then the gladiator attack, in `ordered(s)`
 order) and `damage`, with the rewind reads (`asSeenBy`) the casters resolve against. The elimination (`eliminate`) is
 `actions_run`'s mode 4 in `phase_three.rs`, beside the drop planner it calls. `shared/simulation/phase-five.ts` is the
-adapter; `combat.ts`'s `damage` and `lifecycle.ts`'s `eliminate` are now entry points into it.
+adapter; `combat.ts`'s `damage` is an entry point into it, and `lifecycle.ts`'s `eliminate`, once one, was retired (#1358).
 - **The order is 29.2's.** Projectiles first: every bullet is swept (the shot policy of `swept.rs`, radius 2, against
   each actor's substep path, `impact` and `hit_radius` now in `swept.rs`), then the hits apply by time of impact, bullet
   ID and target ID. `finishHooks` runs next, in Node as before, then the casters, each one's status read at its turn.
@@ -1098,15 +1098,15 @@ adapter; `combat.ts`'s `damage` and `lifecycle.ts`'s `eliminate` are now entry p
 
 **Step 5e.1, phase 6's per-actor loop (#1230, adapter version 16).** `rust/core/src/phase_six.rs` runs, in `ordered(s)`
 order, each active actor's `interact`, its chosen `transit`, then, while it is still active, `advanceCharging` and
-`automaticPickups`. That covers extraction, the start of charging, the swap's staged pickup and drop, gates with their
-keys, a gladiator's transit and the sensors' reveal. `shared/simulation/phase-six.ts` is the adapter. `interact`,
-`transit`, `advanceCharging` and `automaticPickups` are now entry points into it.
+the automatic pickups. That covers extraction, the start of charging, the swap's staged pickup and drop, gates with their
+keys, a gladiator's transit and the sensors' reveal. `shared/simulation/phase-six.ts` is the adapter. `interact` and
+`transit` are entry points into it; `advanceCharging` and `automaticPickups` were retired (#1358).
 - **Every write is an ordered fact.** Several writes create keys where they are absent, so the call writes no rows
   back. Each write returns as a fact, in the TypeScript's order, and Node applies the facts in turn. Those keys are a
   player's `charging`, `selectedSlot` and `transit`, a gate's `locked` and a carried cell's `charge`. Node-owned
   writes come back the same way (D4's table): a route cleared, and a delayed transit's `input`.
 - **Stops keep 5c.2's sync boundary.** Three events end the call:
-  - **A record taken whole.** Node removes it and synchronizes, as `automaticPickups` did.
+  - **A record taken whole.** Node removes it and synchronizes, as the automatic pickup did.
   - **A committed swap.** Node removes the pickup, adds the outgoing drop and launches it.
   - **An instant transit's landing.** This actor's pickups must read the ground where it now stands.
 

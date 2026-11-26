@@ -10,11 +10,12 @@ import { contextOf } from './tick-records.ts';
 import { disposePhysics as disposeSetup } from './physics-runtime.ts';
 import { snapshot as setupSnapshot } from './visibility.ts';
 import type { WireIds } from './wire-ids.ts';
+import { registerViewSource, type ViewSource } from './view-source.ts';
 
 /**
- * Start the authority after the caller finishes arranging the match's initial state. No session runs the mirror: a room
- * reads its roster from the frame store (#1346) and an in-process game is read through `stateOf` (#1345). Every player's
- * knowledge is written for `playerView` until #1343.
+ * Start the authority after the caller finishes arranging the match's initial state. A room reads its roster from the
+ * frame store (#1346), an in-process game is read through `stateOf` (#1345), and both are projected from `view`: the
+ * match's seats and the knowledge cache (#1343).
  */
 export function createTickSession(game: Game, wire?: WireIds, navigation?: number) {
   const match = createTickMatch(game, navigation);
@@ -22,7 +23,10 @@ export function createTickSession(game: Game, wire?: WireIds, navigation?: numbe
     const knowledge = new TickKnowledge(game, match, contextOf(game, match));
     const frames = new TickFrames(game, match);
     framesByGame.set(game, frames);
-    return { match, mirror: null, knowledge, boundary: new TickBoundary(game, match, wire), frames };
+    const ids = match.ids;
+    const view: ViewSource = { knowledge, slotOf: id => { const word = ids.actorOfPlayer.get(id); return word === undefined ? undefined : ids.slotOfActor.get(word); } };
+    registerViewSource(game, view);
+    return { match, knowledge, boundary: new TickBoundary(game, match, wire), frames, view };
   } catch (error) { match.dispose(); throw error; }
 }
 
@@ -58,7 +62,7 @@ export function startGame(s: Game, navigation?: number) {
 }
 
 /**
- * Step an in-process game (`stepTick`): without the mirror, the game keeps only its clock, its phase and the players'
+ * Step an in-process game (`stepTick`): the game keeps only its clock, its phase and the players'
  * knowledge. Nothing else of the game follows the match; read it with `stateOf`.
  */
 export function stepGame(s: Game) {
