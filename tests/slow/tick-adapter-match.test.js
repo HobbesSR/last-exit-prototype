@@ -27,7 +27,7 @@ function play() {
     attachPortalGraph(map, structuredClone(arena.graph));
     const s = await createGame(9, map, defaultContent());
     try {
-      const session = startGame(s), { match, frames } = session, facts = new Map();
+      const session = startGame(s), { match, frames, knowledge } = session, facts = new Map();
       const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
       let t;
       while ((t = stepTick({ s, ...session }))) {
@@ -36,7 +36,7 @@ function play() {
         const learned = new Set([...t.discovery.gates, ...t.discovery.samples].map(x => x.actor));
         const whole = t.tick % 100 === 0 || s.phase !== 'live';
         const snap = match.snapshot();
-        checkKnowledge(s, match, frames.ctx, t.tick, p => whole || learned.has(match.ids.actorOfPlayer.get(p.id)));
+        checkKnowledge(s, match, knowledge, t.tick, p => whole || learned.has(match.ids.actorOfPlayer.get(p.id)));
         const frame = frames.frame();
         checkFrame(frame, snap, t.tick, words);
         // The frame store's records are folded from the change lists; a drift persists, so every tenth tick catches it.

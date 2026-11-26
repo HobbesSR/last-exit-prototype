@@ -10,7 +10,7 @@ import { cellIndexAt, createDiscovery, discover, attachDiscovery } from '../shar
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { arena } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';
-import { now, stagePhysics } from './helpers/scenario.js';
+import { discoveredBy, now, stagePhysics } from './helpers/scenario.js';
 import { initCoreSight } from '../shared/sight-core.ts';
 import { adoptPackedTiles } from '../shared/free-space.ts';
 import { createKnowledgePlanner, packedTilesFor } from '../shared/navigation/knowledge.ts';
@@ -87,9 +87,10 @@ test('a bot that knows of nothing it needs explores', async t => {
   const { s, p } = await lone();
   t.after(() => disposePhysics(s));
   delete s.itemSerial; // This scenario clears all ground records before setup.
-  const start = { x: p.x, y: p.y }, before = p.discovery.discovered.size;
+  const start = { x: p.x, y: p.y }, before = discoveredBy(s, p).size;
   for (let i = 0; i < 300; i++) step(s);
-  assert.ok(p.discovery.discovered.size > before + 10, `discovered ${before} → ${p.discovery.discovered.size}`);
+  const after = discoveredBy(s, p).size;
+  assert.ok(after > before + 10, `discovered ${before} → ${after}`);
   assert.ok(Math.hypot(now(s, p).x - start.x, now(s, p).y - start.y) > 500, 'it went looking');
 });
 

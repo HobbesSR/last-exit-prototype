@@ -202,13 +202,13 @@ test('a viewer\'s items through the grid are exactly the whole-list filter, for 
     const viewer = { x: random() * 8000, y: random() * 8000 }, reach = [1692, 600, 45][step % 3];
     for (const list of [frame, frames[Math.floor(random() * frames.length)]]) {
       const inRange = i => Math.hypot(viewer.x - i.x, viewer.y - i.y) < reach;
-      const expected = list.filter(inRange), got = framedItems(s, list, viewer, reach, inRange);
+      const expected = list.filter(inRange), got = framedItems(s.items, list, viewer, reach, inRange);
       assert.deepEqual(got, expected, `step ${step}`);
       if (reach > 1000 && got.length) wide++;
     }
   }
   assert.ok(wide > 50, 'the view reach is exercised with something in range');
-  assert.deepEqual(framedItems(s, s.items, { x: NaN, y: 0 }, 1692, () => true), s.items, 'a viewer that compares as nothing is tested against everything');
+  assert.deepEqual(framedItems(s.items, s.items, { x: NaN, y: 0 }, 1692, () => true), s.items, 'a viewer that compares as nothing is tested against everything');
 });
 
 test('an unchanged record projects to one shared object in every view and frame; a replaced one projects anew', () => {

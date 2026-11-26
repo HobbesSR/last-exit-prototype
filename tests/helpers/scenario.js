@@ -1,3 +1,4 @@
+import { viewSourceOf } from '../../shared/simulation/view-source.ts';
 import { createGame, disposePhysics, setInput, snapshot, stateOf, step } from '../../shared/simulation.ts';
 import { framesOf } from '../../shared/simulation/tick.ts';
 import { attachSolidPropReader } from '../../shared/simulation/dynamic-navigation.ts';
@@ -33,6 +34,10 @@ function settle(s, actors, players) {
  * arrangement, not the match: read what the match did here, by roster place, and arrange mid-match through commands.
  */
 export const now = (s, p) => stateOf(s).players[s.players.indexOf(p)];
+/** The discovery cells `p` has discovered: the knowledge cache's once started (27.2 "Projection and knowledge"), else as arranged. */
+export const discoveredBy = (s, p) => { const v = viewSourceOf(s); return v.knowledge.discovered(v.slotOf(p.id)) ?? new Set(); };
+/** The cues `p` hears that last past the game's tick, read as `discoveredBy` reads. */
+export const hears = (s, p) => { const v = viewSourceOf(s); return v.knowledge.heard(v.slotOf(p.id), s.tick); };
 
 /**
  * A view of `s` for a retained TypeScript rule (#1241) that reads a `Game` while the match runs, such as the JavaScript

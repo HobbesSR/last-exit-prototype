@@ -7,7 +7,7 @@ import { heardBy } from '../shared/simulation/hearing.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { cellCenter, cellIndexAt } from '../shared/discovery.ts';
 import { openField } from './helpers/arena.js';
-import { stagePhysics } from './helpers/scenario.js';
+import { hears, stagePhysics } from './helpers/scenario.js';
 import { identifyItems } from './helpers/item-identity.js';
 
 // Heard gunfire (#684, 14 "Heard gunfire", 15): an area, private to each hearer, with no RNG or id of its own.
@@ -97,7 +97,7 @@ test('hearing changes no simulated state: frames match a match without it, tick 
         if (tick % 10 === 0) assert.ok(setInput(s, shooter.id, { seq: tick + 1, attack: true, aim: 0 }));
         step(s);
       }
-      heard += heardBy(loud.near, loud.s.tick).length;
+      heard += hears(loud.s, loud.near).length;
       assert.equal(JSON.stringify(snapshot(loud.s)), JSON.stringify(snapshot(silent.s)), `tick ${tick}`);
     }
     assert.ok(heard > 0, 'the loud match heard its shots');

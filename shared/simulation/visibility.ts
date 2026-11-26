@@ -1,5 +1,5 @@
 import { bodyRelations, hydrateFrame, compactItems, omitBodyPose as omitPose } from '../relational-frame.ts';
-import { playerSlot } from './relations.ts';
+import { viewSourceOf, type ViewSource } from './view-source.ts';
 import { lineClear, VISION } from '../sight.ts';
 import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
@@ -9,7 +9,6 @@ import type { Game, Gate, GateState, GateIdx, GroundItem, ItemKey, Player, Playe
 import { publishItems, framedItems, shareItemPublication } from './ground-items.ts';
 import { publishGates, publishedGates, shareGatePublication } from './frame-gates.ts';
 import { settledLayer } from '../frame-layers.ts';
-import { heardBy } from './hearing.ts';
 import { capturePhysicsPresentation, projectPhysicsPresentation, type PhysicsPresentation } from './physics-presentation.ts';
 import { assertWireDomain, wireCache, wireIds, type WireIds } from './wire-ids.ts';
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
@@ -21,7 +20,7 @@ export const POTENTIAL = POTENTIAL_RADIUS;
 // What the server will send, as opposed to what the viewer can actually see.
 // `s` is unread: this deliberately mirrors `visibleTo` below so the two are interchangeable at a
 // call site, and a distance cull must not start depending on wider state. Kept, not an oversight.
-export function couldSee(s: Game, viewer: Player<ItemKey> | null | undefined, target: Player<ItemKey>): boolean {
+export function couldSee(viewer: Player<ItemKey> | null | undefined, target: Player<ItemKey>): boolean {
   if (!viewer || viewer.id === target.id || target.status !== 'active') return true;
   // A reveal makes a contestant visible to gladiators at any range, so it is never distance culled.
   if (viewer.role === 'gladiator' && target.revealed > 0) return true;
@@ -64,17 +63,25 @@ export function dynamicGates(gates: readonly Gate[]): GateState[] {
   }
   return list;
 }
-/** `wire` is the match's outward ID mapping (#1164); the identity unless the server keyed the match. */
-export function playerView(s: Game, frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds = wireIds()) {
+/**
+ * One viewer's view of a frame, from the frame and `source` alone (docs/27.2 "Projection and knowledge"): the seat from the
+ * match's IDs, discovery and cues from the knowledge cache. `wire` is the match's outward ID mapping (#1164); the identity
+ * unless the server keyed the match.
+ */
+export function projectView(source: ViewSource, frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds = wireIds()) {
   start('sim.playerView');
-  try { return buildPlayerView(s, frame, id, wire); } finally { stop('sim.playerView'); }
+  try { return buildPlayerView(source, frame, id, wire); } finally { stop('sim.playerView'); }
+}
+/** `projectView` for a game a test or tool holds: its session's source once started (`viewSourceOf`). */
+export function playerView(s: Game, frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds = wireIds()) {
+  return projectView(viewSourceOf(s), frame, id, wire);
 }
 // A viewer id that matches no player is a non-player client: it receives the directed view, which is
 // unfogged by design. Callers decide who is allowed to ask for one.
-function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds) {
+function buildPlayerView(source: ViewSource, frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds) {
   assertWireDomain(frame);
   // Directed clients have no player association, so skip both live and captured roster lookup.
-  const liveIdx = id == null ? undefined : playerSlot(s, id);
+  const liveIdx = id == null ? undefined : source.slotOf(id);
   // A historical seat move or an unknown label needs only a short scan of this captured roster.
   // Fresh spectator frames must never allocate a label table just to establish a miss.
   const hydrated = hydrateFrame(frame);
@@ -82,23 +89,23 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
   const relations = bodyRelations(frame.bodies);
   const viewer = id == null ? undefined : liveIdx !== undefined && players[liveIdx]?.id === id
     ? players[liveIdx] : players.find(p => p.id === id);
-  // Discovery stays out of snapshots, so live state is its only source.
-  const live = liveIdx === undefined ? undefined : s.players[liveIdx], discovery = live?.discovery;
+  // Discovery stays out of snapshots, so the knowledge cache is its only source.
+  const discovered = liveIdx === undefined ? null : source.knowledge.discovered(liveIdx);
   // Heard gunfire likewise; read at the frame's tick, which a player's own view is never behind.
-  const heard = live ? heardBy(live, frame.tick) : [];
+  const heard = liveIdx === undefined ? [] : source.knowledge.heard(liveIdx, frame.tick);
   // Effects are sized, so a wide ring counts as reachable when its edge is, not just its centre.
   const inRange = (p: Vec2 & { radius?: World | undefined }) => !viewer || distance(viewer, p) < POTENTIAL + (p.radius ?? 0);
   const rest = frameFields(frame); // Replay bookkeeping and unlisted internal fields stay private.
-  const authorized = players.filter(p => couldSee(s, viewer, p));
+  const authorized = players.filter(p => couldSee(viewer, p));
   // Items have no radius; the grid only spares testing those out of reach, and inRange still decides.
   const itemBodies = relations.items;
   const ground = hydrated.items as GroundItem[];
   shareItemPublication(frame.items, ground);
-  const items = viewer ? framedItems(s, ground, viewer, POTENTIAL, inRange) : ground;
+  const items = viewer ? framedItems(source.ground, ground, viewer, POTENTIAL, inRange) : ground;
   const projectedItems = itemCache(wire);
   const projectPlayer = (p: Player & { playerIdx: PlayerIdx }, own = false) => {
     const posed = !relations.byActor(p.playerIdx);
-    return own ? ownPlayerFields(p, discovery, heard, p.playerIdx, wire, posed) : observed(p, p.playerIdx, posed);
+    return own ? ownPlayerFields(p, discovered && { discovered }, heard, p.playerIdx, wire, posed) : observed(p, p.playerIdx, posed);
   };
   // `directed` is the client's own (it knows how it joined); the match constants come with the map (24.3).
   return { ...rest, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
