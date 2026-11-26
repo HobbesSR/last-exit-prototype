@@ -169,3 +169,80 @@ pub unsafe extern "C" fn runtime_navigation_free(navigation: *mut Rc<RuntimeNavi
     // SAFETY: the caller owns the handle.
     drop(unsafe { Box::from_raw(navigation) });
 }
+
+#[cfg(test)]
+impl RuntimeNavigation {
+    /// Builds a minimal `RuntimeNavigation` whose portal graph holds `regions` (`[x, y, w, h]`).
+    pub(crate) fn for_regions(width: f64, height: f64, regions: &[[f64; 4]]) -> Rc<Self> {
+        let u32s = |values: &[u32]| -> Vec<u8> {
+            values.iter().flat_map(|v| v.to_le_bytes()).collect()
+        };
+        let f64s = |values: &[f64]| -> Vec<u8> {
+            values.iter().flat_map(|v| v.to_le_bytes()).collect()
+        };
+        let grid_size = width.max(height);
+        let nr = regions.len() as u32;
+        let mut geom = Vec::with_capacity(1 + regions.len() * 4);
+        geom.push(96.0);
+        for r in regions {
+            geom.extend_from_slice(r);
+        }
+        let mut rows = vec![1, 1, nr, 0];
+        rows.resize(4 + regions.len() * 2, 0);
+        let mut sections = vec![
+            u32s(&[1, 2]),
+            f64s(&geom),
+            u32s(&rows),
+            u32s(&[0]),
+            Vec::new(),
+            Vec::new(),
+        ];
+        for role in [25.0, 14.0] {
+            let points: Vec<u8> = [0u16, 0, 384, 0, 0, 384]
+                .into_iter()
+                .flat_map(u16::to_le_bytes)
+                .collect();
+            sections.extend([
+                f64s(&[role, grid_size]),
+                u32s(&[1, 1]),
+                u32s(&[0, 6, 0, 3, 2, 1, 1, 1, 0, 1]),
+                f64s(&[0.0, 0.0, 1.0, 0.0, 0.0, width, height, 0.0]),
+                points,
+                u32s(&[0, 1, 2, u32::MAX, u32::MAX, u32::MAX, 0, 1, 0, 0]),
+                u32s(&[0, 2]),
+                u32s(&[1, 0]),
+            ]);
+        }
+        let mut bytes = vec![0; 8 + sections.len() * 8];
+        bytes[0..4].copy_from_slice(&2u32.to_le_bytes());
+        bytes[4..8].copy_from_slice(&(sections.len() as u32).to_le_bytes());
+        for (i, section) in sections.iter().enumerate() {
+            bytes.resize(bytes.len().next_multiple_of(8), 0);
+            let offset = bytes.len() as u32;
+            bytes[8 + i * 8..12 + i * 8].copy_from_slice(&offset.to_le_bytes());
+            bytes[12 + i * 8..16 + i * 8].copy_from_slice(&(section.len() as u32).to_le_bytes());
+            bytes.extend(section);
+        }
+        let ptr = crate::core_alloc(bytes.len());
+        assert!(!ptr.is_null());
+        unsafe { std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, bytes.len()) };
+        let handle = unsafe {
+            runtime_navigation_new(
+                ptr,
+                bytes.len(),
+                std::ptr::null_mut(),
+                0,
+                width,
+                height,
+                grid_size,
+                1,
+                1,
+                2,
+                25.0,
+                14.0,
+            )
+        };
+        assert!(!handle.is_null());
+        unsafe { *Box::from_raw(handle) }
+    }
+}
