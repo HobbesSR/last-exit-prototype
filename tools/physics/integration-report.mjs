@@ -157,7 +157,7 @@ export async function main(argv = process.argv.slice(2)) {
     const files = ['tools/physics/integration-report.mjs', 'shared/simulation.ts', 'shared/simulation/game.ts', 'shared/simulation/tick.ts',
       'shared/simulation/content.ts', 'shared/simulation/physics-runtime.ts', 'shared/physics/world.ts',
       'shared/physics/constraints.ts', 'shared/simulation/hook.ts',
-      'shared/simulation/dynamic-navigation.ts', 'shared/simulation/physics-presentation.ts',
+      'shared/simulation/physics-presentation.ts',
       'shared/simulation/world-physics.ts', 'package.json', 'package-lock.json',
       'rust/core/src/physics.rs', 'rust/Cargo.lock'];
     const hashes = {};

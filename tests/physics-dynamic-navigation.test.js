@@ -1,14 +1,20 @@
-import { startGame } from '../shared/simulation/tick.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PHYSICS_VERSION, createGame, disposePhysics, setInput, snapshot, stateOf, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics, step } from '../shared/simulation.ts';
+import { startGame, stepGame } from '../shared/simulation/tick.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { teleport } from '../shared/simulation/dev.ts';
-import { dynamicNavigationWork, dynamicWaypoint, observedBlockers } from '../shared/simulation/dynamic-navigation.ts';
-import { openArea } from './helpers/arena.js';
-import { now, tracked } from './helpers/scenario.js';
+import { arena, openArea } from './helpers/arena.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 
+// Local avoidance of actors and pushable props, by the core's planner, which runs in every started game: each case
+// starts a match on an 800 x 800 arena and reads what the bot's committed commands and the poses do.
+
+const content = () => ({ ...contentById('content-6'), discovery: false });
+const CORRIDOR = [{ id: 'top', x: 100, y: 100, w: 500, h: 280 }, { id: 'bottom', x: 100, y: 420, w: 500, h: 280 }];
+const field = ({ props, obstacles, items } = {}) => arena({ cols: 8, rows: 8, cellSize: 100, seed: 448, obstacles, items,
+  physicsProps: props, entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 } }).map;
+
+// The shipped fixture of the rows that build a game by hand.
 function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, props = [], obstacles = [], items = [] } = {}) {
   const map = { seed: 448, width: 800, height: 800,
     playableArea: openArea(800, 800, 100),
@@ -26,62 +32,45 @@ async function game(options) {
   for (const p of s.players) p.bot = false;
   return s;
 }
-/**
- * The retained navigation rules read a `Game`, and a started game keeps only its roster (docs/27.2 "Test API"). This is
- * a copy of the game whose players and clock follow the match, read through `stateOf`; call `sync()` after each step.
- * Props are the frame's. Arrange and drive through `s`; ask the rules through `v`.
- */
-function drive(t, p, target) {
-  const { s } = t, at = dynamicWaypoint(t.v, p, target), dx = at.x - p.x, dy = at.y - p.y;
-  const length = Math.max(9, Math.hypot(dx, dy));
-  assert.ok(setInput(s, p.id, { seq: s.tick + 1, x: dx / length, y: dy / length }));
-  t.step();
-  const pose = snapshot(s).bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === t.v.players.indexOf(p));
-  assert.ok(pose && Math.hypot(pose.x - p.x, pose.y - p.y) < 0.01,
-    `actor gameplay and body pose agree: player=(${p.x},${p.y}) body=${JSON.stringify(pose)}`);
-  return at;
+/** A started match on `map` with `actors`, which `arrange` may adjust first, disposed of after `t`. */
+async function play(t, map, actors, arrange) {
+  const { s, players } = await stagePhysics(map, { seed: 448, content: content(), actors });
+  arrange?.(players);
+  t.after(() => disposePhysics(s));
+  return { s, players, ...startGame(s) };
 }
+const bot = (x, y = 400) => ({ role: 'contestant', x, y });
+const standing = (role, x, y = 400, extra) => ({ role, bot: false, x, y, ...extra });
+/** Step the match `ticks` times, calling `each(tick)` after every step. */
+function run(s, ticks, each = () => {}) { for (let i = 0; i < ticks; i++) each(stepGame(s)); }
+const cell = (x, y = 400, id = 'goal-cell') => ({ id, kind: 'cell', charge: 0, x, y });
+/** The movement the core committed for `p`'s bot on a completed tick. */
+const movement = (tick, match, p) => {
+  const actor = match.ids.actorOfPlayer.get(p.id);
+  return tick.inbound.find(row => row.type === 'command' && row.command.source === 'bot' && row.command.actor === actor).command.input.movement;
+};
 
-test('physical motor detours around a sleeping rotated crate and reaches the goal', async () => {
-  {
-    const s = await game({ props: [{ id: 'crate', profile: 'crate', x: 300, y: 400, angle: Math.PI / 4 }] });
-    try {
-      const t = tracked(s), p = t.v.players[0], target = { x: 480, y: 400 };
-      const prop = () => snapshot(s).bodies.find(b => b.owner.kind === 'prop');
-      for (let i = 0; i < 400 && !prop().sleeping; i++) t.step();
-      assert.equal(prop().sleeping, true);
-      while (s.tick % 4 !== 0) t.step();
-      const first = dynamicWaypoint(t.v, p, target);
-      assert.notDeepEqual(first, target);
-      assert.ok(dynamicNavigationWork(t.v) > 0 && dynamicNavigationWork(t.v) <= 192);
-      let deviated = false;
-      for (let i = 0; i < 90; i++) {
-        const at = drive(t, p, target);
-        if (Math.abs(at.y - 400) > 5 || Math.abs(p.y - 400) > 5) deviated = true;
-      }
-      assert.ok(deviated, 'sleeping crate caused a detour');
-      assert.ok(p.x > 380, `actor progressed around the sleeping crate: ${p.x}`);
-    } finally { disposePhysics(s); }
-  }
+test('the core bot detours around a rotated crate and reaches the goal', async t => {
+  const { s, players: [p] } = await play(t, field({ props: [{ id: 'crate', profile: 'crate', x: 300, y: 400, angle: Math.PI / 4 }], items: [cell(480)] }), [bot(150)]);
+  let deviated = false;
+  run(s, 150, () => { deviated ||= Math.abs(now(s, p).y - 400) > 5; });
+  assert.ok(deviated, 'the crate caused a detour');
+  assert.ok(now(s, p).x > 470, `the bot reached the goal past the crate: ${now(s, p).x}`);
 });
 
-test('mixed actor radii cause a detour while loot sensors leave the straight waypoint intact', async () => {
-  const s = await game({ gladiator: true, items: [{ id: 'sensor', kind: 'cell', charge: 10, x: 220, y: 400 }] });
-  try {
-    const t = tracked(s), p = t.v.players.find(p => p.role === 'contestant'), g = t.v.players.find(p => p.role === 'gladiator');
-    const goal = { x: 480, y: 400 };
-    assert.equal(observedBlockers(t.v, p).length, 1, 'only the larger gladiator footprint blocks');
-    let deviated = false;
-    for (let i = 0; i < 80; i++) {
-      const at = drive(t, p, goal);
-      if (Math.abs(at.y - 400) > 5) deviated = true;
-    }
-    assert.ok(deviated);
-    assert.ok(p.x > g.x + 30, `contestant passed the larger blocker: ${p.x}`);
-  } finally { disposePhysics(s); }
-  const lootOnly = await game({ items: [{ id: 'sensor', kind: 'cell', charge: 10, x: 220, y: 400 }] });
-  try { assert.deepEqual(dynamicWaypoint(lootOnly, lootOnly.players[0], { x: 480, y: 400 }), { x: 480, y: 400 }); }
-  finally { disposePhysics(lootOnly); }
+test('an actor in the way causes a detour, while loot underfoot leaves the straight path intact', async t => {
+  const blocked = await play(t, field({ items: [cell(480)] }), [bot(150), standing('contestant', 300)]);
+  const [p, g] = blocked.players;
+  let deviated = false;
+  run(blocked.s, 120, () => { deviated ||= Math.abs(now(blocked.s, p).y - 400) > 5; });
+  assert.ok(deviated, 'the bot went round the actor');
+  assert.ok(now(blocked.s, p).x > now(blocked.s, g).x + 30, 'and passed it');
+  // The loot is only a goal: the bot walks straight to it.
+  const loot = await play(t, field({ items: [cell(220, 400, 'sensor')] }), [bot(150)]);
+  let straight = true;
+  run(loot.s, 30, () => { straight &&= Math.abs(now(loot.s, loot.players[0]).y - 400) <= 5; });
+  assert.ok(straight, 'a loot item does not bend the path');
+  assert.ok(now(loot.s, loot.players[0]).x > 190, 'it advanced toward the loot');
 });
 
 test('the core bot planner drives an actual contestant around a crate toward a cell', async () => {
@@ -100,72 +89,48 @@ test('the core bot planner drives an actual contestant around a crate toward a c
   } finally { disposePhysics(s); }
 });
 
-test('narrow corridor queues behind an actor without tunneling, then resumes when clear', async () => {
-  const obstacles = [{ id: 'top', x: 100, y: 100, w: 500, h: 280 },
-    { id: 'bottom', x: 100, y: 420, w: 500, h: 280 }];
-  const s = await game({ spawns: [{ x: 200, y: 400 }, { x: 300, y: 400 }], obstacles });
-  try {
-    const t = tracked(s), [p, blocker] = t.v.players, goal = { x: 500, y: 400 };
-    for (let i = 0; i < 20; i++) drive(t, p, goal);
-    assert.ok(p.x < blocker.x - 20, `actor waited outside blocker: ${p.x}`);
-    assert.ok(blocker.x - p.x < 30, `actor reached the queue instead of stopping at observation range: gap=${blocker.x - p.x}`);
-    assert.ok(p.y > 390 && p.y < 410, `actor stayed inside corridor: ${p.y}`);
-    assert.ok(startGame(s).boundary.teleport(blocker.id, [650, 500]));
-    t.sync();
-    for (let i = 0; i < 50; i++) drive(t, p, goal);
-    assert.ok(p.x > 390, `actor resumed after corridor cleared: ${p.x}`);
-  } finally { disposePhysics(s); }
+test('a narrow corridor queues a bot behind an actor without tunneling, then it resumes when clear', async t => {
+  const { s, players: [p, blocker], boundary } = await play(t, field({ obstacles: CORRIDOR, items: [cell(500)] }), [bot(200), standing('contestant', 300)]);
+  run(s, 40);
+  assert.ok(now(s, p).x < now(s, blocker).x - 20, `the bot waited outside the blocker: ${now(s, p).x}`);
+  assert.ok(now(s, blocker).x - now(s, p).x < 30, 'it came to the queue instead of stopping at observation range');
+  assert.ok(now(s, p).y > 390 && now(s, p).y < 410, `it stayed inside the corridor: ${now(s, p).y}`);
+  assert.ok(boundary.teleport(blocker.id, [650, 500]));
+  run(s, 60);
+  assert.ok(now(s, p).x > 390, `it resumed once the corridor cleared: ${now(s, p).x}`);
 });
 
-test('hidden actors and wall-concealed props do not alter local waypoints; old content stays unchanged', async () => {
-  const cloaked = await game({ spawns: [{ x: 150, y: 400 }, { x: 300, y: 400 }] });
-  try {
-    const [p, other] = cloaked.players, goal = { x: 480, y: 400 };
-    other.cloak = true;
-    assert.equal(observedBlockers(cloaked, p).length, 0);
-    const before = dynamicWaypoint(cloaked, p, goal);
-    other.x = 350;
-    assert.equal(observedBlockers(cloaked, p).length, 0);
-    assert.deepEqual(dynamicWaypoint(cloaked, p, goal), before);
-  } finally { disposePhysics(cloaked); }
-  const wall = await game({ props: [{ id: 'hidden', profile: 'crate', x: 300, y: 400 }],
-    obstacles: [{ id: 'wall', x: 230, y: 300, w: 4, h: 200 }] });
-  try {
-    const p = wall.players[0], goal = { x: 480, y: 400 }, world = physicsRuntime(wall).world;
-    assert.equal(observedBlockers(wall, p).length, 0);
-    const before = dynamicWaypoint(wall, p, goal);
-    world.setTransform('prop:hidden', { x: 350, y: 430, angle: Math.PI / 3 });
-    assert.equal(observedBlockers(wall, p).length, 0);
-    assert.deepEqual(dynamicWaypoint(wall, p, goal), before);
-  } finally { disposePhysics(wall); }
-  const { map, content } = fixture();
+test('hidden actors and wall-concealed props do not alter local plans', async t => {
+  // Each match's bot walks east toward a cell at 480; what it commands over its first ticks is the plan.
+  const commands = async (actors, options = {}, arrange) => {
+    const { s, players: [p], match } = await play(t, field({ items: [cell(480)], ...options }), actors, arrange), out = [];
+    run(s, 12, tick => out.push(movement(tick, match, p)));
+    return out;
+  };
+  const alone = await commands([bot(150)]);
+  assert.deepEqual(await commands([bot(150), standing('contestant', 300)], {}, ([, other]) => { other.cloak = 1000; }), alone, 'a cloaked actor is not avoided');
+  assert.notDeepEqual(await commands([bot(150), standing('contestant', 300)]), alone, 'a visible one is');
+  // A crate behind a wall that sight does not pass is not avoided: the bot plans as if it were not there.
+  const wall = [{ id: 'wall', x: 230, y: 300, w: 4, h: 200 }], crate = [{ id: 'hidden', profile: 'crate', x: 300, y: 400 }];
+  assert.notDeepEqual(await commands([bot(150)], { props: crate }), alone, 'a crate in the open is avoided');
+  assert.deepEqual(await commands([bot(150)], { obstacles: wall, props: crate }), await commands([bot(150)], { obstacles: wall }), 'a crate behind a wall is not seen');
+});
+
+test('a game is refused without dynamic navigation', async () => {
+  const content = structuredClone(contentById('content-6'));
   delete content.dynamicNavigation;
-  await assert.rejects(() => createGame(448, map, content), /dynamic navigation/);
+  await assert.rejects(() => createGame(448, field(), content), /dynamic navigation/);
 });
 
-test('teleport discards a stale detour and follows the new destination', async () => {
-  const s = await game({ props: [{ id: 'crate', profile: 'crate', x: 300, y: 400 }] });
-  try {
-    const p = s.players[0];
-    const detour = dynamicWaypoint(s, p, { x: 480, y: 400 });
-    assert.notDeepEqual(detour, { x: 480, y: 400 });
-    assert.ok(teleport(s, p.id, 500, 500));
-    const newGoal = { x: 650, y: 500 };
-    assert.deepEqual(dynamicWaypoint(s, p, newGoal), newGoal);
-  } finally { disposePhysics(s); }
-});
-
-test('dynamic navigation adds no snapshot fields', async () => {
-  const p8 = await game(), fresh = await game();
-  try {
-    startGame(fresh);
-    const beforeKeys = Object.keys(snapshot(fresh)).sort();
-    assert.equal(p8.version, PHYSICS_VERSION);
-    const t = tracked(p8);
-    drive(t, t.v.players[0], { x: 300, y: 400 });
-    const current = snapshot(p8);
-    assert.equal(current.version, PHYSICS_VERSION);
-    assert.deepEqual(Object.keys(current).sort(), beforeKeys);
-    assert.equal(current.physics, undefined);
-  } finally { disposePhysics(p8); disposePhysics(fresh); }
+test('a teleport discards a stale detour and the bot plans toward its goal from the new spot', async t => {
+  const { s, players: [p], match, boundary } = await play(t, field({ props: [{ id: 'crate', profile: 'crate', x: 300, y: 400 }], items: [cell(480)] }), [bot(150)]);
+  let detoured = false;
+  run(s, 14, () => { detoured ||= Math.abs(now(s, p).y - 400) > 5; });
+  assert.ok(detoured, 'the bot is mid-detour');
+  assert.ok(boundary.teleport(p.id, [150, 650]));
+  // The warp lands in its tick and the core clears the route there, so the bot plans afresh from the next.
+  run(s, 3);
+  const [dx, dy] = movement(stepGame(s), match, p);
+  const toGoal = [480 - now(s, p).x, 400 - now(s, p).y], length = Math.hypot(...toGoal);
+  assert.ok((dx * toGoal[0] + dy * toGoal[1]) / length > 0.9, `it heads for the goal from where it stands: ${[dx, dy]}`);
 });

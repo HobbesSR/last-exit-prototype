@@ -1,13 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, disposePhysics, setInput, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics } from '../shared/simulation.ts';
+import { startGame, stepGame } from '../shared/simulation/tick.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { collectBotIntent } from '../shared/simulation/bots.ts';
-import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { visiblePoint, visibleTo } from '../shared/simulation/visibility.ts';
 import { VISION } from '../shared/sight.ts';
-import { openArea } from './helpers/arena.js';
-import { tracked } from './helpers/scenario.js';
+import { arena, openArea } from './helpers/arena.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 
 function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, obstacles = [], items = [] } = {}) {
   const map = { seed: 448, width: 800, height: 800,
@@ -54,37 +53,24 @@ test('point sight applies strict range, roof concealment, and cover; actor excep
   } finally { disposePhysics(s); }
 });
 
-test('collectBotIntent preserves heading when a bot queues with no enemy', async () => {
-  const { map, content } = fixture({ spawns: [{ x: 200, y: 400 }, { x: 300, y: 400 }],
-    obstacles: [{ id: 'top', x: 100, y: 100, w: 500, h: 280 },
-      { id: 'bottom', x: 100, y: 420, w: 500, h: 280 }],
-    items: [{ id: 'goal-cell', kind: 'cell', charge: 0, x: 500, y: 400 }] });
-  const s = await createGame(448, map, content);
-  try {
-    // The planner is a retained rule over a `Game`, which a started game no longer keeps current (docs/27.2 "Test API"):
-    // a copy of the game whose players and clock follow the match (`tracked`) is what it reads.
-    // The core plans for its own bots, so the roster's bot is driven by hand with the planner's intent, as the old step did.
-    s.players[0].bot = false;
-    s.players[1].bot = false;
-    const t = tracked(s), v = t.v;
-    const [p, blocker] = v.players;
-    p.heading = 1.25;
-    let queued = false, closest = Infinity, lastIntent;
-    for (let i = 0; i < 120; i++) {
-      p.heading = 1.25;
-      const intent = collectBotIntent(v, p);
-      lastIntent = intent.input;
-      closest = Math.min(closest, blocker.x - p.x);
-      if (intent.input.x === 0 && intent.input.y === 0) {
-        assert.ok(blocker.x - p.x <= actorRadius(v, p) + actorRadius(v, blocker) + 5,
-          `bot queued before reaching actor contact: gap=${blocker.x - p.x}`);
-        assert.equal(intent.input.aim, p.heading);
-        queued = true;
-        break;
-      }
-      assert.ok(setInput(s, p.id, { seq: s.tick + 1, ...intent.input }));
-      t.step();
-    }
-    assert.equal(queued, true, `the actual bot planner queued at contact; closest=${closest}, last=${JSON.stringify(lastIntent)}`);
-  } finally { disposePhysics(s); }
+test('a bot that queues behind another with no enemy keeps the heading it walked with', async t => {
+  // A corridor running south, 40 wide: a bot walks down it toward a cell and stops behind a blocker that stands in it.
+  const { map } = arena({ cols: 8, rows: 8, cellSize: 100, seed: 448, entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },
+    obstacles: [{ id: 'west', x: 100, y: 100, w: 280, h: 500 }, { id: 'east', x: 420, y: 100, w: 280, h: 500 }],
+    items: [{ id: 'goal-cell', kind: 'cell', charge: 0, x: 400, y: 500 }] });
+  const { s, players: [bot, blocker] } = await stagePhysics(map, { seed: 448, content: { ...contentById('content-6'), discovery: false },
+    actors: [{ role: 'contestant', x: 400, y: 160 }, { role: 'contestant', bot: false, x: 400, y: 260 }] });
+  t.after(() => disposePhysics(s));
+  const { match } = startGame(s), actor = match.ids.actorOfPlayer.get(bot.id);
+  let queued = null;
+  for (let i = 0; i < 120 && !queued; i++) {
+    const heading = now(s, bot).heading;
+    const tick = stepGame(s);
+    const { input } = tick.inbound.find(row => row.type === 'command' && row.command.source === 'bot' && row.command.actor === actor).command;
+    if (input.movement.every(component => component === 0)) queued = { input, heading };
+  }
+  assert.ok(queued, 'the bot queued behind the blocker');
+  assert.ok(now(s, blocker).y - now(s, bot).y < 40, 'it queued at contact, not far short of it');
+  assert.ok(queued.heading > 1, 'it had been walking south');
+  assert.equal(queued.input.aim, queued.heading, 'its queued command keeps the heading it had');
 });

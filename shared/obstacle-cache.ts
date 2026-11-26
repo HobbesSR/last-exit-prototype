@@ -4,7 +4,7 @@ import type { CollisionMap, Obstacle } from './types.ts';
 // (`movement.ts`) and sight (`sight.ts`) each keep one, so each owns its own index (#1184).
 //
 // Keyed by the obstacle list, not the map: maps that differ only in gates, such as a contestant's remembered
-// doors (simulation/dynamic-navigation.ts), share one index instead of rebuilding it (#727). A cached index is
+// doors, share one index instead of rebuilding it (#727). A cached index is
 // stale once the list grows, so its `count` is checked against the list's length.
 
 /** Builders count work rather than reading a clock: this path also runs in the portable simulation. */

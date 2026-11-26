@@ -178,8 +178,3 @@ export function castersInCore(s: Game, casters: readonly Caster[]): void {
   if (!casters.length) return;
   drive(s, { mode: MODE_CASTERS, resume: false, casters });
 }
-
-/** `damage`, and the elimination it may cause, in the core. */
-export function damageInCore(s: Game, target: Player, amount: number, source: Player | null): void {
-  drive(s, { mode: MODE_DAMAGE, resume: false, damage: { target, amount, source } });
-}

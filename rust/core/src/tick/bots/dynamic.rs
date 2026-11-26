@@ -268,3 +268,270 @@ impl Detour {
         advance()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::tests::{contestant, standing, standing_in, standing_on, walled};
+    use super::*;
+    use crate::navigation::Grid;
+    use crate::sight::{GateSet, SightIndex, tests::grid_of};
+    use crate::tick::{DoorMemory, Gate, GateId, Memory};
+    use std::collections::{BTreeMap, BTreeSet};
+    use std::sync::Arc;
+
+    // A contestant at `BOT` walks east to `GOAL` past another standing a little south of its line, so its cheaper
+    // local detour is the north one, through `NORTH`'s box: a door in one case, a wall in the other.
+    const SIZE: Point = [1200.0, 1200.0];
+    const BOT: Point = [150.0, 400.0];
+    const BLOCKER: Point = [300.0, 410.0];
+    const GOAL: Point = [480.0, 400.0];
+    const NORTH: [f64; 4] = [260.0, 330.0, 80.0, 42.0];
+
+    fn remembering(
+        surveyed: impl IntoIterator<Item = u32>,
+        door: Option<bool>,
+    ) -> BTreeMap<ActorId, Memory> {
+        let gates = door
+            .map(|open| {
+                (
+                    GateId(0),
+                    DoorMemory {
+                        open,
+                        locked: false,
+                    },
+                )
+            })
+            .into_iter()
+            .collect();
+        BTreeMap::from([(
+            contestant(0),
+            Memory {
+                surveyed: surveyed.into_iter().collect(),
+                gates,
+                ..Memory::default()
+            },
+        )])
+    }
+
+    fn every_cell() -> impl Iterator<Item = u32> {
+        let grid = Grid::discovery(SIZE[0], SIZE[1]);
+        0..(grid.cols * grid.rows) as u32
+    }
+
+    /// The next local waypoint, with `NORTH` a door that is `live` in the world, when one is given.
+    fn next_waypoint(
+        memory: BTreeMap<ActorId, Memory>,
+        door: Option<bool>,
+        collision: Option<&CollisionMap>,
+    ) -> Point {
+        let arrange = |scenario: &mut crate::tick::Scenario| {
+            let Some(live) = door else {
+                return;
+            };
+            let [x, y, w, h] = NORTH;
+            let mut gates = GateSet::new(
+                &[
+                    x,
+                    y,
+                    x + w,
+                    y,
+                    x + w,
+                    y,
+                    x + w,
+                    y + h,
+                    x + w,
+                    y + h,
+                    x,
+                    y + h,
+                    x,
+                    y + h,
+                    x,
+                    y,
+                ],
+                &[0, 4],
+                &[x, y, w, h],
+                &grid_of(&[((1, 1), vec![0])]),
+            );
+            gates.open[0] = u8::from(live);
+            let empty = [0, 0, 0, 0, 0];
+            scenario.sight(
+                Arc::new(SightIndex::new(&[], &empty, &[], &[0], &empty)),
+                Arc::new(gates),
+            );
+            scenario.state.gates.insert(
+                GateId(0),
+                Gate {
+                    building: None,
+                    open: live,
+                    locked: false,
+                    door: true,
+                    position: [x + w / 2.0, y + h / 2.0],
+                },
+            );
+        };
+        standing_in(
+            SIZE,
+            memory,
+            &[BOT, BLOCKER],
+            Vec::new(),
+            0,
+            arrange,
+            |ctx, ids| {
+                Detour::default().waypoint(
+                    ctx,
+                    collision,
+                    ids[0],
+                    0,
+                    Waypoint {
+                        pos: BOT,
+                        destination: GOAL,
+                        route_generation: 0,
+                    },
+                    &mut 0,
+                )
+            },
+        )
+    }
+
+    #[test]
+    fn a_local_detour_follows_the_remembered_door_not_the_live_one() {
+        // Remembered open, it takes the north side however the door stands now; remembered shut, the south side.
+        for remembered in [true, false] {
+            let plans: Vec<Point> = [true, false]
+                .map(|live| {
+                    next_waypoint(
+                        remembering(every_cell(), Some(remembered)),
+                        Some(live),
+                        None,
+                    )
+                })
+                .to_vec();
+            assert_eq!(
+                plans[0], plans[1],
+                "remembered {remembered}: the live door changes nothing"
+            );
+            assert_eq!(
+                plans[0][1] < BOT[1],
+                remembered,
+                "remembered {remembered}: {:?}",
+                plans[0]
+            );
+        }
+    }
+
+    #[test]
+    fn hidden_geometry_does_not_alter_a_local_detour() {
+        // The wall stands in the north detour's cells, which the bot has not surveyed.
+        let [x, y, w, h] = NORTH;
+        let wall = walled(x, y, w, h);
+        let grid = Grid::discovery(SIZE[0], SIZE[1]);
+        let hidden = |cell: &u32| {
+            let (col, row) = (
+                (*cell as usize % grid.cols) as f64,
+                (*cell as usize / grid.cols) as f64,
+            );
+            !(col * grid.size < x + w
+                && (col + 1.0) * grid.size > x
+                && row * grid.size < y + h
+                && (row + 1.0) * grid.size > y)
+        };
+        let surveyed = || remembering(every_cell().filter(hidden), None);
+        assert_eq!(
+            next_waypoint(surveyed(), None, Some(&wall)),
+            next_waypoint(surveyed(), None, None),
+            "an unsurveyed wall changes nothing it plans"
+        );
+        // Known, the same wall does turn it south; with nothing there it goes north.
+        assert!(next_waypoint(remembering(every_cell(), None), None, Some(&wall))[1] > BOT[1]);
+        assert!(next_waypoint(remembering(every_cell(), None), None, None)[1] < BOT[1]);
+    }
+
+    #[test]
+    fn a_crowd_among_authored_props_keeps_local_planning_within_its_edge_caps() {
+        // 40 bots lined up before a field of 64 crates they must pass: every bot has a blocked straight line.
+        let places: Vec<Point> = (0..40)
+            .map(|i| {
+                [
+                    880.0 + f64::from(i % 4) * 30.0,
+                    200.0 + f64::from(i / 4) * 40.0,
+                ]
+            })
+            .collect();
+        let props: Vec<Shape> = (0..64)
+            .map(|i| Shape::Rect {
+                x: 1000.0 + f64::from(i % 8) * 60.0 - 12.0,
+                y: 200.0 + f64::from(i / 8) * 60.0 - 24.0,
+                w: 24.0,
+                h: 48.0,
+            })
+            .collect();
+        let mut spent = 0;
+        // Each bot plans on every fourth tick, staggered by its place, so each tick ten of them compete.
+        for tick in 0..4 {
+            standing(&places, props.clone(), tick, |ctx, ids| {
+                let mut edges = 0;
+                for (idx, &id) in ids.iter().enumerate() {
+                    let pos = places[idx];
+                    let before = edges;
+                    Detour::default().waypoint(
+                        ctx,
+                        None,
+                        id,
+                        idx,
+                        Waypoint {
+                            pos,
+                            destination: [pos[0] + 600.0, pos[1]],
+                            route_generation: 0,
+                        },
+                        &mut edges,
+                    );
+                    assert!(
+                        edges - before <= EDGES_PER_BOT,
+                        "one bot's edges stay capped"
+                    );
+                }
+                assert!(edges <= EDGES_PER_TICK, "tick {tick}: {edges} edges");
+                spent += edges;
+            });
+        }
+        assert!(spent > 0, "the crowd exercised the bounded edge planning");
+    }
+
+    #[test]
+    fn a_contestant_detours_only_over_ground_it_has_surveyed() {
+        // A bot walks east at a contestant that stands in its way, with room beside it.
+        let size = [800.0, 800.0];
+        let grid = Grid::discovery(size[0], size[1]);
+        let places = [[150.0, 400.0], [300.0, 400.0]];
+        let next = |surveyed: BTreeSet<u32>| {
+            let memory = BTreeMap::from([(
+                contestant(0),
+                Memory {
+                    surveyed,
+                    ..Memory::default()
+                },
+            )]);
+            standing_on(size, memory, &places, Vec::new(), 0, |ctx, ids| {
+                Detour::default().waypoint(
+                    ctx,
+                    None,
+                    ids[0],
+                    0,
+                    Waypoint {
+                        pos: places[0],
+                        destination: [480.0, 400.0],
+                        route_generation: 0,
+                    },
+                    &mut 0,
+                )
+            })
+        };
+        // Nothing surveyed: no side step is known clear, so it advances along its line toward the observed actor.
+        let blind = next(BTreeSet::new());
+        assert!(blind[0] > places[0][0] && blind[0] < places[1][0]);
+        assert_eq!(blind[1], places[0][1]);
+        // Fully surveyed, it plans a lateral detour.
+        let sighted = next((0..(grid.cols * grid.rows) as u32).collect());
+        assert_ne!(sighted[1], places[0][1]);
+    }
+}

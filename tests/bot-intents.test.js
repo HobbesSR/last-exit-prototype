@@ -1,72 +1,33 @@
-import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameRecord } from '../shared/simulation.ts';
-import { collectBotIntent } from '../shared/simulation/bots.ts';
-import { defaultContent } from '../shared/simulation/content.ts';
-import { generatedMap } from './helpers/room-harness.js';
-import { know } from './helpers/scenario.js';
+import { disposePhysics } from '../shared/simulation.ts';
+import { startGame, stepGame } from '../shared/simulation/tick.ts';
+import { arena } from './helpers/arena.js';
+import { stagePhysics } from './helpers/scenario.js';
+import { identifyItems } from './helpers/item-identity.js';
 
-// A bot collects an intent and the tick applies it. Neither case steps the match, so the game is built on the
-// shipped content and the room arena without its physics world.
-function fixture() {
-  const s = createGameRecord(438, generatedMap(), defaultContent());
-  for (const p of s.players) p.bot = false;
-  const p = s.players[0];
-  p.bot = true;
-  know(s, p);
-  s.items = [];
-  s.traps = [];
-  return { s, p };
-}
+// A bot's intent is a committed command (27.2 "Core bot intent"): the core plans it from the last completed tick and
+// the tick applies it, so what an intent holds is read from the command row the tick took.
 
-function publicState(s, p) {
-  return structuredClone({ inventory: p.inventory, hp: p.hp, shield: p.shield, selectedSlot: p.selectedSlot,
-    weapon: p.weapon, attackCd: p.attackCd, cooldown: p.cooldown, serial: s.serial,
-    items: s.items, effects: s.effects, projectiles: s.projectiles });
-}
-
-function healing() {
-  const { s, p } = fixture();
-  p.hp = 40;
-  p.selectedSlot = 4;
-  p.inventory = [{ kind: 'med', count: 1 }, { kind: 'weapon', weaponType: 'pistol', ammo: 5 }, null, null, null, null];
-  return { s, p };
-}
-
-function pursuing() {
-  const { s, p } = fixture();
-  p.inventory = [
-    { kind: 'weapon', weaponType: 'pistol', ammo: 4 },
-    { kind: 'shield', count: 2 },
-    { kind: 'weapon', weaponType: 'rifle', ammo: 1 },
-    { kind: 'weapon', weaponType: 'scattergun', ammo: 1 },
-    { kind: 'weapon', weaponType: 'pistol', ammo: 0 },
-    { kind: 'med', count: 2 },
+test('a bot walking to a cell with a full inventory commits the slot to discard', async t => {
+  const { map } = arena({ cols: 4, rows: 3, items: [{ id: 'wanted-cell', kind: 'cell', x: 400, y: 200, charge: 0 }] });
+  const { s, players: [bot] } = await stagePhysics(map, { actors: [{ role: 'contestant', x: 200, y: 200 }, { role: 'contestant', bot: false, x: 700, y: 500 }] });
+  t.after(() => disposePhysics(s));
+  const held = (n, item) => ({ ...item, instanceId: `held-${n}`, lineageId: `held-${n}` });
+  bot.inventory = [
+    held(0, { kind: 'weapon', weaponType: 'pistol', ammo: 4 }),
+    held(1, { kind: 'shield', count: 2 }),
+    held(2, { kind: 'weapon', weaponType: 'rifle', ammo: 1 }),
+    held(3, { kind: 'weapon', weaponType: 'scattergun', ammo: 1 }),
+    held(4, { kind: 'weapon', weaponType: 'pistol', ammo: 0 }),
+    held(5, { kind: 'med', count: 2 }),
   ];
-  p.shield = 75;
-  p.hp = 100;
-  const cell = { id: itemId(s, 'wanted-cell'), kind: 'cell', x: p.x + 200, y: p.y, charge: 0 };
-  s.items.push(cell);
-  // A shipped bot plans from what it remembers seeing (15, #230), so it is given the cell's sighting.
-  p.discovery.items = new Map([[cell.id, { ...cell }]]);
-  return { s, p };
-}
-
-test('collecting a healing intent leaves public state untouched', () => {
-  const { s, p } = healing();
-  const before = publicState(s, p);
-  const intent = collectBotIntent(s, p);
-  assert.equal(intent.input.slot, 0);
-  assert.equal(intent.utilitySlot, 0);
-  assert.equal(intent.discardSlot, undefined);
-  assert.deepEqual(publicState(s, p), before);
-});
-
-test('collecting a cell pursuit intent reports the discard slot without dropping', () => {
-  const { s, p } = pursuing();
-  const before = publicState(s, p);
-  const intent = collectBotIntent(s, p);
-  assert.equal(intent.discardSlot, 1);
-  assert.deepEqual(publicState(s, p), before);
+  bot.shield = 75;
+  bot.hp = 100;
+  identifyItems(s);
+  const { match } = startGame(s), actor = match.ids.actorOfPlayer.get(bot.id);
+  // The cell is seen from the first tick, so the bot sets out for it and its first command already discards slot 1.
+  const { input } = stepGame(s).inbound.find(row => row.type === 'command' && row.command.source === 'bot' && row.command.actor === actor).command;
+  assert.deepEqual(input.drop, { kind: 'slot', slot: 1 });
+  assert.ok(input.movement[0] > 0.9, 'toward the cell');
 });

@@ -829,4 +829,164 @@ mod tests {
         assert!(game.bots.settings.roster[0].1);
         assert!(game.bots.settings.roster[1].1);
     }
+
+    pub(super) fn contestant(seat: u32) -> ActorId {
+        ActorId {
+            kind: ActorKind::Contestant,
+            seat,
+        }
+    }
+
+    /// A match of contestants standing at `places` (seat order), with solid props, and the planner context over it
+    /// (the ground the local steering rules read), for the rules that are pure functions of a `Context`.
+    pub(super) fn standing<R>(
+        places: &[Point],
+        props: Vec<crate::swept::Shape>,
+        tick: Tick,
+        f: impl FnOnce(&Context<'_>, &[ActorId]) -> R,
+    ) -> R {
+        standing_on([0.0, 0.0], BTreeMap::new(), places, props, tick, f)
+    }
+
+    /// The same, on a map `size` square-cornered at the origin, where each contestant remembers `memory`.
+    pub(super) fn standing_on<R>(
+        size: Point,
+        memory: BTreeMap<ActorId, Memory>,
+        places: &[Point],
+        props: Vec<crate::swept::Shape>,
+        tick: Tick,
+        f: impl FnOnce(&Context<'_>, &[ActorId]) -> R,
+    ) -> R {
+        standing_in(size, memory, places, props, tick, |_| {}, f)
+    }
+
+    /// The same, with `arrange` given the scenario before it starts: its gates and their sight set, say.
+    pub(super) fn standing_in<R>(
+        size: Point,
+        memory: BTreeMap<ActorId, Memory>,
+        places: &[Point],
+        props: Vec<crate::swept::Shape>,
+        tick: Tick,
+        arrange: impl FnOnce(&mut Scenario),
+        f: impl FnOnce(&Context<'_>, &[ActorId]) -> R,
+    ) -> R {
+        use crate::physics::{BodyParams, KIND_ACTOR, SHAPE_CIRCLE};
+        let ids: Vec<ActorId> = (0..places.len() as u32).map(contestant).collect();
+        let mut scenario = Scenario::default();
+        arrange(&mut scenario);
+        if size[0] > 0.0 {
+            scenario.bounds([0.0, 0.0], size);
+        }
+        for (&id, &at) in ids.iter().zip(places) {
+            scenario.state.actors.insert(
+                id,
+                Actor {
+                    presence: Presence::Active,
+                    kit: None,
+                    level: 1,
+                    kills: 0,
+                    hp: 100.0,
+                    max_hp: 100.0,
+                    shield: 0.0,
+                    max_shield: 75.0,
+                    aim: 0.0,
+                    sneak: false,
+                    view_lag: 0,
+                    inventory: Inventory::default(),
+                    charging: None,
+                    respawn_at: None,
+                    transit: None,
+                    bot: true,
+                    aggression: None,
+                    deadlines: Deadlines::default(),
+                    statuses: BTreeMap::new(),
+                },
+            );
+            scenario.body(
+                BodyId::Actor(id),
+                BodySpec {
+                    params: BodyParams {
+                        kind: KIND_ACTOR,
+                        map_geometry: false,
+                        pose: [at[0], at[1], 0.0, 0.0, 0.0, 0.0],
+                        material: [1.0, 0.0, 0.0],
+                        damping: [Some(0.0); 2],
+                        groups: 0xffff_ffff,
+                    },
+                    shape: SHAPE_CIRCLE,
+                    dimensions: [12.0, 0.0],
+                    vertices: Vec::new(),
+                    speed_limit: 1_000.0,
+                    tip_radius: 0.0,
+                },
+            );
+        }
+        let mut game = scenario.start(1, 10);
+        let mut bodies = game.bodies.before_solve();
+        bodies.solid_props = props;
+        let (planner, rules) = (Planner::default(), Combat::default());
+        let ctx = Context {
+            view: game.view(tick),
+            bodies: &bodies,
+            actor_bodies: &game.bodies,
+            memory: &memory,
+            cues: &game.cues,
+            settings: &planner.settings,
+            lexical: &ids,
+            rules: &rules,
+            roofs: None,
+            navigation: None,
+            entry_x: 0.0,
+        };
+        f(&ctx, &ids)
+    }
+
+    /// A 1200-square map of 200-unit cells, all playable, with one rectangular wall.
+    pub(super) fn walled(x: f64, y: f64, w: f64, h: f64) -> CollisionMap {
+        let colliders = [0.0, 0.0, x, y, w, h, x, y, w, h];
+        let cells: Vec<_> = (0..6)
+            .flat_map(|c| (0..6).map(move |r| ((c, r), Vec::new())))
+            .map(|(cell, _): ((i32, i32), Vec<i32>)| {
+                let hit = f64::from(cell.0) * 200.0 < x + w
+                    && f64::from(cell.0 + 1) * 200.0 > x
+                    && f64::from(cell.1) * 200.0 < y + h
+                    && f64::from(cell.1 + 1) * 200.0 > y;
+                (cell, if hit { vec![0] } else { Vec::new() })
+            })
+            .collect();
+        CollisionMap::new(
+            &[1200.0, 1200.0, 200.0, 6.0, 6.0],
+            &[1; 36],
+            &colliders,
+            &[0, 10],
+            &crate::sight::tests::grid_of(&cells),
+        )
+    }
+
+    #[test]
+    fn a_bot_turns_short_of_a_waypoint_only_within_the_margin_of_the_next_leg() {
+        // A leg runs along a wall at x 200, so its corner is a body's clearance (14) from it. A contestant's
+        // body is 12, so the planner keeps 2 beyond it (#473 review).
+        let (corner, end) = ([186.0, 100.0], [186.0, 900.0]);
+        let wall = walled(200.0, 300.0, 100.0, 300.0);
+        let turns = |collision: &CollisionMap, at: Point| {
+            standing(&[at], Vec::new(), 0, |ctx, ids| {
+                passed(ctx, Some(collision), ids[0], at, corner, end)
+            })
+        };
+        // 10 off the leg: the first stretch of it is clear, but the leg along the wall is beyond the margin.
+        assert!(!turns(&wall, [196.0, 100.0]));
+        assert!(turns(&wall, [187.5, 106.0]), "within the margin it turns");
+        assert!(
+            turns(&wall, [187.5, 100.0]),
+            "on the waypoint it has arrived"
+        );
+        assert!(
+            !turns(&wall, [186.0, 130.0]),
+            "far from the waypoint it keeps going"
+        );
+        // Within the margin, a body pressing the next leg's first stretch into a wall does not turn.
+        let near = walled(190.0, 110.0, 100.0, 300.0);
+        assert!(!turns(&near, [187.5, 106.0]));
+    }
 }

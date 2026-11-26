@@ -1,16 +1,14 @@
 import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, snapshot, playerView } from '../shared/simulation.ts';
 import { startGame, stepGame } from '../shared/simulation/tick.ts';
-import { collectBotIntent } from '../shared/simulation/bots.ts';
-import { joinRoute, passed, tickAllowance } from '../shared/simulation/bot-routes.ts';
 import { canOccupy, sweptClear } from '../shared/movement.ts';
 import { cellIndexAt, createDiscovery, discover, attachDiscovery } from '../shared/discovery.ts';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { arena } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';
-import { discoveredBy, now, stagePhysics } from './helpers/scenario.js';
+import { everywhere, now, stagePhysics } from './helpers/scenario.js';
 import { initCoreSight } from '../shared/sight-core.ts';
 import { adoptPackedTiles } from '../shared/free-space.ts';
 import { createKnowledgePlanner, packedTilesFor } from '../shared/navigation/knowledge.ts';
@@ -53,43 +51,31 @@ async function lone(seed = 4217) {
   const p = s.players[0]; p.bot = true;
   return { s, p };
 }
-// Plan afresh until a route exists: a frontier cell that cannot be routed to is given up, and the next
-// tried. A first plan waits for the bot's turn, so the clock runs.
-function plan(s, p) {
-  for (let i = 0; i < 40 && !p.route?.length; i++) { p.route = []; collectBotIntent(s, p); s.tick++; }
-  return p.route.at(-1);
-}
-
 test('a bot routes to a cell it has seen and not to one it has not', async t => {
-  const { s, p } = await lone();
+  const cell = { id: 'far-cell', kind: 'cell', x: 5500, y: 960, charge: 0 };
+  const { map } = arena({ cols: 32, rows: 10, items: [cell] });
+  const { s, players: [bot] } = await stagePhysics(map, { actors: [{ role: 'contestant', x: 576, y: 960 }, { role: 'contestant', bot: false, x: 6000, y: 1660 }] });
   t.after(() => disposePhysics(s));
-  let spot;
-  for (let r = 2600; !spot && r < 4000; r += 200)
-    for (let a = 0; a < 16 && !spot; a++) {
-      const x = p.x + Math.cos(a * Math.PI / 8) * r, y = p.y + Math.sin(a * Math.PI / 8) * r;
-      if (x > 300 && canOccupy(s.map, x, y, 25)) spot = { x, y };
-    }
-  assert.ok(spot, 'an open spot far from the bot');
-  const cell = { id: itemId(s, 'far-cell'), kind: 'cell', ...spot };
-  s.items = [cell];
-
-  p.route = [];
-  const unknown = plan(s, p);
-  assert.ok(Math.hypot(unknown.x - spot.x, unknown.y - spot.y) > 500, 'an unseen cell is not a destination');
-
-  p.discovery.items.set(cell.id, { ...cell });
-  p.route = [];
-  const known = plan(s, p);
-  assert.ok(Math.hypot(known.x - spot.x, known.y - spot.y) < 150, 'a seen cell is');
+  const { match, boundary } = startGame(s);
+  const end = () => match.botRoute(bot.id).at(-1);
+  const toCell = at => at && Math.hypot(at.x - cell.x, at.y - cell.y) < 150;
+  // Far beyond what it sees it has no cell to go to, so it plans an exploration and never a route to the cell.
+  let planned = 0;
+  for (let i = 0; i < 60; i++) { stepGame(s); if (end()) planned++; assert.ok(!toCell(end()), 'an unseen cell is not a destination'); }
+  assert.ok(planned, 'it explores');
+  assert.ok(boundary.teleport(bot.id, [5000, 960]));
+  let known;
+  for (let i = 0; i < 60 && !toCell(known); i++) { stepGame(s); known = end(); }
+  assert.ok(toCell(known), 'a seen cell is');
 });
 
 test('a bot that knows of nothing it needs explores', async t => {
   const { s, p } = await lone();
   t.after(() => disposePhysics(s));
   delete s.itemSerial; // This scenario clears all ground records before setup.
-  const start = { x: p.x, y: p.y }, before = discoveredBy(s, p).size;
-  for (let i = 0; i < 300; i++) step(s);
-  const after = discoveredBy(s, p).size;
+  const { match } = startGame(s), start = { x: p.x, y: p.y }, before = match.memory(p.id).discovered.length;
+  for (let i = 0; i < 300; i++) stepGame(s);
+  const after = match.memory(p.id).discovered.length;
   assert.ok(after > before + 10, `discovered ${before} → ${after}`);
   assert.ok(Math.hypot(now(s, p).x - start.x, now(s, p).y - start.y) > 500, 'it went looking');
 });
@@ -205,116 +191,35 @@ test('item, door and survey memory stay out of snapshots and every projection', 
   }
 });
 
-test('a route that arrives late is joined only within its clearance margin, else by the trail back (#473 review)', () => {
-  const playableArea = { cellSize: 200, rows: Array.from({ length: 6 }, (_, y) => ({ y, runs: [[0, 6]] })) };
-  const map = { width: 1200, height: 1200, playableArea, obstacles: [{ id: 'wall', x: 200, y: 300, w: 100, h: 300 }], gates: [], buildings: [], items: [] };
-  const clear = (bot, way) => way.every((point, i) => sweptClear(map, i ? way[i - 1] : bot, point, 12));
-  const contestant = (x, y) => ({ role: 'contestant', x, y });
-
-  // The bot walked round the wall while its search ran: the nearest segment lies beyond it.
-  const round = [{ x: 100, y: 100 }, { x: 180, y: 620 }, { x: 400, y: 900 }], far = contestant(400, 100);
-  assert.ok(clear(round[0], round.slice(1)), 'the planned legs are clear');
-  const back = joinRoute(far, round, [{ x: 100, y: 100 }, { x: 250, y: 100 }, { x: 400, y: 100 }]);
-  assert.deepEqual(back.slice(0, 3), [{ x: 400, y: 100 }, { x: 250, y: 100 }, { x: 100, y: 100 }], 'it walks back the way it came');
-  assert.ok(clear(far, back));
-
-  // Beside a segment along the wall, 10 units off it: the diagonal to its end would meet the wall.
-  const along = [{ x: 186, y: 100 }, { x: 186, y: 900 }], beside = contestant(196, 100);
-  assert.ok(clear(along[0], along.slice(1)) && !clear(beside, along.slice(1)));
-  const stepped = joinRoute(beside, along, [{ x: 186, y: 100 }, { x: 196, y: 100 }]);
-  assert.deepEqual(stepped, [{ x: 196, y: 100 }, ...along]);
-  assert.ok(clear(beside, stepped));
-
-  // Within the margin the planner keeps beyond the body, it joins where it is.
-  const close = contestant(187.5, 100), joined = joinRoute(close, along, [{ x: 186, y: 100 }, { x: 187.5, y: 100 }]);
-  assert.deepEqual(joined, along.slice(1));
-  assert.ok(clear(close, joined));
-  assert.deepEqual(joinRoute(contestant(140, 360), round, [{ x: 100, y: 100 }, { x: 140, y: 360 }]), round.slice(1), 'on the route');
-});
-
-test('a bot turns short of a waypoint only within the margin of the next leg (#473 review)', () => {
-  const playableArea = { cellSize: 200, rows: Array.from({ length: 6 }, (_, y) => ({ y, runs: [[0, 6]] })) };
-  const map = { width: 1200, height: 1200, playableArea, obstacles: [{ id: 'wall', x: 200, y: 300, w: 100, h: 300 }], gates: [], buildings: [], items: [] };
-  const game = content => ({ map, content: contentById(content) }), corner = { x: 186, y: 100 }, end = { x: 186, y: 900 };
-  // 10 units off a leg along the wall, the first 24 units toward its end are clear but the rest is not.
-  const beside = { role: 'contestant', x: 196, y: 100 };
-  assert.equal(passed(game('content-7'), beside, corner, end), false);
-  assert.equal(passed(game('content-7'), { role: 'contestant', x: 187.5, y: 100 }, corner, end), true);
-});
-
-// A wall at x 600–640 with a door in it, and a gap at its foot. Each bot saw the door locked, so it
-// routes through the gap; then `see()` has the door seen open.
-function doorScene(content, positions) {
-  content = typeof content === 'string' ? contentById(content) : content;
+// A wall at x 600–640 in a started match: a door in it, and a gap at its foot. The bot knows the door is
+// locked, so it routes through the gap; a contestant with a key then opens the door, and the bot sees it open.
+async function openedDoor(t, x, y) {
   const cell = { id: 'cell', kind: 'cell', x: 1100, y: 330, charge: 0 };
-  const map = { ...openMap([cell]), hazards: [], traps: [], chargers: [], stations: [], exit: { x: 1800, y: 100 },
+  const { map } = arena({ cols: 10, rows: 5, items: [cell], exit: { x: 1800, y: 100 },
     obstacles: [{ id: 'upper', x: 600, y: 0, w: 40, h: 300 }, { id: 'lower', x: 600, y: 360, w: 40, h: 440 }],
-    gates: [{ id: 'door', x: 620, y: 330, w: 40, h: 60, open: true, locked: false, kind: 'door' }] };
-  const memories = [];
-  const players = positions.map(([x, y], i) => {
-    const p = { id: `c${i}`, name: `contestant-${i + 1}`, role: 'contestant', kit: 'warden', bot: true, x, y, hp: 100, maxHp: 100, shield: 0, keys: 0,
-      weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0,
-      input: {}, lastSeq: -1, inventory: Array(4).fill(null), selectedSlot: 0 };
-    const memory = createDiscovery();
-    memory.seen = new Set();
-    for (let i = 0; i < 50; i++) { memory.discovered.add(i); memory.seen.add(i); }
-    memory.items = new Map([[cell.id, { ...cell }]]);
-    memory.gates = new Map([['door', { open: false, locked: true }]]);
-    attachDiscovery(p, memory);
-    memories.push(memory);
-    return p;
-  });
-  const s = { tick: 0, phase: 'live', content, map, players, projectiles: [], effects: [], events: [], hazardX: -80, slots: 3, serial: 0 };
-  const through = p => !p.route.some(q => q.y >= 800);
-  // The bots stand still, so only what they know changes.
-  for (; s.tick < 60 && players.some(p => !p.route?.length); s.tick++) for (const p of players) collectBotIntent(s, p);
-  for (const p of players) assert.ok(p.route.length && !through(p), 'it routes round by the gap: ' + JSON.stringify(p.route));
-  for (; s.tick % 20 !== 1; s.tick++) for (const p of players) collectBotIntent(s, p);
-  const see = () => { for (const memory of memories) memory.gates.set('door', { open: true, locked: false }); };
-  return { s, players, through, see };
+    gates: [{ id: 'door', x: 620, y: 330, w: 40, h: 60, open: false, locked: true, kind: 'door' }] });
+  const knows = { surveyed: everywhere(map), gates: new Map([['door', { open: false, locked: true }]]) };
+  // The bot starts where it sees the cell through the gap, and is moved to its place once it remembers the cell.
+  const { s, players: [bot, opener] } = await stagePhysics(map, { actors: [{ role: 'contestant', x: 700, y: 880, knows },
+    { role: 'contestant', bot: false, x: 575, y: 330 }, { role: 'contestant', bot: false, x: 1700, y: 880 }] });
+  t.after(() => disposePhysics(s));
+  opener.keys = 1;
+  const { match, boundary } = startGame(s);
+  for (let i = 0; i < 3; i++) stepGame(s);
+  assert.ok(match.memory(bot.id).items.length, 'the bot remembers the cell');
+  assert.ok(boundary.teleport(bot.id, [x, y]));
+  const through = () => { const route = match.botRoute(bot.id); return route.length > 0 && !route.some(q => q.y >= 800); };
+  for (let i = 0; i < 80 && !match.botRoute(bot.id).some(q => q.y >= 800); i++) stepGame(s);
+  assert.ok(match.botRoute(bot.id).some(q => q.y >= 800), 'it routes round by the gap');
+  assert.ok(setInput(s, opener.id, { seq: s.tick + 1, interact: true }));
+  const opened = s.tick;
+  for (let i = 0; i < 80 && !through(); i++) stepGame(s);
+  assert.ok(through(), 'it takes the door in the end');
+  return s.tick - opened;
 }
 
-test('under repair replanning a door seen opening near a bot reroutes it at once, and one further off at its next repath (#470 part 2)', () => {
-  const run = (content, x, y) => {
-    const { s, players: [p], through, see } = doorScene(content, [[x, y]]);
-    see();
-    const seenAt = s.tick;
-    for (; s.tick < seenAt + 40 && !through(p); s.tick++) collectBotIntent(s, p);
-    assert.ok(through(p), `it takes the door in the end (${content}): ${JSON.stringify(p.route)}`);
-    return s.tick - seenAt;
-  };
-  assert.equal(run('content-7', 420, 330), 1, 'near: repaired on the tick it is seen');
-  const later = run('content-7', 100, 330);
-  assert.ok(later >= 19, `further off: at its next repath, not after ${later}`);
-});
-
-test(`under repair replanning a repair reserves its budget from the tick's shared allowance, and waits a tick when it is short (#470 part 2)`, () => {
-  // Whatever earlier bots left this tick: none, or one short of a repair's budget.
-  for (const left of [0, 499]) {
-    const { s, players: [p], through, see } = doorScene('content-7', [[420, 330]]);
-    see();
-    tickAllowance(s).left = left;
-    collectBotIntent(s, p);
-    assert.equal(through(p), false, `with ${left} left it waits`);
-    assert.equal(tickAllowance(s).left, left, 'and spends nothing');
-    s.tick++;
-    collectBotIntent(s, p);
-    assert.ok(through(p), 'it repairs on the next tick');
-  }
-  // Two near bots and one further off, whose sliced repath competes with the repairs, with each tick
-  // starting 520 short of nothing: the first repair leaves too little for the second, which waits.
-  const { s, players, through, see } = doorScene('content-7', [[420, 330], [420, 300], [100, 330]]);
-  see();
-  const took = new Map();
-  for (const seenAt = s.tick; s.tick < seenAt + 40 && took.size < players.length; s.tick++) {
-    tickAllowance(s).left = 520;
-    for (const p of players) {
-      collectBotIntent(s, p);
-      assert.ok(tickAllowance(s).left >= 0, `tick ${s.tick}: the allowance stays within the cap (${tickAllowance(s).left})`);
-      if (!took.has(p) && through(p)) took.set(p, s.tick - seenAt);
-    }
-  }
-  assert.deepEqual(players.map(p => took.get(p) !== undefined), [true, true, true], 'all take the door in the end');
-  assert.equal(took.get(players[0]), 0, 'the first repairs at once');
-  assert.equal(took.get(players[1]), 1, 'the second waits a tick');
+test('replanning a door seen opening near a bot reroutes it soon, and one further off at its next repath (#470 part 2)', async t => {
+  const near = await openedDoor(t, 420, 330), far = await openedDoor(t, 100, 330);
+  assert.ok(near <= 20, `near: repaired within a sample of the door being seen, not after ${near}`);
+  assert.ok(far > near, `further off: at its next repath, after ${far}, not with the near bot's ${near}`);
 });
