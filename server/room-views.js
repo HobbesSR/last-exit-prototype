@@ -84,6 +84,8 @@ export function remember(room, frame) {
 }
 export function broadcast(room, state) {
   const views = new Map(), payloads = new Map(), delayed = spectatorFrame(room), fastViews = new Set();
+  // The core decides every player view of this tick in one call (#1357).
+  room.match.decide?.([...room.clients].flatMap(session => session.playerId ? [session.playerId] : []));
   for (const session of room.clients) {
     // The dev view is the directed view without the delay: every dev session shares one payload.
     const key = session.playerId || (session.dev ? 'dev' : 'spectator');

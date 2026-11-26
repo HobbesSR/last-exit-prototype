@@ -261,6 +261,12 @@ export class TickFrames {
     return frame;
   }
 
+  /** The last completed tick: the tick of `frame()`. */
+  get tick(): Tick { return this.#tick; }
+
+  /** Whether the room ended the match stranding its active contestants (`end`). */
+  get stranded(): boolean { return this.#stranded.size > 0; }
+
   /** The match's phase as of the last completed tick, or as the room ended it. */
   get phase(): Game['phase'] { return this.#phase; }
 

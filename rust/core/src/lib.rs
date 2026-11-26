@@ -48,7 +48,7 @@ use std::slice;
 /// 50: committed bot planning and the setup roster (27.2, #1321).
 /// 51: private bot routes move from the completed tick to `match_bot_routes` (27.2, #1338).
 /// 52: the setup carries arranged knowledge for scenarios (27.2 "Test API", #1358).
-pub const ADAPTER_VERSION: u32 = 53;
+pub const ADAPTER_VERSION: u32 = 54;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -1703,6 +1703,40 @@ pub unsafe extern "C" fn match_heard(
     unsafe {
         (*game).heard(actor_word);
         (*game).output().as_ptr()
+    }
+}
+
+/// Where an actor stands when it has no body at the start, taken only when none is known. The
+/// caller makes it once after `match_new`.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_stand(
+    game: *mut tick::codec::LiveMatch,
+    actor_word: f64,
+    x: f64,
+    y: f64,
+) {
+    // SAFETY: the caller's contract.
+    unsafe { (*game).stand(actor_word, [x, y]) }
+}
+
+/// What each viewer may receive at the last completed tick and what it has learned: the encoded
+/// admission of the viewers in the input buffer (`match_input`), or null when it does not
+/// decode. The words are `match_output_len` long.
+///
+/// # Safety
+/// `game` is live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn match_admit(game: *mut tick::codec::LiveMatch) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe {
+        if (*game).admit() {
+            (*game).output().as_ptr()
+        } else {
+            std::ptr::null()
+        }
     }
 }
 

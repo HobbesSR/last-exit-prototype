@@ -1074,6 +1074,32 @@ export function decodeMemory(words: ArrayLike<number>): Memory | null {
   if (!r.empty) r.fail('trailing words');
   return memory;
 }
+/**
+ * What the core decided one player viewer may receive at the last completed tick (`match_admit`, docs/27.2 "The core's
+ * projection"), in the core's identities: actor words, ground item IDs, bodies, hook IDs (tethers and flights), trap and
+ * projectile IDs, and indices into the effects still drawn. `discovered` holds the cells past the caller's `held` count,
+ * in the order learned, of `total` (-1 for none kept).
+ */
+export interface Admission {
+  actor: number; players: number[]; items: number[]; bodies: BodyRef[]; tethers: number[]; flights: number[]; traps: number[];
+  projectiles: number[]; effects: number[]; total: number; discovered: number[]; heard: Cue[];
+}
+/** `match_admit`'s words: the tick, then each viewer's admission in the order asked. */
+export function decodeAdmissions(words: ArrayLike<number>): { tick: Tick; admissions: Admission[] } {
+  const r = new Reader(words), tick = r.u32(), count = r.count(1), admissions: Admission[] = [];
+  const ids = () => Array.from({ length: r.count(1) }, () => r.u32());
+  for (let i = 0; i < count; i++) {
+    const actor = r.actor(), players = Array.from({ length: r.count(1) }, () => r.actor()), items = ids();
+    const bodies = Array.from({ length: r.count(2) }, () => r.body());
+    const tethers = ids(), flights = ids(), traps = ids(), projectiles = ids(), effects = ids();
+    const total = r.finite(), discovered = ids();
+    const heard: Cue[] = [];
+    for (let n = r.count(CUE_STRIDE), c = 0; c < n; c++) heard.push({ at: r.point(), tick: r.u32(), until: r.u32() });
+    admissions.push({ actor, players, items, bodies, tethers, flights, traps, projectiles, effects, total, discovered, heard });
+  }
+  if (!r.empty) r.fail('trailing words');
+  return { tick, admissions };
+}
 /** A listener's cues, oldest first: `match_heard`'s words (a count word, then rows). */
 export function decodeCues(words: ArrayLike<number>): Cue[] {
   const r = new Reader(words), count = r.count(CUE_STRIDE), cues: Cue[] = [];

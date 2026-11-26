@@ -18,7 +18,7 @@ import { playerView } from '../shared/simulation/visibility.ts';
 import { createFrameEncoder, createRecordingReader } from '../shared/recording-format.ts';
 import { SCHEMA } from '../shared/recording.ts';
 import { arena } from './helpers/arena.js';
-import { checkFrame, checkKnowledge, checkRecords } from './helpers/tick-frame.js';
+import { checkFrame, checkKnowledge, checkProjection, checkRecords } from './helpers/tick-frame.js';
 import { now } from './helpers/scenario.js';
 
 // The Node adapter (27.2 "Node adapter (3d.2)"): the receive boundary, bot commands and knowledge, on a small arena, and the
@@ -65,9 +65,10 @@ async function run(fn, content) {
 }
 
 test('a bot match on the new path holds the frame store records and knowledge equal to the match snapshot every tick', async () => {
-  await run((s, { match, frames, knowledge }, step) => {
+  await run((s, { match, frames, knowledge, projection }, step) => {
     assert.ok(s.players.every(p => p.bot));
     const kinds = new Set(), record = recordingRoundTrip();
+    checkProjection(s, projection, frames.frame(), 0);
     const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
     checkKnowledge(s, match, knowledge, 0);
     let previous = checkFrame(frames.frame(), match.snapshot(), 0, words), placed = 0;
@@ -91,8 +92,10 @@ test('a bot match on the new path holds the frame store records and knowledge eq
         }
       }
       previous = bodies;
-      // The recording stores it and reads it back whole; every player's view projects from it.
+      // The recording stores it and reads it back whole; every player's view projects from it, the core's decision equal
+      // to the TypeScript rules'.
       assert.deepEqual(record(frame), JSON.parse(JSON.stringify(frame)), `tick ${t.tick}`);
+      checkProjection(s, projection, frame, t.tick);
       for (const p of s.players) {
         const view = playerView(s, frame, p.id);
         assert.equal(view.self.playerIdx, s.players.indexOf(p));
