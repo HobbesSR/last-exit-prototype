@@ -1203,6 +1203,7 @@ mod tests {
             });
             place_actor(s, c, [3850.0, 576.0], contestant);
         };
+        let mut stands = 0;
         let target1 = run_with(
             Hunting::Front,
             100,
@@ -1220,12 +1221,16 @@ mod tests {
                     [10500.0, 576.0],
                     &mut sweep,
                     &BTreeMap::new(),
-                    |p| p,
+                    |p| {
+                        stands += 1;
+                        p
+                    },
                 )
                 .unwrap()
             },
         );
         assert_eq!(target1[0], 3840.0);
+        assert_eq!(stands, 1);
         let target2 = run_with(
             Hunting::Front,
             101,
@@ -1242,12 +1247,16 @@ mod tests {
                     [10500.0, 576.0],
                     &mut sweep,
                     &BTreeMap::new(),
-                    |p| p,
+                    |p| {
+                        stands += 1;
+                        p
+                    },
                 )
                 .unwrap()
             },
         );
         assert_eq!(target2, target1);
+        assert_eq!(stands, 1, "retained target is not re-evaluated");
     }
 
     #[test]
