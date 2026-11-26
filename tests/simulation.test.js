@@ -154,21 +154,21 @@ test('the server transmits what could become visible while gameplay still turns 
   const { s, players: [p, c] } = await scene([gladiator(600), contestant(750)], openField(2400, { obstacles: [cover] }).map);
   try {
     assert.equal(visibleTo(s, p, c), false, 'true sight is blocked by cover');
-    assert.equal(couldSee(s, p, c), true, 'but it is close enough to matter next tick');
+    assert.equal(couldSee(p, c), true, 'but it is close enough to matter next tick');
     synchronizePhysics(s);
     assert.equal(playerView(s, snapshot(s), p.id).players.some(t => t.id === c.id), true, 'so it is transmitted');
     // A cloak can drop the instant its owner fires, so cloaked actors are carried too and hidden client side.
     c.cloak = 40;
     assert.equal(visibleTo(s, p, c), false);
-    assert.equal(couldSee(s, p, c), true);
+    assert.equal(couldSee(p, c), true);
     // Beyond the transmit radius nothing is sent at all, cover or no cover.
     c.cloak = 0; c.x = p.x + POTENTIAL + 10;
-    assert.equal(couldSee(s, p, c), false);
+    assert.equal(couldSee(p, c), false);
     synchronizePhysics(s);
     assert.equal(playerView(s, snapshot(s), p.id).players.some(t => t.id === c.id), false);
     // A reveal outranks distance entirely, because it makes the target visible to gladiators anywhere.
     c.revealed = 30;
-    assert.equal(couldSee(s, p, c), true);
+    assert.equal(couldSee(p, c), true);
   } finally { disposePhysics(s); }
 });
 

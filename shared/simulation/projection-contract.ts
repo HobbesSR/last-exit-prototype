@@ -1,6 +1,6 @@
 // Closed field contracts for live frame projection. New simulation fields require deliberate opt-in.
 // Iterate source keys so existing serialized field order and optional-field presence are preserved.
-import type { DiscoveryMemory, HeardCue, Inventory, ItemKey, Player, Projected, PlayerIdx } from '../types.ts';
+import type { HeardCue, Inventory, ItemKey, Player, Projected, PlayerIdx } from '../types.ts';
 import type { BodyShape, PhysicsBodyView, PhysicsTetherView } from '../physics/types.ts';
 import { mapIdField, wireCache, wireIds, type WireIdDomain, type WireIds } from './wire-ids.ts';
 
@@ -107,7 +107,7 @@ export function physicsHookFlightFields({ id, a, casterIdx, x, y }: import('../p
   mapIds(result as unknown as Record<string, unknown>, FLIGHT_IDS, wire);
   return result;
 }
-export function ownPlayerFields<I extends ItemKey>(player: Player<I>, discovery?: DiscoveryMemory | null, heard?: HeardCue[], playerIdx?: PlayerIdx, wire: WireIds = IDENTITY, posed = true): Projected<Player<I>> {
+export function ownPlayerFields<I extends ItemKey>(player: Player<I>, discovery?: { discovered: Iterable<number> } | null, heard?: readonly HeardCue[], playerIdx?: PlayerIdx, wire: WireIds = IDENTITY, posed = true): Projected<Player<I>> {
   const result = (posed ? ownFields : ownFieldsWithoutPose)(player);
   if (playerIdx !== undefined) result.playerIdx = playerIdx;
   // Carried items are projected through the same item contract; both sides are wire records.

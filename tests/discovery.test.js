@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord, createGame, disposePhysics, step, snapshot, } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
+import { discoveredBy } from './helpers/scenario.js';
 import { createMatch } from '../server/match.js';
 import { generatedMap } from './helpers/room-harness.js';
 import { openArea } from './helpers/arena.js';
@@ -176,7 +177,7 @@ test('discovery is stable under a pure fold over recorded frames', async () => {
       frames.push(snapshot(s));
     }
 
-    const liveDiscovered = new Set(contestant.discovery.discovered);
+    const liveDiscovered = new Set(discoveredBy(s, contestant));
     assert.ok(liveDiscovered.size > 0, 'live contestant must have discovered cells');
 
     const folded = foldDiscovery(sight, s.map, frames, contestant.id);
@@ -295,7 +296,7 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
     };
 
     const decoder = createDiscoveryDecoder();
-    const discoveredAtStart = c0.discovery.discovered.size;
+    const game = match.diagnosticState, discoveredAtStart = discoveredBy(game, c0).size;
 
     // 1. Initial broadcast: simulate dropped initial keyframe under backpressure
     shouldDrop = true;
@@ -309,7 +310,7 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
     const me0 = firstFrame.self;
     assert.ok(me0.discovered?.all, 'session that missed keyframe must be sent all');
     decoder.decode(me0.discovered);
-    assert.deepEqual(decoder.known, c0.discovery.discovered);
+    assert.deepEqual(decoder.known, new Set(discoveredBy(game, c0)));
 
     // 2. Advance ticks and simulate a dropped intermediate delta frame
     for (let i = 0; i < 10; i++) match.advance();
@@ -326,9 +327,9 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
     const catchupFrame = delivered[1].state;
     const meCatchup = catchupFrame.self;
     // Changes are measured cumulatively against keyframe baseline, so no cells are lost
-    assert.ok(c0.discovery.discovered.size > discoveredAtStart, 'c0 discovered new cells across the advances');
+    assert.ok(discoveredBy(game, c0).size > discoveredAtStart, 'c0 discovered new cells across the advances');
     decoder.decode(meCatchup.discovered);
-    assert.deepEqual(decoder.known, c0.discovery.discovered, 'client decoder recovers all cells despite dropped delta frame');
+    assert.deepEqual(decoder.known, new Set(discoveredBy(game, c0)), 'client decoder recovers all cells despite dropped delta frame');
 
     // 3. Catch-up batch: simulate room-service advance() stepping multiple ticks before broadcasting
     for (let i = 0; i < 10; i++) match.advance();
@@ -337,7 +338,7 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
     const batchFrame = delivered[2].state;
     const meBatch = batchFrame.self;
     decoder.decode(meBatch.discovered);
-    assert.deepEqual(decoder.known, c0.discovery.discovered, 'client decoder matches after catch-up batch');
+    assert.deepEqual(decoder.known, new Set(discoveredBy(game, c0)), 'client decoder matches after catch-up batch');
   } finally { match.dispose(); }
 });
 

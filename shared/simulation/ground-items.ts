@@ -268,13 +268,13 @@ export function indexGround(list: readonly GroundItem[]): void { gridOf(list); }
 /**
  * The records of a frame's item list that pass `keep`, in list order: exactly `frame.filter(keep)` whenever `keep`
  * passes nothing farther than `reach` from `at`. The grid only spares testing the rest. The grid is that of the live
- * ground list the frame holds or a posed copy of: the game's, or an indexed list (`indexGround`), whose grid moves to
+ * ground list the frame holds or a posed copy of: `own` (an unstarted game's), or an indexed list (`indexGround`), whose grid moves to
  * each copy, so only the newest list of a lineage holds one. A frame list of an older ground (an older frame) is
  * filtered whole.
  */
-export function framedItems(s: Pick<Game, 'items'>, frame: readonly GroundItem[], at: Vec2, reach: number, keep: (item: GroundItem) => boolean): GroundItem[] {
+export function framedItems(own: readonly GroundItem[] | undefined, frame: readonly GroundItem[], at: Vec2, reach: number, keep: (item: GroundItem) => boolean): GroundItem[] {
   const pose = posed.get(frame), base = pose?.ground ?? frame;
-  const live = base === s.items || grids.has(base) ? base : undefined;
+  const live = base === own || grids.has(base) ? base : undefined;
   if (!Number.isFinite(at.x) || !Number.isFinite(at.y) || !live) return frame.filter(keep);
   const grid = gridOf(live), near = candidates(grid, at, reach);
   if (frame === live) return inOrder(grid, near.filter(keep));
