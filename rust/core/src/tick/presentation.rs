@@ -36,7 +36,7 @@ pub enum EffectKind {
     Grapple,
 }
 
-/// The old effect radii (`rust/core/src/action_combat.rs`, `combat.rs`, `hazards.rs`, `phase_six.rs`).
+/// Effect radii (`action_combat.rs` and the retired phase engines).
 const SLASH: f64 = 55.0;
 const SLASH_REACH: f64 = 30.0;
 const SHOCK: f64 = 130.0;

@@ -20,7 +20,7 @@ import { HZ, INTERPOLATION_DELAY_TICKS } from './rules.ts';
 
 /**
  * Ticks of history kept. Half a second at 20 Hz, which bounds the worst unfairness to the target. Phase 7 records the
- * frames in the core and phase 5's casters read them there (`rust/core/src/phase_seven.rs`, `combat.rs`, 27 step 5e.2),
+ * frames in the core and casters read them there (`rust/core/src/tick/rewind.rs`, `tick/combat.rs`),
  * which keeps its own copy of this bound.
  */
 export const MAX_REWIND_TICKS = 10;

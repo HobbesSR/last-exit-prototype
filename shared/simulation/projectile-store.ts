@@ -42,7 +42,7 @@ export function sawProjectiles(s: Game, r: PhysicsRuntime): void {
 }
 
 /** Upload both lists where Node changed them without the facts. */
-export function syncProjectiles(s: Game, r: PhysicsRuntime): void {
+function syncProjectiles(s: Game, r: PhysicsRuntime): void {
   if (projectilesCurrent(s, r)) return;
   const words = [...rows(s, s.projectiles), ...rows(s, r.pendingSpawns)];
   const { core, world } = r.world.boundaryCall();

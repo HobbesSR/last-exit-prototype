@@ -4,31 +4,27 @@
 //! The WASM module uses plain exports, not wasm-bindgen: the adapter passes flat typed buffers in
 //! WASM memory (docs/27, rule 1), so there is no generated JavaScript glue to keep in step.
 
-pub mod action_combat;
-pub mod action_equipment;
-pub mod action_types;
-pub mod boundary;
+mod action_combat;
+mod action_equipment;
+mod action_types;
+mod boundary;
 pub mod collision;
-pub mod combat;
 pub mod discovery;
-pub mod drop_planner;
-pub mod floor_drag;
-pub mod ground;
-pub mod hazards;
-pub mod hooks;
-pub mod item_allocation;
-pub mod math;
-pub mod navigation;
-pub mod phase_seven;
-pub mod phase_six;
-pub mod phase_three;
-pub mod physics;
-pub mod placement;
-pub mod players;
-pub mod registry;
-pub mod runtime_map;
+mod drop_planner;
+mod floor_drag;
+mod ground;
+mod hooks;
+mod item_allocation;
+mod math;
+mod navigation;
+mod phase_three;
+mod physics;
+mod placement;
+mod players;
+mod registry;
+mod runtime_map;
 pub mod runtime_navigation;
-pub mod scatter;
+mod scatter;
 pub mod sight;
 pub mod swept;
 pub mod tick;
@@ -48,7 +44,8 @@ use std::slice;
 /// 50: committed bot planning and the setup roster (27.2, #1321).
 /// 51: private bot routes move from the completed tick to `match_bot_routes` (27.2, #1338).
 /// 52: the setup carries arranged knowledge for scenarios (27.2 "Test API", #1358).
-pub const ADAPTER_VERSION: u32 = 54;
+/// 55: retire old-world phase 5, 6, 7, hazard and gate-detail exports (#1358).
+pub const ADAPTER_VERSION: u32 = 55;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -847,183 +844,6 @@ fn actions_call(
     w.players.apply_actions(mode, &w.actions.output);
 }
 
-/// Phase 5's combat input (27, step 5d.2; `combat::Combat`).
-/// # Safety
-/// `world` is a live world handle; the returned view expires on the next growing core call.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn combat_input(world: *mut world::World, len: usize) -> *mut f64 {
-    // SAFETY: the caller owns the live world.
-    let combat = unsafe { &mut (*world).combat };
-    combat.input.resize(len, 0.0);
-    combat.input.as_mut_ptr()
-}
-/// Run phase 5's projectiles or casters, or one damage (`combat::Combat::run`), after phase 3's
-/// rules were configured (`actions_configure`). `swept` may be null except for a fresh projectile call.
-/// # Safety
-/// All handles are live, the gate mask is written and the input is complete.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn combat_run(
-    world: *mut world::World,
-    map: *mut collision::CollisionMap,
-    index: *const sight::SightIndex,
-    gates: *mut sight::GateSet,
-    swept: *const swept::SweptMap,
-) -> *const f64 {
-    // SAFETY: the caller's contract.
-    unsafe {
-        let w = &mut *world;
-        combat_call(w, map, index, gates, swept);
-        w.combat.output.as_ptr()
-    }
-}
-
-/// Phase 5 over `w.combat.input` (`combat_run`, and `tick_finish`'s phase 5): the run, its kills' eliminations in the
-/// core (6e.2) and its projectiles' flight in the store (6e.3). Returns the item and scatter serials the eliminations
-/// left, when the call carries them out.
-///
-/// # Safety
-/// As `combat_run`.
-unsafe fn combat_call(
-    w: &mut world::World,
-    map: *mut collision::CollisionMap,
-    index: *const sight::SightIndex,
-    gates: *mut sight::GateSet,
-    swept: *const swept::SweptMap,
-) -> Option<(f64, f64)> {
-    // SAFETY: the caller's contract; the rules and the combat state are disjoint fields.
-    unsafe {
-        // A projectile call that reads its bullets from the store (`FROM_STORE` for their count, #1214 stage 6e.3) has
-        // them put where the adapter packed them.
-        let stored = w.combat.input[5] == phase_three::FROM_STORE;
-        if stored {
-            w.combat.stored_bullets(&w.projectiles);
-        }
-        let Some((mut e, markers)) = w.combat.elimination_words() else {
-            let rules = w.actions.rules();
-            w.combat.run(
-                &mut w.players,
-                rules,
-                &w.phase_seven.rewind,
-                &*index,
-                &mut *gates,
-                swept.as_ref(),
-            );
-            if stored {
-                let out = w.combat.output.clone();
-                combat::fly(&mut w.projectiles, &out, &out);
-            }
-            return None;
-        };
-        // A kill is carried out in the core (#1214 stage 6e.2): the run goes to its kill, the elimination runs, and the
-        // run resumes, as Node's `drive` did, until it ends. The output is one call's: the store's rows at the end, every
-        // part's log with each elimination's output between them (`OP_ELIMINATED`), the first part's bullet rows and the
-        // last part's removals.
-        w.markers = markers;
-        let header = w.combat.input[..combat::HEADER].to_vec();
-        let swept = &*swept;
-        let (mut parts, mut eliminations) = (Vec::new(), Vec::new());
-        loop {
-            let rules = w.actions.rules();
-            w.combat.run(
-                &mut w.players,
-                rules,
-                &w.phase_seven.rewind,
-                &*index,
-                &mut *gates,
-                Some(swept),
-            );
-            let out = w.combat.output.clone();
-            e.serial = out[1];
-            let kill = (out[2] != 0.0)
-                .then(|| (out[3] as usize, (out[4] >= 0.0).then(|| out[4] as usize)));
-            parts.push(out);
-            let Some((target, source)) = kill else { break };
-            let done = phase_three::eliminate_in_world(
-                w,
-                &mut *map,
-                &*index,
-                &mut *gates,
-                swept,
-                target,
-                source,
-                &e,
-            );
-            (e.serial, e.item_serial, e.scatter_serial) = (done[1], done[2], done[3]);
-            eliminations.push((parts.len() - 1, target, source, done));
-            // One damage has nothing left after its elimination.
-            if header[0] as usize == combat::MODE_DAMAGE {
-                break;
-            }
-            let mut resume = header.clone();
-            (
-                resume[1],
-                resume[3],
-                resume[5],
-                resume[6],
-                resume[combat::IN_RUN],
-            ) = (1.0, e.serial, 0.0, 0.0, 0.0);
-            w.combat.input = resume;
-        }
-        let section = |o: &[f64]| {
-            let rows = combat::OUT_HEADER + o[5] as usize * combat::OUT_ROW;
-            let log = rows + o[6] as usize;
-            let bullets = log + o[7] as usize * 3;
-            (rows, log, bullets, bullets + o[8] as usize)
-        };
-        let mut out = vec![
-            0.0,
-            e.serial,
-            0.0,
-            -1.0,
-            -1.0,
-            w.players.rows.len() as f64,
-            0.0,
-            0.0,
-            0.0,
-        ];
-        for r in &w.players.rows {
-            r.write(&mut out);
-        }
-        let log_at = out.len();
-        for (k, part) in parts.iter().enumerate() {
-            let (rows, log, _, _) = section(part);
-            out.extend_from_slice(&part[rows..log]);
-            for (_, target, source, done) in eliminations.iter().filter(|x| x.0 == k) {
-                out.extend_from_slice(&[
-                    phase_three::OP_ELIMINATED,
-                    (done.len() + 2) as f64,
-                    *target as f64,
-                    source.map_or(-1.0, |s| s as f64),
-                ]);
-                out.extend_from_slice(done);
-            }
-        }
-        out[6] = (out.len() - log_at) as f64;
-        let first = &parts[0];
-        let (_, log, bullets, _) = section(first);
-        out[7] = first[7];
-        out.extend_from_slice(&first[log..bullets]);
-        let last = parts.last().expect("a part");
-        let (_, _, bullets, removed) = section(last);
-        out[8] = last[8];
-        out.extend_from_slice(&last[bullets..removed]);
-        out[0] = out.len() as f64;
-        if stored {
-            combat::fly(&mut w.projectiles, &parts[0], parts.last().expect("a part"));
-        }
-        w.combat.output = out;
-        Some((e.item_serial, e.scatter_serial))
-    }
-}
-
-/// How many gates' positions and kinds phase 6's adapter has sent to this gate set (`GateSet::details`).
-/// # Safety
-/// `gates` is a live gate set.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn gate_set_details(gates: *const sight::GateSet) -> usize {
-    // SAFETY: the caller's contract.
-    unsafe { (*gates).details.len() }
-}
 /// The lock mask, one byte per gate (`GateSet::locked`), written as the open mask is.
 /// # Safety
 /// `gates` is live.
@@ -1031,52 +851,6 @@ pub unsafe extern "C" fn gate_set_details(gates: *const sight::GateSet) -> usize
 pub unsafe extern "C" fn gate_set_locked(gates: *mut sight::GateSet) -> *mut u8 {
     // SAFETY: the caller's contract.
     unsafe { (*gates).locked.as_mut_ptr() }
-}
-/// Phase 6's per-actor loop input (27, step 5e.1; `phase_six::PhaseSix`).
-/// # Safety
-/// `world` is a live world handle; the returned view expires on the next growing core call.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn interactions_input(world: *mut world::World, len: usize) -> *mut f64 {
-    // SAFETY: the caller owns the live world.
-    let interactions = unsafe { &mut (*world).interactions };
-    interactions.input.resize(len, 0.0);
-    interactions.input.as_mut_ptr()
-}
-/// Run phase 6's per-actor loop (`phase_six::PhaseSix::run`) after phase 3's rules were configured
-/// (`actions_configure`).
-/// # Safety
-/// All handles are live, disjoint, and the input and gate mask are complete.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn interactions_run(
-    world: *mut world::World,
-    map: *mut collision::CollisionMap,
-    index: *const sight::SightIndex,
-    gates: *mut sight::GateSet,
-    swept: *const swept::SweptMap,
-) -> *const f64 {
-    // SAFETY: these handles are owned by the calling game. The buffers and the rules move out so the
-    // run can use the world's bodies without aliasing them.
-    unsafe {
-        let w = &mut *world;
-        interactions_call(w, &mut *map, &*index, &mut *gates, swept.as_ref());
-        w.interactions.output.as_ptr()
-    }
-}
-/// Phase 6's loop over `w.interactions.input` (`interactions_run`, and `tick_finish`'s phase 6). The run applied its
-/// writes to the player store itself (6d.6c.2), as each stop inside it needed them.
-fn interactions_call(
-    w: &mut world::World,
-    map: &mut collision::CollisionMap,
-    index: &sight::SightIndex,
-    gates: &mut sight::GateSet,
-    swept: Option<&swept::SweptMap>,
-) {
-    // The buffers and the rules move out so the run can use the world's bodies without aliasing them.
-    let mut interactions = std::mem::take(&mut w.interactions);
-    let actions = std::mem::take(&mut w.actions);
-    interactions.run(actions.rules(), w, map, index, gates, swept);
-    w.actions = actions;
-    w.interactions = interactions;
 }
 /// The gates' keys and closed bodies' rows, from the boundary input, once per world (`World::load_gates`, #1214 stage
 /// 6d.2).
@@ -1209,7 +983,7 @@ pub unsafe extern "C" fn physics_queues_dump(world: *mut world::World) -> *const
     w.boundary_output = out;
     w.boundary_output.as_ptr()
 }
-/// Replace the projectiles and the pending spawns with `count` and `pending` rows (`combat::BULLET_ROW` words each) from
+/// Replace the projectiles and the pending spawns with `count` and `pending` rows (8 words each) from
 /// the boundary input (#1214 stage 6e.3), when Node changed its list without the facts.
 /// # Safety
 /// `world` is live and its boundary input holds the rows.
@@ -1389,99 +1163,6 @@ pub unsafe extern "C" fn players_input(world: *mut world::World, words: usize) -
 pub unsafe extern "C" fn players_load(world: *mut world::World, count: usize) {
     // SAFETY: the caller's contract.
     unsafe { (*world).players.load(count) }
-}
-/// Phase 6's environment and traps input (27, step 5e.2; `hazards::Hazards`).
-/// # Safety
-/// `world` is a live world handle; the returned view expires on the next growing core call.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn hazards_input(world: *mut world::World, len: usize) -> *mut f64 {
-    // SAFETY: the caller owns the live world.
-    let hazards = unsafe { &mut (*world).hazards };
-    hazards.input.resize(len, 0.0);
-    hazards.input.as_mut_ptr()
-}
-/// Run phase 6's environment and traps (`hazards::Hazards::run`) after phase 3's rules were configured
-/// (`actions_configure`).
-/// # Safety
-/// All handles are live, disjoint, and the input and gate mask are complete.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn hazards_run(
-    world: *mut world::World,
-    map: *mut collision::CollisionMap,
-    index: *const sight::SightIndex,
-    gates: *mut sight::GateSet,
-    swept: *const swept::SweptMap,
-) -> *const f64 {
-    // SAFETY: the caller's contract; `swept` may be null unless a mine's explosion is carried out in the run. The
-    // hazards move out so the run can use the whole world (6d.6d).
-    unsafe {
-        let w = &mut *world;
-        hazards_call(w, &mut *map, &*index, &mut *gates, swept.as_ref());
-        w.hazards.output.as_ptr()
-    }
-}
-/// The environment and the traps over `w.hazards.input` (`hazards_run`, and `tick_finish`'s).
-fn hazards_call(
-    w: &mut world::World,
-    map: &mut collision::CollisionMap,
-    index: &sight::SightIndex,
-    gates: &mut sight::GateSet,
-    swept: Option<&swept::SweptMap>,
-) {
-    let hz = w.actions.rules().hz;
-    let mut hazards = std::mem::take(&mut w.hazards);
-    hazards.run(w, map, index, gates, hz, swept);
-    w.hazards = hazards;
-}
-/// Phase 7's input (27, step 5e.2; `phase_seven::PhaseSeven`).
-/// # Safety
-/// `world` is a live world handle; the returned view expires on the next growing core call.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn phase_seven_input(world: *mut world::World, len: usize) -> *mut f64 {
-    // SAFETY: the caller owns the live world.
-    let p = unsafe { &mut (*world).phase_seven };
-    p.input.resize(len, 0.0);
-    p.input.as_mut_ptr()
-}
-/// Run phase 7's `finishMatch` or `recordRewind` (`phase_seven::PhaseSeven::run`).
-/// # Safety
-/// `world` is live and the input is complete.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn phase_seven_run(world: *mut world::World) -> *const f64 {
-    // SAFETY: the caller's contract.
-    unsafe {
-        let w = &mut *world;
-        phase_seven_call(w);
-        w.phase_seven.output.as_ptr()
-    }
-}
-
-/// Phase 7's `finishMatch` or `recordRewind` over `w.phase_seven.input` (`phase_seven_run`, and `tick_finish`'s).
-fn phase_seven_call(w: &mut world::World) {
-    {
-        // The rows come from the player store (#1214 stage 6c.3a): role and status to finish, the pose to rewind.
-        let p7 = &mut w.phase_seven.input;
-        let (mode, players) = (p7[0] as usize, p7[3] as usize);
-        assert_eq!(w.players.len(), players, "the store holds the roster");
-        p7.truncate(phase_seven::HEADER);
-        for r in &w.players.rows {
-            p7.extend_from_slice(&if mode == phase_seven::MODE_FINISH {
-                [r.role, r.status]
-            } else {
-                [r.x, r.y]
-            });
-        }
-        w.phase_seven.run();
-        // A finished match strands its active contestants, in the player store too (#1214 stage 6c.2).
-        let (input, out) = (&w.phase_seven.input, &w.phase_seven.output);
-        if input.first() == Some(&(phase_seven::MODE_FINISH as f64)) && out[1] == 1.0 {
-            for &i in &out[4..4 + out[3] as usize] {
-                if let Some(r) = w.players.rows.get_mut(i as usize) {
-                    r.status = 4.0;
-                }
-            }
-        }
-    }
 }
 
 // The new tick's live adapter (27.2 "Live adapter (3d.1)"). A match is built once from a setup

@@ -7,7 +7,7 @@ mod search;
 
 pub(crate) use geometry::closest;
 
-pub use search::{Knowledge, ROUTE_BUDGET, Route, RouteSearch, RouteStatus};
+pub use search::{Knowledge, Route, RouteSearch, RouteStatus};
 
 use crate::runtime_map::Tile;
 

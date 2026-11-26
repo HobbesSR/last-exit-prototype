@@ -172,4 +172,81 @@ mod tests {
             );
         }
     }
+
+    /// The table the prediction motor's TypeScript test reads too (`tests/physics-prediction-contract.test.js`):
+    /// the core's `motor` answers every row, and a unit axis reads back each row's speed.
+    #[test]
+    fn motor_matches_the_parity_table() {
+        let table = include_str!("../../../../tests/fixtures/motor-parity.txt");
+        let numbers = |fields: &[&str]| -> Vec<f64> {
+            fields
+                .iter()
+                .map(|f| f.parse().expect("a number"))
+                .collect()
+        };
+        let mut tuning = None;
+        let mut surfaces = Vec::new();
+        let mut rows = 0;
+        for line in table
+            .lines()
+            .filter(|l| !l.starts_with('#') && !l.is_empty())
+        {
+            let f: Vec<&str> = line.split_whitespace().collect();
+            match f[0] {
+                "tuning" => {
+                    let n = numbers(&f[1..]);
+                    tuning = Some(MotorTuning {
+                        base_speed: [n[0], n[1]],
+                        boost: [n[2], n[3]],
+                        stun: n[4],
+                        sneak: n[5],
+                        acceleration: n[6],
+                        braking: n[7],
+                    });
+                }
+                "surface" => {
+                    let n = numbers(&f[2..]);
+                    surfaces.push(MotorSurface {
+                        id: f[1].into(),
+                        priority: n[0],
+                        origin: [n[1], n[2]],
+                        size: [n[3], n[4]],
+                        speed: n[5],
+                        traction: n[6],
+                        braking: n[7],
+                        drag: None,
+                    });
+                }
+                "row" => {
+                    let n = numbers(&f[2..]);
+                    let input = MotorInput {
+                        kind: match f[1] {
+                            "contestant" => ActorKind::Contestant,
+                            _ => ActorKind::Gladiator,
+                        },
+                        position: [n[5], n[6]],
+                        axes: [n[3], n[4]],
+                        boosted: n[0] != 0.0,
+                        stunned: n[1] != 0.0,
+                        sneak: n[2] != 0.0,
+                    };
+                    let tuning = tuning.as_ref().expect("tuning precedes rows");
+                    let got = motor(tuning, &surfaces, input);
+                    assert_eq!(
+                        (got.velocity, got.acceleration),
+                        ([n[8], n[9]], n[10]),
+                        "{line}"
+                    );
+                    let unit = MotorInput {
+                        axes: [1.0, 0.0],
+                        ..input
+                    };
+                    assert_eq!(motor(tuning, &[], unit).velocity[0], n[7], "speed: {line}");
+                    rows += 1;
+                }
+                other => panic!("unknown record {other}"),
+            }
+        }
+        assert_eq!(rows, 64);
+    }
 }

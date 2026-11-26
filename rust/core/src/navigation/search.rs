@@ -16,7 +16,6 @@ use std::{
     rc::Rc,
 };
 
-pub const ROUTE_BUDGET: usize = 200_000;
 const USED: usize = 16;
 
 // The JS state order is cell, triangle (unknown first), then keys spent. The goal sorts first.

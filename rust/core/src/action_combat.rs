@@ -1,9 +1,7 @@
 //! Phase-three combat facts and character motor calculations (27, D1).
 use crate::action_equipment::{equipped, sync_weapon};
 use crate::action_types::{ABSENT_AMMO, ABSENT_QUALITY, Player, Rules, present, truthy};
-use crate::collision::line_clear;
-use crate::math::{atan2, cos, hypot, js_max, js_min, sin};
-use crate::sight::{GateSet, SightIndex};
+use crate::math::{cos, hypot, js_max, js_min, sin};
 
 #[derive(Clone, Debug)]
 pub enum Fact {
@@ -28,20 +26,6 @@ pub enum Fact {
         shooter: usize,
         weapon: usize,
     },
-    Damage {
-        target: usize,
-        amount: f64,
-        source: usize,
-    },
-    HookCancel {
-        caster: usize,
-    },
-    HookLaunch {
-        caster: usize,
-        generation: f64,
-        dx: f64,
-        dy: f64,
-    },
 }
 
 fn effect(serial: &mut f64, facts: &mut Vec<Fact>, x: f64, y: f64, kind: usize, radius: f64) {
@@ -64,51 +48,8 @@ fn slot(p: &Player) -> Option<usize> {
         .then_some(selected as usize)
 }
 
-pub fn attack(
-    p: &mut Player,
-    rules: &Rules,
-    serial: &mut f64,
-    facts: &mut Vec<Fact>,
-    targets: &[(usize, f64, f64, f64, f64)],
-    index: &SightIndex,
-    gates: &mut GateSet,
-) {
-    if p.attack_cd > 0.0 {
-        return;
-    }
-    if p.role == 1.0 {
-        p.attack_cd = 13.0;
-        effect(
-            serial,
-            facts,
-            p.x + cos(p.heading) * 30.0,
-            p.y + sin(p.heading) * 30.0,
-            2,
-            55.0,
-        );
-        // Updating only for a strictly closer candidate retains roster order on ties,
-        // just as the stable JavaScript distance sort does.
-        let mut nearest: Option<(usize, f64)> = None;
-        for &(roster, role, status, x, y) in targets {
-            if role == p.role || status != 0.0 {
-                continue;
-            }
-            let distance = hypot(p.x - x, p.y - y);
-            if distance < 86.0
-                && cos(atan2(y - p.y, x - p.x) - p.heading) > 0.25
-                && line_clear(index, gates, (p.x, p.y), (x, y)).0
-                && nearest.is_none_or(|(_, previous)| distance < previous)
-            {
-                nearest = Some((roster, distance));
-            }
-        }
-        if let Some((target, _)) = nearest {
-            facts.push(Fact::Damage {
-                target,
-                amount: rules.kit_damage[p.kit] + (p.level - 1.0) * 4.0,
-                source: p.roster,
-            });
-        }
+pub fn attack(p: &mut Player, rules: &Rules, serial: &mut f64, facts: &mut Vec<Fact>) {
+    if p.attack_cd > 0.0 || p.role != 0.0 {
         return;
     }
     let Some(item) = equipped(p).cloned() else {

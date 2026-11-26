@@ -32,7 +32,7 @@ interface ActionsExports {
   actions_configure(world: number): void;
   actions_run(world: number, collision: number, index: number, gates: number, swept: number): number;
 }
-export type ActionsCore = CoreExports & PhysicsExports & ActionsExports;
+type ActionsCore = CoreExports & PhysicsExports & ActionsExports;
 type Core = ActionsCore;
 const OUT_HEADER = 13, PLAYER_ROW = 24, ITEM_ROW = 10, RECORD_ROW = 14;
 /** An inventory the core takes from its player store (`phase_three::FROM_STORE`), and the first of a call's own tokens. */
@@ -41,8 +41,8 @@ const configured = new WeakMap<PhysicsWorld, Game['content']>();
 const n = (value: number | null | undefined): number => typeof value === 'number' ? value : NaN;
 const code = (values: readonly string[], value: string | undefined): number => value === undefined ? NaN : values.indexOf(value);
 
-/** Uploads the match-pinned rules once per world; phase 5's combat (`phase-five.ts`) reads them too. */
-export function configure(s: Game, r: PhysicsRuntime, core: Core, world: number): void {
+/** Uploads the match-pinned rules once per world. Since #1358 its one caller is this file's `call`, for the dev physics lab. */
+function configure(s: Game, r: PhysicsRuntime, core: Core, world: number): void {
   if (configured.get(r.world) === s.content) return;
   const c = s.content, a = c.actorPhysics;
   const data = [c.itemInstances.groundCapacity, c.reloading ? 1 : 0, a.acceleration, a.braking,
@@ -66,7 +66,7 @@ export function configure(s: Game, r: PhysicsRuntime, core: Core, world: number)
 }
 
 /** Apply only writes, keeping the original carried objects through moves and stack merges. */
-export function putItem(item: InventoryItem, row: Float64Array, at: number): void {
+function putItem(item: InventoryItem, row: Float64Array, at: number): void {
   const put = (key: 'instanceId' | 'lineageId' | 'quality', value: number): void => {
     if (!Object.is(n(item[key]), value)) item[key] = value as ItemId;
   };
@@ -77,7 +77,7 @@ export function putItem(item: InventoryItem, row: Float64Array, at: number): voi
 }
 
 /** New ground records keep the field insertion order of planDrop/planAmmoDrop (the frozen frames hash JSON). */
-export function ground(row: Float64Array, at: number, p: Player, tick: number): GroundItem {
+function ground(row: Float64Array, at: number, p: Player, tick: number): GroundItem {
   const kind = ITEM_KINDS[row[at]!]!, id = row[at + 10]! as ItemId, lineageId = row[at + 6]! as ItemId;
   const x = row[at + 11]!, y = row[at + 12]!;
   if (kind === 'ammo') return { kind, id, lineageId, family: AMMO_FAMILIES[row[at + 13]!]!, count: row[at + 3]!, x, y, droppedBy: p.id, pickupAfter: tick + HZ };
@@ -306,22 +306,11 @@ function applyOutput(s: Game, r: PhysicsRuntime, out: Float64Array, { mode, opti
   return { resume: out[4]!, stage: out[5]!, plan: out[6] === 1 && mode >= 2 ? { records, itemSerial: allocation.itemSerial!, scatterSerial: allocation.scatterSerial!, allocation } : null };
 }
 
-/**
- * An elimination the core carried out inside phase 5's or the hazards' run (#1214 stage 6e.2): phase 3's output for it,
- * applied as `eliminateInCore` applied its call's. The core registered its allocations and synced its drops itself.
- */
 /** Phase 3's loop as `tick_finish` ran it in the core from the intents (#1214 stage 6e.5b), applied as `phaseThree`'s. */
 export function applyLoop(s: Game, out: Float64Array): void {
   const r = physicsRuntime(s);
   if (!r) throw new Error('phase 3 needs the game\'s physics world');
   applyOutput(s, r, out, { mode: 0, options: {}, source: s, itemOf: token => carriedItem(r, token)!, live: true });
-}
-
-export function applyElimination(s: Game, out: Float64Array, target: Player, killer: Player | null): void {
-  const r = physicsRuntime(s);
-  if (!r) throw new Error("phase 3 needs the game's physics world");
-  applyOutput(s, r, out, { mode: MODE_ELIMINATE, options: { mode: MODE_ELIMINATE, player: target, killer }, source: s,
-    itemOf: token => carriedItem(r, token)!, live: true });
 }
 
 export function phaseThree(s: Game, intents: readonly (ActionIntent | undefined)[]): void {
@@ -332,20 +321,8 @@ export function phaseThree(s: Game, intents: readonly (ActionIntent | undefined)
     start = result.resume; stage = result.stage;
   }
 }
-/** A contestant's attack outside the loop, for scenarios; a gladiator's is phase 5's (`phase-five.ts`). */
+/** A contestant's attack outside the loop, for scenarios; a gladiator's runs in the core's phase 5 (`tick_finish`). */
 export function attackInCore(s: Game, player: Player): void {
   if (player.role === 'gladiator') throw new Error('a gladiator attacks in phase 5');
   call(s, [], { mode: 1, player });
-}
-/**
- * `eliminate` (`lifecycle.ts`) in the core: the lifecycle, each mandatory drop synced inside the run (#1214 stage 6e.2),
- * the reserves, then the kill credit, in one call.
- */
-export function eliminateInCore(s: Game, player: Player, killer: Player | null): void {
-  let stage = 0;
-  for (;;) {
-    const result = call(s, [], { mode: MODE_ELIMINATE, player, killer, stage });
-    if (result.resume < 0) return;
-    stage = result.stage;
-  }
 }

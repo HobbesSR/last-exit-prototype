@@ -71,4 +71,36 @@ mod tests {
         assert!((toi - 0.35).abs() < 1e-12);
         assert!(path_contact([0.0, 20.0], [100.0, 20.0], &path, 15.0).is_none());
     }
+
+    #[test]
+    fn an_actor_moving_into_the_shot_is_met_earlier_than_a_still_one() {
+        // The shot flies 45 along y 0; a contestant (radius 15) starting at 70 walks back 7 per substep.
+        let still = [[70.0, 0.0]; SUBSTEPS + 1];
+        let mut walking = [[0.0; 2]; SUBSTEPS + 1];
+        for (k, at) in walking.iter_mut().enumerate() {
+            *at = [70.0 - 7.0 * k as f64, 0.0];
+        }
+        let reach = |path| path_contact([20.0, 0.0], [65.0, 0.0], &path, 15.0).unwrap();
+        // Still: contact at x 55, 35 of 45 along. Walking: the gap closes by the actor's own motion too.
+        assert!((reach(still) - 35.0 / 45.0).abs() < 1e-12);
+        assert!(reach(walking) < reach(still) - 0.05);
+    }
+
+    #[test]
+    fn a_shot_hurts_inside_the_old_hit_envelope_and_not_outside_it() {
+        // Wider than the movement bodies (about 11 and 16): the contestant's 15 and the gladiator's 26.
+        let path = [[50.0, 0.0]; SUBSTEPS + 1];
+        for (gladiator, inside, outside) in [(false, 14.0, 16.0), (true, 25.0, 27.0)] {
+            let reach = |offset: f64| {
+                path_contact(
+                    [0.0, offset],
+                    [100.0, offset],
+                    &path,
+                    crate::swept::hit_radius(gladiator),
+                )
+            };
+            assert!(reach(inside).is_some(), "gladiator {gladiator}: {inside}");
+            assert!(reach(outside).is_none(), "gladiator {gladiator}: {outside}");
+        }
+    }
 }

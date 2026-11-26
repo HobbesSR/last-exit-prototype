@@ -1,12 +1,11 @@
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, disposePhysics, playerView, snapshot } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { characterMotor } from '../shared/simulation/actor-physics.ts';
-import { movementSpeed } from '../shared/movement.ts';
+import { MOVEMENT_SPEED, movementSpeed } from '../shared/movement.ts';
 import { HZ } from '../shared/simulation/rules.ts';
-import { phaseThree } from '../shared/simulation/phase-three.ts';
-import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { openArea } from './helpers/arena.js';
 import { predictionConstants } from '../shared/simulation/physics-presentation.ts';
 
@@ -17,33 +16,34 @@ const arena = () => ({ width: 600, height: 400,
   exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
 const content = id => ({ ...structuredClone(contentById(id)), roster: { contestants: ['A'], gladiators: [] } });
 
-test('prediction motor equals the authoritative core across speed modifiers, surface ties and braking', async () => {
-  const surfaces = [
-    { id: 'z', x: 0, y: 0, w: 100, h: 100, priority: 2, speed: 0.7, traction: 0.1, braking: 0.1 },
-    { id: 'a', x: 0, y: 0, w: 100, h: 100, priority: 2, speed: 0.5, traction: 0.2, braking: 0.4 },
-  ];
-  const p = { x: 10, y: 10 }, profile = { acceleration: 4200, braking: 2200 };
-  assert.deepEqual(characterMotor(profile, surfaces, p, 3, 4, 200), { x: 60, y: 80, accel: 840 });
-  assert.deepEqual(characterMotor(profile, surfaces, p, 0, 0, 200), { x: 0, y: 0, accel: 880 });
+// The cases are shared with the core's motor: `rust/core/src/tick/motor.rs` `motor_matches_the_parity_table` reads the
+// same file, so neither side can move without the other.
+test('prediction motor and speed equal the shared parity table across speed modifiers, surface ties and braking', () => {
+  const surfaces = [], rows = [];
+  let tuning;
+  for (const line of readFileSync(new URL('./fixtures/motor-parity.txt', import.meta.url), 'utf8').split('\n')) {
+    const [kind, ...f] = line.split(' ');
+    if (kind === 'tuning') tuning = f.map(Number);
+    else if (kind === 'surface') {
+      const [priority, x, y, w, h, speed, traction, braking] = f.slice(1).map(Number);
+      surfaces.push({ id: f[0], priority, x, y, w, h, speed, traction, braking });
+    } else if (kind === 'row') rows.push(f);
+  }
+  const [contestant, gladiator, contestantBoost, gladiatorBoost, stun, sneakScale, acceleration, braking] = tuning;
+  assert.deepEqual([contestant / HZ, gladiator / HZ, contestantBoost, gladiatorBoost, stun, sneakScale],
+    Object.values(MOVEMENT_SPEED), 'the table is tuned like the game');
+  const profile = { acceleration, braking };
+  assert.equal(rows.length, 64);
+  for (const row of rows) {
+    const [role, ...n] = row, [boostFlag, stunFlag, sneakFlag, x, y, px, py, speed, mx, my, accel] = n.map(Number);
+    const actor = { role, boost: boostFlag, stun: stunFlag };
+    assert.equal(movementSpeed(actor, { sneak: sneakFlag === 1 }, HZ), speed, row.join(' '));
+    assert.deepEqual(characterMotor(profile, surfaces, { x: px, y: py }, x, y, speed), { x: mx, y: my, accel }, row.join(' '));
+  }
+  // Beside the table: no surface list at all, and the tie's winner at a fixed speed.
+  const p = { x: 10, y: 10 };
   assert.deepEqual(characterMotor({ acceleration: 3600, braking: 3600 }, undefined, p, 3, 4, 200), { x: 120, y: 160, accel: 3600 });
-  assert.deepEqual(characterMotor(profile, surfaces, { x: 100, y: 10 }, 3, 4, 200), { x: 120, y: 160, accel: 4200 });
-  const tuned = content('content-6');
-  tuned.roster.gladiators = [{ name: 'G', kit: 'warden' }];
-  Object.assign(tuned.actorPhysics, profile);
-  const map = arena(); map.motorSurfaces = surfaces;
-  const s = await createGame(1, map, tuned);
-  try {
-    const r = physicsRuntime(s);
-    for (const actor of s.players) for (const boost of [0, 1]) for (const stun of [0, 1]) for (const sneak of [false, true])
-      for (const [x, y] of [[0, 0], [3, 4]]) for (const position of [p, { x: 100, y: 10 }]) {
-        Object.assign(actor, position, { boost, stun });
-        const intents = []; intents[s.players.indexOf(actor)] = { input: { x, y, sneak } };
-        phaseThree(s, intents);
-        const actual = r.world.snapshot().bodies.find(b => b.spec.id === `actor:${actor.id}`).motor;
-        const speed = movementSpeed(actor, { sneak }, HZ);
-        assert.deepEqual(actual, characterMotor(profile, surfaces, actor, x, y, speed), `${actor.role}: ${JSON.stringify({ boost, stun, sneak, x, y, position })}`);
-      }
-  } finally { disposePhysics(s); }
+  assert.deepEqual(characterMotor(profile, surfaces, p, 3, 4, 200), { x: 60, y: 80, accel: 840 });
 });
 
 test('the match publishes only pinned motor tuning, once; no view repeats it', async () => {

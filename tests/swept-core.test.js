@@ -201,3 +201,25 @@ test('a map spread over the same obstacles gets its own upload when its extent, 
     assert.ok(found > 0, `variant ${k} meets geometry`);
   }
 });
+
+test('a thin playable-mask void blocks a shot through the WASM upload while a window passes it', async () => {
+  const { arena } = await import('./helpers/arena.js');
+  const build = hole => {
+    const { map } = arena({ cols: 100, rows: 40, cellSize: 10, obstacles: [{ id: 'window', kind: 'window', x: 500, y: 40, w: 2, h: 20 }] });
+    if (hole) map.playableArea.rows[5].runs = [[0, 4], [5, 100]];
+    return map;
+  };
+  const open = build(false), holed = build(true);
+  const voidLane = [point(30, 55), point(75, 55)], windowLane = [point(450, 50), point(550, 50)];
+  assert.equal(sight.sweptContact(open, true, voidLane[0], voidLane[1], 2), Infinity);
+  const want = geometryContact(holed, true, voidLane[0], voidLane[1], 2);
+  const got = sight.sweptContact(holed, true, voidLane[0], voidLane[1], 2);
+  assert.ok(want > 0 && want < 1, `contact ${want}`);
+  assert.equal(Object.is(want, got), true, `WASM sweptContact (${got}) matches geometryContact (${want})`);
+  assert.equal(sight.sweptContact(open, true, windowLane[0], windowLane[1], 2), Infinity, 'window passes shots in WASM');
+  const { statics, shots } = sweptUpload(holed);
+  assert.equal(statics.length, staticShapes(holed, false).length);
+  assert.ok(statics.length > holed.obstacles.length, 'the void adds shapes after the obstacles');
+  assert.ok(shots.slice(holed.obstacles.length).every(Boolean), 'and shots see every one');
+  assert.equal(shots[0], false, 'while a window is see-through');
+});

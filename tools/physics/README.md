@@ -118,9 +118,9 @@ The production adapter now lives in `shared/physics/`, separately from these lab
 implementations. Run focused tests with `npm run test:physics` and the actual
 shared adapter's Chrome witness with `node tests/physics-world.browser.mjs`.
 
-`node tools/physics/bench-integration.mjs <output.json>` takes the machine benchmark
-lock and runs a short seeded whole-match sample sequentially.
-It measures step, authoritative snapshot and one projection over 500 samples after
-100 warmup ticks. Frame sizing is outside the timed interval. It is not the P0
-physics-only workload or P9 capacity qualification. Findings and limits are in
+`bench-integration.mjs`, with `bench-characters.mjs`, took the machine benchmark
+lock and ran a short seeded whole-match sample sequentially. Both benched the old-world combat run and retired
+with it in #1358; the recorded figures stay as history. The integration bench measured step, authoritative
+snapshot and one projection over 500 samples after 100 warmup ticks, with frame sizing outside the timed
+interval. It was not the P0 physics-only workload or P9 capacity qualification. Findings and limits are in
 [42.11](../../docs/42.11-physics-p1.md).

@@ -367,3 +367,51 @@ fn turret_reads_s0_gate_and_its_next_tick_sweep_reads_the_closed_gate() {
         TrapKind::Turret { aiming: false }
     );
 }
+
+#[test]
+fn static_cover_blocks_a_mines_damage_and_its_impulse() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 25.0);
+    add_actor(&mut scenario, B, 70.0);
+    // A wall at x 40 in the one sight bucket stands between the mine and B, not between the mine and A.
+    scenario.sight(
+        Arc::new(SightIndex::new(
+            &[40.0, -20.0, 40.0, 20.0],
+            &[0, 0, 1, 1, 0, 1, 0],
+            &[],
+            &[0],
+            &[0, 0, 0, 0, 0],
+        )),
+        Arc::new(GateSet::new(&[], &[0], &[], &[0, 0, 0, 0, 0])),
+    );
+    scenario
+        .state
+        .traps
+        .insert(MINE, trap([0.0, 0.0], TrapKind::Mine { spent: false }));
+    let rules = Combat::default();
+    let mut game = scenario.start(1, 10);
+    submit(
+        &mut game,
+        A,
+        1,
+        1,
+        Input {
+            movement: [0.5, 0.0],
+            ..Input::default()
+        },
+    );
+    let first = game.step(&rules).unwrap();
+    assert!(has(&first, Fact::MineExploded { trap: MINE }));
+    assert_eq!(game.state().actors[&A].hp, 45.0);
+    assert_eq!(game.state().actors[&B].hp, 90.0, "cover blocks the damage");
+    let second = game.step(&rules).unwrap();
+    let pushed: Vec<_> = second
+        .inbound
+        .iter()
+        .filter_map(|record| match *record {
+            Inbound::Carried(Carried::Impulse { body, .. }) => Some(body),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(pushed, [BodyId::Actor(A)], "and the impulse");
+}

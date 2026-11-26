@@ -3,8 +3,6 @@ import { renderedSnapshot } from './helpers/relational.js';
 import { renderedPlayerView as playerView } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isDeepStrictEqual } from 'node:util';
-import { phaseThree } from '../shared/simulation/phase-three.ts';
 import { Writable } from 'node:stream';
 import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, stateOf, step as stepRaw, snapshot as snapshotRaw, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
@@ -35,15 +33,6 @@ async function fixture(t, capacity, map = arena()) {
 const ground = (id, kind, fields = {}) => ({ id, kind, x: 120, y: 200, ...fields });
 const step = s => { identifyItems(s); return stepRaw(s); };
 const snapshot = s => { identifyItems(s); return snapshotRaw(s); };
-// Exercise only this actor's phase-three action, without unrelated ground pickups.
-const moveSlot = (s, p, from, to) => {
-  identifyItems(s);
-  const state = () => ({ inventory: p.inventory, selectedSlot: p.selectedSlot, weapon: p.weapon,
-    itemSerial: s.itemSerial, scatterSerial: s.scatterSerial });
-  const before = structuredClone(state());
-  phaseThree(s, s.players.map(actor => actor === p ? { input: { moveSlot: { from, to } } } : undefined));
-  return !isDeepStrictEqual(state(), before);
-};
 
 test('item instances are required on match content and initialize a counter without consuming RNG', async t => {
   assert.throws(() => createGameRecord(17, arena(), { ...content(), itemInstances: undefined }), /item instances required/);
@@ -81,20 +70,9 @@ test('label registration is numeric, does not spend scatter phases, and staged l
 });
 
 // The ground-to-carried half of this (a partial take leaves the remainder, an equal quality merges into the target) is the
-// core's: `partial_stacks_fill_remaining_capacity_in_claim_order`. The slot-move half stays on phase three.
-test('same-quality slot moves retain target identity and different qualities swap without blending', async t => {
-  const { s, p } = await fixture(t);
-  p.inventory[0] = { kind: 'med', count: 3, quality: 3, instanceId: 'target', lineageId: 'target' };
-  p.inventory[1] = { kind: 'med', count: 1, quality: 3, instanceId: 'other', lineageId: 'other' };
-  assert.equal(moveSlot(s, p, 1, 0), false, 'a full target cannot absorb more');
-  assert.equal(moveSlot(s, p, 0, 1), true);
-  assert.equal(p.inventory[1].instanceId, itemId(s, 'other'));
-  assert.equal(p.inventory[1].count, 3);
-  assert.equal(p.inventory[0].count, 1);
-  p.inventory[2] = { kind: 'med', count: 1, quality: 4, instanceId: 'different', lineageId: 'different' };
-  assert.equal(moveSlot(s, p, 0, 2), true);
-  assert.deepEqual([p.inventory[0].quality, p.inventory[2].quality], [4, 3], 'different qualities swap without blending');
-});
+// core's: `partial_stacks_fill_remaining_capacity_in_claim_order`.
+// Same-quality merges keep the target's identity and different qualities swap without blending: the core's, in `rust/core/src/tick/tests/item_tests.rs`,
+// `slot_moves_merge_compatible_stacks_swap_otherwise_follow_selection_and_reject_invalid_requests`.
 
 test('E swap is atomic at capacity and a successful swap cannot repick its own drop this tick', async t => {
   for (const capacity of [1, 2]) {

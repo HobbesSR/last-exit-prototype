@@ -1,8 +1,7 @@
 import { TILE } from '../movement.ts';
 import { distance } from './geometry.ts';
 import { TRANSIT_REACH } from './rules.ts';
-import { phaseSix, STEP_TRANSIT } from './phase-six.ts';
-import type { Game, Player, Station, StationId, Vec2 } from '../types.ts';
+import type { Game, Player, Station, Vec2 } from '../types.ts';
 
 // Gladiator transit between stations (12 "Transit route selection", 14, #692).
 
@@ -27,14 +26,4 @@ export function transitOptions(s: Pick<Game, 'map' | 'hazardX'>, p: Player): { f
 export function transitTicks(s: Game, from: Vec2, to: Vec2): number {
   const time = s.content.transitTime;
   return time ? Math.max(0, Math.round(time.base + time.perUnit * distance(from, to))) : 0;
-}
-
-/**
- * Transit `p` to the station `choice` names, or without one to the next station ahead. A destination
- * that is unknown, behind the wall or the current station is refused with no effect and no cooldown,
- * as is a landing the physics world cannot place. It runs in the core (`rust/core/src/phase_six.rs`, #1230), which
- * holds the same options as `transitOptions` and the same time as `transitTicks`; this is its entry for scenarios.
- */
-export function transit(s: Game, p: Player, choice?: StationId): void {
-  phaseSix(s, [{ player: p, steps: STEP_TRANSIT, choice }], false);
 }
