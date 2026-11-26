@@ -1932,6 +1932,17 @@ pub struct Setup {
     pub entry_x: f64,
     pub bots: super::bots::Settings,
     pub combat: Combat,
+    /// Arranged knowledge per contestant, in actor order: surveyed cells and remembered doors
+    /// (`Scenario::know`). Empty for a room.
+    pub known: Vec<Known>,
+}
+
+/// One contestant's arranged knowledge in a setup.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Known {
+    pub actor: ActorId,
+    pub surveyed: Vec<u32>,
+    pub gates: Vec<(GateId, DoorMemory)>,
 }
 
 /// The map's handles, which JavaScript owns and the core copies.
@@ -2281,6 +2292,20 @@ impl Setup {
             w.flag(inventory);
             w.size(rank);
         }
+        w.size(self.known.len());
+        for known in &self.known {
+            w.int(actor_word(known.actor));
+            w.size(known.surveyed.len());
+            for &cell in &known.surveyed {
+                w.int(cell);
+            }
+            w.size(known.gates.len());
+            for &(gate, door) in &known.gates {
+                w.int(gate.0);
+                w.flag(door.open);
+                w.flag(door.locked);
+            }
+        }
         w
     }
 
@@ -2346,6 +2371,38 @@ impl Setup {
             selectable_transit,
             roster,
         };
+        let count = r.count(3)?;
+        let mut known = Vec::with_capacity(count);
+        for _ in 0..count {
+            let actor = r.actor()?;
+            let contestant =
+                actor.kind == ActorKind::Contestant && state.actors.contains_key(&actor);
+            if !contestant || known.last().is_some_and(|k: &Known| k.actor >= actor) {
+                return r.fail("arranged knowledge names no contestant, or is out of actor order");
+            }
+            let cells = r.count(1)?;
+            let surveyed = (0..cells).map(|_| r.u32()).collect::<Result<Vec<_>>>()?;
+            let doors = r.count(3)?;
+            let mut gates = Vec::with_capacity(doors);
+            for _ in 0..doors {
+                let gate = GateId(r.u32()?);
+                if !state.gates.contains_key(&gate) {
+                    return r.fail("arranged knowledge remembers no gate of the map");
+                }
+                gates.push((
+                    gate,
+                    DoorMemory {
+                        open: r.bool()?,
+                        locked: r.bool()?,
+                    },
+                ));
+            }
+            known.push(Known {
+                actor,
+                surveyed,
+                gates,
+            });
+        }
         if !r.is_empty() {
             return r.fail("trailing words");
         }
@@ -2361,6 +2418,7 @@ impl Setup {
             entry_x,
             bots,
             combat,
+            known,
         })
     }
 
@@ -2399,6 +2457,9 @@ impl Setup {
         }
         if let Some((map, index, gates)) = handles.discovery {
             scenario.discovery(map.clone(), index.clone(), gates.clone());
+        }
+        for known in self.known {
+            scenario.know(known.actor, known.surveyed, known.gates);
         }
         (scenario, self.combat, self.seed, self.time_limit)
     }

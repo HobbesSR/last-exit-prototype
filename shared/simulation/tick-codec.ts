@@ -340,6 +340,17 @@ export interface MatchSetup {
   bots?: { hearing: boolean; hunting: number; portals: boolean; selectableTransit: boolean;
     roster: readonly (BotLabel & { actor: number; inventory: boolean })[] };
   tuning: Tuning;
+  /**
+   * Arranged knowledge (27.2 "Test API"), in actor order: what a contestant knows at the start, before the opening
+   * discovery. Surveyed cells and remembered doors only (`Scenario::know`). A room arranges none.
+   */
+  known?: readonly KnownSetup[];
+}
+
+export interface KnownSetup {
+  actor: number;
+  surveyed: readonly number[];
+  gates: readonly { gate: number; open: boolean; locked: boolean }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -615,6 +626,14 @@ export function encodeSetup(setup: MatchSetup): Float64Array {
   w.u32(bots?.roster.length ?? 0);
   for (const row of bots?.roster ?? []) {
     w.raw(row.actor); w.flag(row.opportunistic); w.flag(row.inventory); w.u32(row.rank);
+  }
+  w.u32(setup.known?.length ?? 0);
+  for (const known of setup.known ?? []) {
+    w.raw(known.actor);
+    w.u32(known.surveyed.length);
+    for (const cell of known.surveyed) w.u32(cell);
+    w.u32(known.gates.length);
+    for (const g of known.gates) { w.u32(g.gate); w.flag(g.open); w.flag(g.locked); }
   }
   return Float64Array.from(w.words);
 }

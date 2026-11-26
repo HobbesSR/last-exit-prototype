@@ -908,6 +908,7 @@ fn a_richer_snapshot_decodes_as_setup_tables() {
         wall: None,
         entry_x: 0.0,
         bots: Default::default(),
+        known: Vec::new(),
         bounds: None,
         combat: Combat::default(),
     };
@@ -1047,6 +1048,7 @@ fn sample_setup() -> Setup {
         wall: Some((960.0, 5)),
         entry_x: 123.5,
         bots: Default::default(),
+        known: Vec::new(),
         bounds: Some([0.0, 0.0, 1000.0, 500.0]),
         combat,
     }
@@ -1238,4 +1240,75 @@ fn live_match_retains_collision_and_roofs_without_discovery() {
     assert!(retained.conceals([300.0, 300.0], [120.0, 120.0]));
     assert!(retained.conceals([120.0, 120.0], [420.0, 420.0]));
     assert!(!retained.conceals([430.0, 430.0], [420.0, 420.0]));
+}
+
+#[test]
+fn arranged_knowledge_round_trips_and_seeds_memory_before_the_opening_discovery() {
+    let mut setup = sample_setup();
+    setup.state.gates.insert(
+        GateId(0),
+        Gate {
+            building: None,
+            open: false,
+            locked: true,
+            door: true,
+            position: [50.0, 50.0],
+        },
+    );
+    let door = DoorMemory {
+        open: true,
+        locked: false,
+    };
+    setup.known = vec![Known {
+        actor: C,
+        surveyed: vec![3, 4],
+        gates: vec![(GateId(0), door)],
+    }];
+    let back = Setup::decode(&setup.encode()).expect("arranged knowledge decodes");
+    assert_eq!(back.known, setup.known);
+    let (scenario, ..) = back.into_scenario(Handles::default());
+    let game = scenario.start(1, 25);
+    // Only what was arranged: the layout and a door as remembered, which the live gate need not match.
+    let memory = game.memory(C).expect("a contestant has a memory");
+    assert_eq!(memory.surveyed, BTreeSet::from([3, 4]));
+    assert_eq!(memory.gates[&GateId(0)], door);
+    assert!(memory.discovered.is_empty() && memory.seen.is_empty() && memory.items.is_empty());
+    assert_eq!(
+        game.memory(A),
+        Some(&Memory::default()),
+        "an unarranged contestant starts empty"
+    );
+}
+
+#[test]
+fn arranged_knowledge_names_contestants_in_actor_order_and_gates_of_the_map() {
+    let refused = |known: Vec<Known>| {
+        let mut setup = sample_setup();
+        setup.state.actors.insert(B, actor(Presence::Active));
+        setup.known = known;
+        Setup::decode(&setup.encode()).is_err()
+    };
+    let know = |actor, gates: Vec<(GateId, DoorMemory)>| Known {
+        actor,
+        surveyed: vec![1],
+        gates,
+    };
+    let shut = DoorMemory {
+        open: false,
+        locked: false,
+    };
+    assert!(
+        refused(vec![know(B, vec![])]),
+        "a gladiator knows nothing arranged"
+    );
+    assert!(
+        refused(vec![know(A, vec![]), know(C, vec![])]),
+        "out of actor order"
+    );
+    assert!(refused(vec![know(C, vec![]), know(C, vec![])]), "twice");
+    assert!(
+        refused(vec![know(C, vec![(GateId(7), shut)])]),
+        "a gate the map lacks"
+    );
+    assert!(!refused(vec![know(C, vec![]), know(A, vec![])]));
 }

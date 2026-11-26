@@ -14,7 +14,7 @@ import { discoveryTables } from '../discovery.ts';
 import { authoredProps } from './world-physics.ts';
 import { createRuntimeNavigation } from '../navigation/runtime-map.ts';
 import { SLOT_COUNT, actorWord, decodeBotRoutes, decodeCompleted, decodeCues, decodeMemory, decodeSnapshot, encodeInbound, encodeSetup } from './tick-codec.ts';
-import type { Actor, ActorEntry, Presence, Window, BodyRow, SetupBody, DecodedTick, Equipment, GateEntry, GroundEntry, Inbound, Loot, MatchSetup, Memory, MotorSurface, Cue, BotLabel,
+import type { Actor, ActorEntry, Presence, Window, BodyRow, SetupBody, DecodedTick, Equipment, GateEntry, GroundEntry, Inbound, KnownSetup, Loot, MatchSetup, Memory, MotorSurface, Cue, BotLabel,
   Point, Snapshot, State, StationEntry, Tick, TrapEntry, TrapKind, Tuning, WeaponTuning } from './tick-codec.ts';
 import type { CoreExports } from '../core.ts';
 import type { ChargerId, Game, GateId, InventoryItem, Kit, Player, PlayerId, PlayerIdx, PlayerStatus, StationId, TrapId, WeaponType } from '../types.ts';
@@ -348,10 +348,23 @@ export function matchSetup(s: Game): { setup: MatchSetup; ids: MatchIds } {
         portals: s.content.hunterPlanning === 'portals', selectableTransit: s.content.transit === 'selectable',
         roster: s.players.map(p => ({ actor: actorOfPlayer.get(p.id)!,
           ...botLabel(playerOfActor.values(), p.id), inventory: p.inventory !== undefined })) },
-      tuning: tuningOf(s) },
+      tuning: tuningOf(s), known: knownOf(s, actorOfPlayer, gateIndex) },
     ids: { actorAtSlot, slotOfActor, actorOfPlayer, playerOfActor, bindPlayer, buildingIds, gateIndex, gateIds, trapIndex, trapIds, chargerIndex, transitIndex, stations: stationList,
       propNumber, propLabels: props.map(p => p.label), geometryNumber, geometryIds: geometry.map(g => g.id) },
   };
+}
+
+/** What scenarios arranged for contestants to know (`Player.knows`), in actor order; a room arranges none. */
+function knownOf(s: Game, actorOfPlayer: ReadonlyMap<PlayerId, number>, gateIndex: ReadonlyMap<string, number>): KnownSetup[] {
+  return s.players.filter(p => p.knows).map(p => {
+    if (p.role !== 'contestant') refuse(`${p.id} is not a contestant, so it cannot be arranged to know anything`);
+    const gates = [...p.knows!.gates].map(([id, door]) => {
+      const gate = gateIndex.get(id);
+      if (gate === undefined) refuse(`${p.id} remembers gate ${id}, which the map lacks`);
+      return { gate: gate!, open: door.open, locked: door.locked };
+    }).sort((a, b) => a.gate - b.gate);
+    return { actor: actorOfPlayer.get(p.id)!, surveyed: [...p.knows!.surveyed].sort((a, b) => a - b), gates };
+  }).sort((a, b) => a.actor - b.actor);
 }
 
 // ---------------------------------------------------------------------------

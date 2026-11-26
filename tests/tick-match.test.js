@@ -245,3 +245,28 @@ test('building slots survive setup and remain outside the public row shape', asy
     assert.equal(Object.keys(state.gates[0].gate).includes('building'), false);
   } finally { match?.dispose(); disposePhysics(s); }
 });
+
+test('knowledge a scenario arranges before the start reaches the core, and only for contestants (27.2 "Test API")', async () => {
+  const arranged = { surveyed: new Set([2, 1, 0]), gates: new Map([['d1', { open: false, locked: true }]]) };
+  const s = await game();
+  let match;
+  try {
+    const [c0, c1, g] = s.players;
+    c0.knows = arranged;
+    const { setup, ids } = matchSetup(s);
+    assert.deepEqual(setup.known, [{ actor: ids.actorOfPlayer.get(c0.id), surveyed: [0, 1, 2], gates: [{ gate: 1, open: false, locked: true }] }]);
+    match = new TickMatch(s, setup, ids);
+    // The opening discovery adds what each contestant sees at its spawn. The arranged door is remembered as arranged, not
+    // as the live gate (open, unlocked).
+    const memory = match.memory(c0.id), plain = match.memory(c1.id);
+    for (const cell of [0, 1, 2]) assert.ok(memory.surveyed.includes(cell), `cell ${cell}`);
+    assert.deepEqual(memory.gates.find(door => door.gate === 1), { gate: 1, open: false, locked: true });
+    assert.ok(!plain.gates.some(door => door.gate === 1 && door.locked), 'an unarranged contestant does not');
+    // A gladiator knows nothing arranged, and a door must be the map's.
+    g.knows = arranged;
+    assert.throws(() => matchSetup(s), /not a contestant/);
+    g.knows = undefined;
+    c0.knows = { surveyed: [], gates: new Map([['nowhere', { open: true, locked: false }]]) };
+    assert.throws(() => matchSetup(s), /lacks/);
+  } finally { match?.dispose(); disposePhysics(s); }
+});

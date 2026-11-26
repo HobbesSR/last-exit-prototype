@@ -68,9 +68,12 @@ export async function stagePhysics(map, { seed = 4217, content = defaultContent(
  * Replace what `p` knows for planning: `'everything'` surveys every discovery cell; otherwise `surveyed` (cell
  * indices) and remembered `gates` (id → `{ open, locked }`), nothing else, so by default nothing at all. Sight is
  * not staged: no cell is `discovered` or `seen`, and no item remembered, until the game's own sampling adds them.
+ * Arrange it before the start: the core's setup takes `p.knows` (27.2 "Test API"). `p.discovery` is the retained
+ * TypeScript planner's copy, for its unit tests until #1358 retires them.
  */
 export function know(s, p, knows = {}) {
   const { surveyed = new Set(), gates = new Map() } = knows === 'everything' ? { surveyed: everywhere(s.map) } : knows;
+  p.knows = { surveyed, gates };
   p.discovery = { ...createDiscovery(), surveyed, gates };
 }
 

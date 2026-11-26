@@ -786,6 +786,11 @@ export interface Player<I extends ItemKey = ItemId> extends Vec2 {
   seat?: number | undefined;
   /** Authoritative discovery state, kept for contestants only. */
   discovery?: DiscoveryMemory | undefined;
+  /**
+   * Knowledge a scenario arranges before the start (27.2 "Test API"): the discovery cells a contestant has surveyed and
+   * the doors it remembers, by gate ID. The core's setup takes it (`MatchSetup.known`); a room never sets it.
+   */
+  knows?: { surveyed: Iterable<number>; gates: ReadonlyMap<string, { open: boolean; locked: boolean }> } | undefined;
   /** Gunfire this player has heard (#684), newest last. Non-enumerable, like `discovery`, so it stays out of snapshots. */
   heard?: HeardCue[] | undefined;
 }
