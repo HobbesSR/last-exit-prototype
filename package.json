@@ -28,7 +28,6 @@
     "bench": "node tests/bench.mjs",
     "bench:client": "node tests/bench-client.mjs",
     "bench:stages": "node tests/bench-stages.mjs",
-    "physics:integration": "node --expose-gc tools/physics/integration-report.mjs",
     "physics:ballistics": "node tools/physics/ballistic-report.mjs",
     "demo": "node tests/demo.mjs",
     "test:browser": "node tests/sets.mjs browser",
