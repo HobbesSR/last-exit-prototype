@@ -2,8 +2,7 @@ import { hydrateFrame, mergeGateGeometry } from '../shared/relational-frame.ts';
 import { TICK_RECORDING_SCHEMA } from '../shared/recording.ts';
 import { playerSlot, seatMetadata } from '../shared/simulation/relations.ts';
 import { createGameRecord, createGame, disposePhysics, joinGame, snapshot, synchronizePhysics } from '../shared/simulation.ts';
-import { projectView } from '../shared/simulation/visibility.ts';
-import { viewSourceOf } from '../shared/simulation/view-source.ts';
+import { projectView, viewSourceOf } from '../shared/simulation/visibility.ts';
 import { inputLeadFrom, MAX_INPUT_LEAD_TICKS, resetInput } from '../shared/simulation/input.ts';
 import { changeSeat, wholeMap } from '../shared/simulation/state.ts';
 import { MAX_REWIND_TICKS, viewLagFrom } from '../shared/simulation/rewind.ts';
@@ -285,7 +284,11 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     snapshot: () => capture(true),
     dispose() {
       if (disposedFrame) return;
-      try { disposedFrame = capture(true); }
+      try {
+        disposedFrame = capture(true);
+        // Knowledge is the core's (#1357): every seat's last is taken before the match goes, for views projected after.
+        live?.projection.decide(game.players.map(p => p.id));
+      }
       finally {
         try { live?.match.dispose(); }
         finally {

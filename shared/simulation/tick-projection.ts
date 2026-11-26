@@ -1,12 +1,11 @@
 import { start, stop } from '../profiler.ts';
-import { heardOf } from './tick-knowledge.ts';
 import { EFFECT_KINDS, bodyKey } from './tick-codec.ts';
 import { POTENTIAL, assembleView, readFrame, viewerOf, type ReadFrame, type ViewDecision } from './visibility.ts';
 import { wireIds, type WireIds } from './wire-ids.ts';
-import type { Admission } from './tick-codec.ts';
+import type { Admission, Cue } from './tick-codec.ts';
 import type { TickFrames } from './tick-frame.ts';
 import type { TickMatch } from './tick-match.ts';
-import type { Game, PlayerId, PlayerIdx, Snapshot, Tick } from '../types.ts';
+import type { Game, HeardCue, PlayerId, PlayerIdx, Snapshot, Tick } from '../types.ts';
 
 // The core's projection (docs/27.2 "Projection and knowledge", #1357, boundary C). The core decides what each player viewer
 // may receive at the last completed tick, in one call for every viewer (`TickMatch.admit`). The room host assembles the view
@@ -16,6 +15,9 @@ import type { Game, PlayerId, PlayerIdx, Snapshot, Tick } from '../types.ts';
 // - **Discovery** arrives as the cells learned since those held here, so a viewer's list is appended to, in the order
 //   learned, and the crossing follows what changed.
 // - **A frame of another tick** is not decided here: `project` answers undefined and the caller projects by the rules.
+// - **Knowledge** is the core's alone (#1357 stage 2). A viewer's cells and cues held here are what the core last sent; the
+//   rules path reads them through `discovered` and `heard`, which ask the core first while the match is live, so no cache
+//   of the match's memory is kept in Node.
 // - **A decision holds** for one tick, one stranded state and a live match (`#current`). A room's finish strands its
 //   contestants and broadcasts again within the tick, so the stranded state is part of it (review 1132).
 
@@ -37,19 +39,29 @@ function picked<T extends { id: number }>(list: readonly T[], ids: Iterable<numb
   return at.sort((a, b) => a - b).map(i => list[i]!);
 }
 
+/** A cue as frames carry it. */
+export const heardOf = (cue: Cue): HeardCue => ({ x: cue.at[0], y: cue.at[1], tick: cue.tick, until: cue.until });
+
 /** The projection of one started match from the core's decisions. Construct it after the frame store, before the first step. */
 export class TickProjection {
   readonly #match: TickMatch;
   readonly #frames: TickFrames;
   /** Each viewer's discovered cells in the order learned, by roster place: what the core has sent. */
   readonly #discovered = new Map<PlayerIdx, number[]>();
+  /** Each viewer's cues as the core last sent them, by roster place. */
+  readonly #heard = new Map<PlayerIdx, readonly HeardCue[]>();
   /** The decisions made at `#made`, by roster place. */
   readonly #decided = new Map<PlayerIdx, Admission>();
   /** What the decisions were made under: the tick and whether the room had stranded its contestants. */
   #made = { tick: -1, stranded: false };
+  /** The core's last completed tick. Frames a test takes by hand can run ahead of it; those are the rules' to project. */
+  #stepped: Tick;
 
   constructor(s: Game, match: TickMatch, frames: TickFrames) {
-    this.#match = match; this.#frames = frames;
+    this.#match = match; this.#frames = frames; this.#stepped = frames.tick;
+    match.follow(t => { this.#stepped = t.tick; });
+    // From here on the core's memory is the knowledge; the game's setup copies would only go stale.
+    for (const p of s.players) { delete p.discovery; delete p.heard; }
     // An actor without a body at the start stands where the game put it, as the frame store takes it.
     const posed = new Set(match.snapshot().poses.flatMap(p => p.body.kind === 'actor' ? [p.body.id] : []));
     s.players.forEach((p, slot) => { const word = match.ids.actorAtSlot[slot]!; if (!posed.has(word)) match.stand(word, p.x, p.y); });
@@ -70,7 +82,7 @@ export class TickProjection {
 
   /** Ask the core, in one call, what these player viewers may receive at the last completed tick. */
   decide(ids: Iterable<PlayerId>): void {
-    if (this.#match.disposed) return;
+    if (this.#match.disposed || this.#stepped !== this.#frames.tick) return;
     const tick: Tick = this.#frames.tick, stranded = this.#frames.stranded;
     if (!this.#current()) { this.#decided.clear(); this.#made = { tick, stranded }; }
     const viewers: { id: PlayerId; held: number }[] = [];
@@ -87,6 +99,7 @@ export class TickProjection {
       for (const admission of admissions) {
         const slot = this.#match.ids.slotOfActor.get(admission.actor)!;
         this.#decided.set(slot, admission);
+        this.#heard.set(slot, admission.heard.map(heardOf));
         if (admission.total < 0) continue;
         let cells = this.#discovered.get(slot);
         if (!cells) this.#discovered.set(slot, cells = []);
@@ -139,8 +152,37 @@ export class TickProjection {
       projectiles: frame.projectiles.filter(p => shots.has(p.id)),
       effects: frame.effects.filter((_, i) => effects.has(i)),
       discovered: a.total < 0 ? null : this.#discovered.get(slot)!,
-      heard: a.heard.map(heardOf),
+      heard: this.#heard.get(slot)!,
     };
+  }
+
+  /** The player holding a roster place now. */
+  #idAt(slot: PlayerIdx): PlayerId | undefined {
+    return this.#match.ids.playerOfActor.get(this.#match.ids.actorAtSlot[slot]!);
+  }
+
+  /** Ask the core for a viewer's decision at the last completed tick unless one is held; nothing once disposed. */
+  #ensure(slot: PlayerIdx): void {
+    if (this.#current() && this.#decided.has(slot)) return;
+    const id = this.#idAt(slot);
+    if (id !== undefined) this.decide([id]);
+  }
+
+  /**
+   * A viewer's discovered cells in the order learned, as the core sent them, or null when it keeps none. While the match is
+   * live this asks the core first; after it is disposed, it answers what was last sent (the room decides every seat once
+   * before disposing).
+   */
+  discovered(slot: PlayerIdx): readonly number[] | null {
+    this.#ensure(slot);
+    const decided = this.#decided.get(slot);
+    return decided && decided.total < 0 ? null : this.#discovered.get(slot) ?? null;
+  }
+
+  /** The cues a viewer hears that last past `tick`, as `discovered` reads them. */
+  heard(slot: PlayerIdx, tick: Tick): readonly HeardCue[] {
+    this.#ensure(slot);
+    return this.#heard.get(slot)?.filter(cue => cue.until > tick) ?? [];
   }
 
   /** The core's decision for a viewer at the last decided tick, for checks. */

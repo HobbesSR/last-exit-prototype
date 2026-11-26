@@ -4,32 +4,29 @@ import type { Game, GameEvent } from '../types.ts';
 import { TickBoundary } from './tick-boundary.ts';
 import { TickFrames } from './tick-frame.ts';
 import type { FrameRecords } from './tick-frame.ts';
-import { TickKnowledge } from './tick-knowledge.ts';
 import { createTickMatch } from './tick-match.ts';
 import { stepTick } from './tick-step.ts';
-import { contextOf } from './tick-records.ts';
 import { disposePhysics as disposeSetup } from './physics-runtime.ts';
-import { snapshot as setupSnapshot } from './visibility.ts';
+import { registerProjection, snapshot as setupSnapshot, type ViewSource } from './visibility.ts';
 import type { WireIds } from './wire-ids.ts';
-import { registerViewSource, type ViewSource } from './view-source.ts';
 
 /**
  * Start the authority after the caller finishes arranging the match's initial state. A room reads its roster from the
- * frame store (#1346), an in-process game is read through `stateOf` (#1345), and both are projected from `view`: the
- * match's seats and the knowledge cache (#1343).
+ * frame store (#1346), and an in-process game is read through `stateOf` (#1345). Both are projected by `projection`: the
+ * core decides each player view of the current tick (#1357). `view` is the rules' source for the rest: the match's seats
+ * and the knowledge the core sent.
  */
 export function createTickSession(game: Game, wire?: WireIds, navigation?: number) {
   const match = createTickMatch(game, navigation);
   try {
-    const knowledge = new TickKnowledge(game, match, contextOf(game, match));
     const frames = new TickFrames(game, match);
     framesByGame.set(game, frames);
     const ids = match.ids;
-    const view: ViewSource = { knowledge, slotOf: id => { const word = ids.actorOfPlayer.get(id); return word === undefined ? undefined : ids.slotOfActor.get(word); } };
-    registerViewSource(game, view);
     // The core decides what each player viewer may receive; the room assembles from the frames (27.2, #1357).
     const projection = new TickProjection(game, match, frames);
-    return { match, knowledge, boundary: new TickBoundary(game, match, wire), frames, view, projection };
+    const view: ViewSource = { knowledge: projection, slotOf: id => { const word = ids.actorOfPlayer.get(id); return word === undefined ? undefined : ids.slotOfActor.get(word); } };
+    registerProjection(game, { project: (frame, id, keyed) => projection.project(frame, id, keyed), source: view });
+    return { match, boundary: new TickBoundary(game, match, wire), frames, view, projection };
   } catch (error) { match.dispose(); throw error; }
 }
 

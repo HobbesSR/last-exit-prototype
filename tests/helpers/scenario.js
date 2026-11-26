@@ -1,4 +1,4 @@
-import { viewSourceOf } from '../../shared/simulation/view-source.ts';
+import { viewSourceOf } from '../../shared/simulation/visibility.ts';
 import { createGame, disposePhysics, setInput, stateOf, step } from '../../shared/simulation.ts';
 import { createDiscovery, discoveryGrid } from '../../shared/discovery.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
@@ -32,8 +32,8 @@ function settle(s, actors, players) {
  * arrangement, not the match: read what the match did here, by roster place, and arrange mid-match through commands.
  */
 export const now = (s, p) => stateOf(s).players[s.players.indexOf(p)];
-/** The discovery cells `p` has discovered: the knowledge cache's once started (27.2 "Projection and knowledge"), else as arranged. */
-export const discoveredBy = (s, p) => { const v = viewSourceOf(s); return v.knowledge.discovered(v.slotOf(p.id)) ?? new Set(); };
+/** The discovery cells `p` has discovered: the core's once started (27.2 "Projection and knowledge"), else as arranged. */
+export const discoveredBy = (s, p) => { const v = viewSourceOf(s); return new Set(v.knowledge.discovered(v.slotOf(p.id)) ?? []); };
 /** The cues `p` hears that last past the game's tick, read as `discoveredBy` reads. */
 export const hears = (s, p) => { const v = viewSourceOf(s); return v.knowledge.heard(v.slotOf(p.id), s.tick); };
 

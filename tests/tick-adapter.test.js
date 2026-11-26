@@ -65,19 +65,19 @@ async function run(fn, content) {
 }
 
 test('a bot match on the new path holds the frame store records and knowledge equal to the match snapshot every tick', async () => {
-  await run((s, { match, frames, knowledge, projection }, step) => {
+  await run((s, { match, frames, projection }, step) => {
     assert.ok(s.players.every(p => p.bot));
     const kinds = new Set(), record = recordingRoundTrip();
     checkProjection(s, projection, frames.frame(), 0);
     const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
-    checkKnowledge(s, match, knowledge, 0);
+    checkKnowledge(s, match, projection, 0);
     let previous = checkFrame(frames.frame(), match.snapshot(), 0, words), placed = 0;
     for (let i = 0; i < 240; i++) {
       const t = step();
       if (!t) break;
       for (const e of t.changes.events) kinds.add(e.fact.kind);
       const snap = match.snapshot();
-      checkKnowledge(s, match, knowledge, t.tick);
+      checkKnowledge(s, match, projection, t.tick);
       const frame = frames.frame(), bodies = checkFrame(frame, snap, t.tick, words);
       checkRecords(frames, snap, t.tick);
       // A body keeps its ID and generation until it is placed or warped; a placed body is marked on that tick only.
@@ -288,12 +288,12 @@ test('each escape event reports the slots left after it', async () => {
   });
 });
 
-test('with discovery off the knowledge writer keeps no memory, as the old game keeps none', async () => {
-  await run((s, { match, knowledge }, step) => {
+test('with discovery off the core keeps no memory to send, as the old game keeps none', async () => {
+  await run((s, { match, projection }, step) => {
     assert.ok(s.players.every(p => p.discovery === undefined));
     for (let i = 0; i < 40; i++) {
       const t = step();
-      checkKnowledge(s, match, knowledge, t.tick);
+      checkKnowledge(s, match, projection, t.tick);
     }
     // The bots keep the old game's full-map knowledge: no memory is attached.
     assert.ok(s.players.every(p => p.discovery === undefined));
