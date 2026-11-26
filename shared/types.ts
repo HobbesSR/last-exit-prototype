@@ -141,7 +141,7 @@ export interface KitSpec {
  *
  * Reach, damage, cadence and projectile behaviour are balance and live here. The arithmetic that
  * makes a trap work - the epsilon that decides a player counts as moving, the radius a spider body
- * occupies - stays in the core's `hazards.rs`, because changing it is a change to the mechanism rather than to
+ * occupies - stays in the core's `tick/hazards.rs`, because changing it is a change to the mechanism rather than to
  * the numbers the mechanism runs on.
  */
 export interface TrapContent {

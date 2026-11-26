@@ -156,8 +156,8 @@ the core does all of that where the loop committed the drop (`phase_three.rs`, `
 - **Cost:** measured once, at the end of step 6.
 
 **Step 6d.6c.1, phase 6 reads the ground from the core (#1214, adapter version 32).** The ground store keeps a grid
-(`ground.rs`, `Ground::near`), as `ground-items.ts` keeps its own. Phase 6 reads each actor's ground from it
-(`phase_six::read_ground`), where its adapter packed records before:
+(`ground.rs`, `Ground::near`), as `ground-items.ts` keeps its own. Phase 6 read each actor's ground from it
+(`phase_six::read_ground`, retired with `phase_six.rs` in #1358), where its adapter packed records before:
 - **The near records:** those in a box one unit past the automatic pickup's reach, in the list's order. This is
   `inReach(itemsNear(…))`'s rule; a NaN coordinate passes.
 - **A swap's candidates** (`itemsNear(s, p, PICKUP_REACH)`), each with whether its body is held and its label's rank
@@ -187,8 +187,8 @@ the core does all of that where the loop committed the drop (`phase_three.rs`, `
 - **Cost:** measured once, at the end of step 6.
 
 **Step 6d.6c.2, phase 6's stops sync in the run (#1214, adapter version 33).** A pickup that takes a record whole, a
-committed swap and an instant transit's landing no longer end phase 6's call. The core does what Node did at the stop,
-then reads the actors still to run as the call resuming there would, and goes on (`phase_six.rs`, `Run::carry_out`).
+committed swap and an instant transit's landing no longer end phase 6's call. The core did what Node did at the stop,
+then read the actors still to run as the call resuming there would, and went on (`phase_six.rs`, `Run::carry_out`, retired in #1358).
 - **The ground's writes are the core's** for phase 6, in log order:
   - a partial take replaces its record (`write_partial`, as `replaceItem` of `settledItem` writes it);
   - a whole take removes it;
@@ -284,7 +284,7 @@ in phase 5 or the hazards, and an elimination's mandatory drops, are carried out
   - Before each sync the run applies its facts so far to the player store (`Players::apply_action_log`). The sync then
     reads the target's new status, eliminated or respawning, which removes its body.
   - Those facts are assignments, so `apply_actions` applying them again after the run changes nothing.
-- **A kill eliminates in the core** (`phase_three::eliminate_in_world`). The core packs the call
+- **A kill eliminated in the core** (`phase_three::eliminate_in_world`, retired in #1358). The core packed the call
   `eliminateInCore` packed, from its own stores:
   - the target and source as action players, with the target's inventory from the store;
   - every player as context;
@@ -298,7 +298,7 @@ in phase 5 or the hazards, and an elimination's mandatory drops, are carried out
   - the store's rows at the end;
   - every part's log, with each elimination's phase 3 output between them (`OP_ELIMINATED`, 9);
   - the first part's bullet rows and the last part's removals.
-- **The hazards** eliminate where they stopped, then go on at their cursor with the store's rows (`hazards::eliminate`).
+- **The hazards** eliminated where they stopped, then went on at their cursor with the store's rows (`hazards::eliminate`, retired in #1358).
 - **Node applies the log before the rows.** An elimination's rows are its players' at the kill, and the call's rows are
   the latest, which phase 5's and the hazards' rows (health, shield, cooldowns, stun) then write.
   `applyElimination` applies phase 3's output with the applier `eliminateInCore` uses (`applyOutput`).
@@ -402,7 +402,7 @@ a tick is `tick_begin`, Node's phase 2, then `tick_finish(intents)`, which now a
   The serial, the item serials and the slots are threaded through the call.
 - **Phase 7 runs in the call:** the sync, `finishMatch`, the second sync, and the rewind frame. `actions_run`,
   `combat_run`, `interactions_run`, `hazards_run` and `phase_seven_run` shared their bodies with `tick_finish`
-  (`*_call`); the first three exports and bodies retired in #1358.
+  (`*_call`); `combat_run`, `interactions_run`, `hazards_run`, `phase_seven_run` and their `*_call` helpers all retired in #1358 (only `actions_run` stays for the dev physics lab).
 - **At this stage, Node ran discovery after the call** (`advanceDiscovery`). A contestant stranded by the terminal
   result stopped sampling on that tick. The [authoritative tick cutover](27.2-tick-architecture.md#the-cutover-3d4d)
   retired this Node pass and kept its position after terminal resolution and rewind capture.
@@ -760,7 +760,7 @@ tuned, so now is the time."
     | A cell picked up | `phase_six.rs` (`pickups`), applied by `phase-six.ts` | 6 | `route` cleared | `tick_finish` |
 
     `clearRoute` sets an existing route to empty and leaves an absent one absent; the fact keeps that
-    distinction. A port that adds, moves or drops one of these writes updates this table in the same change.
+    distinction. A port that adds, moves or drops one of these writes updates this table in the same change. (Since #1358, `phase_one.rs` and `phase_six.rs` have retired; live matches run these writes in `tick/`.)
   - **Between-tick commands write Node-owned fields in Node** (review 959). Their existing code stays the owner of
     what each does to those fields: `joinGame` and `changeSeat` (`shared/simulation/state.ts`), `resume` and
     `leave` (`server/match.js`), and `teleport` (`shared/simulation/dev.ts`). Only their writes to core-owned
@@ -1051,8 +1051,8 @@ and event and effect records in the leaf `event-records.ts`, so the core adapter
   | Drop plans, `drop_planner.rs` | Bare setup planners in `loot.ts` | `action-parity` compares complete plans, staged allocations and NaN/fallback refusals on common empty-world geometry; 5c.1 documents the intentional physics-only loot-body test | #1241 |
   | Item allocation, `item_allocation.rs` | Explicitly unbound setup records | `item-id-allocation` checks selection before/after another game initializes, actual Rust operations and fork isolation; setup/live suites check the same allocation expectations | #1241 |
   | Equipment access, validation and weapon selection, `action_equipment.rs` | Bot reads in `equipment.ts`/`item-instances.ts` | `equipment`, `item-instances`, `action-parity` and frozen characterization cover the core action and retained validation paths; weapon parameters remain content-owned | #1215 moves bot reads, #1241 owns remaining setup callers. Phase 6's writers moved in 5e.1 (next row) |
-  | Pickup transfer, `phase_six.rs` (`collect_equipment`, `collect_ammo`) | None: `collectInstanceEquipment` and `collectAmmo` were retired (#1358); tests arrange inventories on the `Game` before the start | The core's own tests (`tick/tests/item_tests.rs`, `phase_six.rs`) hold each kind of pickup | Closed (#1358) |
-  | Transit options and time, `phase_six.rs` (`transit`) | `transitOptions` (the client's menu) and `transitTicks` (gladiator bots' hunting) in `transit.ts` | `transit` covers each refused destination, plain interact's next station and a delayed arrival's tick against `transitTicks` | #1215 moves the bots' read; the client's menu stays a presentation copy |
+  | Pickup transfer, `tick/items.rs` (`phase_six.rs` retired in #1358) | None: `collectInstanceEquipment` and `collectAmmo` were retired (#1358); tests arrange inventories on the `Game` before the start | The core's own tests (`tick/tests/item_tests.rs`) hold each kind of pickup | Closed (#1358) |
+  | Transit options and time, `tick/interaction.rs` (`phase_six.rs` retired in #1358) | `transitOptions` (the client's menu) and `transitTicks` (gladiator bots' hunting) in `transit.ts` | `transit` covers each refused destination, plain interact's next station and a delayed arrival's tick against `transitTicks` | #1215 moves the bots' read; the client's menu stays a presentation copy |
 
 - **Cost:** [42.69](42.69-phase-three-core.md), under 42.58's state-flip exception; remeasure at #1214.
 
@@ -1088,7 +1088,7 @@ Launch and cancel are phase 3's, as before.
 - **Cost:** [42.70](42.70-hook-core.md). A call costs 2–5 µs. That is less than the TypeScript for a pulling hook and
   more for a flying hook's reconciliation; at most about 0.1% of the tick, under 42.58's state-flip exception.
 
-**Step 5d.2, the rest of phase 5 (#1242, adapter version 15).** `rust/core/src/combat.rs` runs projectile flight
+**Step 5d.2, the rest of phase 5 (#1242, adapter version 15).** `rust/core/src/combat.rs` (retired in #1358 for `tick/combat.rs` and `tick/projectile.rs`) ran projectile flight
 (`solvePhysicsProjectiles`), the end-of-tick casters (the warden skill, then the gladiator attack, in `ordered(s)`
 order) and `damage`, with the rewind reads (`asSeenBy`) the casters resolve against. The elimination (`eliminate`) is
 `actions_run`'s mode 4 in `phase_three.rs`, beside the drop planner it calls. `shared/simulation/phase-five.ts` was the
@@ -1122,7 +1122,7 @@ adapter, deleted with `combat.ts`'s `damage` entry and `lifecycle.ts`'s `elimina
   since 5e.2 (#1245).
 - **Cost:** [42.71](42.71-phase-five-core.md).
 
-**Step 5e.1, phase 6's per-actor loop (#1230, adapter version 16).** `rust/core/src/phase_six.rs` runs, in `ordered(s)`
+**Step 5e.1, phase 6's per-actor loop (#1230, adapter version 16).** `rust/core/src/phase_six.rs` (retired in #1358 for `tick/interaction.rs` and `tick/items.rs`) ran, in `ordered(s)`
 order, each active actor's `interact`, its chosen `transit`, then, while it is still active, `advanceCharging` and
 the automatic pickups. That covers extraction, the start of charging, the swap's staged pickup and drop, gates with their
 keys, a gladiator's transit and the sensors' reveal. `shared/simulation/phase-six.ts` was the adapter; it, `interact`,
@@ -1148,7 +1148,7 @@ keys, a gladiator's transit and the sensors' reveal. `shared/simulation/phase-si
   candidates, with their labels' rank, and the records within the spiral's reach.
 - **The core finds the gates.** It queries its own gate set's buckets, which are `gateIndex`'s, for the gates near an
   interacting actor, then sorts them into map order as `gatesNear` does. A gate's position and kind never change in
-  a match, so they cross once per gate set; the adapter asks the set whether it holds them (`gate_set_details`).
+  a match, so they cross once per gate set; the adapter asked the set whether it held them (`gate_set_details`, retired in #1358).
   Locks change, so each call with an interaction writes them into a mask beside the open mask (`gate_set_locked`).
   The adapter writes both masks in one pass over the gates. Node's string-keyed bucket query cost about 15 µs a tick
   in the bench, where bots interact on most ticks. `phase-six-core` holds the core's choice of gate equal to
@@ -1166,9 +1166,9 @@ keys, a gladiator's transit and the sensors' reveal. `shared/simulation/phase-si
   above.
 - **Cost:** [42.72](42.72-phase-six-core.md).
 
-**Step 5e.2, the rest of phase 6 and phase 7 (#1245, adapter version 17).** `rust/core/src/hazards.rs` runs
+**Step 5e.2, the rest of phase 6 and phase 7 (#1245, adapter version 17).** `rust/core/src/hazards.rs` (retired in #1358 for `tick/hazards.rs`) ran
 `applyEnvironment` (the hazard wall, then the hazard areas) for each active actor in `ordered(s)` order, then `stepTraps`
-(mine, turret, flame and spider) in map order, in one call. `rust/core/src/phase_seven.rs` runs `finishMatch` and keeps
+(mine, turret, flame and spider) in map order, in one call. `rust/core/src/phase_seven.rs` (retired in #1358 for `tick/mod.rs` and `tick/rewind.rs`) ran `finishMatch` and kept
 the rewind frames. `shared/simulation/hazards.ts` (deleted in #1358) and `phase-seven.ts` were their adapters. `shared/traps.ts` and the
 TypeScript `applyEnvironment`, `finishMatch`, `recordRewind` and `asSeenBy` are gone.
 - **Damage is the core's, called directly** (`combat::Run::damage`). The hazards run packs the roster as phase 5's rows,
@@ -1258,7 +1258,7 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
       - **6d.6c:** phase 6's pickups and swaps, in two PRs:
         - **6d.6c.1 (#1214):** phase 6 reads its ground from the core's store and grid. Below.
         - **6d.6c.2 (#1214):** pickups, swaps and an instant transit's landing sync inside the run. Below.
-      - **6d.6d (#1214):** a mine's explosion syncs and enqueues its impulses in `hazards.rs`, retiring `STOP_EXPLOSION`.
+      - **6d.6d (#1214):** a mine's explosion syncs and enqueues its impulses in `hazards.rs` (retired in #1358), retiring `STOP_EXPLOSION`.
         Below. With it, every stop of 6d is gone; an elimination's stops are 6e's.
 - **The direction (Corey, 2026-11-21, on #1214):** "now the way this should work eventually is that essentially the core
   should just be receiving tick timed input events or roughly that at the interface betweeen it and JS". So from 6d.2
@@ -1284,7 +1284,7 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
 - **No call writes the mask.** Before, sight, discovery, every phase's run, the hook's rules and the tick boundary's
   calls wrote the open mask from the records first, and phase 6's interactions wrote the lock mask too: one pass over
   every gate on the map per call, the last packing that grew with the map (42.62). `queryHandles` takes no flag now.
-  A gate `lineClear` ignores is held open for that query and restored, as `phase_six.rs` does.
+  A gate `lineClear` ignores is held open for that query and restored, as `phase_six.rs` did.
 - **The mirror is written only by facts.** The records' door fields are pinned read-only, so a write from anywhere
   else throws at its site. `writeDoor` is the facts' write: an existing key keeps its place and an absent `locked` is
   added last, where an assignment added it, so frames and the wire are byte for byte as before (`frame-gates.ts`).
@@ -1295,7 +1295,7 @@ other, and each is a PR in sequence. That was claudecode's proposal, which Corey
   frames and the wire read. The shapes cross once per map, as they did.
 - **Cost:** [42.74](42.74-door-state-core.md).
 
-**Step 6b, the traps (#1214, adapter version 18).** `Hazards` (`hazards.rs`) keeps the game's traps between calls,
+**Step 6b, the traps (#1214, adapter version 18).** `Hazards` (`hazards.rs`, retired in #1358) kept the game's traps between calls,
 and `s.traps` is their mirror. The rules did not change: they already reported each trap's writes with a mask.
 - **Rows cross only on an upload.** A call uploads the trap list (a header flag, then the rows as before) when this
   runtime has not uploaded it: the first call, a replaced `s.traps` or a changed length, and after `setTrap`. Otherwise
@@ -1313,7 +1313,7 @@ and `s.traps` is their mirror. The rules did not change: they already reported e
 roster order, as phase 5's rows (`combat::Row`: role, status, kit, pose, heading, health, level, cooldowns, stun, rank in
 ID order, view lag) with each one's `movedThisTick`. `shared/simulation/player-store.ts` uploads it, with `putPlayerRow`
 and `idRanks` moved there from `phase-five.ts`.
-- **Two readers.** Phase 5's combat runs (`combat.rs`) and phase 6's environment and traps (`hazards.rs`) take their rows
+- **Two readers.** Phase 5's combat runs (`combat.rs`) and phase 6's environment and traps (`hazards.rs`, both retired in #1358) took their rows
   from the store and give them back with their writes. Their inputs no longer carry player rows, and their outputs and
   the mirror's writes are unchanged.
 - **Uploaded before each of their calls.** Every other phase still writes the records directly, so the store is
@@ -1351,7 +1351,7 @@ key), and it is uploaded once a tick, by phase 1, and before a converted call be
 
 **Step 6c.3a, the scalar readers (#1214, adapter version 21).** Phase 7, the hooks and the body sync read the
 players from the store, and their adapters no longer pack them.
-- **Phase 7.** `finishMatch` reads role and status, and `recordRewind` reads the poses. `phase_seven_run` fills both from
+- **Phase 7.** `finishMatch` reads role and status, and `recordRewind` reads the poses. `phase_seven_run` (retired in #1358) filled both from
   the store, and the adapter sends the header alone.
 - **The hooks.** Each player's key, activity, hook kit, role and pose, and `ordered(s)` (the rows' rank), come from the
   store. The hooks' own records and the actors' substep paths still cross.

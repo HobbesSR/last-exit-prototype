@@ -242,13 +242,10 @@ pub struct GateSet {
     pub(crate) grid: Grid,
     pub(crate) visited: Visited,
     /// Nonzero where the gate is open. A game's doors' state since #1214 stage 6a, written by the core's rules
-    /// (phase 6's interactions, the body sync's refused close) and between ticks by `setDoor`; for a map no game
+    /// (the tick's interactions and body sync's refused close) and between ticks by `setDoor`; for a map no game
     /// owns, the adapter writes it before each call.
     pub open: Vec<u8>,
-    /// Each gate's position and whether it is a door, for phase 6's interactions (`phase_six.rs`). Gates never move
-    /// and never change kind in a match, so phase 6's adapter sends these once per gate set; empty until then.
-    pub(crate) details: Vec<[f64; 3]>,
-    /// Each gate's lock, for phase 6: 0 absent, 1 locked, 2 unlocked. A game's doors' state, as the open mask is.
+    /// Each gate's lock: 0 absent, 1 locked, 2 unlocked. A game's doors' state, as the open mask is.
     pub locked: Vec<u8>,
 }
 
@@ -269,7 +266,6 @@ impl GateSet {
             grid: Grid::from_words(grid),
             visited: Visited::new(count),
             open: vec![0; count],
-            details: Vec::new(),
             locked: vec![0; count],
         }
     }

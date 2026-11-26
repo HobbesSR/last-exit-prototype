@@ -20,8 +20,6 @@ use crate::world::World;
 
 /// Spots in the spiral.
 pub const SPOTS: u32 = 180;
-/// The farthest spot from the origin, `36 + floor(179 / 12) * 24`.
-pub const FARTHEST: f64 = 372.0;
 /// A spot's distance from listed records and earlier spots must exceed this.
 pub const SPACING: f64 = 32.0;
 /// The disk tested against the map.

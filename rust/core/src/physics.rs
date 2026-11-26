@@ -805,11 +805,6 @@ impl World {
         &self.output
     }
 
-    /// The last result, as the call that made it left it.
-    pub fn output(&self) -> &[f64] {
-        &self.output
-    }
-
     /// Every touching pair's manifold points: `slot 1, slot 2, x, y, nx, ny, distance`, the normal
     /// pointing from the first collider to the second, in world units. `world.rs` names, orders and caps them.
     pub fn debug_contacts(&mut self) -> &[f64] {

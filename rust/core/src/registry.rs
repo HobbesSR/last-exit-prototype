@@ -49,11 +49,6 @@ impl Registry {
         self.keys.len()
     }
 
-    /// Whether nothing is registered.
-    pub fn is_empty(&self) -> bool {
-        self.keys.is_empty()
-    }
-
     /// Every registration in the upload's layout, in ID order (by bits), for tests that hold it equal to Node's.
     pub fn dump(&self, out: &mut Vec<f64>) {
         for (&bits, &key) in &self.keys {

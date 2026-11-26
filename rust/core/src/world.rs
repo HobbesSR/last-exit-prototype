@@ -181,7 +181,7 @@ pub struct World {
     pub(crate) sync_config: SyncConfig,
     /// How many actor bodies the last body sync left: the runtime's `actors.size` (6d.6b).
     pub(crate) sync_actors: usize,
-    /// The projectiles in flight, in the list's order (#1214 stage 6e.3), as phase 5 reads them (`combat::BULLET_ROW`:
+    /// The projectiles in flight, in the list's order (#1214 stage 6e.3) (8 words:
     /// id, the owner's roster index (-1 a trap), x, y, dx, dy, life, damage); `s.projectiles` is their mirror.
     pub(crate) projectiles: Vec<[f64; 8]>,
     /// A turret's spawns, waiting for the next tick's phase 1 (`pendingSpawns`), in the same layout.
@@ -191,7 +191,6 @@ pub struct World {
     pub(crate) registry_live: bool,
     /// Each interned ID's key, so interning an ID twice gives one key, from Node or from the core (6e.1).
     interned: BTreeMap<Vec<u16>, Key>,
-    pub(crate) phase_seven: crate::phase_seven::PhaseSeven,
     /// By key: a solid prop's shape as its spec gave it (`shape, a, b, vertices`), for the swept
     /// queries' `solidProps` (`hooks.rs`). Loot and every other kind keep none.
     prop_shapes: Vec<Option<PropShape>>,
@@ -319,7 +318,6 @@ impl World {
             registry: std::rc::Rc::default(),
             registry_live: false,
             interned: BTreeMap::new(),
-            phase_seven: crate::phase_seven::PhaseSeven::default(),
             prop_shapes: Vec::new(),
         }
     }
@@ -485,7 +483,6 @@ impl World {
         self.hooks.insert(at, hook);
     }
 
-    /// Phase 3's hook cancel: the caster's own hook leaves.
     /// An item launched since the last admission, by body key (`itemLaunches`, 6d.3): a key launched again takes the
     /// later motion and keeps its place.
     pub(crate) fn launch(&mut self, key: Key, vx: f64, vy: f64) {
@@ -493,11 +490,6 @@ impl World {
             Some(l) => (l.1, l.2) = (vx, vy),
             None => self.launches.push((key, vx, vy)),
         }
-    }
-
-    /// The live bodies that are not static, in ID order: the world's snapshot without its statics.
-    pub(crate) fn dynamic_keys(&self) -> Vec<Key> {
-        self.dynamic.clone()
     }
 
     /// Phase 4's ground poses (#1214 stage 6e.4), from the world's last step output (call it before anything else reuses

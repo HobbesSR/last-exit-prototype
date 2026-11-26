@@ -17,7 +17,7 @@
 //! log (opcode, length, payload), and any standalone plan's fourteen-word records.
 use crate::action_combat::{self, Fact};
 use crate::action_equipment::{advance_reload, rearrange, sync_weapon};
-use crate::action_types::{ABSENT_INSTANCE, Item, Player, Rules, Weapon, present, safe, truthy};
+use crate::action_types::{Item, Player, Rules, Weapon, present, safe, truthy};
 use crate::collision::CollisionMap;
 use crate::drop_planner::{self, Allocation, Context, Plan};
 use crate::ground;
@@ -70,7 +70,7 @@ impl PhaseThree {
         let reloading = r.n() != 0.0;
         let acceleration = r.n();
         let braking = r.n();
-        let radii = r.row();
+        let _radii: [f64; 2] = r.row();
         let loot_radius = r.n();
         let hearing_ticks = r.n();
         let discovery_cell = r.n();
@@ -81,7 +81,7 @@ impl PhaseThree {
         let movement = r.row();
         let utility = r.row();
         let kit_cooldown = r.vec(4);
-        let kit_damage = r.vec(4);
+        let _kit_damage = r.vec(4);
         let n = r.count();
         let quality_damage = r.vec(n);
         let n = r.count();
@@ -112,11 +112,9 @@ impl PhaseThree {
             reloading,
             quality_damage,
             kit_cooldown,
-            kit_damage,
             acceleration,
             braking,
             surfaces,
-            radii,
             loot_radius,
             hearing_ticks,
             discovery_cell,
@@ -178,7 +176,7 @@ pub(crate) fn allocation_facts(
     }
 }
 
-/// A drop that syncs inside the run (#1214 stages 6d.6b, 6e.2): its records reach the ground store and launch from
+/// A drop's body sync inside the run (#1214 stage 6d.6b): its records reach the ground store and launch from
 /// their dropper, the hooks' and the store's facts so far reach the world (the sync reconciles the hooks, and reads an
 /// eliminated target's status), then the body sync runs where Node ran it at the stop, and its log goes to the output.
 /// Returns false when the sync refused, which ends the run as Node's throw did.
@@ -215,144 +213,6 @@ fn sync_drop(
     op(log, OP_SYNC, &out);
     *cursors = (log.len(), log.len());
     out[0] >= 0.0
-}
-
-/// What an elimination inside another run needs that its stores do not hold (#1214 stage 6e.2): the tick, the serial
-/// and the item serials as they stand, the gladiators' respawn delay, and its drops' sync words (the markers' capacity
-/// and the loot's drop speed; the markers are the world's).
-#[derive(Clone, Copy)]
-pub(crate) struct Elimination {
-    pub(crate) tick: f64,
-    pub(crate) serial: f64,
-    pub(crate) item_serial: f64,
-    pub(crate) scatter_serial: f64,
-    pub(crate) respawn: f64,
-    pub(crate) capacity: f64,
-    pub(crate) drop_speed: f64,
-}
-
-/// The elimination fact a run leaves for Node (`OP_ELIMINATED`): target, source (-1 none), then phase 3's whole output
-/// for that elimination, which Node applies as `eliminateInCore`'s.
-pub const OP_ELIMINATED: f64 = 9.0;
-
-/// `eliminate` inside another run (#1214 stage 6e.2): phase 5's or the hazards' kill, where they stopped for Node's
-/// `eliminateInCore` before. The core packs the call that adapter packed, from its own stores: the target and the
-/// source as action players (the target's inventory from the store), every player as context, the ground near the
-/// target (the grid), the target's carried identities on the ground, every carried identity, and the elimination row;
-/// the registry gives the phases and identities, and the drops sync inside the run. Returns phase 3's output, after
-/// the player store took its writes as `actions_run` gives them.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn eliminate_in_world(
-    world: &mut World,
-    map: &mut CollisionMap,
-    index: &SightIndex,
-    gates: &mut GateSet,
-    swept: &SweptMap,
-    target: usize,
-    source: Option<usize>,
-    e: &Elimination,
-) -> Vec<f64> {
-    const SCATTER_REACH: f64 = 372.0 + 32.0 + 1.0;
-    let store = &world.players;
-    let n = store.len();
-    let actors: Vec<usize> = std::iter::once(target)
-        .chain(source.filter(|&s| s != target))
-        .collect();
-    let (tx, ty) = (store.rows[target].x, store.rows[target].y);
-    // `itemsNear(s, p, 405)` for the target, or the whole list where its pose is not finite.
-    let near = world.ground.near(tx, ty, SCATTER_REACH);
-    let inventory = store.equip[target].inventory.clone().unwrap_or_default();
-    let ground_ids: Vec<f64> = inventory
-        .iter()
-        .flatten()
-        .filter(|i| {
-            !i.missing(ABSENT_INSTANCE) && truthy(i.instance) && world.ground.holds_id(i.instance)
-        })
-        .map(|i| i.instance)
-        .collect();
-    let carried: Vec<f64> = store
-        .equip
-        .iter()
-        .flat_map(|q| q.inventory.iter().flatten().flatten())
-        .filter(|i| !i.missing(ABSENT_INSTANCE) && truthy(i.instance))
-        .flat_map(|i| [i.token, i.instance])
-        .collect();
-    let rules = world.actions.rules();
-    let radii = rules.radii;
-    let mut data = vec![
-        MODE_ELIMINATE as f64,
-        0.0,
-        0.0,
-        e.tick,
-        e.serial,
-        e.item_serial,
-        e.scatter_serial,
-        world.ground.len() as f64,
-        n.saturating_sub(world.sync_actors) as f64,
-        actors.len() as f64,
-        n as f64,
-        FROM_STORE,
-        0.0,
-        near.len() as f64,
-        ground_ids.len() as f64,
-        (carried.len() / 2) as f64,
-        0.0,
-        0.0,
-        f64::NAN,
-        f64::NAN,
-        1.0,
-    ];
-    for &a in &actors {
-        // The target's inventory from the store; the source's is not read.
-        let flag = if a == target { FROM_STORE } else { -1.0 };
-        data.push(a as f64);
-        data.extend_from_slice(&[0.0; 19]);
-        data.extend_from_slice(&[flag, 0.0, 0.0, 0.0]);
-        // An empty input's intent words.
-        let nan = f64::NAN;
-        data.extend_from_slice(&[
-            nan, nan, nan, nan, nan, nan, 0.0, nan, nan, 0.0, 0.0, 0.0, nan, nan, 0.0,
-        ]);
-    }
-    for i in 0..n {
-        let (r, x) = (&store.rows[i], &store.extra[i]);
-        data.extend_from_slice(&[
-            i as f64,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            radii[usize::from(r.role != 0.0)],
-            x.key,
-            0.0,
-        ]);
-    }
-    for r in &near {
-        data.extend_from_slice(&[r.words[ground::X], r.words[ground::Y]]);
-    }
-    data.extend_from_slice(&ground_ids);
-    data.extend_from_slice(&carried);
-    let kills = source.map_or(0.0, |s| {
-        let k = store.extra[s].kills;
-        if k.is_nan() { 0.0 } else { k }
-    });
-    let relation = match source {
-        None => -1.0,
-        Some(s) if s == target => 0.0,
-        Some(_) => 1.0,
-    };
-    data.extend_from_slice(&[relation, kills, e.respawn]);
-    let markers: Vec<f64> = world.markers.iter().map(|&k| f64::from(k)).collect();
-    data.extend_from_slice(&[e.capacity, n as f64, e.drop_speed, markers.len() as f64]);
-    data.extend_from_slice(&markers);
-    let mut actions = std::mem::take(&mut world.actions);
-    actions.input = data;
-    actions.run(world, map, index, gates, Some(swept));
-    world.actions = actions;
-    world
-        .players
-        .apply_actions(MODE_ELIMINATE as f64, &world.actions.output);
-    world.actions.output.clone()
 }
 
 /// The context actors as the resumed call read them from the store after a sync: role, status and pose.
@@ -663,9 +523,6 @@ fn combat_facts(
                 life,
                 damage,
             } => op(log, 2.0, &[id, owner as f64, x, y, dx, dy, life, damage]),
-            // Only a gladiator's attack damages, and it runs in phase 5's combat run (`combat.rs`, 27
-            // step 5d.2); phase 3 and the scenario attack (mode 1) serve contestants.
-            Fact::Damage { .. } => unreachable!("a gladiator attacks in phase 5"),
             Fact::Shot { shooter, weapon } => {
                 let Some(p) = actors.iter().find(|p| p.roster == shooter) else {
                     continue;
@@ -700,13 +557,6 @@ fn combat_facts(
                     op(log, 3.0, &row);
                 }
             }
-            Fact::HookCancel { caster } => op(log, 5.0, &[caster as f64]),
-            Fact::HookLaunch {
-                caster,
-                generation,
-                dx,
-                dy,
-            } => op(log, 6.0, &[caster as f64, generation, dx, dy]),
         }
     }
 }
@@ -855,10 +705,6 @@ fn eliminate(
 }
 
 impl PhaseThree {
-    pub fn rules(&self) -> &Rules {
-        self.rules.as_ref().expect("configured phase 3")
-    }
-
     pub fn run(
         &mut self,
         world: &mut World,
@@ -1109,17 +955,8 @@ impl PhaseThree {
                 let stage = if i == h[1] as usize { h[2] as usize } else { 0 };
                 let mut facts = Vec::new();
                 if mode == 1 {
-                    // A contestant's attack reads no targets; a gladiator's is phase 5's.
-                    let targets = [];
-                    action_combat::attack(
-                        &mut p,
-                        rules,
-                        &mut serial,
-                        &mut facts,
-                        &targets,
-                        index,
-                        gates,
-                    );
+                    // A contestant's attack reads no targets; a gladiator's is in `tick/combat.rs`.
+                    action_combat::attack(&mut p, rules, &mut serial, &mut facts);
                     combat_facts(&mut log, facts, &mut actors, rules, tick);
                     players[i] = p;
                     break;
@@ -1138,16 +975,7 @@ impl PhaseThree {
                         break;
                     }
                     if !a[4].is_nan() && p.selected == a[4] {
-                        let targets = [];
-                        action_combat::attack(
-                            &mut p,
-                            rules,
-                            &mut serial,
-                            &mut facts,
-                            &targets,
-                            index,
-                            gates,
-                        );
+                        action_combat::attack(&mut p, rules, &mut serial, &mut facts);
                     }
                     combat_facts(
                         &mut log,
@@ -1349,16 +1177,7 @@ impl PhaseThree {
                     }
                 }
                 if a[11] != 0.0 && p.role == 0.0 {
-                    let targets = [];
-                    action_combat::attack(
-                        &mut p,
-                        rules,
-                        &mut serial,
-                        &mut facts,
-                        &targets,
-                        index,
-                        gates,
-                    );
+                    action_combat::attack(&mut p, rules, &mut serial, &mut facts);
                 }
                 combat_facts(&mut log, facts, &mut actors, rules, tick);
                 let motor = action_combat::motor(

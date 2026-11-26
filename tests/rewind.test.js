@@ -70,7 +70,7 @@ test('cover is tested at the rewound position too', async () => {
 
 test('the rewind history never reaches a snapshot or a recording', duel(({ s }) => {
   settle(s);
-  // The frames are the core's own since #1245 (27 step 5e.2); the bounded window is `phase_seven.rs`'s test.
+  // The frames are the core's own since #1245 (27 step 5e.2); the bounded window is `tick/rewind.rs`'s test.
   assert.equal(Object.hasOwn(s, 'rewind'), false, 'history is kept in the core, not on the record');
   const frame = snapshot(s);
   assert.equal(Object.hasOwn(frame, 'rewind'), false, 'and stays out of the recorded frame');

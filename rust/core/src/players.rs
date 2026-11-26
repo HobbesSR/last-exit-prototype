@@ -1,16 +1,60 @@
 //! The game's players as the core keeps them (#1214, docs/27 "The state flip", step 6c).
 //!
-//! One store per world, in roster order, that the converted runs read and write in place of rows of their own: phase
-//! 5's combat (`combat.rs`) and phase 6's environment and traps (`hazards.rs`), which share `combat::Row`, and phase 1
-//! (`phase_one.rs`), which also reads `Extra`. The other phases still pack their own rows from JavaScript's records,
-//! so until the last of them converts the adapter uploads the store from those records before each converted call
-//! (`shared/simulation/player-store.ts`). A converted run leaves its writes in the store, and reports them to the
-//! records, the mirror, as before.
+//! One store per world, in roster order, that runs read and write in place of rows of their own.
+//! Until the remaining standalone adapters retire, the adapter uploads the store from JavaScript's
+//! records before each call (`shared/simulation/player-store.ts`), and the store reports writes
+//! back to those records.
 use crate::action_types::Item;
-use crate::combat::{PLAYER_ROW, Row};
 use crate::math::hypot;
 use crate::physics::SUBSTEPS;
 use crate::world::STEP_HEADER;
+
+/// A player's fixed row (`Row`): role (0 contestant), status (0 active), kit, x, y, heading, hp,
+/// maxHp, shield, level, cooldown, attackCd, stun, rank in ID order, view lag (0 when unset).
+pub const PLAYER_ROW: usize = 15;
+
+/// A player's packed fields (`PLAYER_ROW` words).
+#[derive(Clone, Copy)]
+pub(crate) struct Row {
+    pub(crate) role: f64,
+    pub(crate) status: f64,
+    pub(crate) kit: f64,
+    pub(crate) x: f64,
+    pub(crate) y: f64,
+    pub(crate) heading: f64,
+    pub(crate) hp: f64,
+    pub(crate) max_hp: f64,
+    pub(crate) shield: f64,
+    pub(crate) level: f64,
+    pub(crate) cooldown: f64,
+    pub(crate) attack_cd: f64,
+    pub(crate) stun: f64,
+    pub(crate) rank: f64,
+    pub(crate) lag: f64,
+}
+
+impl Row {
+    /// One packed row (`PLAYER_ROW` words).
+    pub(crate) fn read(a: &[f64]) -> Row {
+        Row {
+            role: a[0],
+            status: a[1],
+            kit: a[2],
+            x: a[3],
+            y: a[4],
+            heading: a[5],
+            hp: a[6],
+            max_hp: a[7],
+            shield: a[8],
+            level: a[9],
+            cooldown: a[10],
+            attack_cd: a[11],
+            stun: a[12],
+            rank: a[13],
+            lag: a[14],
+        }
+    }
+}
 
 /// Words of `Extra` uploaded: respawnAt, transit arriveAt, the transit's destination station index (-1 none), railCd,
 /// cloak, revealed, boost, the actor's world key (`actor:<id>`) and its hook's (`hook:<id>`, #1214 stage 6d.4), and its
@@ -19,7 +63,7 @@ use crate::world::STEP_HEADER;
 pub const EXTRA_ROW: usize = 12;
 /// Words per heard cue (`HeardCue`: x, y, tick, until), after each player's carried items in the upload (6e.4).
 pub const CUE: usize = 4;
-/// Words per player uploaded: `combat::Row` (`PLAYER_ROW` words), `movedThisTick` (0 when unset), then `Extra`.
+/// Words per player uploaded: `Row` (`PLAYER_ROW` words), `movedThisTick` (0 when unset), then `Extra`.
 pub const STORE_ROW: usize = PLAYER_ROW + 1 + EXTRA_ROW;
 
 /// Words of a player's equipment header in the upload, after every player's fixed row: `selectedSlot` (NaN absent),
@@ -81,7 +125,7 @@ fn put_items(q: &mut Equip, next_token: &mut f64, rows: &[f64], count: usize) {
     }
 }
 
-/// The fields phase 1 reads beyond `combat::Row`.
+/// The fields phase 1 reads beyond `Row`.
 #[derive(Clone, Copy, Default)]
 pub(crate) struct Extra {
     pub(crate) respawn_at: f64,
@@ -287,20 +331,6 @@ impl Players {
         self.extra.len()
     }
 
-    /// Whether the store holds no players.
-    pub fn is_empty(&self) -> bool {
-        self.extra.is_empty()
-    }
-
-    /// The players' rows, taken for a run, which gives them back with `restore`.
-    pub(crate) fn take(&mut self, count: usize) -> Vec<Row> {
-        assert_eq!(self.rows.len(), count, "the store holds the roster");
-        std::mem::take(&mut self.rows)
-    }
-
-    pub(crate) fn restore(&mut self, rows: Vec<Row>) {
-        self.rows = rows;
-    }
     /// Phase 4's write-back (`tick.ts`): each active player whose body the step moved takes its path's end as its pose,
     /// and the path's length as `movedThisTick`, summed substep by substep as `world.ts`'s `step` sums it. `step` is the
     /// world's step output (`World::step`).
@@ -328,86 +358,6 @@ impl Players {
             r.x = x;
             r.y = y;
             self.moved[i] = travelled;
-        }
-    }
-
-    /// Phase 6's per-actor loop's writes to the store's fields, from its log facts (op, length, payload; `phase_six.rs`)
-    /// in the order `shared/simulation/phase-six.ts` applies them: an extraction's status, a delayed transit's status,
-    /// arrival and destination, an instant transit's landing and rail cooldown, the equipment, and a sensor's reveal.
-    /// The run applies each part as it syncs inside itself, and the rest at its end (#1214 stage 6d.6c.2).
-    pub(crate) fn apply_interaction_log(&mut self, log: &[f64]) {
-        let (mut at, end) = (0, log.len());
-        let out = log;
-        while at < end {
-            let (op, len) = (out[at], out[at + 1] as usize);
-            let p = &out[at + 2..at + 2 + len];
-            let i = p.first().map_or(usize::MAX, |&i| i as usize);
-            if let (Some(r), Some(e), Some(q)) = (
-                self.rows.get_mut(i),
-                self.extra.get_mut(i),
-                self.equip.get_mut(i),
-            ) {
-                match op as u32 {
-                    2 => {
-                        if let Some(slot) =
-                            q.inventory.as_mut().and_then(|v| v.get_mut(p[1] as usize))
-                        {
-                            *slot = None;
-                        }
-                        q.weapon = p[2];
-                        q.charging = -1.0;
-                        r.status = 3.0;
-                    }
-                    5 => q.charging = if p[1] < 0.0 { -1.0 } else { p[1] },
-                    6 => {
-                        q.charging = -1.0;
-                        r.status = 5.0;
-                        e.destination = p[1];
-                        e.arrive_at = p[2];
-                    }
-                    8 => {
-                        if p[2] != 0.0 && p[3] != 0.0 {
-                            q.keys -= 1.0;
-                        }
-                    }
-                    10 => {
-                        if let Some(Some(item)) =
-                            q.inventory.as_mut().and_then(|v| v.get_mut(p[1] as usize))
-                        {
-                            item.charge = p[2];
-                        }
-                    }
-                    11 => q.keys = p[1],
-                    12 => {
-                        q.selected = p[1];
-                        q.weapon = p[2];
-                        if p[3] != 0.0 && q.reserves.is_some() {
-                            q.reserves = Some([p[4], p[5], p[6]]);
-                        }
-                        put_items(q, &mut self.next_token, &p[8..], p[7] as usize);
-                    }
-                    15 => {
-                        // A committed swap replaces the inventory whole.
-                        let count = p[8] as usize;
-                        q.inventory = Some(vec![None; count]);
-                        put_items(q, &mut self.next_token, &p[9..], count);
-                        q.selected = p[2];
-                        if p[4] != 0.0 && q.reserves.is_some() {
-                            q.reserves = Some([p[5], p[6], p[7]]);
-                        }
-                        q.charging = -1.0;
-                        q.weapon = p[3];
-                    }
-                    7 => {
-                        r.x = p[1];
-                        r.y = p[2];
-                        e.rail_cd = p[3];
-                    }
-                    16 => e.revealed = p[1],
-                    _ => {}
-                }
-            }
-            at += 2 + len;
         }
     }
 
@@ -610,9 +560,5 @@ mod tests {
         let dumped = players.dump().to_vec();
         assert_eq!(dumped.len(), words);
         assert_eq!(dumped[items + 2], 7.0);
-        let rows = players.take(2);
-        assert!(players.rows.is_empty());
-        players.restore(rows);
-        assert_eq!(players.rows.len(), 2);
     }
 }

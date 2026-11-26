@@ -23,7 +23,6 @@ use crate::world::{CONSTRAINT_ROW, HookRecord, Key, PropShape, World};
 
 pub const MODE_PREPARE: f64 = 0.0;
 pub const MODE_FINISH: f64 = 1.0;
-pub const MODE_RECONCILE: f64 = 2.0;
 
 /// The input header: the mode, the tick, the roster's size, the hooks' count, whether paths follow,
 /// then the hook tuning (`content.hook`) and `HZ`.
@@ -48,9 +47,6 @@ pub const OP_REMOVED: f64 = 20.0;
 /// `key, a, b, max distance`: a rope queued for the hook whose key it is, with the tuning's
 /// stiffness, damping, max force and break distance.
 pub const OP_ROPE: f64 = 21.0;
-/// Per packed hook after the log: `removed, x, y, travelled, phase, target, generation b, hit tick,
-/// desired length`.
-pub const STATE_STRIDE: usize = 9;
 
 pub const PHASE_FLYING: f64 = 0.0;
 pub const PHASE_PENDING: f64 = 1.0;

@@ -2,9 +2,10 @@
 
 use std::collections::BTreeMap;
 
-use crate::phase_seven::MAX_REWIND_TICKS;
-
 use super::{ActorId, BodyId, GateId, ItemId, Point, Solved, Tick, View};
+
+/// Half a second at 20 Hz: the bounded rewind window (`shared/simulation/rewind.ts`).
+pub const MAX_REWIND_TICKS: usize = 10;
 
 /// A post-apply record of the data used for eligibility at one tick (27.2 R3, R12).
 ///

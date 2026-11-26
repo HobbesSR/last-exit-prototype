@@ -4,31 +4,27 @@
 //! The WASM module uses plain exports, not wasm-bindgen: the adapter passes flat typed buffers in
 //! WASM memory (docs/27, rule 1), so there is no generated JavaScript glue to keep in step.
 
-pub mod action_combat;
-pub mod action_equipment;
-pub mod action_types;
-pub mod boundary;
+mod action_combat;
+mod action_equipment;
+mod action_types;
+mod boundary;
 pub mod collision;
-pub mod combat;
 pub mod discovery;
-pub mod drop_planner;
-pub mod floor_drag;
-pub mod ground;
-pub mod hazards;
-pub mod hooks;
-pub mod item_allocation;
-pub mod math;
-pub mod navigation;
-pub mod phase_seven;
-pub mod phase_six;
-pub mod phase_three;
-pub mod physics;
-pub mod placement;
-pub mod players;
-pub mod registry;
-pub mod runtime_map;
+mod drop_planner;
+mod floor_drag;
+mod ground;
+mod hooks;
+mod item_allocation;
+mod math;
+mod navigation;
+mod phase_three;
+mod physics;
+mod placement;
+mod players;
+mod registry;
+mod runtime_map;
 pub mod runtime_navigation;
-pub mod scatter;
+mod scatter;
 pub mod sight;
 pub mod swept;
 pub mod tick;
@@ -847,14 +843,6 @@ fn actions_call(
     w.players.apply_actions(mode, &w.actions.output);
 }
 
-/// How many gates' positions and kinds phase 6's adapter has sent to this gate set (`GateSet::details`).
-/// # Safety
-/// `gates` is a live gate set.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn gate_set_details(gates: *const sight::GateSet) -> usize {
-    // SAFETY: the caller's contract.
-    unsafe { (*gates).details.len() }
-}
 /// The lock mask, one byte per gate (`GateSet::locked`), written as the open mask is.
 /// # Safety
 /// `gates` is live.
@@ -994,7 +982,7 @@ pub unsafe extern "C" fn physics_queues_dump(world: *mut world::World) -> *const
     w.boundary_output = out;
     w.boundary_output.as_ptr()
 }
-/// Replace the projectiles and the pending spawns with `count` and `pending` rows (`combat::BULLET_ROW` words each) from
+/// Replace the projectiles and the pending spawns with `count` and `pending` rows (8 words each) from
 /// the boundary input (#1214 stage 6e.3), when Node changed its list without the facts.
 /// # Safety
 /// `world` is live and its boundary input holds the rows.
@@ -1174,56 +1162,6 @@ pub unsafe extern "C" fn players_input(world: *mut world::World, words: usize) -
 pub unsafe extern "C" fn players_load(world: *mut world::World, count: usize) {
     // SAFETY: the caller's contract.
     unsafe { (*world).players.load(count) }
-}
-/// Phase 7's input (27, step 5e.2; `phase_seven::PhaseSeven`).
-/// # Safety
-/// `world` is a live world handle; the returned view expires on the next growing core call.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn phase_seven_input(world: *mut world::World, len: usize) -> *mut f64 {
-    // SAFETY: the caller owns the live world.
-    let p = unsafe { &mut (*world).phase_seven };
-    p.input.resize(len, 0.0);
-    p.input.as_mut_ptr()
-}
-/// Run phase 7's `finishMatch` or `recordRewind` (`phase_seven::PhaseSeven::run`).
-/// # Safety
-/// `world` is live and the input is complete.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn phase_seven_run(world: *mut world::World) -> *const f64 {
-    // SAFETY: the caller's contract.
-    unsafe {
-        let w = &mut *world;
-        phase_seven_call(w);
-        w.phase_seven.output.as_ptr()
-    }
-}
-
-/// Phase 7's `finishMatch` or `recordRewind` over `w.phase_seven.input` (`phase_seven_run`, and `tick_finish`'s).
-fn phase_seven_call(w: &mut world::World) {
-    {
-        // The rows come from the player store (#1214 stage 6c.3a): role and status to finish, the pose to rewind.
-        let p7 = &mut w.phase_seven.input;
-        let (mode, players) = (p7[0] as usize, p7[3] as usize);
-        assert_eq!(w.players.len(), players, "the store holds the roster");
-        p7.truncate(phase_seven::HEADER);
-        for r in &w.players.rows {
-            p7.extend_from_slice(&if mode == phase_seven::MODE_FINISH {
-                [r.role, r.status]
-            } else {
-                [r.x, r.y]
-            });
-        }
-        w.phase_seven.run();
-        // A finished match strands its active contestants, in the player store too (#1214 stage 6c.2).
-        let (input, out) = (&w.phase_seven.input, &w.phase_seven.output);
-        if input.first() == Some(&(phase_seven::MODE_FINISH as f64)) && out[1] == 1.0 {
-            for &i in &out[4..4 + out[3] as usize] {
-                if let Some(r) = w.players.rows.get_mut(i as usize) {
-                    r.status = 4.0;
-                }
-            }
-        }
-    }
 }
 
 // The new tick's live adapter (27.2 "Live adapter (3d.1)"). A match is built once from a setup
