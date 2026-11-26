@@ -857,9 +857,23 @@ mod tests {
         tick: Tick,
         f: impl FnOnce(&Context<'_>, &[ActorId]) -> R,
     ) -> R {
+        standing_in(size, memory, places, props, tick, |_| {}, f)
+    }
+
+    /// The same, with `arrange` given the scenario before it starts: its gates and their sight set, say.
+    pub(super) fn standing_in<R>(
+        size: Point,
+        memory: BTreeMap<ActorId, Memory>,
+        places: &[Point],
+        props: Vec<crate::swept::Shape>,
+        tick: Tick,
+        arrange: impl FnOnce(&mut Scenario),
+        f: impl FnOnce(&Context<'_>, &[ActorId]) -> R,
+    ) -> R {
         use crate::physics::{BodyParams, KIND_ACTOR, SHAPE_CIRCLE};
         let ids: Vec<ActorId> = (0..places.len() as u32).map(contestant).collect();
         let mut scenario = Scenario::default();
+        arrange(&mut scenario);
         if size[0] > 0.0 {
             scenario.bounds([0.0, 0.0], size);
         }
@@ -928,7 +942,7 @@ mod tests {
     }
 
     /// A 1200-square map of 200-unit cells, all playable, with one rectangular wall.
-    fn walled(x: f64, y: f64, w: f64, h: f64) -> CollisionMap {
+    pub(super) fn walled(x: f64, y: f64, w: f64, h: f64) -> CollisionMap {
         let colliders = [0.0, 0.0, x, y, w, h, x, y, w, h];
         let cells: Vec<_> = (0..6)
             .flat_map(|c| (0..6).map(move |r| ((c, r), Vec::new())))

@@ -104,4 +104,3 @@ export function abandonLeg(p: Player): void {
   const corridor = corridors.get(p);
   if (corridor) corridor.direct = true;
 }
-

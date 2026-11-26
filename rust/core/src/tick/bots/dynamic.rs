@@ -271,11 +271,180 @@ impl Detour {
 
 #[cfg(test)]
 mod tests {
-    use super::super::tests::{contestant, standing, standing_on};
+    use super::super::tests::{contestant, standing, standing_in, standing_on, walled};
     use super::*;
     use crate::navigation::Grid;
-    use crate::tick::Memory;
+    use crate::sight::{GateSet, SightIndex, tests::grid_of};
+    use crate::tick::{DoorMemory, Gate, GateId, Memory};
     use std::collections::{BTreeMap, BTreeSet};
+    use std::sync::Arc;
+
+    // A contestant at `BOT` walks east to `GOAL` past another standing a little south of its line, so its cheaper
+    // local detour is the north one, through `NORTH`'s box: a door in one case, a wall in the other.
+    const SIZE: Point = [1200.0, 1200.0];
+    const BOT: Point = [150.0, 400.0];
+    const BLOCKER: Point = [300.0, 410.0];
+    const GOAL: Point = [480.0, 400.0];
+    const NORTH: [f64; 4] = [260.0, 330.0, 80.0, 42.0];
+
+    fn remembering(
+        surveyed: impl IntoIterator<Item = u32>,
+        door: Option<bool>,
+    ) -> BTreeMap<ActorId, Memory> {
+        let gates = door
+            .map(|open| {
+                (
+                    GateId(0),
+                    DoorMemory {
+                        open,
+                        locked: false,
+                    },
+                )
+            })
+            .into_iter()
+            .collect();
+        BTreeMap::from([(
+            contestant(0),
+            Memory {
+                surveyed: surveyed.into_iter().collect(),
+                gates,
+                ..Memory::default()
+            },
+        )])
+    }
+
+    fn every_cell() -> impl Iterator<Item = u32> {
+        let grid = Grid::discovery(SIZE[0], SIZE[1]);
+        0..(grid.cols * grid.rows) as u32
+    }
+
+    /// The next local waypoint, with `NORTH` a door that is `live` in the world, when one is given.
+    fn next_waypoint(
+        memory: BTreeMap<ActorId, Memory>,
+        door: Option<bool>,
+        collision: Option<&CollisionMap>,
+    ) -> Point {
+        let arrange = |scenario: &mut crate::tick::Scenario| {
+            let Some(live) = door else {
+                return;
+            };
+            let [x, y, w, h] = NORTH;
+            let mut gates = GateSet::new(
+                &[
+                    x,
+                    y,
+                    x + w,
+                    y,
+                    x + w,
+                    y,
+                    x + w,
+                    y + h,
+                    x + w,
+                    y + h,
+                    x,
+                    y + h,
+                    x,
+                    y + h,
+                    x,
+                    y,
+                ],
+                &[0, 4],
+                &[x, y, w, h],
+                &grid_of(&[((1, 1), vec![0])]),
+            );
+            gates.open[0] = u8::from(live);
+            let empty = [0, 0, 0, 0, 0];
+            scenario.sight(
+                Arc::new(SightIndex::new(&[], &empty, &[], &[0], &empty)),
+                Arc::new(gates),
+            );
+            scenario.state.gates.insert(
+                GateId(0),
+                Gate {
+                    building: None,
+                    open: live,
+                    locked: false,
+                    door: true,
+                    position: [x + w / 2.0, y + h / 2.0],
+                },
+            );
+        };
+        standing_in(
+            SIZE,
+            memory,
+            &[BOT, BLOCKER],
+            Vec::new(),
+            0,
+            arrange,
+            |ctx, ids| {
+                Detour::default().waypoint(
+                    ctx,
+                    collision,
+                    ids[0],
+                    0,
+                    Waypoint {
+                        pos: BOT,
+                        destination: GOAL,
+                        route_generation: 0,
+                    },
+                    &mut 0,
+                )
+            },
+        )
+    }
+
+    #[test]
+    fn a_local_detour_follows_the_remembered_door_not_the_live_one() {
+        // Remembered open, it takes the north side however the door stands now; remembered shut, the south side.
+        for remembered in [true, false] {
+            let plans: Vec<Point> = [true, false]
+                .map(|live| {
+                    next_waypoint(
+                        remembering(every_cell(), Some(remembered)),
+                        Some(live),
+                        None,
+                    )
+                })
+                .to_vec();
+            assert_eq!(
+                plans[0], plans[1],
+                "remembered {remembered}: the live door changes nothing"
+            );
+            assert_eq!(
+                plans[0][1] < BOT[1],
+                remembered,
+                "remembered {remembered}: {:?}",
+                plans[0]
+            );
+        }
+    }
+
+    #[test]
+    fn hidden_geometry_does_not_alter_a_local_detour() {
+        // The wall stands in the north detour's cells, which the bot has not surveyed.
+        let [x, y, w, h] = NORTH;
+        let wall = walled(x, y, w, h);
+        let grid = Grid::discovery(SIZE[0], SIZE[1]);
+        let hidden = |cell: &u32| {
+            let (col, row) = (
+                (*cell as usize % grid.cols) as f64,
+                (*cell as usize / grid.cols) as f64,
+            );
+            !(col * grid.size < x + w
+                && (col + 1.0) * grid.size > x
+                && row * grid.size < y + h
+                && (row + 1.0) * grid.size > y)
+        };
+        let surveyed = || remembering(every_cell().filter(hidden), None);
+        assert_eq!(
+            next_waypoint(surveyed(), None, Some(&wall)),
+            next_waypoint(surveyed(), None, None),
+            "an unsurveyed wall changes nothing it plans"
+        );
+        // Known, the same wall does turn it south; with nothing there it goes north.
+        assert!(next_waypoint(remembering(every_cell(), None), None, Some(&wall))[1] > BOT[1]);
+        assert!(next_waypoint(remembering(every_cell(), None), None, None)[1] < BOT[1]);
+    }
 
     #[test]
     fn a_crowd_among_authored_props_keeps_local_planning_within_its_edge_caps() {
