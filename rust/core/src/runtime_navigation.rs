@@ -174,12 +174,10 @@ pub unsafe extern "C" fn runtime_navigation_free(navigation: *mut Rc<RuntimeNavi
 impl RuntimeNavigation {
     /// Builds a minimal `RuntimeNavigation` whose portal graph holds `regions` (`[x, y, w, h]`).
     pub(crate) fn for_regions(width: f64, height: f64, regions: &[[f64; 4]]) -> Rc<Self> {
-        let u32s = |values: &[u32]| -> Vec<u8> {
-            values.iter().flat_map(|v| v.to_le_bytes()).collect()
-        };
-        let f64s = |values: &[f64]| -> Vec<u8> {
-            values.iter().flat_map(|v| v.to_le_bytes()).collect()
-        };
+        let u32s =
+            |values: &[u32]| -> Vec<u8> { values.iter().flat_map(|v| v.to_le_bytes()).collect() };
+        let f64s =
+            |values: &[f64]| -> Vec<u8> { values.iter().flat_map(|v| v.to_le_bytes()).collect() };
         let grid_size = width.max(height);
         let nr = regions.len() as u32;
         let mut geom = Vec::with_capacity(1 + regions.len() * 4);

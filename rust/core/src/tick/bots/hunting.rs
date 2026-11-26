@@ -495,32 +495,33 @@ mod tests {
     #[test]
     fn transit_is_planned_only_when_faster_and_cooldown_spent() {
         let g = gladiator_id(0);
-        let plan = |stations: &[(u32, Point)], pos: Point, goal: Point, hazard_x: f64, rail_cd: Tick| {
-            run_with(
-                Hunting::Front,
-                100,
-                hazard_x,
-                3,
-                None,
-                |s, _, rules| {
-                    rules.interactions.transit_base = 10.0;
-                    rules.interactions.transit_per_unit = 0.008;
-                    let mut actor = actor_record();
-                    actor.deadlines.transit_ready_at = 100 + rail_cd;
-                    place_actor(s, g, pos, actor);
-                    for &(id, position) in stations {
-                        s.state.stations.insert(
-                            StationId(id),
-                            Station {
-                                kind: StationKind::Transit,
-                                position,
-                            },
-                        );
-                    }
-                },
-                |ctx| transit(ctx, &ctx.view.state.actors[&g], pos, goal),
-            )
-        };
+        let plan =
+            |stations: &[(u32, Point)], pos: Point, goal: Point, hazard_x: f64, rail_cd: Tick| {
+                run_with(
+                    Hunting::Front,
+                    100,
+                    hazard_x,
+                    3,
+                    None,
+                    |s, _, rules| {
+                        rules.interactions.transit_base = 10.0;
+                        rules.interactions.transit_per_unit = 0.008;
+                        let mut actor = actor_record();
+                        actor.deadlines.transit_ready_at = 100 + rail_cd;
+                        place_actor(s, g, pos, actor);
+                        for &(id, position) in stations {
+                            s.state.stations.insert(
+                                StationId(id),
+                                Station {
+                                    kind: StationKind::Transit,
+                                    position,
+                                },
+                            );
+                        }
+                    },
+                    |ctx| transit(ctx, &ctx.view.state.actors[&g], pos, goal),
+                )
+            };
         let all = [(0, [600.0, 0.0]), (1, [8000.0, 0.0]), (2, [4000.0, 3000.0])];
         assert_eq!(
             plan(&all, [500.0, 0.0], [8200.0, 0.0], -80.0, 0),
@@ -570,8 +571,16 @@ mod tests {
             |ctx| {
                 front.update(ctx);
                 assert!(!front.further_right);
-                let target = target(ctx, &mut front, g1, [10500.0, 576.0], &mut sweep1, &BTreeMap::new(), |p| p)
-                    .expect("picked a sweep target");
+                let target = target(
+                    ctx,
+                    &mut front,
+                    g1,
+                    [10500.0, 576.0],
+                    &mut sweep1,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .expect("picked a sweep target");
                 assert!(distance([10500.0, 576.0], target) >= 2400.0);
                 assert!(target[0] >= front_x(ctx) && target[0] <= 10500.0);
                 target
@@ -603,8 +612,16 @@ mod tests {
             |ctx| {
                 front.update(ctx);
                 assert!(front.further_right);
-                target(ctx, &mut front, g2, [6000.0, 576.0], &mut sweep2, &BTreeMap::new(), |p| p)
-                    .expect("goalkeeping target")
+                target(
+                    ctx,
+                    &mut front,
+                    g2,
+                    [6000.0, 576.0],
+                    &mut sweep2,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .expect("goalkeeping target")
             },
         );
         assert!(keep[0] > 11200.0 - GOALKEEP_RADIUS);
@@ -632,62 +649,93 @@ mod tests {
             )
         }
 
-        assert!(check(100, 2, |s, _| {
-            place_actor(s, g, [500.0, 576.0], actor_record());
-        }), "claimed escape pod latches evidence");
+        assert!(
+            check(100, 2, |s, _| {
+                place_actor(s, g, [500.0, 576.0], actor_record());
+            }),
+            "claimed escape pod latches evidence"
+        );
 
-        assert!(check(20000, 3, |s, _| {
-            place_actor(s, g, [500.0, 576.0], actor_record());
-        }), "front reaching exit latches evidence");
+        assert!(
+            check(20000, 3, |s, _| {
+                place_actor(s, g, [500.0, 576.0], actor_record());
+            }),
+            "front reaching exit latches evidence"
+        );
 
-        assert!(check(100, 3, |s, _| {
-            place_actor(s, gladiator_id(0), [threshold + 50.0, 576.0], actor_record());
-            place_actor(s, contestant_id(0), [threshold + 100.0, 576.0], actor_record());
-        }), "sighted contestant beyond threshold latches evidence");
+        assert!(
+            check(100, 3, |s, _| {
+                place_actor(
+                    s,
+                    gladiator_id(0),
+                    [threshold + 50.0, 576.0],
+                    actor_record(),
+                );
+                place_actor(
+                    s,
+                    contestant_id(0),
+                    [threshold + 100.0, 576.0],
+                    actor_record(),
+                );
+            }),
+            "sighted contestant beyond threshold latches evidence"
+        );
 
-        assert!(!check(100, 3, |s, _| {
-            place_actor(s, gladiator_id(0), [500.0, 576.0], actor_record());
-            place_actor(s, contestant_id(0), [600.0, 576.0], actor_record());
-        }), "sighted contestant behind threshold does not latch");
+        assert!(
+            !check(100, 3, |s, _| {
+                place_actor(s, gladiator_id(0), [500.0, 576.0], actor_record());
+                place_actor(s, contestant_id(0), [600.0, 576.0], actor_record());
+            }),
+            "sighted contestant behind threshold does not latch"
+        );
 
-        assert!(check(100, 3, |s, _| {
-            place_actor(s, gladiator_id(0), [500.0, 576.0], actor_record());
-            let mut actor = actor_record();
-            actor.statuses.insert(
-                Status::Reveal,
-                Window {
-                    active_from: 0,
-                    expires_at: 150,
-                },
-            );
-            place_actor(s, contestant_id(0), [threshold + 200.0, 576.0], actor);
-        }), "revealed contestant beyond threshold latches evidence");
+        assert!(
+            check(100, 3, |s, _| {
+                place_actor(s, gladiator_id(0), [500.0, 576.0], actor_record());
+                let mut actor = actor_record();
+                actor.statuses.insert(
+                    Status::Reveal,
+                    Window {
+                        active_from: 0,
+                        expires_at: 150,
+                    },
+                );
+                place_actor(s, contestant_id(0), [threshold + 200.0, 576.0], actor);
+            }),
+            "revealed contestant beyond threshold latches evidence"
+        );
 
-        assert!(check(100, 3, |s, cues| {
-            place_actor(s, g, [500.0, 576.0], actor_record());
-            cues.publish(&[Event {
-                id: 0,
-                tick: 100,
-                fact: Fact::Heard {
-                    listener: g,
-                    at: [threshold + 300.0, 576.0].into(),
-                    until: 200,
-                },
-            }]);
-        }), "heard shot beyond threshold latches evidence");
+        assert!(
+            check(100, 3, |s, cues| {
+                place_actor(s, g, [500.0, 576.0], actor_record());
+                cues.publish(&[Event {
+                    id: 0,
+                    tick: 100,
+                    fact: Fact::Heard {
+                        listener: g,
+                        at: [threshold + 300.0, 576.0].into(),
+                        until: 200,
+                    },
+                }]);
+            }),
+            "heard shot beyond threshold latches evidence"
+        );
 
-        assert!(!check(100, 3, |s, cues| {
-            place_actor(s, g, [500.0, 576.0], actor_record());
-            cues.publish(&[Event {
-                id: 0,
-                tick: 100,
-                fact: Fact::Heard {
-                    listener: g,
-                    at: [600.0, 576.0].into(),
-                    until: 200,
-                },
-            }]);
-        }), "heard shot behind threshold does not latch");
+        assert!(
+            !check(100, 3, |s, cues| {
+                place_actor(s, g, [500.0, 576.0], actor_record());
+                cues.publish(&[Event {
+                    id: 0,
+                    tick: 100,
+                    fact: Fact::Heard {
+                        listener: g,
+                        at: [600.0, 576.0].into(),
+                        until: 200,
+                    },
+                }]);
+            }),
+            "heard shot behind threshold does not latch"
+        );
         let _ = c;
     }
 
@@ -735,11 +783,27 @@ mod tests {
             |ctx| {
                 front.update(ctx);
                 assert!(!front.further_right);
-                let picked = target(ctx, &mut front, g, [10500.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .expect("picked investigation target");
+                let picked = target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [10500.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .expect("picked investigation target");
                 assert_eq!(picked[0], 3840.0);
-                let after = target(ctx, &mut front, g, [3840.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .expect("resumed sweeping after checking charger");
+                let after = target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [3840.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .expect("resumed sweeping after checking charger");
                 assert_ne!(after[0], 3840.0);
             },
         );
@@ -763,8 +827,16 @@ mod tests {
                 let mut front = Front::default();
                 let mut sweep = Sweep::default();
                 front.update(ctx);
-                target(ctx, &mut front, seeker, [10500.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .unwrap()[0]
+                target(
+                    ctx,
+                    &mut front,
+                    seeker,
+                    [10500.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .unwrap()[0]
             },
         );
         let pick_with_peer = |targeted: bool| {
@@ -786,8 +858,16 @@ mod tests {
                     peer_bot.sweeping.targeted = targeted;
                     peers.insert(peer, peer_bot);
                     front.update(ctx);
-                    target(ctx, &mut front, seeker, [10500.0, 576.0], &mut sweep, &peers, |p| p)
-                        .unwrap()[0]
+                    target(
+                        ctx,
+                        &mut front,
+                        seeker,
+                        [10500.0, 576.0],
+                        &mut sweep,
+                        &peers,
+                        |p| p,
+                    )
+                    .unwrap()[0]
                 },
             )
         };
@@ -812,8 +892,16 @@ mod tests {
             |s, _, _| place_actor(s, g, [5000.0, 576.0], actor_record()),
             |ctx| {
                 front.update(ctx);
-                target(ctx, &mut front, g, [5000.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .unwrap()
+                target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [5000.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .unwrap()
             },
         );
         let hazard = target1[0] - 500.0;
@@ -826,8 +914,16 @@ mod tests {
             |s, _, _| place_actor(s, g, [5000.0, 576.0], actor_record()),
             |ctx| {
                 front.update(ctx);
-                target(ctx, &mut front, g, [5000.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .unwrap()
+                target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [5000.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .unwrap()
             },
         );
         assert_ne!(target2[0], target1[0]);
@@ -849,8 +945,16 @@ mod tests {
             |s, _, _| place_actor(s, g, [5000.0, 576.0], actor_record()),
             |ctx| {
                 front.update(ctx);
-                target(ctx, &mut front, g, [5000.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .unwrap()
+                target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [5000.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .unwrap()
             },
         );
         assert!((target1[0] - 11200.0).abs() > GOALKEEP_RADIUS);
@@ -864,8 +968,16 @@ mod tests {
             |s, _, _| place_actor(s, g, [5000.0, 576.0], actor_record()),
             |ctx| {
                 front2.update(ctx);
-                target(ctx, &mut front2, g, [5000.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .unwrap()
+                target(
+                    ctx,
+                    &mut front2,
+                    g,
+                    [5000.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .unwrap()
             },
         );
         assert_ne!(target2[0], target1[0]);
@@ -917,14 +1029,22 @@ mod tests {
                 |s, _, _| place_actor(s, g, pos, actor_record()),
                 |ctx| {
                     front.update(ctx);
-                    target(ctx, &mut front, g, pos, &mut sweep, &BTreeMap::new(), |at| {
-                        let d = distance(at, [11200.0, 576.0]);
-                        if d <= GOALKEEP_RADIUS && d + push > GOALKEEP_RADIUS {
-                            saw_pushed_boundary = true;
-                        }
-                        let sign = if at[0] >= 11200.0 { 1.0 } else { -1.0 };
-                        [at[0] + sign * push, at[1]]
-                    })
+                    target(
+                        ctx,
+                        &mut front,
+                        g,
+                        pos,
+                        &mut sweep,
+                        &BTreeMap::new(),
+                        |at| {
+                            let d = distance(at, [11200.0, 576.0]);
+                            if d <= GOALKEEP_RADIUS && d + push > GOALKEEP_RADIUS {
+                                saw_pushed_boundary = true;
+                            }
+                            let sign = if at[0] >= 11200.0 { 1.0 } else { -1.0 };
+                            [at[0] + sign * push, at[1]]
+                        },
+                    )
                     .expect("goalkeeper target")
                 },
             );
@@ -971,18 +1091,34 @@ mod tests {
             |ctx| {
                 front.update(ctx);
                 let mut stands = 0;
-                let first = target(ctx, &mut front, g, [10500.0, 576.0], &mut sweep, &BTreeMap::new(), |p| {
-                    stands += 1;
-                    p
-                })
+                let first = target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [10500.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| {
+                        stands += 1;
+                        p
+                    },
+                )
                 .unwrap();
                 assert_eq!(stands, 1);
                 assert!(sweep.region.is_none());
                 sweep.give_up(100);
-                let next = target(ctx, &mut front, g, [10500.0, 576.0], &mut sweep, &BTreeMap::new(), |p| {
-                    stands += 1;
-                    p
-                })
+                let next = target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [10500.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| {
+                        stands += 1;
+                        p
+                    },
+                )
                 .unwrap();
                 assert_eq!(stands, 2);
                 assert_eq!(next, first);
@@ -1004,8 +1140,16 @@ mod tests {
             Some(Rc::clone(&nav)),
             |s, _, _| place_actor(s, g, [4500.0, 576.0], actor_record()),
             |ctx| {
-                target(ctx, &mut front, g, [4500.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .unwrap()
+                target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [4500.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .unwrap()
             },
         );
         let target2 = run_with(
@@ -1016,8 +1160,16 @@ mod tests {
             Some(nav),
             |s, _, _| place_actor(s, g, [4500.0, 576.0], actor_record()),
             |ctx| {
-                target(ctx, &mut front, g, [4500.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .unwrap()
+                target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [4500.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .unwrap()
             },
         );
         assert_eq!(target2, target1);
@@ -1061,8 +1213,16 @@ mod tests {
             |ctx| {
                 front.update(ctx);
                 assert!(front.further_right);
-                target(ctx, &mut front, g, [10500.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .unwrap()
+                target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [10500.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .unwrap()
             },
         );
         assert_eq!(target1[0], 3840.0);
@@ -1075,8 +1235,16 @@ mod tests {
             |s, _, rules| arrange(s, rules),
             |ctx| {
                 front.update(ctx);
-                target(ctx, &mut front, g, [10500.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .unwrap()
+                target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [10500.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .unwrap()
             },
         );
         assert_eq!(target2, target1);
@@ -1097,8 +1265,16 @@ mod tests {
             |s, _, _| place_actor(s, g, [5000.0, 576.0], actor_record()),
             |ctx| {
                 front.update(ctx);
-                target(ctx, &mut front, g, [5000.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .unwrap()
+                target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [5000.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .unwrap()
             },
         );
         let target2 = run_with(
@@ -1110,8 +1286,16 @@ mod tests {
             |s, _, _| place_actor(s, g, [5000.0, 576.0], actor_record()),
             |ctx| {
                 front.update(ctx);
-                target(ctx, &mut front, g, [5000.0, 576.0], &mut sweep, &BTreeMap::new(), |p| p)
-                    .unwrap()
+                target(
+                    ctx,
+                    &mut front,
+                    g,
+                    [5000.0, 576.0],
+                    &mut sweep,
+                    &BTreeMap::new(),
+                    |p| p,
+                )
+                .unwrap()
             },
         );
         assert_ne!(target2[0], target1[0]);
