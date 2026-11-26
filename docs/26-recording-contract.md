@@ -65,7 +65,7 @@ playable.
 supplied to the live planner. A graph is `{ encoding: 'flat-graph-1', sections }`, with five
 Base64 strings holding the little-endian sections in flat package order: float64 geometry,
 uint32 dimensions and rows, int32 cell owners, uint32 ordered adjacency, and float64 stands.
-See the [flat writer](../shared/navigation/runtime-map-write.js) for the section layout.
+See the [flat writer](../shared/navigation/runtime-map-write.ts) for the section layout.
 Both versions of the runtime package use the same graph sections. The graph is detached from WASM
 memory and keeps the exact coordinate bits, indices and ordering. Free-space layers are outside
 the archived graph.
