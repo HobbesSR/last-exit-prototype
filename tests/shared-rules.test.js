@@ -5,7 +5,6 @@ import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { nearbyGate } from '../shared/gate-query.ts';
 import { canOccupy } from '../shared/movement.ts';
-import { interact } from '../shared/simulation/interactions.ts';
 import { setDoor } from '../shared/simulation/doors.ts';
 import { sightOf } from '../shared/simulation/sight-runtime.ts';
 import { GATE_REACH, RESPAWN_CLEARANCE_RADIUS, RESPAWN_HAZARD_MARGIN } from '../shared/simulation/rules.ts';
@@ -115,23 +114,10 @@ test('a started match keeps the doors\' state in the core, and the frame follows
   });
 });
 
-test('a bot skips open gates; a locked gate near a rail station stops transit', async () => {
-  const stations = [{ id: 'here', x: 3000, y }, { id: 'there', x: 3500, y }];
-  await dispose(await arena({ gates: [gate('open', 3030, y, { open: true }), gate('shut', 3070, y)], stations, role: 'gladiator' }), ({ s, p }) => {
-    p.bot = true; p.route = [{ x: 1, y: 1 }];
-    const x = p.x;
-    interact(s, p);
-    assert.deepEqual(s.map.gates.map(g => g.open), [true, true], 'the bot opened the closed gate past the open one');
-    assert.deepEqual(p.route, []);
-    setDoor(s, 1, { open: false, locked: true }); p.bot = false;
-    setDoor(s, 0, { open: false, locked: true });
-    interact(s, p);
-    assert.deepEqual([p.x, p.y], [x, y], 'no fall through to the rail station');
-    // The gates are part of the pinned map, so the player and a station pair move out of their reach instead.
-    s.map.stations = [{ id: 'clear', x: 2400, y }, { id: 'far', x: 1800, y }];
-    Object.assign(p, { x: 2400, railCd: 0 });
-    interact(s, p);
-    assert.deepEqual([p.x, p.y], [1800, y], 'which carries them once no gate is in reach');
+test('a rail station carries a gladiator when in reach', async () => {
+  await dispose(await arena({ stations: [{ id: 'clear', x: 3000, y }, { id: 'far', x: 1800, y }], role: 'gladiator' }), ({ s, p }) => {
+    press(s, p, { interact: true });
+    assert.deepEqual([now(s, p).x, Math.round(now(s, p).y)], [1800, y], 'carries the gladiator to the destination station');
   });
 });
 

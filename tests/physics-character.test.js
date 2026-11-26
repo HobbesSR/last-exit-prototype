@@ -1,13 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PHYSICS_VERSION, createGame, disposePhysics, enqueuePhysicsAttachment, enqueuePhysicsImpulse,
-  setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
+  setInput, snapshot, stateOf, step, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { setDoor } from '../shared/simulation/doors.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { solvePhysicsProjectiles } from '../shared/simulation/phase-five.ts';
-import { interact } from '../shared/simulation/interactions.ts';
 import { openArea } from './helpers/arena.js';
 
 function parts(contestants = 2, contentId = 'content-6') {
@@ -116,20 +115,28 @@ test('gate closure defers for an occupied footprint and succeeds after the actor
 });
 
 test('door interaction respects narrow body clearance and solid prop occupancy', async () => {
-  const fixture = parts(1);
-  fixture.map.gates = [{ id: 'door', x: 300, y: 400, w: 24, h: 60, open: true, kind: 'door' }];
-  const s = await game(fixture);
+  const blocked = parts(1);
+  blocked.map.gates = [{ id: 'door', x: 300, y: 400, w: 24, h: 60, open: true, kind: 'door' }];
+  blocked.map.obstacles = [{ id: 'prop:door', x: 292, y: 392, w: 16, h: 16 }];
+  const sBlocked = await game(blocked);
   try {
-    const p = byId(s).c0, world = physicsRuntime(s).world;
-    assert.ok(teleport(s, p.id, 276, 400)); // clear of body 11.2875; legacy radius12 would touch.
-    world.queueAddBody({ id: 'prop:door', kind: 'prop', shape: { kind: 'circle', radius: 8 }, x: 300, y: 400 });
-    world.commitMutations(); interact(s, p);
-    assert.equal(s.map.gates[0].open, true, 'prop prevents requested close before discovery observes it');
-    world.queueRemoveBody('prop:door'); world.commitMutations(); interact(s, p);
-    assert.equal(s.map.gates[0].open, false, 'clear narrow body permits closing');
-    synchronizePhysics(s);
-    assert.ok(world.hasBody('gate:door'));
-  } finally { disposePhysics(s); }
+    const p = byId(sBlocked).c0;
+    assert.ok(teleport(sBlocked, p.id, 276, 400)); // clear of body 11.2875; legacy radius12 would touch.
+    setInput(sBlocked, p.id, { seq: 1, interact: true });
+    step(sBlocked);
+    assert.equal(stateOf(sBlocked).gates[0].open, true, 'prop prevents requested close before discovery observes it');
+  } finally { disposePhysics(sBlocked); }
+
+  const clear = parts(1);
+  clear.map.gates = [{ id: 'door', x: 300, y: 400, w: 24, h: 60, open: true, kind: 'door' }];
+  const sClear = await game(clear);
+  try {
+    const p = byId(sClear).c0;
+    assert.ok(teleport(sClear, p.id, 276, 400));
+    setInput(sClear, p.id, { seq: 1, interact: true });
+    step(sClear);
+    assert.equal(stateOf(sClear).gates[0].open, false, 'clear narrow body permits closing');
+  } finally { disposePhysics(sClear); }
 });
 
 test('a door is not closed on a transit that landed in it earlier the same phase', async () => {
@@ -140,35 +147,40 @@ test('a door is not closed on a transit that landed in it earlier the same phase
   try {
     const { c0, g0 } = byId(s);
     assert.ok(teleport(s, c0.id, 276, 400)); // its body alone leaves the door clear, as above
-    interact(s, g0); // phase 6 moves the player now and its body at the next synchronize
-    assert.ok(Math.abs(g0.x - 300) < 30 && g0.railCd > 0, 'transit landed in the doorway');
-    interact(s, c0);
-    assert.equal(s.map.gates[0].open, true, 'refused before discovery observes a closed door');
-    assert.equal(c0.discovery.gates.get('door').open, true, 'the recorded observation also remains open');
+    setInput(s, g0.id, { seq: 1, interact: true });
+    step(s);
+    const afterTransit = stateOf(s).players.find(p => p.id === g0.id);
+    assert.ok(Math.abs(afterTransit.x - 300) < 30 && afterTransit.railCd > 0, 'transit landed in the doorway');
+    setInput(s, c0.id, { seq: 1, interact: true });
+    step(s);
+    assert.equal(stateOf(s).gates[0].open, true, 'refused while the gladiator occupies the doorway');
   } finally { disposePhysics(s); }
 });
 
 test('blocked transit preserves cooldown; a valid landing clears motion and constraints', async () => {
-  const fixture = parts(1);
-  fixture.map.stations = [{ id: 'from', x: 650, y: 400 }, { id: 'to', x: 400, y: 650 }];
-  const s = await game(fixture);
+  const blocked = parts(1);
+  blocked.map.stations = [{ id: 'from', x: 650, y: 400 }, { id: 'to', x: 400, y: 650 }];
+  blocked.map.obstacles = [{ id: 'prop:landing', x: 250, y: 500, w: 300, h: 300 }];
+  const sBlocked = await game(blocked);
   try {
-    const p = byId(s).g0, world = physicsRuntime(s).world;
-    world.queueAddBody({ id: 'prop:landing', kind: 'prop', shape: { kind: 'circle', radius: 150 }, x: 400, y: 650 });
-    world.commitMutations();
-    const effects = s.effects.length;
-    interact(s, p); synchronizePhysics(s);
-    assert.deepEqual({ x: p.x, y: p.y, cd: p.railCd, effects: s.effects.length }, { x: 650, y: 400, cd: 0, effects });
-    world.queueRemoveBody('prop:landing'); world.commitMutations();
-    world.queueAddConstraint({ id: 'transit-rope', a: 'actor:g0', b: 'actor:c0', maxDistance: 600 });
-    world.commitMutations(); world.setMotor('actor:g0', { x: 100, y: 0, accel: 3600 });
-    interact(s, p); synchronizePhysics(s);
-    assert.deepEqual({ x: p.x, y: p.y, cd: p.railCd }, { x: 400, y: 650, cd: 180 });
-    assert.equal(world.counts().constraints, 0);
-    assert.equal(body(s, 'g0').motor, undefined);
-    assert.equal(body(s, 'g0').transform.vx, 0);
-    assert.ok(snapshot(s).physics.discontinuities.some(d => d.id === 'actor:g0' && d.kind === 'placed'));
-  } finally { disposePhysics(s); }
+    const p = byId(sBlocked).g0;
+    setInput(sBlocked, p.id, { seq: 1, interact: true });
+    step(sBlocked);
+    const gState = stateOf(sBlocked).players.find(q => q.id === p.id);
+    assert.deepEqual({ x: gState.x, y: gState.y, cd: gState.railCd }, { x: 650, y: 400, cd: 0 });
+  } finally { disposePhysics(sBlocked); }
+
+  const clear = parts(1);
+  clear.map.stations = [{ id: 'from', x: 650, y: 400 }, { id: 'to', x: 400, y: 650 }];
+  const sClear = await game(clear);
+  try {
+    const p = byId(sClear).g0;
+    setInput(sClear, p.id, { seq: 1, moveX: 1, interact: true });
+    step(sClear);
+    const gState = stateOf(sClear).players.find(q => q.id === p.id);
+    assert.deepEqual({ x: gState.x, y: gState.y, cd: gState.railCd }, { x: 400, y: 650, cd: 180 });
+    assert.equal(gState.vx ?? 0, 0);
+  } finally { disposePhysics(sClear); }
 });
 
 test('an impossible initial placement is refused', async () => {

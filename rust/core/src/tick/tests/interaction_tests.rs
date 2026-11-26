@@ -756,3 +756,38 @@ fn a_solid_dynamic_prop_blocks_a_close() {
     assert!(game.state().gates[&gate].open);
     assert_eq!(game.position(BodyId::Gate(gate)), None);
 }
+
+#[test]
+fn a_bot_skips_open_doors_and_opens_a_closed_door_beyond_it() {
+    let mut scenario = Scenario::default();
+    let mut g = actor(Presence::Active);
+    g.bot = true;
+    scenario.state.actors.insert(A, g);
+    scenario.body(BodyId::Actor(A), body(0.0));
+    let (open_gate, shut_gate) = (GateId(0), GateId(1));
+    scenario.state.gates.insert(
+        open_gate,
+        Gate {
+            building: None,
+            open: true,
+            door: true,
+            position: [30.0, 0.0],
+            ..Gate::default()
+        },
+    );
+    scenario.state.gates.insert(
+        shut_gate,
+        Gate {
+            building: None,
+            open: false,
+            door: true,
+            position: [70.0, 0.0],
+            ..Gate::default()
+        },
+    );
+    let mut game = scenario.start(50, 10);
+    interact(&mut game, A, 1, None);
+    let _tick = game.step(&Combat::default()).unwrap();
+    assert!(game.state().gates[&shut_gate].open);
+    assert!(game.state().gates[&open_gate].open);
+}
