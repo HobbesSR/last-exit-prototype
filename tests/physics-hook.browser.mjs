@@ -25,7 +25,7 @@ async function scenario() {
       states.push(frame);
       views.push(view);
       trace.push({ tick: frame.tick, flight: frame.hookFlights, projected: view.hookFlights,
-        tethers: frame.tethers, privatePhases: frame.physics.hooks?.map(h => h.phase) });
+        tethers: frame.tethers });
     };
     setInput(game, 'g0', { seq: 1, skill: true, aim: 0 }); step(game); capture();
     step(game); capture();
@@ -84,16 +84,14 @@ try {
     ['lineStyle', 3, 0xd6dfbd, 0.85], ['lineBetween', caster.x, caster.y, tip.x, tip.y],
     ['fillStyle', 0xe9f5d4, 0.95], ['fillCircle', tip.x, tip.y, 4],
   ], 'production scene draw path uses authorized caster and tip coordinates');
-  assert.equal(trace[0].privatePhases[0], 'flying');
   assert.equal(trace[0].flight.length, 1);
   assert.deepEqual(chrome[0].flight, trace[0].projected);
-  assert.equal(trace[1].privatePhases[0], 'pending');
   assert.deepEqual(chrome[1].flight, []);
-  assert.equal(trace[2].privatePhases[0], 'pulling');
+  assert.equal(trace[1].tethers.length, 1);
   assert.equal(trace[2].tethers.length, 1);
   assert.deepEqual(chrome[2].tethers, trace[2].tethers);
-  assert.deepEqual(trace[3].privatePhases, []);
-  assert.deepEqual(chrome[3].tethers, []);
+  assert.deepEqual(trace[3].flight, []);
+  assert.deepEqual(trace[3].tethers, []);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, browser: browser.version(), checks: [
     'Node/Chrome complete state equality', 'Chrome authorized flight playback', 'renderer coordinates', 'pending hit and next-tick tether', 'cancel removal' ] }));

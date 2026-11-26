@@ -1,6 +1,6 @@
 # Physics P0 comparison lab
 
-The P0 comparison lab's engine harness (rapier.mjs, the runner, report, queries, lab prediction and the jelly lab) retired with the rapier.js package in #1192: the game's physics now runs in the Rust core ([27](../../docs/27-rust-path.md)). Their retained evidence stays in `docs/reports/` and the 42.x documents.
+The P0 comparison lab's engine harness (rapier.mjs, the runner, report, queries, lab prediction and the jelly lab) retired with the rapier.js package in #1192, and the old-world P4–P9 report drivers (`prediction-network.mjs`, `prediction-contacts.mjs`, `hook-traces.mjs`, `integration-report.mjs`, `p5-report.mjs`, `navigation-report.mjs`) retired in #1349 once the simulation tick moved into the Rust core ([27](../../docs/27-rust-path.md)). Their retained evidence stays in `docs/reports/` and the 42.x documents.
 
 P9's integrated local playtest is at `/dev/physics` when running `npm run dev`.
 Try A character contact/crowd, B crates and C hook; use Reset to pin tuning and
