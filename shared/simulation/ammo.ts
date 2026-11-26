@@ -3,25 +3,10 @@ import { commitItemAllocation, allocateItemId } from '../item-instances.ts';
 import { planAmmoDrop, scatterPoint } from './loot.ts';
 import { addItems } from './ground-items.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
-import type { AmmoFamily, Game, GroundItem, Player, WeaponItem } from '../types.ts';
+import type { AmmoFamily, Game, GroundItem, Player } from '../types.ts';
 
 // L2 reloading (14 "Reloading", #444): weapon-owned magazines, per-player reserves outside the six
 // slots and explicit ammo pickups. Every rule here conserves rounds; none creates or deletes any.
-
-/** A carried weapon's reload rule, or undefined without L2 content. */
-function reloadRule(s: Game, item: WeaponItem) { return s.content.reloading?.weapons[item.weaponType]; }
-
-/** Rounds a reload of this weapon would load now; 0 without L2 content. */
-export function reloadableRounds(s: Game, p: Player, item: WeaponItem): number {
-  const rule = reloadRule(s, item);
-  return rule && p.reserves ? Math.max(0, Math.min(rule.magazine - item.ammo, p.reserves[rule.family])) : 0;
-}
-
-/** Reserve rounds of `family` this player can still take; 0 without L2 content. */
-export function reserveRoom(s: Game, p: Player, family: AmmoFamily | undefined): number {
-  const capacity = family && s.content.reloading?.reserves[family];
-  return capacity && p.reserves ? Math.max(0, capacity - p.reserves[family]) : 0;
-}
 
 /**
  * Before identities are assigned: cap each map weapon's rounds at a full magazine and return the

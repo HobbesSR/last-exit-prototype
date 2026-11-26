@@ -67,8 +67,8 @@ const sightIndex: ObstacleCache<SightIndex> = obstacleCache(buildSightIndex);
 /** Prepare the sight index ahead of the first query, yielding between bounded batches (see `ObstacleCache`). */
 export const prepareSightIndex = (map: Pick<CollisionMap, 'obstacles'>, yieldControl: () => Promise<void>): Promise<void> => sightIndex.prepare(map, yieldControl);
 
-// Each gate's sight edges, built on first use, since a contestant's local map (dynamic-navigation.ts) copies
-// the gate list when a door changes. Indexed like `map.gates`, and rebuilt when the list grows.
+// Each gate's sight edges, built on first use, since a map copy that differs only in its gates (such as a
+// contestant's remembered doors) copies the gate list. Indexed like `map.gates`, and rebuilt when the list grows.
 const gateEdgeCache = new WeakMap<Gate[], { count: number; edges: (Edge[] | undefined)[] }>();
 function gateEdgeList(map: Pick<CollisionMap, 'gates'>): (Edge[] | undefined)[] {
   let cached = gateEdgeCache.get(map.gates);

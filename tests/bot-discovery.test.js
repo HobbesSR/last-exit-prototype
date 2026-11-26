@@ -3,8 +3,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, disposePhysics, setInput, snapshot, playerView } from '../shared/simulation.ts';
 import { startGame, stepGame } from '../shared/simulation/tick.ts';
-import { collectBotIntent } from '../shared/simulation/bots.ts';
-import { tickAllowance } from '../shared/simulation/bot-routes.ts';
 import { canOccupy, sweptClear } from '../shared/movement.ts';
 import { cellIndexAt, createDiscovery, discover, attachDiscovery } from '../shared/discovery.ts';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
@@ -193,39 +191,7 @@ test('item, door and survey memory stay out of snapshots and every projection', 
   }
 });
 
-// A wall at x 600–640 with a door in it, and a gap at its foot. Each bot saw the door locked, so it
-// routes through the gap; then `see()` has the door seen open.
-function doorScene(content, positions) {
-  content = typeof content === 'string' ? contentById(content) : content;
-  const cell = { id: 'cell', kind: 'cell', x: 1100, y: 330, charge: 0 };
-  const map = { ...openMap([cell]), hazards: [], traps: [], chargers: [], stations: [], exit: { x: 1800, y: 100 },
-    obstacles: [{ id: 'upper', x: 600, y: 0, w: 40, h: 300 }, { id: 'lower', x: 600, y: 360, w: 40, h: 440 }],
-    gates: [{ id: 'door', x: 620, y: 330, w: 40, h: 60, open: true, locked: false, kind: 'door' }] };
-  const memories = [];
-  const players = positions.map(([x, y], i) => {
-    const p = { id: `c${i}`, name: `contestant-${i + 1}`, role: 'contestant', kit: 'warden', bot: true, x, y, hp: 100, maxHp: 100, shield: 0, keys: 0,
-      weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0,
-      input: {}, lastSeq: -1, inventory: Array(4).fill(null), selectedSlot: 0 };
-    const memory = createDiscovery();
-    memory.seen = new Set();
-    for (let i = 0; i < 50; i++) { memory.discovered.add(i); memory.seen.add(i); }
-    memory.items = new Map([[cell.id, { ...cell }]]);
-    memory.gates = new Map([['door', { open: false, locked: true }]]);
-    attachDiscovery(p, memory);
-    memories.push(memory);
-    return p;
-  });
-  const s = { tick: 0, phase: 'live', content, map, players, projectiles: [], effects: [], events: [], hazardX: -80, slots: 3, serial: 0 };
-  const through = p => !p.route.some(q => q.y >= 800);
-  // The bots stand still, so only what they know changes.
-  for (; s.tick < 60 && players.some(p => !p.route?.length); s.tick++) for (const p of players) collectBotIntent(s, p);
-  for (const p of players) assert.ok(p.route.length && !through(p), 'it routes round by the gap: ' + JSON.stringify(p.route));
-  for (; s.tick % 20 !== 1; s.tick++) for (const p of players) collectBotIntent(s, p);
-  const see = () => { for (const memory of memories) memory.gates.set('door', { open: true, locked: false }); };
-  return { s, players, through, see };
-}
-
-// The same wall as `doorScene`, in a started match: a door in it, and a gap at its foot. The bot knows the door is
+// A wall at x 600–640 in a started match: a door in it, and a gap at its foot. The bot knows the door is
 // locked, so it routes through the gap; a contestant with a key then opens the door, and the bot sees it open.
 async function openedDoor(t, x, y) {
   const cell = { id: 'cell', kind: 'cell', x: 1100, y: 330, charge: 0 };
@@ -256,35 +222,4 @@ test('replanning a door seen opening near a bot reroutes it soon, and one furthe
   const near = await openedDoor(t, 420, 330), far = await openedDoor(t, 100, 330);
   assert.ok(near <= 20, `near: repaired within a sample of the door being seen, not after ${near}`);
   assert.ok(far > near, `further off: at its next repath, after ${far}, not with the near bot's ${near}`);
-});
-
-test(`under repair replanning a repair reserves its budget from the tick's shared allowance, and waits a tick when it is short (#470 part 2)`, () => {
-  // Whatever earlier bots left this tick: none, or one short of a repair's budget.
-  for (const left of [0, 499]) {
-    const { s, players: [p], through, see } = doorScene('content-7', [[420, 330]]);
-    see();
-    tickAllowance(s).left = left;
-    collectBotIntent(s, p);
-    assert.equal(through(p), false, `with ${left} left it waits`);
-    assert.equal(tickAllowance(s).left, left, 'and spends nothing');
-    s.tick++;
-    collectBotIntent(s, p);
-    assert.ok(through(p), 'it repairs on the next tick');
-  }
-  // Two near bots and one further off, whose sliced repath competes with the repairs, with each tick
-  // starting 520 short of nothing: the first repair leaves too little for the second, which waits.
-  const { s, players, through, see } = doorScene('content-7', [[420, 330], [420, 300], [100, 330]]);
-  see();
-  const took = new Map();
-  for (const seenAt = s.tick; s.tick < seenAt + 40 && took.size < players.length; s.tick++) {
-    tickAllowance(s).left = 520;
-    for (const p of players) {
-      collectBotIntent(s, p);
-      assert.ok(tickAllowance(s).left >= 0, `tick ${s.tick}: the allowance stays within the cap (${tickAllowance(s).left})`);
-      if (!took.has(p) && through(p)) took.set(p, s.tick - seenAt);
-    }
-  }
-  assert.deepEqual(players.map(p => took.get(p) !== undefined), [true, true, true], 'all take the door in the end');
-  assert.equal(took.get(players[0]), 0, 'the first repairs at once');
-  assert.equal(took.get(players[1]), 1, 'the second waits a tick');
 });

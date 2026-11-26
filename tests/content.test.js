@@ -4,7 +4,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord, disposePhysics, step, snapshot, joinGame, setInput } from '../shared/simulation.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
-import { attack } from '../shared/simulation/combat.ts';
 import { actorBaseTint, CONTESTANT_IDENTITY_COLORS } from '../public/appearance.js';
 import { defaultContent, contentById, CONTENT_ID } from '../shared/simulation/content.ts';
 import { collectInstanceEquipment, WEAPONS } from '../shared/equipment.ts';

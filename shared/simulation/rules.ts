@@ -4,6 +4,8 @@ import type { Kit, MatchContent, Role, Tick } from '../types.ts';
 
 export const VERSION = 'last-exit-0.7';
 export const HZ = 20;
+/** How long Striker's Overdrive boosts, in ticks: the core's tuning, which the new tick's loader hands it (`tick-match.ts`). */
+export const OVERDRIVE_TICKS = 55;
 /** The seeds a room accepts: whole numbers from 1 to this. */
 export const MAX_ARENA_SEED = 2147483647;
 export const isArenaSeed = (seed: number): boolean => Number.isInteger(seed) && seed >= 1 && seed <= MAX_ARENA_SEED;
