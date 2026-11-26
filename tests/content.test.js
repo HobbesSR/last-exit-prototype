@@ -1,5 +1,5 @@
 import { renderedPlayerView as playerView } from './helpers/relational.js';
-import { itemId } from './helpers/item-identity.js';
+import { identifyItems } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord, disposePhysics, step, snapshot, joinGame, setInput } from '../shared/simulation.ts';
@@ -7,7 +7,7 @@ import { changeSeat } from '../shared/simulation/state.ts';
 import { attack } from '../shared/simulation/combat.ts';
 import { actorBaseTint, CONTESTANT_IDENTITY_COLORS } from '../public/appearance.js';
 import { defaultContent, contentById, CONTENT_ID } from '../shared/simulation/content.ts';
-import { collectInstanceEquipment, WEAPONS } from '../shared/equipment.ts';
+import { WEAPONS } from '../shared/equipment.ts';
 import { KITS, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS } from '../shared/simulation/rules.ts';
 import { openField } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';
@@ -134,10 +134,10 @@ test('the simulation reads the pinned content, not the shipped constants', async
     try {
       Object.assign(shooter, { heading: 0, attackCd: 0 });
       Object.assign(target, { hp: 100, shield: 0 });
-      const ground = { id: itemId(s, 'test-pistol'), kind: 'weapon', weaponType: 'pistol', ammo: s.content.weapons.pistol.ammo, x: shooter.x, y: shooter.y };
-      s.items.push(ground);
-      collectInstanceEquipment(s, shooter, { ...ground }, ground);
-      shooter.selectedSlot = shooter.inventory.findIndex(i => i?.kind === 'weapon');
+      shooter.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: s.content.weapons.pistol.ammo,
+        instanceId: 'test-pistol', lineageId: 'test-pistol' };
+      identifyItems(s);
+      shooter.selectedSlot = 0;
       assert.ok(setInput(s, shooter.id, { seq: 1, attack: true, aim: 0 }));
       for (let i = 0; i < 6; i++) step(s);
       return now(s, target).hp;

@@ -3,11 +3,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, stateOf, step as stepRaw, snapshot as snapshotRaw } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { collectAmmo, collectInstanceEquipment as collectRaw } from '../shared/equipment.ts';
-import { registerItemLabel } from '../shared/item-instances.ts';
-import { automaticPickups as pickupsRaw } from '../shared/simulation/loot.ts';
-import { eliminate as eliminateRaw } from '../shared/simulation/lifecycle.ts';
-import { interact as interactRaw } from '../shared/simulation/interactions.ts';
 import { queueInput } from '../shared/simulation/input.ts';
 import { Writable } from 'node:stream';
 import { SCHEMA, minimumReaderForMatch, recordingFit } from '../shared/recording.ts';
@@ -37,10 +32,6 @@ const pistol = (ammo, id = 'gun') => ({ kind: 'weapon', weaponType: 'pistol', am
 let seq = 0;
 const step = s => { identifyItems(s); return stepRaw(s); };
 const snapshot = s => { identifyItems(s); return snapshotRaw(s); };
-const collectInstanceEquipment = (s, ...args) => { identifyItems(s); return collectRaw(s, ...args); };
-const automaticPickups = (s, ...args) => { identifyItems(s); return pickupsRaw(s, ...args); };
-const eliminate = (s, ...args) => { identifyItems(s); return eliminateRaw(s, ...args); };
-const interact = (s, ...args) => { identifyItems(s); return interactRaw(s, ...args); };
 const tick = (s, p, input = {}) => { setInput(s, p.id, { seq: ++seq, ...input }); step(s); };
 
 test('reloading is opt-in on the one physics rules version, requires item instances and leaves loot-1 without reserves', async t => {
@@ -121,54 +112,11 @@ test('switching slots interrupts a reload and dropping ammo publishes the reserv
   assert.deepEqual([pile.family, pile.count, pile.droppedBy], ['pistol', 4, p.id]);
 });
 
-test('death drops every reserve family and the magazines as recoverable pickups', async t => {
-  const { s, p, q } = await fixture(t);
-  p.inventory[0] = pistol(7); p.inventory[1] = { kind: 'weapon', weaponType: 'rifle', ammo: 3, instanceId: 'r', lineageId: 'r' };
-  Object.assign(p.reserves, { pistol: 40, rifle: 0, shell: 9 });
-  // The rule runs on the game itself (a started game's players are not the match), so the reload under way is arranged on it.
-  p.reload = { slot: 0, instanceId: 'gun', until: 99 };
-  const before = ['pistol', 'rifle', 'shell'].map(family => rounds(s, family));
-  eliminate(s, p, null);
-  assert.equal(p.reload, null);
-  assert.deepEqual(p.reserves, { pistol: 0, rifle: 0, shell: 0 });
-  assert.deepEqual(s.items.filter(item => item.kind === 'ammo').map(item => [item.family, item.count]), [['pistol', 40], ['shell', 9]]);
-  assert.deepEqual(['pistol', 'rifle', 'shell'].map(family => rounds(s, family)), before);
-  q.x = p.x; q.y = p.y;
-  for (const item of s.items) { item.x = q.x; item.y = q.y; }
-  automaticPickups(s, q, {});
-  assert.deepEqual([q.reserves.pistol, q.reserves.shell], [40, 9]);
-  assert.deepEqual(['pistol', 'rifle', 'shell'].map(family => rounds(s, family)), before);
-});
-
-test('ammo pickups fill reserves with six full slots, leave the remainder, and a full reserve leaves them untouched', async t => {
-  const { s, p } = await fixture(t);
-  for (let slot = 0; slot < 6; slot++) p.inventory[slot] = { kind: 'med', count: 3, instanceId: `m${slot}`, lineageId: `m${slot}` };
-  p.reserves.pistol = 60;
-  const pile = { id: 'pile', kind: 'ammo', family: 'pistol', count: 20, x: p.x, y: p.y };
-  s.items.push(pile);
-  // A partial take replaces the ground record (22.1 "Frames"), so look it up again.
-  const ground = () => s.items.find(item => item.id === itemId(s, 'pile'));
-  automaticPickups(s, p, {});
-  assert.deepEqual([p.reserves.pistol, ground()?.count, pile.count], [72, 8, 20]);
-  const left = ground();
-  automaticPickups(s, p, {});
-  assert.deepEqual([p.reserves.pistol, ground()?.count], [72, 8]);
-  assert.equal(ground(), left, 'a full reserve leaves the pickup untouched');
-  p.reserves.pistol = 0;
-  automaticPickups(s, p, {});
-  assert.deepEqual([p.reserves.pistol, ground()], [8, undefined]);
-  assert.equal(collectAmmo(s, p, { id: registerItemLabel(s, 'bad'), kind: 'ammo', family: 'laser', count: 3, x: 0, y: 0 }), false);
-});
-
-test('a matching weapon feeds its family reserve; its magazine never merges into the carried one', async t => {
-  const { s, p } = await fixture(t);
-  p.inventory[0] = pistol(3); p.reserves.pistol = 65;
-  const spare = { id: 'spare', kind: 'weapon', weaponType: 'pistol', ammo: 12, x: p.x, y: p.y };
-  s.items.push(spare);
-  assert.equal(collectInstanceEquipment(s, p, spare), false);
-  assert.deepEqual([p.inventory[0].ammo, p.reserves.pistol, spare.ammo], [3, 72, 5]);
-  assert.equal(p.inventory.filter(Boolean).length, 1);
-});
+// Retired with the rules they called (#1358); the core holds each (`rust/core/src/tick/tests/item_tests.rs`):
+// - death drops every reserve family and the magazines, and ends a reload: `death_drops_every_reserve_family_and_the_magazines_and_ends_a_reload`;
+// - ammo fills a reserve with six full slots, and a full reserve leaves the pile: `ammo_fills_a_reserve_with_six_full_slots_and_a_full_reserve_leaves_the_pile`;
+// - a matching weapon feeds its family reserve and its magazine never merges: `duplicate_magazines_and_loose_ammo_fill_reserves_without_changing_loaded_rounds`.
+// An ammo family outside the three is a type error in the core, so the "laser" refusal has no equivalent.
 
 test('wire input: L2 commands are validated and absent unless sent, so older inputs keep their shape', () => {
   const p = { inputQueue: [], receivedSeq: -1 };
@@ -205,17 +153,8 @@ test('the owner sees reserves and reload progress; other players and older conte
   assert.equal(Object.hasOwn(snapshot(plain).players[0], 'reserves'), false);
 });
 
-test('a full inventory E swap stages reserves: a rejected swap leaves them unchanged', async t => {
-  const { s, p } = await fixture(t);
-  for (let slot = 0; slot < 6; slot++) p.inventory[slot] = pistol(2, `g${slot}`);
-  p.inventory[1] = { kind: 'med', count: 1, instanceId: 'm', lineageId: 'm' };
-  p.selectedSlot = 1; p.reserves.pistol = 70;
-  // The pickup would feed the reserve, but its 5 rounds cannot all fit: the swap is refused whole.
-  const spare = { id: 'spare', kind: 'weapon', weaponType: 'pistol', ammo: 5, x: p.x, y: p.y };
-  s.items.push(spare);
-  interact(s, p);
-  assert.deepEqual([p.reserves.pistol, spare.ammo, p.inventory[1].kind], [70, 5, 'med']);
-});
+// A full-inventory E that cannot take a whole duplicate weapon, with its reserve under reloading, swaps nothing: the core's
+// `an_interaction_never_swaps_out_the_selected_item_for_a_duplicate_firearm`.
 
 test('current recordings keep reserves, reloads and ammo pickups exactly through backward seeks', async t => {
   const { s, p } = await fixture(t);

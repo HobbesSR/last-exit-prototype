@@ -1,7 +1,6 @@
 import { defaultContent } from './simulation/content.ts';
 import { AMMO_FAMILIES as AMMO_ORDER, WEAPONS as WEAPON_ORDER } from './enum-tables.ts';
-import type { AmmoFamily, ItemId, CellItem, Game, InventoryItem, GroundItem, Player, StackItem, StackKind, WeaponItem, WeaponSpec, WeaponType } from './types.ts';
-import { allocateItemId, ensureItemIdentity, validateItemPayload } from './item-instances.ts';
+import type { AmmoFamily, CellItem, InventoryItem, Player, WeaponSpec, WeaponType } from './types.ts';
 
 export const SLOT_COUNT = 6;
 /** L2 reserve families, in their fixed drop and display order. */
@@ -22,91 +21,3 @@ export function syncWeapon(p: Player, weapons: WeaponTable = WEAPONS): void {
 const qualityOf = (item: { quality?: number | undefined }): number => item.quality ?? 1;
 /** Only equal qualities merge or refill; omitted quality means 1 (14). */
 export const sameQuality = (a: { quality?: number | undefined }, b: { quality?: number | undefined }): boolean => qualityOf(a) === qualityOf(b);
-const stackKind = (kind: string): kind is StackKind => kind === 'med' || kind === 'shield';
-const validIdentityState = (s: Game, p: Player, ground?: GroundItem, listed = ground): boolean => {
-  const capacity = s.content.itemInstances.groundCapacity;
-  if (!Number.isSafeInteger(capacity) || capacity! < 0 || !Number.isSafeInteger(s.itemSerial) || s.itemSerial! < 0 || !p.inventory || p.inventory.length !== SLOT_COUNT) return false;
-  const ids = new Set<ItemId>();
-  if (ground) {
-    if (!s.items.includes(listed!) || !Number.isSafeInteger(ground.id) || ground.id <= 0 || ground.instanceId !== undefined && ground.instanceId !== ground.id || !validateItemPayload(ground, s)) return false;
-    ids.add(ground.id);
-  }
-  for (const item of p.inventory) {
-    if (!item) continue;
-    if (!validateItemPayload(item, s) || item.instanceId && ids.has(item.instanceId)) return false;
-    if (item.instanceId) ids.add(item.instanceId);
-  }
-  return true;
-};
-const prepareCarried = (s: Game, p: Player): void => {
-  for (const item of p.inventory ?? []) if (item) ensureItemIdentity(s, item);
-};
-
-/**
- * L0 transfer. True means the caller may remove the whole ground instance. A partial take
- * writes to `item`, so a caller passes a draft of the published record `listed` (22.1 "Frames").
- */
-export function collectInstanceEquipment(s: Game, p: Player, item: GroundItem, listed = item): boolean {
-  if (!validIdentityState(s, p, item, listed) || item.kind === 'access' || item.kind === 'ammo') return false;
-  const inventory = p.inventory!;
-  const root = item.lineageId ?? item.id;
-  if (item.kind === 'weapon') {
-    const type = item.weaponType ?? 'pistol', weapon = s.content.weapons[type];
-    const existing = inventory.find((slot): slot is WeaponItem => slot?.kind === 'weapon' && slot.weaponType === type && sameQuality(slot, item));
-    if (existing) {
-      // Under L2 a duplicate's loaded rounds go to the family reserve; its magazine never merges.
-      if (s.content.reloading) return collectRounds(s, p, s.content.reloading.weapons[type].family, item, 'ammo');
-      const current = existing.ammo ?? weapon.ammo, incoming = item.ammo ?? weapon.ammo;
-      const transfer = Math.min(incoming, weapon.maxAmmo - current);
-      if (transfer <= 0) return false;
-      prepareCarried(s, p);
-      existing.ammo = current + transfer;
-      item.ammo = incoming - transfer;
-      return item.ammo === 0;
-    }
-  } else if (stackKind(item.kind)) {
-    const target = inventory.find((slot): slot is StackItem => !!slot && stackKind(slot.kind) && slot.kind === item.kind && sameQuality(slot, item) && (slot as StackItem).count < 3);
-    if (target) {
-      const count = item.count ?? 1, transfer = Math.min(count, 3 - target.count);
-      prepareCarried(s, p);
-      target.count += transfer;
-      if (transfer === count) return true;
-      item.count = count - transfer;
-      return false;
-    }
-  }
-  const index = inventory.findIndex(slot => !slot);
-  if (index < 0) return false;
-  const count = stackKind(item.kind) ? item.count ?? 1 : 1;
-  const taken = Math.min(count, 3);
-  prepareCarried(s, p);
-  const id = taken < count ? allocateItemId(s) : item.id;
-  const identity = { instanceId: id, lineageId: root, ...(item.quality === undefined ? {} : { quality: item.quality }) };
-  inventory[index] = item.kind === 'weapon'
-    ? { kind: 'weapon', weaponType: item.weaponType ?? 'pistol', ammo: item.ammo ?? s.content.weapons[item.weaponType ?? 'pistol'].ammo, ...identity }
-    : item.kind === 'cell'
-      ? { kind: 'cell', charge: item.charge ?? 0, ...identity }
-      : { kind: item.kind as StackKind, count: taken, ...identity };
-  if (taken < count) item.count = count - taken;
-  if (!equipped(p) || item.kind === 'weapon' && equipped(p)!.kind !== 'weapon') p.selectedSlot = index;
-  syncWeapon(p, s.content.weapons);
-  return taken === count;
-}
-
-/** Move what fits of a ground record's rounds into a reserve. True when none remain on the ground. */
-function collectRounds(s: Game, p: Player, family: AmmoFamily, item: GroundItem, field: 'ammo' | 'count'): boolean {
-  const capacity = s.content.reloading!.reserves[family], reserves = p.reserves;
-  const incoming = item[field] ?? 0;
-  if (!reserves || !Number.isSafeInteger(incoming) || incoming < 0) return false;
-  const transfer = Math.min(incoming, capacity - reserves[family]);
-  if (transfer <= 0) return false;
-  reserves[family] += transfer;
-  item[field] = incoming - transfer;
-  return item[field] === 0;
-}
-
-/** An L2 ammo pickup adds to its family reserve, even with six full slots; a full reserve leaves it. */
-export function collectAmmo(s: Game, p: Player, item: GroundItem, listed = item): boolean {
-  if (item.kind !== 'ammo' || !s.content.reloading || !validIdentityState(s, p, item, listed)) return false;
-  return collectRounds(s, p, item.family!, item, 'count');
-}
