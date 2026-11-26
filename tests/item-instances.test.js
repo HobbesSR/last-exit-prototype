@@ -70,7 +70,7 @@ test('label registration is numeric, does not spend scatter phases, and staged l
 });
 
 // The ground-to-carried half of this (a partial take leaves the remainder, an equal quality merges into the target) is the
-// core's: `partial_stacks_fill_remaining_capacity_in_claim_order`. The slot-move half stays on phase three.
+// core's: `partial_stacks_fill_remaining_capacity_in_claim_order`.
 // Same-quality merges keep the target's identity and different qualities swap without blending: the core's, in `rust/core/src/tick/tests/item_tests.rs`,
 // `slot_moves_merge_compatible_stacks_swap_otherwise_follow_selection_and_reject_invalid_requests`.
 

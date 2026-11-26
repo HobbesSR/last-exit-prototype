@@ -679,3 +679,76 @@ fn two_lethal_shots_in_one_tick_eliminate_in_hit_order_and_each_drops_its_loot()
     }
     assert!(game.state().projectiles.is_empty());
 }
+
+#[test]
+fn solved_actor_motion_into_a_shot_causes_a_hit_and_consumes_the_projectile() {
+    let run = |moving: bool| {
+        let mut scenario = Scenario::default();
+        scenario.state.actors.insert(A, actor(Presence::Eliminated));
+        // Contestant hit radius is 15; at x = 80 a shot stopping at x = 64 misses by 1 unless C steps left.
+        add(&mut scenario, C, 80.0, 90.0, None);
+        keep_open(&mut scenario);
+        let (id, proj) = shot(1, [20.0, 0.0], [44.0, 0.0]);
+        scenario.state.projectiles.insert(id, proj);
+        let mut game = scenario.start(7, 10);
+        if moving {
+            submit(
+                &mut game,
+                C,
+                1,
+                1,
+                Input {
+                    movement: [-1.0, 0.0],
+                    ..Input::default()
+                },
+            );
+        }
+        let tick = game.step(&Combat::default()).unwrap();
+        (
+            has(&tick, hit_target(A, C)),
+            game.state().actors[&C].hp,
+            game.state().projectiles.is_empty(),
+        )
+    };
+    assert_eq!(
+        run(false),
+        (false, 90.0, false),
+        "still target is out of reach"
+    );
+    assert_eq!(
+        run(true),
+        (true, 80.0, true),
+        "walking into the shot lands a hit and consumes it"
+    );
+}
+
+#[test]
+fn projectiles_use_role_specific_hit_radii_in_the_live_tick() {
+    for (target, inside, outside) in [(C, 14.0, 16.0), (B, 25.0, 27.0)] {
+        let fire = |offset: f64| {
+            let mut scenario = Scenario::default();
+            scenario.state.actors.insert(A, actor(Presence::Eliminated));
+            add(&mut scenario, target, 50.0, 90.0, None);
+            keep_open(&mut scenario);
+            let (id, proj) = shot(1, [0.0, offset], [100.0, 0.0]);
+            scenario.state.projectiles.insert(id, proj);
+            let mut game = scenario.start(7, 10);
+            let tick = game.step(&Combat::default()).unwrap();
+            (
+                has(&tick, hit_target(A, target)),
+                game.state().actors[&target].hp,
+                game.state().projectiles.is_empty(),
+            )
+        };
+        assert_eq!(
+            fire(inside),
+            (true, 80.0, true),
+            "{target:?} hit at offset {inside}"
+        );
+        assert_eq!(
+            fire(outside),
+            (false, 90.0, false),
+            "{target:?} missed at offset {outside}"
+        );
+    }
+}
