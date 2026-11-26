@@ -1,13 +1,11 @@
 import { writeDoor } from './doors.ts';
 import { addItemsFromCore, groundItem, removeItem, replaceItem } from './ground-items.ts';
 import { sightOf } from './sight-runtime.ts';
-import { acknowledge } from './tick-boundary.ts';
 import { TickKnowledge, emptyMemory, heardOf, writeMemory } from './tick-knowledge.ts';
 import { contextOf, countdowns, groundOf, participantOf, present, projectileOf, remaining, writeActor, writeTrap } from './tick-records.ts';
 import type { Cast, Context } from './tick-records.ts';
 import { bodyKey } from './tick-codec.ts';
-import type { TickBoundary } from './tick-boundary.ts';
-import type { Actor, ActorEntry, DecodedTick, Inbound, Point, PoseEntry, Snapshot, Tick, Trap as CoreTrap } from './tick-codec.ts';
+import type { Actor, ActorEntry, DecodedTick, Point, PoseEntry, Snapshot, Tick, Trap as CoreTrap } from './tick-codec.ts';
 import type { TickMatch } from './tick-match.ts';
 import type { DiscoveryMemory, Game, HeardCue, Player, PlayerId, Projectile, Trap, GroundItem } from '../types.ts';
 
@@ -210,25 +208,3 @@ function poseMap(poses: readonly PoseEntry[]): Map<string, Point> {
   return new Map(poses.map(p => [bodyKey(p.body), p.at] as const));
 }
 function byId(list: readonly Projectile[]): Map<number, Projectile> { return new Map(list.map(p => [p.id, p] as const)); }
-
-/**
- * Submit the player input due for T, then step the core and apply its completed tick to the mirror and the players'
- * knowledge. The core derives bot intent from the committed T−1 state. Returns null once the match is over.
- */
-export function stepMirror(mirror: TickMirror, boundary?: TickBoundary): DecodedTick | null {
-  const { s, match } = mirror;
-  if (s.phase !== 'live') return null;
-  const completed = submitAndStep(s, match, boundary);
-  if (completed) {
-    mirror.apply(completed); mirror.knowledge.apply(completed);
-    if (boundary) boundary.acknowledge(); else acknowledge(s, match);
-  }
-  return completed;
-}
-
-/** Submit the player input due for the game's next tick, then step the core. */
-export function submitAndStep(s: Game, match: TickMatch, boundary?: TickBoundary): DecodedTick | null {
-  const tick = s.tick + 1, rows: Inbound[] = boundary?.due(tick) ?? [];
-  if (rows.length && !match.submit(tick, rows).every(Boolean)) throw new Error(`tick-mirror: the match refused a command for ${tick}`);
-  return match.step();
-}

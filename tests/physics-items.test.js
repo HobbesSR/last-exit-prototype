@@ -148,6 +148,24 @@ test('a dropped stack splits into single instances that keep its lineage', async
   } finally { disposePhysics(s); }
 });
 
+test('stateOf hands out copies of the ground: editing a fresh drop changes no later read or frame (review 1105)', async () => {
+  const { s, p } = await game();
+  try {
+    p.inventory = [carried('rifle-a', 'weapon', { weaponType: 'rifle', ammo: 7 }), null, null, null, null, null];
+    identifyItems(s);
+    setInput(s, p.id, { seq: 1, drop: true }); step(s);
+    // Before any frame publishes it, the drop is the frame store's own record. The arena has no other loot.
+    const read = () => stateOf(s).items.find(i => i.kind === 'weapon');
+    const dropped = read(), kept = { ...dropped };
+    assert.equal(kept.ammo, 7);
+    Object.assign(dropped, { x: dropped.x + 100, ammo: 0 });
+    assert.deepEqual(read(), kept, 'a fresh read keeps the core record');
+    const framed = snapshot(s).items.find(i => i.kind === 'weapon');
+    assert.equal(framed.ammo, 7, 'the frame keeps the core record');
+    assert.ok(!('x' in framed) || framed.x === kept.x, 'the frame keeps its place');
+  } finally { disposePhysics(s); }
+});
+
 test('a delayed view retains its captured item and body after the live item is consumed', async () => {
   const map = arena(); map.items.push(item('delayed', 'cell', { charge: 41, x: 300, y: 200 }));
   const { s, p } = await game(map);

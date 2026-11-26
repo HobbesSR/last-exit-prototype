@@ -18,7 +18,7 @@ import { wireIds } from '../shared/simulation/wire-ids.ts';
 import { predictionConstants } from '../shared/simulation/physics-presentation.ts';
 import { publishGates, gatesJson } from '../shared/simulation/frame-gates.ts';
 import { profiling, observe } from '../shared/profiler.ts';
-import { stepMirror } from '../shared/simulation/tick-mirror.ts';
+import { stepTick } from '../shared/simulation/tick-step.ts';
 import { createTickSession } from '../shared/simulation/tick.ts';
 import { inboundOfRecorded, recordedInbound } from '../shared/simulation/tick-record.ts';
 import { seatChanged } from '../shared/simulation/tick-boundary.ts';
@@ -150,9 +150,10 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     live.frames.relabel(previous, id);
     return p;
   };
-  const step = boundary => {
-    const { match, mirror, frames } = started();
-    const t = stepMirror(mirror, boundary);
+  /** One tick through the session; `rows` are a replay's recorded inbound queue in place of the boundary's buffer. */
+  const step = rows => {
+    const session = started(), { match, frames } = session;
+    const t = stepTick({ s: game, ...session }, rows);
     spent = t ? recordedInbound(match.ids, t.inbound) : [];
     botWords = encodeInbound(t ? t.inbound.filter(row => row.type === 'command' && row.command.source === 'bot') : []);
     discontinuities = t?.discontinuities ?? [];
@@ -236,7 +237,7 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
       return [];
     },
     teleport(id, x, y) { return started().boundary.teleport(id, [x, y]); },
-    advance() { return step(started().boundary) ?? live.frames.frame(); },
+    advance() { return step() ?? live.frames.frame(); },
     /**
      * Resimulate one recorded committed tick (#1284, docs/26 "Schema 25"): the frame's room roster commands as the live
      * room applied them between ticks, then its spent `command` and `observation` rows in recorded order. The core
@@ -259,9 +260,7 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
         } else if (command.type !== 'carried') throw new RangeError(`Replay cannot apply a ${command.type} command after the start`);
       }
       const inbound = inboundOfRecorded(match.ids, rows, ranked ? labels : new Map());
-      // The recorded rows replace the boundary's buffer; acknowledgment stays the boundary's.
-      const { boundary } = started();
-      return step({ due: () => inbound, acknowledge: () => boundary.acknowledge() }) !== null;
+      return step(inbound) !== null;
     },
     teleportSucceeded: request => discontinuities.some(marker => marker.kind === 'devWarped' && marker.request === request),
     spent: () => structuredClone(spent),

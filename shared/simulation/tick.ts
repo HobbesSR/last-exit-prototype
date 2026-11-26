@@ -5,7 +5,8 @@ import { TickFrames } from './tick-frame.ts';
 import type { FrameRecords } from './tick-frame.ts';
 import { TickKnowledge } from './tick-knowledge.ts';
 import { createTickMatch } from './tick-match.ts';
-import { TickMirror, submitAndStep } from './tick-mirror.ts';
+import { TickMirror } from './tick-mirror.ts';
+import { stepTick } from './tick-step.ts';
 import { contextOf } from './tick-records.ts';
 import { disposePhysics as disposeSetup } from './physics-runtime.ts';
 import { snapshot as setupSnapshot } from './visibility.ts';
@@ -44,7 +45,9 @@ export interface TickState extends FrameRecords {
 export function stateOf(s: Game): TickState {
   const frames = framesByGame.get(s);
   if (!frames) throw new Error('stateOf: the game has not started; arrange it on the game itself');
-  return { ...frames.records(), phase: frames.phase, events: frames.events() };
+  const records = frames.records();
+  // Ground records are the store's own until a frame publishes them; the rest are built for this read.
+  return { ...records, items: records.items.map(item => ({ ...item })), phase: frames.phase, events: frames.events() };
 }
 
 const sessions = new WeakMap<Game, ReturnType<typeof createTickSession>>();
@@ -57,23 +60,14 @@ export function startGame(s: Game, navigation?: number) {
 }
 
 /**
- * Step an in-process game: submit the input due, step the core, then keep the game's clock and phase and the players'
+ * Step an in-process game (`stepTick`): without the mirror, the game keeps only its clock, its phase and the players'
  * knowledge. Nothing else of the game follows the match; read it with `stateOf`.
  */
 export function stepGame(s: Game) {
   if (s.phase !== 'live') return null;
-  const { match, frames, knowledge, boundary } = startGame(s);
+  const session = startGame(s);
   start('sim.step');
-  try {
-    const completed = submitAndStep(s, match, boundary);
-    if (completed) {
-      s.tick = completed.tick;
-      if (frames.phase === 'finished') s.phase = 'finished';
-      knowledge.apply(completed);
-      boundary.acknowledge();
-    }
-    return completed;
-  } finally { stop('sim.step'); }
+  try { return stepTick({ s, ...session }); } finally { stop('sim.step'); }
 }
 
 export function snapshot(s: Game) {
