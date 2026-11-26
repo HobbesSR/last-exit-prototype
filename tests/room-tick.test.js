@@ -236,11 +236,19 @@ test('the threaded host archives authored loot and the planner graph beside stor
     await waitFor(room.ready);
     assert.deepEqual(errors, []);
     const events = new Map(['welcome', 'ready', 'saved'].map(type => [type, Promise.withResolvers()]));
+    // The input is stamped for a tick the worker reaches on its own clock. Admission drops a late stamp silently, so a state
+    // past that tick without its acknowledgment ends the wait rather than leaving it to CI's job timeout (review 1113).
     const spent = Promise.withResolvers();
+    spent.promise.catch(() => {});
+    let stamped = null;
     const owner = service.connect({ deliver: payload => {
       const message = readServerMessage(payload);
       events.get(message.type)?.resolve(message);
-      if (message.type === 'state' && message.state.self?.lastSeq === 1) spent.resolve(message);
+      if (message.type !== 'state') return;
+      if (message.state.self?.lastSeq === 1) spent.resolve(message);
+      else if (stamped !== null && message.state.tick > stamped) {
+        spent.reject(new Error(`the input stamped for tick ${stamped} was not spent by tick ${message.state.tick}`));
+      }
     } });
     service.receive(owner, { type: 'join', room: room.id, ownerKey: room.ownerKey });
     const welcome = await waitFor(events.get('welcome').promise);
@@ -248,6 +256,7 @@ test('the threaded host archives authored loot and the planner graph beside stor
     const ready = await waitFor(events.get('ready').promise);
     assert.equal(ready.state.tick, 0);
     const tick = ready.state.tick + 8;
+    stamped = tick;
     service.receive(owner, { type: 'input', tick, seq: 1, x: 1 });
     await waitFor(spent.promise);
     service.receive(owner, { type: 'finish' });
