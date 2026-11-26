@@ -221,24 +221,22 @@ test('the opt-in room replies to each committed teleport and publishes a paused 
   } finally { await h.service.close(); }
 });
 
-test('the threaded host archives authored loot and the planner graph beside stored frames', { timeout: 10000 }, async t => {
+// No deadline: the worker's map preparation takes seconds on a loaded runner (#1359). A wait ends early only when the
+// room reports an error, and a hang is left to CI's job timeout, as for every other room test.
+test('the threaded host archives authored loot and the planner graph beside stored frames', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'room-tick-'));
   const replays = await createFileReplayStore(dir), errors = [];
-  const service = createRoomService({ replays, threads: true, reportError: error => errors.push(error) });
+  const failed = Promise.withResolvers();
+  failed.promise.catch(() => {});
+  const service = createRoomService({ replays, threads: true, reportError: error => { errors.push(error); failed.reject(error); } });
   try {
     const map = generatedMap(9), authoredItems = structuredClone(map.items);
     const room = service.makeRoom(9, false, undefined, packRuntimeMap(map));
-    await room.ready;
+    const waitFor = promise => Promise.race([promise, failed.promise]);
+    await waitFor(room.ready);
     assert.deepEqual(errors, []);
     const events = new Map(['welcome', 'ready', 'saved'].map(type => [type, Promise.withResolvers()]));
     const spent = Promise.withResolvers();
-    const aborted = Promise.withResolvers();
-    t.signal.addEventListener('abort', () => aborted.resolve(), { once: true });
-    const waitFor = async promise => {
-      const result = await Promise.race([promise, aborted.promise]);
-      t.signal.throwIfAborted();
-      return result;
-    };
     const owner = service.connect({ deliver: payload => {
       const message = readServerMessage(payload);
       events.get(message.type)?.resolve(message);
