@@ -221,28 +221,34 @@ test('the opt-in room replies to each committed teleport and publishes a paused 
   } finally { await h.service.close(); }
 });
 
-test('the threaded host archives authored loot and the planner graph beside stored frames', { timeout: 10000 }, async t => {
+// No deadline: the worker's map preparation takes seconds on a loaded runner (#1359). A wait ends early only when the
+// room reports an error, and a hang is left to CI's job timeout, as for every other room test.
+test('the threaded host archives authored loot and the planner graph beside stored frames', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'room-tick-'));
   const replays = await createFileReplayStore(dir), errors = [];
-  const service = createRoomService({ replays, threads: true, reportError: error => errors.push(error) });
+  const failed = Promise.withResolvers();
+  failed.promise.catch(() => {});
+  const service = createRoomService({ replays, threads: true, reportError: error => { errors.push(error); failed.reject(error); } });
   try {
     const map = generatedMap(9), authoredItems = structuredClone(map.items);
     const room = service.makeRoom(9, false, undefined, packRuntimeMap(map));
-    await room.ready;
+    const waitFor = promise => Promise.race([promise, failed.promise]);
+    await waitFor(room.ready);
     assert.deepEqual(errors, []);
     const events = new Map(['welcome', 'ready', 'saved'].map(type => [type, Promise.withResolvers()]));
+    // The input is stamped for a tick the worker reaches on its own clock. Admission drops a late stamp silently, so a state
+    // past that tick without its acknowledgment ends the wait rather than leaving it to CI's job timeout (review 1113).
     const spent = Promise.withResolvers();
-    const aborted = Promise.withResolvers();
-    t.signal.addEventListener('abort', () => aborted.resolve(), { once: true });
-    const waitFor = async promise => {
-      const result = await Promise.race([promise, aborted.promise]);
-      t.signal.throwIfAborted();
-      return result;
-    };
+    spent.promise.catch(() => {});
+    let stamped = null;
     const owner = service.connect({ deliver: payload => {
       const message = readServerMessage(payload);
       events.get(message.type)?.resolve(message);
-      if (message.type === 'state' && message.state.self?.lastSeq === 1) spent.resolve(message);
+      if (message.type !== 'state') return;
+      if (message.state.self?.lastSeq === 1) spent.resolve(message);
+      else if (stamped !== null && message.state.tick > stamped) {
+        spent.reject(new Error(`the input stamped for tick ${stamped} was not spent by tick ${message.state.tick}`));
+      }
     } });
     service.receive(owner, { type: 'join', room: room.id, ownerKey: room.ownerKey });
     const welcome = await waitFor(events.get('welcome').promise);
@@ -250,6 +256,7 @@ test('the threaded host archives authored loot and the planner graph beside stor
     const ready = await waitFor(events.get('ready').promise);
     assert.equal(ready.state.tick, 0);
     const tick = ready.state.tick + 8;
+    stamped = tick;
     service.receive(owner, { type: 'input', tick, seq: 1, x: 1 });
     await waitFor(spent.promise);
     service.receive(owner, { type: 'finish' });

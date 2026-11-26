@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateLiveMap } from '../../map/live.ts';
 import { createGame, disposePhysics, step } from '../../shared/simulation.ts';
+import { stateOf } from '../../shared/simulation/tick.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 
 test('contestants complete a combat-neutralized live-chain match with solid actor contact', async () => {
@@ -14,6 +15,7 @@ test('contestants complete a combat-neutralized live-chain match with solid acto
       else player.shield = 1000000;
     }
     while (game.phase === 'live') step(game);
-    assert.equal(game.slots, 0, `seed 4217: escaped=${game.players.filter(p => p.status === 'escaped').length}, tick=${game.tick}`);
+    const state = stateOf(game);
+    assert.equal(state.slots, 0, `seed 4217: escaped=${state.players.filter(p => p.status === 'escaped').length}, tick=${game.tick}`);
   } finally { disposePhysics(game); }
 });
