@@ -1,4 +1,4 @@
-import { createGame, disposePhysics, setInput, step } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, stateOf, step } from '../../shared/simulation.ts';
 import { createDiscovery, discoveryGrid } from '../../shared/discovery.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
 import { openField } from './arena.js';
@@ -25,6 +25,12 @@ function settle(s, actors, players) {
   actors.forEach((a, i) => { players[i].bot = a.bot ?? true; if (a.knows) know(s, players[i], a.knows); });
   return { s, players };
 }
+
+/**
+ * `p`'s record as of the last completed tick (docs/27.2 "Test API"). A started game's players are the roster and the
+ * arrangement, not the match: read what the match did here, by roster place, and arrange mid-match through commands.
+ */
+export const now = (s, p) => stateOf(s).players[s.players.indexOf(p)];
 
 /** A physics game on `map` with exactly `actors`, each a bot unless `bot: false`; the shipped content unless given. Dispose of it with `disposePhysics`. */
 export async function stagePhysics(map, { seed = 4217, content = defaultContent(), actors }) {

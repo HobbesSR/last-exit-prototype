@@ -264,6 +264,12 @@ export class TickFrames {
     return frame;
   }
 
+  /** The match's phase as of the last completed tick, or as the room ended it. */
+  get phase(): Game['phase'] { return this.#phase; }
+
+  /** The events of the last completed tick, as its frame carries them. */
+  events(): GameEvent[] { return structuredClone(this.#stage.events) as GameEvent[]; }
+
   /** The store's records, whole: the players (bodiless ones at their last place), the ground in its order, the rest by ID. */
   records(): FrameRecords {
     const tick = this.#tick, ctx = this.ctx;

@@ -1,26 +1,51 @@
 import { start, stop } from '../profiler.ts';
-import type { Game } from '../types.ts';
+import type { Game, GameEvent } from '../types.ts';
 import { TickBoundary } from './tick-boundary.ts';
 import { TickFrames } from './tick-frame.ts';
+import type { FrameRecords } from './tick-frame.ts';
+import { TickKnowledge } from './tick-knowledge.ts';
 import { createTickMatch } from './tick-match.ts';
-import { TickMirror, stepMirror } from './tick-mirror.ts';
+import { TickMirror, submitAndStep } from './tick-mirror.ts';
+import { contextOf } from './tick-records.ts';
 import { disposePhysics as disposeSetup } from './physics-runtime.ts';
 import { snapshot as setupSnapshot } from './visibility.ts';
 import type { WireIds } from './wire-ids.ts';
 
-/** Start the authority after the caller finishes arranging the match's initial state. */
-export function createTickSession(game: Game, wire?: WireIds, navigation?: number) {
+/**
+ * Start the authority after the caller finishes arranging the match's initial state. A room asks for the `mirror`,
+ * whose roster it still reads until #1346; an in-process game runs without it and is read through `stateOf` (#1345).
+ * Either way every player's knowledge is written for `playerView` until #1343.
+ */
+export function createTickSession(game: Game, wire?: WireIds, navigation?: number, { mirror: mirrored = false } = {}) {
   const match = createTickMatch(game, navigation);
   try {
-    const mirror = new TickMirror(game, match), frames = new TickFrames(game, match);
+    const mirror = mirrored ? new TickMirror(game, match) : null;
+    const knowledge = mirror?.knowledge ?? new TickKnowledge(game, match, contextOf(game, match));
+    const frames = new TickFrames(game, match);
     framesByGame.set(game, frames);
-    return { match, mirror, boundary: new TickBoundary(game, match, wire), frames };
+    return { match, mirror, knowledge, boundary: new TickBoundary(game, match, wire), frames };
   } catch (error) { match.dispose(); throw error; }
 }
 
 const framesByGame = new WeakMap<Game, TickFrames>();
 /** The frame store of a started game's session, a room's included: for tests arranging a scenario, never the server. */
 export function framesOf(s: Game): TickFrames | undefined { return framesByGame.get(s); }
+
+/** A started game's state as of its last completed tick: the frame store's records, its phase and that tick's events. */
+export interface TickState extends FrameRecords {
+  phase: Game['phase'];
+  events: GameEvent[];
+}
+
+/**
+ * The state of a started game, read from the core's output (docs/27.2 "Test API"): for tests and tools, never the
+ * server. A record is a copy, so arranging a scenario mid-match goes through commands, not through what this returns.
+ */
+export function stateOf(s: Game): TickState {
+  const frames = framesByGame.get(s);
+  if (!frames) throw new Error('stateOf: the game has not started; arrange it on the game itself');
+  return { ...frames.records(), phase: frames.phase, events: frames.events() };
+}
 
 const sessions = new WeakMap<Game, ReturnType<typeof createTickSession>>();
 
@@ -31,11 +56,24 @@ export function startGame(s: Game, navigation?: number) {
   return session;
 }
 
+/**
+ * Step an in-process game: submit the input due, step the core, then keep the game's clock and phase and the players'
+ * knowledge. Nothing else of the game follows the match; read it with `stateOf`.
+ */
 export function stepGame(s: Game) {
   if (s.phase !== 'live') return null;
-  const { mirror, boundary } = startGame(s);
+  const { match, frames, knowledge, boundary } = startGame(s);
   start('sim.step');
-  try { return stepMirror(mirror, boundary); } finally { stop('sim.step'); }
+  try {
+    const completed = submitAndStep(s, match, boundary);
+    if (completed) {
+      s.tick = completed.tick;
+      if (frames.phase === 'finished') s.phase = 'finished';
+      knowledge.apply(completed);
+      boundary.acknowledge();
+    }
+    return completed;
+  } finally { stop('sim.step'); }
 }
 
 export function snapshot(s: Game) {

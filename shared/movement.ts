@@ -105,7 +105,11 @@ export function canOccupy(map: CollisionMap, x: World, y: World, radius: World =
     const hit = diskPenetration(x, y, radius, o.shape, o.prepared);
     if (hit && hit.depth > 0.01) return false;
   }
-  if (!ignoreGates) for (const g of gatesNear(map, x - radius, y - radius, x + radius, y + radius)) if (!g.open) {
+  return ignoreGates || gatesClear(map, x, y, radius);
+}
+/** Whether a disk of `radius` at (x, y) clears every closed gate of `map`: `canOccupy`'s gate half, gates not overlapping at all. */
+export function gatesClear(map: Pick<CollisionMap, 'gates'>, x: World, y: World, radius: World): boolean {
+  for (const g of gatesNear(map, x - radius, y - radius, x + radius, y + radius)) if (!g.open) {
     const box = gateShape(g);
     if (!nearBounds(box, x, y, radius)) continue;
     const o = collider(box);

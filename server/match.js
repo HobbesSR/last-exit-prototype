@@ -134,7 +134,7 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
   const started = () => {
     if (disposedFrame) throw new Error('match disposed');
     if (!live) {
-      live = createTickSession(game, wire, navigation.pointer);
+      live = createTickSession(game, wire, navigation.pointer, { mirror: true });
       navigation.release();
     }
     return live;
@@ -259,7 +259,9 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
         } else if (command.type !== 'carried') throw new RangeError(`Replay cannot apply a ${command.type} command after the start`);
       }
       const inbound = inboundOfRecorded(match.ids, rows, ranked ? labels : new Map());
-      return step({ due: () => inbound }) !== null;
+      // The recorded rows replace the boundary's buffer; acknowledgment stays the boundary's.
+      const { boundary } = started();
+      return step({ due: () => inbound, acknowledge: () => boundary.acknowledge() }) !== null;
     },
     teleportSucceeded: request => discontinuities.some(marker => marker.kind === 'devWarped' && marker.request === request),
     spent: () => structuredClone(spent),

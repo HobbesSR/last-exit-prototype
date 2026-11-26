@@ -3,12 +3,12 @@
 // updated by tests; the fixture README says when recapturing is a decision and how to do it.
 import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
-import { createGame, disposePhysics, joinGame, setInput, snapshot, playerView } from '../shared/simulation.ts';
+import { createGame, disposePhysics, joinGame, setInput, snapshot, stateOf, playerView } from '../shared/simulation.ts';
 import { startGame, stepGame } from '../shared/simulation/tick.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
 import { attachPortalGraph, portalGraphOf } from '../shared/navigation/portal-graph.ts';
-import { canOccupy } from '../shared/movement.ts';
+import { canOccupy, gatesClear } from '../shared/movement.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { removeItem } from '../shared/simulation/ground-items.ts';
 import { atan2, cos, hypot, sin } from '../shared/math.ts';
@@ -71,14 +71,25 @@ export async function botTrace(seed, arena, observe = () => {}, prepareMap = map
  * searching outward in rings. Throws rather than characterizing a scene that never happened.
  */
 function place(s, boundary, p, target, fits = () => true) {
+  // The others' places and the gates as of the last completed tick, read again after each attempt steps the match.
+  let state, players, gates;
+  const read = () => {
+    state = stateOf(s); players = state.players;
+    gates = { gates: s.map.gates.map((g, i) => ({ ...g, ...state.gates[i] })) };
+  };
+  read();
   const radius = actorRadius(s, p);
   for (let ring = 0; ring <= 40; ring++) {
     const steps = ring ? 16 : 1;
     for (let i = 0; i < steps; i++) {
       const x = Math.round(target.x + cos(i * Math.PI / 8) * ring * 4), y = Math.round(target.y + sin(i * Math.PI / 8) * ring * 4);
-      if (!fits({ x, y }) || !canOccupy(s.map, x, y, radius)
-        || s.players.some(q => q !== p && q.status === 'active' && hypot(x - q.x, y - q.y) < radius + actorRadius(s, q))) continue;
-      if (boundary.teleport(p.id, [x, y]) && stepGame(s)?.discontinuities.some(d => d.kind === 'devWarped')) return;
+      if (!fits({ x, y }) || !canOccupy(s.map, x, y, radius, true) || !gatesClear(gates, x, y, radius)
+        || s.players.some((q, i) => q !== p && players[i].status === 'active'
+          && hypot(x - players[i].x, y - players[i].y) < radius + actorRadius(s, q))) continue;
+      if (!boundary.teleport(p.id, [x, y])) continue;
+      const warped = stepGame(s)?.discontinuities.some(d => d.kind === 'devWarped');
+      if (warped) return;
+      read();
     }
   }
   throw new Error(`no legal spot for ${p.id} near ${target.x},${target.y}`);
@@ -114,6 +125,8 @@ export async function scriptedTrace(arena, observe = () => {}) {
     identifyItems(s);
     p.hp = 45;
     const { match, boundary } = startGame(s);
+    // What the match did, by roster place: the players above are the arrangement (docs/27.2 "Test API").
+    const now = who => stateOf(s).players[s.players.indexOf(who)];
     const press = (who, values) => {
       assert.ok(setInput(s, who.id, { seq: who.lastSeq + 1, ...values }));
       return stepGame(s);
@@ -128,68 +141,70 @@ export async function scriptedTrace(arena, observe = () => {}) {
     stepGame(s); assert.equal(p.lastSeq, 1); capture('queued-second-spent');
     // Selection and dropping spend separate weapon-slot actions under R1.
     press(p, { slot: 4 }); press(p, { drop: true });
-    assert.equal(p.inventory[4], null); capture('drop');
+    assert.equal(now(p).inventory[4], null); capture('drop');
     advance(30);
     capture('dropped-settled');
-    const dropped = s.items[0];
+    const dropped = stateOf(s).items[0];
     warp(p, dropped);
     advance(30);
-    assert.ok(p.inventory.some(item => item?.kind === 'cell'));
+    assert.ok(now(p).inventory.some(item => item?.kind === 'cell'));
     capture('automatic-pickup');
     const charger = s.map.chargers[0];
     warp(p, charger, at => hypot(at.x - charger.x, at.y - charger.y) < 40);
     press(p, { interact: true });
     advance(40);
-    assert.ok(p.charging);
+    assert.ok(now(p).charging);
     capture('charging');
-    press(p, { x: 1 }); press(p, {}); assert.ok(!p.charging); capture('charge-cancel');
+    press(p, { x: 1 }); press(p, {}); assert.ok(!now(p).charging); capture('charge-cancel');
     warp(p, charger, at => hypot(at.x - charger.x, at.y - charger.y) < 40);
     press(p, { interact: true });
     advance(100);
-    assert.equal(p.inventory.find(item => item?.kind === 'cell').charge, 100);
+    assert.equal(now(p).inventory.find(item => item?.kind === 'cell').charge, 100);
     capture('charged');
     const door = s.map.gates.find(gate => gate.kind === 'door' && !gate.locked && !gate.open);
     const centre = { x: door.x, y: door.y };
     const beside = at => hypot(at.x - centre.x, at.y - centre.y) > 30;
-    const interactDoor = () => press(p, { interact: true, target: { kind: 'gate', gateIdx: s.gates.indexOf(door) } });
+    const doorIdx = s.gates.indexOf(door), doorOpen = () => stateOf(s).gates[doorIdx].open;
+    const interactDoor = () => press(p, { interact: true, target: { kind: 'gate', gateIdx: doorIdx } });
     warp(p, centre, beside);
-    interactDoor(); assert.ok(door.open); capture('door-open');
+    interactDoor(); assert.ok(doorOpen()); capture('door-open');
     warp(rival, centre);
-    interactDoor(); assert.ok(door.open); capture('door-occupied');
+    interactDoor(); assert.ok(doorOpen()); capture('door-occupied');
     warp(rival, centre, at => hypot(at.x - centre.x, at.y - centre.y) > 120);
-    interactDoor(); assert.ok(!door.open); capture('door-close');
+    interactDoor(); assert.ok(!doorOpen()); capture('door-close');
     warp(p, s.map.spawns[0]);
-    warp(rival, { x: p.x + 32, y: p.y }, at => at.x > p.x + 20);
+    // A fit reads where the player stands when it is asked, as the attempts step the match.
+    { const a = now(p); warp(rival, { x: a.x + 32, y: a.y }, at => at.x > now(p).x + 20); }
     press(p, { slot: 0 });
-    press(p, { attack: true, aim: atan2(rival.y - p.y, rival.x - p.x) });
+    { const [a, b] = [now(p), now(rival)]; press(p, { attack: true, aim: atan2(b.y - a.y, b.x - a.x) }); }
     for (let i = 0; i < 5; i++) press(p, {});
-    assert.equal(rival.status, 'eliminated');
+    assert.equal(now(rival).status, 'eliminated');
     capture('pvp-death');
-    warp(g, { x: p.x + 40, y: p.y }, at => at.x > p.x + 30);
-    advance(p.attackCd);
-    press(p, { attack: true, aim: atan2(g.y - p.y, g.x - p.x) });
+    { const a = now(p); warp(g, { x: a.x + 40, y: a.y }, at => at.x > now(p).x + 30); }
+    advance(now(p).attackCd);
+    { const [a, b] = [now(p), now(g)]; press(p, { attack: true, aim: atan2(b.y - a.y, b.x - a.x) }); }
     for (let i = 0; i < 5; i++) press(p, {});
-    assert.equal(g.status, 'respawning'); capture('gladiator-death');
+    assert.equal(now(g).status, 'respawning'); capture('gladiator-death');
     advance(400);
-    assert.equal(g.status, 'active');
+    assert.equal(now(g).status, 'active');
     capture('respawn');
-    warp(hunter, { x: p.x - 150, y: p.y }, at => at.x < p.x - 100);
-    press(hunter, { skill: true, aim: atan2(p.y - hunter.y, p.x - hunter.x) });
+    { const a = now(p); warp(hunter, { x: a.x - 150, y: a.y }, at => at.x < now(p).x - 100); }
+    { const [a, b] = [now(hunter), now(p)]; press(hunter, { skill: true, aim: atan2(b.y - a.y, b.x - a.x) }); }
     for (let i = 0; i < 20 && !match.snapshot().state.hooks.some(h => h.hook.phase.kind === 'pulling'); i++) stepGame(s);
     assert.ok(match.snapshot().state.hooks.some(h => h.hook.phase.kind === 'pulling'));
     capture('hook');
-    warp(g, { x: p.x + 60, y: p.y }, at => at.x > p.x + 45);
-    const ability = press(g, { aim: atan2(p.y - g.y, p.x - g.x), skill: true, attack: true });
+    { const a = now(p); warp(g, { x: a.x + 60, y: a.y }, at => at.x > now(p).x + 45); }
+    const ability = (([a, b]) => press(g, { aim: atan2(b.y - a.y, b.x - a.x), skill: true, attack: true }))([now(g), now(p)]);
     assert.ok(ability.changes.events.length >= 2);
     capture('ability-and-melee');
     warp(g, s.map.stations[0]);
-    const from = { x: g.x, y: g.y };
+    const from = { x: now(g).x, y: now(g).y };
     press(g, { interact: true });
-    assert.ok(hypot(g.x - from.x, g.y - from.y) > 100);
+    assert.ok(hypot(now(g).x - from.x, now(g).y - from.y) > 100);
     capture('transit');
     warp(p, s.map.exit);
     press(p, { interact: true }); capture('extraction');
-    assert.equal(p.status, 'escaped');
+    assert.equal(now(p).status, 'escaped');
     assert.equal(s.phase, 'finished'); capture('completion');
     return frames;
   } finally { disposePhysics(s); }
