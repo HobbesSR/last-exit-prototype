@@ -181,10 +181,9 @@ for (const threads of [false, true]) {
         held.set(state.tick, state);
         return { tick: state.tick, asked };
       });
-      await until(() => fast.datagrams.length >= 3, 'fast frames');
+      await until(() => fast.datagrams.length >= 3 && fast.has('slow'), 'fast frames and the slow layers on the stream');
       const whole = next();
       assert.deepEqual(whole.map(m => m.asked), whole.map(() => null), 'whole until acknowledged');
-      assert.ok(fast.has('slow'), 'the slow layers on the stream');
       assert.ok(!fast.frames.some(f => f.phase === 'live'), 'no live `state` for it');
       const acked = whole.at(-1).tick;
       h.service.acknowledge(fast.session, acked);
