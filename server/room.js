@@ -270,7 +270,7 @@ export function createRoom({
     if (client.playerId && state.waiting) return { map: state.waiting.map, state: waitingView(state.waiting, client.playerId), roster: waitingSeats(state.waiting), constants: waitingConstants() };
     if (!state.match || !state.started) return { map: null, state: null, roster: state.seats.seatMetadata(), constants: null };
     const constants = state.match.constants();
-    if (client.playerId) { const frame = state.match.frame(); return { map: state.match.payloadMap('live'), state: state.match.project(frame, client.playerId), roster: state.match.seatMetadata(frame), constants }; }
+    if (client.playerId) { const frame = state.match.frame(); return { map: state.match.payloadMap('live', frame), state: state.match.project(frame, client.playerId), roster: state.match.seatMetadata(frame), constants }; }
     // A spectator is shown the delayed frame; the dev view the present one.
     const frame = client.dev ? state.match.frame() : spectatorFrame(state);
     return { map: state.match.payloadMap('spectator', frame), state: state.match.project(frame, null), roster: state.match.seatMetadata(frame), constants };

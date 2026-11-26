@@ -270,12 +270,18 @@ export class TickFrames {
   /** The events of the last completed tick, as its frame carries them. */
   events(): GameEvent[] { return structuredClone(this.#stage.events) as GameEvent[]; }
 
+  /** The players' records alone, as `records` gives them: what a room's roster reads (who holds a place, and its status). */
+  players(): Record<string, unknown>[] {
+    const ids = this.ctx.ids;
+    return this.s.players.map((p, slot) => this.#player(slot, this.#actors.get(ids.actorAtSlot[slot]!)!, this.#at.get(ids.actorAtSlot[slot]!)));
+  }
+
   /** The store's records, whole: the players (bodiless ones at their last place), the ground in its order, the rest by ID. */
   records(): FrameRecords {
     const tick = this.#tick, ctx = this.ctx;
     return {
       tick,
-      players: this.s.players.map((p, slot) => this.#player(slot, this.#actors.get(ctx.ids.actorAtSlot[slot]!)!, this.#at.get(ctx.ids.actorAtSlot[slot]!))),
+      players: this.players(),
       items: [...this.#ground.items],
       projectiles: [...this.#projectiles].sort((a, b) => a[0] - b[0]).map(([id, p]) => projectileOf(ctx, id, p, tick)),
       gates: this.#gates.map(g => ({ ...g })),

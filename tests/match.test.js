@@ -13,6 +13,7 @@ import { replaceItem } from '../shared/simulation/ground-items.ts';
 import { setDoor } from '../shared/simulation/doors.ts';
 import { openArea } from './helpers/arena.js';
 import { readServerMessage } from '../shared/wire-schema.ts';
+import { stateOf } from '../shared/simulation/tick.ts';
 
 const content = () => ({ ...structuredClone(contentById('content-7')), roster: { contestants: ['A'], gladiators: [] } });
 const arena = (x = 0, y = 0) => ({ width: x + 600, height: y + 400, playableArea: openArea(x + 600, y + 400, 100),
@@ -108,6 +109,39 @@ test('prepared map payloads match detached map queries at live and historical bo
     assert.throws(() => match.payloadMap('spectator', finalFrame), /disposed/);
     assert.equal(match.map().items[0].x, 420);
     assert.equal(match.snapshot().tick, finalFrame.tick);
+  } finally { match.dispose(); }
+});
+
+// After the start the game holds the roster, never the match's state (27.2 "Test API"). Each stale write below is one the
+// mirror used to overwrite and that no longer reaches anything (review 1108 on #1355).
+test('a started match seats joins and builds the live map from the core, not from the game', async () => {
+  const fourContestants = { ...content(), roster: { contestants: ['A', 'B', 'C', 'D'], gladiators: [] } };
+  const map = { ...arena(200), gates: [{ id: 'gate', x: 700, y: 100, w: 20, h: 20, kind: 'door', open: false, locked: false }],
+    spawns: [{ x: 100, y: 100 }, { x: 100, y: 300 }, { x: 300, y: 100 }, { x: 300, y: 300 }], items: [{ id: 'cell', x: 500, y: 200, kind: 'cell', charge: 0 }] };
+  const match = await createMatch(1, undefined, map, fourContestants), game = match.diagnosticState;
+  try {
+    game.players[0].status = 'eliminated';
+    match.start(); match.advance();
+    // c0 is eliminated in the core. The game's record is made to say otherwise, as an elimination after the start leaves it.
+    game.players[0].status = 'active';
+    assert.equal(match.openPlaces('contestant'), 3);
+    assert.equal(match.join('live', 'contestant').id, 'live');
+    assert.equal(game.players[1].id, 'live', 'a join takes the first place the core holds active, not an eliminated one');
+    // Two recorded joins in one tick take two places: the first's change of controller counts at once.
+    const join = id => ({ type: 'join', id, role: 'contestant', kit: game.players[2].kit, name: id });
+    assert.equal(match.replay([join('r1'), join('r2')]), true);
+    assert.deepEqual(stateOf(game).players.map(p => [p.id, p.status]), [['c0', 'eliminated'], ['live', 'active'], ['r1', 'active'], ['r2', 'active']]);
+    assert.equal(match.openPlaces('contestant'), 0);
+    assert.equal(match.join('late', 'contestant'), null, 'no active place of the role is left to take');
+
+    replaceItem(game, game.items[0], { ...game.items[0], x: 999 });
+    setDoor(game, 0, { open: true });
+    const [held] = stateOf(game).items, live = match.payloadMap('live', match.frame());
+    assert.deepEqual([live.items[0].id, live.items[0].x, live.items[0].y], [held.id, held.x, held.y], 'the live map has each item where the match has it');
+    assert.equal(live.gates[0].open, false, 'and each gate as the match has it');
+    assert.deepEqual(match.map().items.map(i => i.x), [held.x]);
+    game.traps.push({ id: 'stale-trap', x: 20, y: 20 });
+    assert.deepEqual(match.map().traps, match.frame().traps, 'the map query has the traps as the match has them');
   } finally { match.dispose(); }
 });
 

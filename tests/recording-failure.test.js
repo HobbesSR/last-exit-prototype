@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
+import { stateOf } from '../shared/simulation/tick.ts';
 
 for (const failure of ['start', 'append', 'async']) test(`${failure} recording failure leaves inputs, viewers and other rooms live`, async () => {
   const errors = []; let failing, fail, appends = 0, aborts = 0;
@@ -20,11 +21,12 @@ for (const failure of ['start', 'append', 'async']) test(`${failure} recording f
     // Guards the setup, not the server: the injected failure must land on `room`, or the test would pass vacuously.
     assert.equal(failing, room.id, 'the first room is the failing one');
     if (failure === 'async') { fail(new Error('async failed')); fail(new Error('duplicate failure')); }
-    const player = room.game.players.find(p => p.id === owner.session.playerId);
-    const x = player.x;
+    // `stateOf` is the match's state as of its last tick (docs/27.2 "Test API"); read it again after the tick.
+    const xOf = () => stateOf(room.game).players.find(p => p.id === owner.session.playerId).x;
+    const x = xOf();
     owner.send({ type: 'input', seq: 1, x: 1 }); h.wake(50);
     assert.equal(room.match.tick, 1); assert.equal(other.room.match.tick, 1);
-    assert.ok(player.x > x, 'player input continues after recording failure');
+    assert.ok(xOf() > x, 'player input continues after recording failure');
     assert.equal(room.inputs.length, 0, 'discard recording commands after failure');
     assert.equal(owner.messages.filter(m => m.type === 'replay-status').length, 1);
     assert.equal(owner.messages.some(m => m.type === 'error'), false);

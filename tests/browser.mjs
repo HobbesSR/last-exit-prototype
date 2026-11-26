@@ -8,6 +8,7 @@ import { checkClientControllers } from './client-controllers.mjs';
 import { checkContentPresentation } from './content-presentation.mjs';
 import { checkReloadControls } from './reload-controls.mjs';
 import { createMapGenerator } from '../server/map-generator.js';
+import { stateOf } from '../shared/simulation/tick.ts';
 import { readArchive } from './helpers/recordings.js';
 import { canOccupy } from '../shared/movement.ts';
 
@@ -52,22 +53,25 @@ const failableMaps = (seed, size) => {
 // fixtures arrange initial state before start and use committed teleports for moves between live witnesses.
 const { server, base, browser } = await serveWithBrowser({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps, roomThreads: false });
 const errors = [];
+/** A started room's record of `player` as of its last tick: the match's state, not the room's game (docs/27.2 "Test API"). */
+const onServer = (room, player) => stateOf(room.game).players.find(p => p.id === player.id);
 /** Wait until a player has stopped moving on the server and the page shows them where they stopped. */
-async function settled(page, player, timeout = 10000) {
+async function settled(page, room, player, timeout = 10000) {
   let last = null;
   for (let waited = 0; waited < timeout; waited += 100) {
-    const now = { x: player.x, y: player.y }, shown = await page.evaluate(() => window.arenaDebug().me);
+    const { x, y } = onServer(room, player), now = { x, y }, shown = await page.evaluate(() => window.arenaDebug().me);
     if (last && last.x === now.x && last.y === now.y && Math.hypot(shown.x - now.x, shown.y - now.y) < 1) return now;
     last = now; await new Promise(resolve => setTimeout(resolve, 100));
   }
-  assert.fail(`player never settled: server ${JSON.stringify({ x: player.x, y: player.y })}`);
+  assert.fail(`player never settled: server ${JSON.stringify(last)}`);
 }
 async function warp(room, player, { x, y }) {
   const radius = room.game.content.actorPhysics.geometry[player.role].bodyRadius;
   assert.ok(canOccupy(room.game.map, x, y, radius), `fixture warp point ${x},${y} must be clear`);
   assert.ok(room.match.teleport(player.id, x, y));
   for (let i = 0; i < 100; i++) {
-    if (Math.hypot(player.x - Math.round(x), player.y - Math.round(y)) < 1) return;
+    const at = onServer(room, player);
+    if (Math.hypot(at.x - Math.round(x), at.y - Math.round(y)) < 1) return;
     await new Promise(resolve => setTimeout(resolve, 20));
   }
   assert.fail(`warp did not reach ${x},${y}`);
@@ -718,7 +722,8 @@ try {
   await warp(geometryRoom, lurker, { x: 15560, y: 6300 });
 
   await visionPage.waitForFunction(id => window.arenaDebug().me.x > 14900 && window.arenaDebug().actors.find(a => a.id === id)?.visible, lurker.id);
-  assert.ok(Math.hypot(lurker.x - runner.x, lurker.y - runner.y) > 620, 'visible actor is beyond the former circular cutoff');
+  const [lurkerAt, runnerAt] = [onServer(geometryRoom, lurker), onServer(geometryRoom, runner)];
+  assert.ok(Math.hypot(lurkerAt.x - runnerAt.x, lurkerAt.y - runnerAt.y) > 620, 'visible actor is beyond the former circular cutoff');
   await visionPage.screenshot({ path: 'test-results/viewport-visibility.png' });
   await warp(geometryRoom, runner, geometryGame.map.chargers[1]);
   await visionPage.waitForFunction(() => window.arenaDebug().me.inventory?.[1]?.charge === 99);
@@ -759,7 +764,7 @@ try {
   await warp(artRoom, artPlayer, indoors);
   // The body may be separated out of a partition, so wait for wherever it settles rather than for the
   // exact spot: rooms have random seeds, so which buildings put loot against a partition varies.
-  await settled(artPage, artPlayer);
+  await settled(artPage, artRoom, artPlayer);
   await artPage.waitForTimeout(150);
   await artPage.screenshot({ path: 'test-results/ruins.png' });
   // The roof fades away rather than vanishing, so wait for it to finish (#291).
@@ -776,7 +781,8 @@ try {
   await artPage.keyboard.press('KeyE');
   await artPage.keyboard.down(approach.key); await artPage.waitForTimeout(850); await artPage.keyboard.up(approach.key);
   await artPage.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible === false, interior.id);
-  assert.ok(artPlayer.x > interior.x && artPlayer.x < interior.x + interior.w && artPlayer.y > interior.y && artPlayer.y < interior.y + interior.h,
+  const walkedIn = onServer(artRoom, artPlayer);
+  assert.ok(walkedIn.x > interior.x && walkedIn.x < interior.x + interior.w && walkedIn.y > interior.y && walkedIn.y < interior.y + interior.h,
     'opened door and walked into a real building');
   // The art scene is a room of its own, so end its match: a finished room frees its slot under the room cap.
   await artPage.getByRole('button', { name: 'Replays', exact: true }).click();
@@ -834,7 +840,7 @@ try {
   const wallBox = inside(walled).find(o => o.w >= 8 && o.h >= 24);
   const wallPlayer = wallGame.players.find(p => p.id === wallRoom.playerId) || wallGame.players[0];
   await warp(server.rooms.get(wallRoom.id), wallPlayer, { x: walled.x + walled.w / 2, y: walled.y + walled.h / 2 });
-  await settled(wallPage, wallPlayer);
+  await settled(wallPage, server.rooms.get(wallRoom.id), wallPlayer);
   await wallPage.waitForFunction(id => {
     const d = window.arenaDebug();
     return d.roofs.some(roof => roof.id === id && !roof.visible)

@@ -1,4 +1,4 @@
-import { mergeGateGeometry } from '../shared/relational-frame.ts';
+import { hydrateFrame, mergeGateGeometry } from '../shared/relational-frame.ts';
 import { TICK_RECORDING_SCHEMA } from '../shared/recording.ts';
 import { playerSlot, seatMetadata } from '../shared/simulation/relations.ts';
 import { createGameRecord, createGame, disposePhysics, joinGame, playerView, snapshot, synchronizePhysics } from '../shared/simulation.ts';
@@ -32,11 +32,18 @@ const connectionPlayer = (game, id) => {
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 export const BOT_PLANNER_VERSION = 1;
 
-// Who holds which place, over any game's roster: the match's own, or a lobby's before its map exists.
-function seatsOf(game, reconcile = () => {}) {
+// Who holds which place, over any game's roster: the match's own, or a lobby's before its map exists. Who controls a
+// place is the game player's `bot`, which joins, resumes and leaves change at once (the receive boundary's, #1346).
+// Whether it is active is `statuses()`, per slot: the game's players' until the match starts, then the core's, from the
+// frame store's records (docs/27.2 "The room-facing match").
+// A place is open while a bot holds it, for a joining player to take over. Counting and admission use this one rule.
+function openSlots(game, statuses, role) {
+  const status = statuses();
+  return game.players.flatMap((p, slot) => p.bot && p.role === role && status[slot] === 'active' ? [slot] : []);
+}
+function seatsOf(game, reconcile = () => {}, statuses = () => game.players.map(p => p.status)) {
   const capacity = role => role === 'gladiator' ? game.content.roster.gladiators.length : game.content.roster.contestants.length;
-  // A place is open while a bot holds it, for a joining player to take over.
-  const openPlaces = role => game.players.filter(p => p.bot && p.status === 'active' && p.role === role).length;
+  const openPlaces = role => openSlots(game, statuses, role).length;
   const seats = {
     /** Whether this match's content offers a kit, rather than whatever the process happens to ship. */
     hasKit: kit => Object.hasOwn(game.content.kits, kit),
@@ -129,24 +136,28 @@ export async function createMatch(seed, size, map, content = defaultContent(), {
 function matchOf(game, payloads, wire, navigation, setupItems) {
   // Outward IDs for live payload items; recordings keep internal IDs (26).
   const outward = items => { const mapped = wireItemRecords(items, wire); if (mapped !== items) shareItemPublication(items, mapped); return mapped; };
-  const seats = seatsOf(game, () => synchronizePhysics(game));
   let live, spent = [], botWords = new Float64Array(), discontinuities = [], disposedFrame;
+  // After the start the game holds the roster and the receive boundary's state, never the match's status (27.2 "Test API").
+  const statuses = () => (disposedFrame?.players ?? live?.frames.players() ?? game.players).map(p => p.status);
+  const seats = seatsOf(game, () => synchronizePhysics(game), statuses);
   const started = () => {
     if (disposedFrame) throw new Error('match disposed');
     if (!live) {
-      live = createTickSession(game, wire, navigation.pointer, { mirror: true });
+      live = createTickSession(game, wire, navigation.pointer);
       navigation.release();
     }
     return live;
   };
   // A live join binds a bot's seat to the new player's label, which the next tick's join observation then carries.
+  // The place is chosen as open places are counted (`openSlots`), so availability and admission are one selection
+  // (review 1108). A recorded join's controller change is the game's at once, so two joins in one tick take two places.
   const relabel = (id, role, kit, name) => {
-    const p = joinGame(game, id, role, kit, name);
+    const [slot] = openSlots(game, statuses, role);
+    const p = slot === undefined ? null : joinGame(game, id, role, kit, name, slot);
     if (!p) return null;
-    const slot = playerSlot(game, id), ids = live.match.ids;
+    const ids = live.match.ids;
     const previous = ids.playerOfActor.get(ids.actorAtSlot[slot]);
     ids.bindPlayer(slot, id);
-    live.mirror.relabel(previous, id);
     live.frames.relabel(previous, id);
     return p;
   };
@@ -159,6 +170,9 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     discontinuities = t?.discontinuities ?? [];
     return t && frames.frame();
   };
+  /** A frame's gates over the map's geometry, its items each at its place (a body's pose where it has one), and its traps. */
+  const dynamicOf = frame => ({ gates: mergeGateGeometry({ gates: publishGates(game) }, frame.gates), items: hydrateFrame(frame).items,
+    traps: frame.traps });
   const capture = (privateRoutes = false) => {
     if (disposedFrame) {
       const frame = structuredClone(disposedFrame);
@@ -281,21 +295,25 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     project: (frame, id) => playerView(game, frame, id, wire),
     /** What a client predicts with that never changes in this match (24.3 proposal 3): sent with the map. */
     constants: () => predictionConstants(game.version, game.content.actorPhysics),
-    map: () => structuredClone(wholeMap(game, { gates: mergeGateGeometry({ gates: publishGates(game) }), items: publishItems(game) })),
+    map: () => structuredClone(wholeMap(game, live ? dynamicOf(capture()) : { gates: mergeGateGeometry({ gates: publishGates(game) }), items: publishItems(game) })),
     /** Detached immutable payload data; ordinary map queries above remain writable copies. */
     payloadMap(kind, frame) {
       if (!payloads) throw new Error('match disposed');
       // The map whole, in its own field order, so the payload's JSON is what it was when the map held its stores (#1211).
-      const source = wholeMap(game, { gates: mergeGateGeometry({ gates: publishGates(game) }, kind === 'spectator' ? frame.gates : undefined),
-        items: kind === 'recording' ? publishItems(game) : outward(kind === 'spectator' ? frame.items : publishItems(game)),
+      // A spectator's map takes its gates and items from the delayed frame it is shown, whose item poses its bodies carry.
+      // Once started, a player's takes them from `frame`, by default the current one, with every item at its place: the
+      // game's are its setup's (docs/27.2 "Test API"). The recording's is the opening state (26).
+      const shown = kind === 'live' && live ? dynamicOf(frame ?? live.frames.frame()) : undefined;
+      const source = wholeMap(game, { gates: shown?.gates ?? mergeGateGeometry({ gates: publishGates(game) }, kind === 'spectator' ? frame.gates : undefined),
+        items: kind === 'recording' ? publishItems(game) : outward(shown?.items ?? (kind === 'spectator' ? frame.items : publishItems(game))),
         ...(kind !== 'recording' ? { traps: [] } : {}) });
       return payloads.read(source, { publicMap: kind !== 'recording', itemsJson, gatesJson });
     },
     end({ strand = false } = {}) {
       live?.frames.end({ strand });
       game.phase = 'finished';
-      if (strand) for (const p of game.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded';
+      if (strand && !live) for (const p of game.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded';
     },
-    result: () => ({ ticks: game.tick, escaped: game.players.filter(p => p.status === 'escaped').length })
+    result: () => ({ ticks: game.tick, escaped: statuses().filter(status => status === 'escaped').length })
   };
 }

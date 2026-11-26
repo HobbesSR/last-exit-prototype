@@ -5,7 +5,6 @@ import { TickFrames } from './tick-frame.ts';
 import type { FrameRecords } from './tick-frame.ts';
 import { TickKnowledge } from './tick-knowledge.ts';
 import { createTickMatch } from './tick-match.ts';
-import { TickMirror } from './tick-mirror.ts';
 import { stepTick } from './tick-step.ts';
 import { contextOf } from './tick-records.ts';
 import { disposePhysics as disposeSetup } from './physics-runtime.ts';
@@ -13,18 +12,17 @@ import { snapshot as setupSnapshot } from './visibility.ts';
 import type { WireIds } from './wire-ids.ts';
 
 /**
- * Start the authority after the caller finishes arranging the match's initial state. A room asks for the `mirror`,
- * whose roster it still reads until #1346; an in-process game runs without it and is read through `stateOf` (#1345).
- * Either way every player's knowledge is written for `playerView` until #1343.
+ * Start the authority after the caller finishes arranging the match's initial state. No session runs the mirror: a room
+ * reads its roster from the frame store (#1346) and an in-process game is read through `stateOf` (#1345). Every player's
+ * knowledge is written for `playerView` until #1343.
  */
-export function createTickSession(game: Game, wire?: WireIds, navigation?: number, { mirror: mirrored = false } = {}) {
+export function createTickSession(game: Game, wire?: WireIds, navigation?: number) {
   const match = createTickMatch(game, navigation);
   try {
-    const mirror = mirrored ? new TickMirror(game, match) : null;
-    const knowledge = mirror?.knowledge ?? new TickKnowledge(game, match, contextOf(game, match));
+    const knowledge = new TickKnowledge(game, match, contextOf(game, match));
     const frames = new TickFrames(game, match);
     framesByGame.set(game, frames);
-    return { match, mirror, knowledge, boundary: new TickBoundary(game, match, wire), frames };
+    return { match, mirror: null, knowledge, boundary: new TickBoundary(game, match, wire), frames };
   } catch (error) { match.dispose(); throw error; }
 }
 
