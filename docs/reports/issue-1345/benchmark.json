@@ -1,0 +1,854 @@
+{
+ "method": "node tests/bench-phase-three.mjs --cache=test-results/1344-bench-map.v8 [--root=<git archive 3fab6ba2>] [--traps]; runs in the order listed",
+ "base": "git archive 3fab6ba2 (main, the 42.79 point), core-wasm.generated.ts copied from this tree",
+ "runs": [
+  {
+   "run": "1-base",
+   "root": "git archive 3fab6ba2",
+   "cache": "test-results/1344-bench-map.v8",
+   "seed": 4217,
+   "size": "24x12",
+   "warmTicks": 300,
+   "timedTicks": 600,
+   "rounds": 5,
+   "withTraps": false,
+   "groundFraction": 1,
+   "mapSha256": "b13d673b8b5fc101dca36b2b2d27cbc9d15c525a281a902d0b9f5b7a95c37ebe",
+   "results": [
+    {
+     "round": 1,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 2.020362166666667,
+     "labels": {
+      "sim.step": 1.7852118333333087,
+      "sim.snapshot": 0.22960849999997662,
+      "sim.tick.memory": 0.03407140468224129
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 2,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8672659999999996,
+     "labels": {
+      "sim.step": 1.6876354999999754,
+      "sim.snapshot": 0.1747233333333649,
+      "sim.tick.memory": 0.02804765886288392
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 3,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8793491666666644,
+     "labels": {
+      "sim.step": 1.6978976666666918,
+      "sim.snapshot": 0.17684799999996054,
+      "sim.tick.memory": 0.028884113712358588
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 4,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8571586666666675,
+     "labels": {
+      "sim.step": 1.6810820000001332,
+      "sim.snapshot": 0.17129549999996016,
+      "sim.tick.memory": 0.02848060200658529
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 5,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8526876666666674,
+     "labels": {
+      "sim.step": 1.6775745000000946,
+      "sim.snapshot": 0.17025783333339253,
+      "sim.tick.memory": 0.028126421404613515
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    }
+   ],
+   "medianLabels": {
+    "sim.snapshot": 0.1747233333333649,
+    "sim.step": 1.6876354999999754,
+    "sim.tick.memory": 0.02848060200658529
+   },
+   "medianMeanTickAndSnapshotMs": 1.8672659999999996,
+   "medianSimActionsMeanMs": null,
+   "medianSimActionsCoreMeanMs": null,
+   "medianSimActionsMinusCoreMs": null,
+   "contention": {
+    "wallMs": 34775.1417,
+    "selfCpuMs": 40249,
+    "otherBusyShare": 0.0985,
+    "contended": false,
+    "threshold": 0.25
+   }
+  },
+  {
+   "run": "2-change",
+   "root": "this branch",
+   "cache": "test-results/1344-bench-map.v8",
+   "seed": 4217,
+   "size": "24x12",
+   "warmTicks": 300,
+   "timedTicks": 600,
+   "rounds": 5,
+   "withTraps": false,
+   "groundFraction": 1,
+   "mapSha256": "b13d673b8b5fc101dca36b2b2d27cbc9d15c525a281a902d0b9f5b7a95c37ebe",
+   "results": [
+    {
+     "round": 1,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.9507878333333337,
+     "labels": {
+      "sim.step": 1.7219103333333305,
+      "sim.snapshot": 0.22370983333335212,
+      "sim.tick.memory": 0.04540016722407273
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 2,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.840725999999998,
+     "labels": {
+      "sim.step": 1.6658230000000307,
+      "sim.snapshot": 0.1697918333332685,
+      "sim.tick.memory": 0.03294381270901746
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 3,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8372403333333387,
+     "labels": {
+      "sim.step": 1.6637821666666848,
+      "sim.snapshot": 0.1687601666666463,
+      "sim.tick.memory": 0.029992307692274733
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 4,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8470931666666668,
+     "labels": {
+      "sim.step": 1.6734184999999948,
+      "sim.snapshot": 0.1687615000000854,
+      "sim.tick.memory": 0.030414548495002882
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 5,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8288615000000088,
+     "labels": {
+      "sim.step": 1.6595158333333286,
+      "sim.snapshot": 0.16423016666683302,
+      "sim.tick.memory": 0.03193093645494929
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    }
+   ],
+   "medianLabels": {
+    "sim.snapshot": 0.1687615000000854,
+    "sim.step": 1.6658230000000307,
+    "sim.tick.memory": 0.03193093645494929
+   },
+   "medianMeanTickAndSnapshotMs": 1.840725999999998,
+   "medianSimActionsMeanMs": null,
+   "medianSimActionsCoreMeanMs": null,
+   "medianSimActionsMinusCoreMs": null,
+   "contention": {
+    "wallMs": 34381.98,
+    "selfCpuMs": 40328,
+    "otherBusyShare": 0.0988,
+    "contended": false,
+    "threshold": 0.25
+   }
+  },
+  {
+   "run": "3-change-t",
+   "root": "this branch",
+   "cache": "test-results/1344-bench-map.v8",
+   "seed": 4217,
+   "size": "24x12",
+   "warmTicks": 300,
+   "timedTicks": 600,
+   "rounds": 5,
+   "withTraps": true,
+   "groundFraction": 1,
+   "mapSha256": "b13d673b8b5fc101dca36b2b2d27cbc9d15c525a281a902d0b9f5b7a95c37ebe",
+   "results": [
+    {
+     "round": 1,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.7896793333333334,
+     "labels": {
+      "sim.step": 1.5587830000000076,
+      "sim.snapshot": 0.22588966666663812,
+      "sim.tick.memory": 0.043897826086958046
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 2,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.7662998333333326,
+     "labels": {
+      "sim.step": 1.5567599999999766,
+      "sim.snapshot": 0.2036951666666452,
+      "sim.tick.memory": 0.04115434782608438
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 3,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.6767248333333373,
+     "labels": {
+      "sim.step": 1.481670833333392,
+      "sim.snapshot": 0.1902883333333557,
+      "sim.tick.memory": 0.024077759197426715
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 4,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.6707561666666637,
+     "labels": {
+      "sim.step": 1.4814653333333323,
+      "sim.snapshot": 0.18477483333340083,
+      "sim.tick.memory": 0.02329598662212916
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 5,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.6814880000000023,
+     "labels": {
+      "sim.step": 1.4910124999999363,
+      "sim.snapshot": 0.18570766666671262,
+      "sim.tick.memory": 0.023398327759234817
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    }
+   ],
+   "medianLabels": {
+    "sim.snapshot": 0.1902883333333557,
+    "sim.step": 1.4910124999999363,
+    "sim.tick.memory": 0.024077759197426715
+   },
+   "medianMeanTickAndSnapshotMs": 1.6814880000000023,
+   "medianSimActionsMeanMs": null,
+   "medianSimActionsCoreMeanMs": null,
+   "medianSimActionsMinusCoreMs": null,
+   "contention": {
+    "wallMs": 33807.4312,
+    "selfCpuMs": 39094,
+    "otherBusyShare": 0.0817,
+    "contended": false,
+    "threshold": 0.25
+   }
+  },
+  {
+   "run": "4-base-t",
+   "root": "git archive 3fab6ba2",
+   "cache": "test-results/1344-bench-map.v8",
+   "seed": 4217,
+   "size": "24x12",
+   "warmTicks": 300,
+   "timedTicks": 600,
+   "rounds": 5,
+   "withTraps": true,
+   "groundFraction": 1,
+   "mapSha256": "b13d673b8b5fc101dca36b2b2d27cbc9d15c525a281a902d0b9f5b7a95c37ebe",
+   "results": [
+    {
+     "round": 1,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.8638583333333343,
+     "labels": {
+      "sim.step": 1.586877333333335,
+      "sim.snapshot": 0.27143199999999373,
+      "sim.tick.memory": 0.032119565217399636
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 2,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.7405395000000015,
+     "labels": {
+      "sim.step": 1.5232334999999755,
+      "sim.snapshot": 0.21173666666672034,
+      "sim.tick.memory": 0.025573745819402336
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 3,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.7189319999999984,
+     "labels": {
+      "sim.step": 1.519413333333335,
+      "sim.snapshot": 0.19490766666675577,
+      "sim.tick.memory": 0.023370735785890755
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 4,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.7176801666666688,
+     "labels": {
+      "sim.step": 1.5187643333333471,
+      "sim.snapshot": 0.19423049999997602,
+      "sim.tick.memory": 0.024864214046841315
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 5,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.7109613333333376,
+     "labels": {
+      "sim.step": 1.5098763333334015,
+      "sim.snapshot": 0.19615499999982908,
+      "sim.tick.memory": 0.023018729096895375
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    }
+   ],
+   "medianLabels": {
+    "sim.snapshot": 0.19615499999982908,
+    "sim.step": 1.519413333333335,
+    "sim.tick.memory": 0.024864214046841315
+   },
+   "medianMeanTickAndSnapshotMs": 1.7189319999999984,
+   "medianSimActionsMeanMs": null,
+   "medianSimActionsCoreMeanMs": null,
+   "medianSimActionsMinusCoreMs": null,
+   "contention": {
+    "wallMs": 34712.5066,
+    "selfCpuMs": 41265,
+    "otherBusyShare": 0.0937,
+    "contended": false,
+    "threshold": 0.25
+   }
+  },
+  {
+   "run": "5-change",
+   "root": "this branch",
+   "cache": "test-results/1344-bench-map.v8",
+   "seed": 4217,
+   "size": "24x12",
+   "warmTicks": 300,
+   "timedTicks": 600,
+   "rounds": 5,
+   "withTraps": false,
+   "groundFraction": 1,
+   "mapSha256": "b13d673b8b5fc101dca36b2b2d27cbc9d15c525a281a902d0b9f5b7a95c37ebe",
+   "results": [
+    {
+     "round": 1,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.9896143333333338,
+     "labels": {
+      "sim.step": 1.7486733333333389,
+      "sim.snapshot": 0.23544499999998605,
+      "sim.tick.memory": 0.047916722408037314
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 2,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8645006666666692,
+     "labels": {
+      "sim.step": 1.6860693333333165,
+      "sim.snapshot": 0.1732084999999764,
+      "sim.tick.memory": 0.03427123745815915
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 3,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.868120999999998,
+     "labels": {
+      "sim.step": 1.6938916666666712,
+      "sim.snapshot": 0.1693969999999596,
+      "sim.tick.memory": 0.03065434782617488
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 4,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8596193333333333,
+     "labels": {
+      "sim.step": 1.686678833333208,
+      "sim.snapshot": 0.16795016666666318,
+      "sim.tick.memory": 0.030490468227412366
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 5,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8485926666666637,
+     "labels": {
+      "sim.step": 1.677190000000046,
+      "sim.snapshot": 0.1662884999999854,
+      "sim.tick.memory": 0.03150083612013609
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    }
+   ],
+   "medianLabels": {
+    "sim.snapshot": 0.1693969999999596,
+    "sim.step": 1.686678833333208,
+    "sim.tick.memory": 0.03150083612013609
+   },
+   "medianMeanTickAndSnapshotMs": 1.8645006666666692,
+   "medianSimActionsMeanMs": null,
+   "medianSimActionsCoreMeanMs": null,
+   "medianSimActionsMinusCoreMs": null,
+   "contention": {
+    "wallMs": 35158.081399999995,
+    "selfCpuMs": 41781,
+    "otherBusyShare": 0.1063,
+    "contended": false,
+    "threshold": 0.25
+   }
+  },
+  {
+   "run": "6-base",
+   "root": "git archive 3fab6ba2",
+   "cache": "test-results/1344-bench-map.v8",
+   "seed": 4217,
+   "size": "24x12",
+   "warmTicks": 300,
+   "timedTicks": 600,
+   "rounds": 5,
+   "withTraps": false,
+   "groundFraction": 1,
+   "mapSha256": "b13d673b8b5fc101dca36b2b2d27cbc9d15c525a281a902d0b9f5b7a95c37ebe",
+   "results": [
+    {
+     "round": 1,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 2.0149083333333326,
+     "labels": {
+      "sim.step": 1.767222833333341,
+      "sim.snapshot": 0.24223000000000258,
+      "sim.tick.memory": 0.032724581939791914
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 2,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.952403333333332,
+     "labels": {
+      "sim.step": 1.7428169999999894,
+      "sim.snapshot": 0.2033474999999756,
+      "sim.tick.memory": 0.03378896321072622
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 3,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8701763333333352,
+     "labels": {
+      "sim.step": 1.6861695000000085,
+      "sim.snapshot": 0.17934383333332637,
+      "sim.tick.memory": 0.029230936454893212
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 4,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8698016666666688,
+     "labels": {
+      "sim.step": 1.686853333333341,
+      "sim.snapshot": 0.17822299999993144,
+      "sim.tick.memory": 0.028577591973233236
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 5,
+     "meanActive": 7.6433333333333335,
+     "meanGround": 813.33,
+     "meanTickAndSnapshotMs": 1.8790020000000005,
+     "labels": {
+      "sim.step": 1.695857500000008,
+      "sim.snapshot": 0.17820233333335636,
+      "sim.tick.memory": 0.029532608695746396
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    }
+   ],
+   "medianLabels": {
+    "sim.snapshot": 0.17934383333332637,
+    "sim.step": 1.695857500000008,
+    "sim.tick.memory": 0.029532608695746396
+   },
+   "medianMeanTickAndSnapshotMs": 1.8790020000000005,
+   "medianSimActionsMeanMs": null,
+   "medianSimActionsCoreMeanMs": null,
+   "medianSimActionsMinusCoreMs": null,
+   "contention": {
+    "wallMs": 34786.5779,
+    "selfCpuMs": 40421,
+    "otherBusyShare": 0.0864,
+    "contended": false,
+    "threshold": 0.25
+   }
+  },
+  {
+   "run": "7-change-t",
+   "root": "this branch",
+   "cache": "test-results/1344-bench-map.v8",
+   "seed": 4217,
+   "size": "24x12",
+   "warmTicks": 300,
+   "timedTicks": 600,
+   "rounds": 5,
+   "withTraps": true,
+   "groundFraction": 1,
+   "mapSha256": "b13d673b8b5fc101dca36b2b2d27cbc9d15c525a281a902d0b9f5b7a95c37ebe",
+   "results": [
+    {
+     "round": 1,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.8482998333333338,
+     "labels": {
+      "sim.step": 1.5894938333333373,
+      "sim.snapshot": 0.2535024999999951,
+      "sim.tick.memory": 0.045714046822744735
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 2,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.710605666666667,
+     "labels": {
+      "sim.step": 1.5047795000000102,
+      "sim.snapshot": 0.20062933333329055,
+      "sim.tick.memory": 0.0375188963210753
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 3,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.6798135000000003,
+     "labels": {
+      "sim.step": 1.4855786666667214,
+      "sim.snapshot": 0.18955100000001038,
+      "sim.tick.memory": 0.024476588628760548
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 4,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.6638880000000003,
+     "labels": {
+      "sim.step": 1.4717425000000548,
+      "sim.snapshot": 0.1875716666666752,
+      "sim.tick.memory": 0.023442307692310954
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 5,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.6450571666666656,
+     "labels": {
+      "sim.step": 1.4605318333334072,
+      "sim.snapshot": 0.17995116666654212,
+      "sim.tick.memory": 0.02200852842824769
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    }
+   ],
+   "medianLabels": {
+    "sim.snapshot": 0.18955100000001038,
+    "sim.step": 1.4855786666667214,
+    "sim.tick.memory": 0.024476588628760548
+   },
+   "medianMeanTickAndSnapshotMs": 1.6798135000000003,
+   "medianSimActionsMeanMs": null,
+   "medianSimActionsCoreMeanMs": null,
+   "medianSimActionsMinusCoreMs": null,
+   "contention": {
+    "wallMs": 33698.3433,
+    "selfCpuMs": 39061,
+    "otherBusyShare": 0.0718,
+    "contended": false,
+    "threshold": 0.25
+   }
+  },
+  {
+   "run": "8-base-t",
+   "root": "git archive 3fab6ba2",
+   "cache": "test-results/1344-bench-map.v8",
+   "seed": 4217,
+   "size": "24x12",
+   "warmTicks": 300,
+   "timedTicks": 600,
+   "rounds": 5,
+   "withTraps": true,
+   "groundFraction": 1,
+   "mapSha256": "b13d673b8b5fc101dca36b2b2d27cbc9d15c525a281a902d0b9f5b7a95c37ebe",
+   "results": [
+    {
+     "round": 1,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.817820333333334,
+     "labels": {
+      "sim.step": 1.5666105000000092,
+      "sim.snapshot": 0.2456645000000223,
+      "sim.tick.memory": 0.02924214046823753
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 2,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.7284903333333326,
+     "labels": {
+      "sim.step": 1.518471166666665,
+      "sim.snapshot": 0.20482116666670966,
+      "sim.tick.memory": 0.024896989966548797
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 3,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.730690333333332,
+     "labels": {
+      "sim.step": 1.5243573333333733,
+      "sim.snapshot": 0.20174333333334288,
+      "sim.tick.memory": 0.024040468227477477
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 4,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.6916383333333336,
+     "labels": {
+      "sim.step": 1.4987105000000216,
+      "sim.snapshot": 0.18845300000002074,
+      "sim.tick.memory": 0.02414163879594133
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    },
+    {
+     "round": 5,
+     "meanActive": 7.11,
+     "meanGround": 813.4983333333333,
+     "meanTickAndSnapshotMs": 1.687845499999991,
+     "labels": {
+      "sim.step": 1.4889094999999604,
+      "sim.snapshot": 0.19425216666655615,
+      "sim.tick.memory": 0.02175819398002338
+     },
+     "live": "live",
+     "simActionsMeanMs": null,
+     "simActionsCoreMeanMs": null,
+     "simActionsMinusCoreMs": null
+    }
+   ],
+   "medianLabels": {
+    "sim.snapshot": 0.20174333333334288,
+    "sim.step": 1.518471166666665,
+    "sim.tick.memory": 0.02414163879594133
+   },
+   "medianMeanTickAndSnapshotMs": 1.7284903333333326,
+   "medianSimActionsMeanMs": null,
+   "medianSimActionsCoreMeanMs": null,
+   "medianSimActionsMinusCoreMs": null,
+   "contention": {
+    "wallMs": 34353.945999999996,
+    "selfCpuMs": 39735,
+    "otherBusyShare": 0.0917,
+    "contended": false,
+    "threshold": 0.25
+   }
+  }
+ ]
+}
