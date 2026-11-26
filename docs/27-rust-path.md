@@ -685,7 +685,8 @@ tuned, so now is the time."
      tests ([27.2](27.2-tick-architecture.md#build-approach)).
   5. Phase 2 and discovery into the core (#1215).
   6. Projection and recording from the core, a test API with on-demand snapshots, and then the mirror's removal
-     (#1284).
+     (#1284). For #1343, projection stays TypeScript over the core's output
+     ([27.2](27.2-tick-architecture.md#projection-and-knowledge-1343-1352)) until the Rust projection follow-up (#1357).
 - **Its cost in the meantime.** The flip's measured cost (42.76) is accepted until then, and 42.76 is the
   tracker's baseline.
 - **Behaviour.** It may change where the design's conflict rules say so. The fixtures are re-baselined
