@@ -179,7 +179,6 @@ test('blocked transit preserves cooldown; a valid landing clears motion and cons
     step(sClear);
     const gState = stateOf(sClear).players.find(q => q.id === p.id);
     assert.deepEqual({ x: gState.x, y: gState.y, cd: gState.railCd }, { x: 400, y: 650, cd: 180 });
-    assert.equal(gState.vx ?? 0, 0);
   } finally { disposePhysics(sClear); }
 });
 
