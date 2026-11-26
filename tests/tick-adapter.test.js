@@ -503,6 +503,8 @@ test("the core's projection keeps arranged effects aligned and redecides when a 
     // out of reach (review 1134).
     const before = frame;
     frames.end({ strand: true });
+    // The room's path refuses it: the core decided the frame as it was before the finish (review 1136).
+    assert.equal(projection.project(before, near.id), undefined, "the room's path does not decide a capture from before the finish");
     const earlier = playerView(s, before, near.id);
     assert.ok(!earlier.players.some(p => p.playerIdx === 1), 'the capture before the finish keeps its active contestant out of reach');
     assert.deepEqual(earlier, projectView(viewSourceOf(s), before, near.id));

@@ -74,15 +74,17 @@ export function stepGame(s: Game) {
 }
 
 /**
- * One viewer's view of a game's current frame as a room projects it (docs/27.2 "The core's projection"): for a started game
- * the frame store's own frame, decided by the core for a seated player and by the rules for anyone else; for an unstarted
- * game the rules' view of its setup. The frame is made here, so no caller can edit what the core decides (review 1135).
+ * These viewers' views of a game's current frame as a room projects them (docs/27.2 "The core's projection"). For a started
+ * game it is the frame store's own frame, made once, with every seated player decided by the core in one call and anyone
+ * else by the rules, as a broadcast does. For an unstarted game it is the rules' views of its setup. The frame is made here,
+ * so no caller can edit what the core decides (review 1135).
  */
-export function currentView(s: Game, id: PlayerId | null | undefined, wire: WireIds = wireIds()) {
+export function currentViews(s: Game, ids: readonly (PlayerId | null | undefined)[], wire: WireIds = wireIds()) {
   const session = sessions.get(s);
-  if (!session) return projectView(viewSourceOf(s), setupSnapshot(s), id, wire);
+  if (!session) { const frame = setupSnapshot(s); return ids.map(id => projectView(viewSourceOf(s), frame, id, wire)); }
   const frame = session.frames.frame();
-  return session.projection.project(frame, id, wire) ?? projectView(session.view, frame, id, wire);
+  session.projection.decide(ids.filter((id): id is PlayerId => id != null));
+  return ids.map(id => session.projection.project(frame, id, wire) ?? projectView(session.view, frame, id, wire));
 }
 
 export function snapshot(s: Game) {

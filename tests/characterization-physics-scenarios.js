@@ -3,7 +3,7 @@
 // updated by tests; the fixture README says when recapturing is a decision and how to do it.
 import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
-import { createGame, currentView, disposePhysics, joinGame, setInput, snapshot, stateOf } from '../shared/simulation.ts';
+import { createGame, currentViews, disposePhysics, joinGame, setInput, snapshot, stateOf } from '../shared/simulation.ts';
 import { startGame, stepGame } from '../shared/simulation/tick.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
@@ -56,7 +56,7 @@ export async function botTrace(seed, arena, observe = () => {}, prepareMap = map
       digest.update(JSON.stringify(completed));
       digest.update(JSON.stringify(frame));
       // Each view is the room's: the core decides the store's own current frame (#1357, review 1135).
-      for (const id of VIEWERS) digest.update(JSON.stringify(currentView(s, id)));
+      for (const view of currentViews(s, VIEWERS)) digest.update(JSON.stringify(view));
       if (s.tick % 100 === 0 || s.phase !== 'live') {
         chunks.push({ tick: s.tick, hash: digest.digest('hex') }); digest = createHash('sha256');
       }
@@ -118,7 +118,7 @@ export async function scriptedTrace(arena, observe = () => {}) {
     const capture = label => {
       const frame = snapshot(s);
       observe(s, frame);
-      frames.push({ label, frame, core: match.snapshot(), views: ['human', rival.id, g.id, 'spectator'].map(id => currentView(s, id)) });
+      frames.push({ label, frame, core: match.snapshot(), views: currentViews(s, ['human', rival.id, g.id, 'spectator']) });
     };
     const carried = (id, kind, fields) => ({ kind, ...fields, instanceId: id, lineageId: id });
     p.inventory = [carried('pistol', 'weapon', { weaponType: 'pistol', ammo: 7 }), carried('med-a', 'med', { count: 2 }),
