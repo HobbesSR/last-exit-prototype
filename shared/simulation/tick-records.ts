@@ -8,10 +8,9 @@ import type { Actor, CarriedItem, Discontinuity, Equipment, Fact, GroundItem as 
 import type { MatchIds, TickMatch } from './tick-match.ts';
 import type { BodyId, EventParticipant, Game, GroundItem, InventoryItem, Player, PlayerStatus, Projectile, Trap, Vec2 } from '../types.ts';
 
-// The one mapping from the core's records to the records Node's frames and mirror hold (docs/27.2 "Frames"): actors to
-// player fields, ground and carried items, traps and projectiles, T's facts to effects and events, and bodies' lifetimes.
-// Pure functions over a match's `Context`, so the frame store (`tick-frame.ts`) and the mirror (`tick-mirror.ts`) read the
-// same output the same way.
+// The one mapping from the core's records to the records Node's frames hold (docs/27.2 "Frames"): actors to player
+// fields, ground and carried items, traps and projectiles, T's facts to effects and events, and bodies' lifetimes. Pure
+// functions over a match's `Context`, which the frame store (`tick-frame.ts`) and knowledge (`tick-knowledge.ts`) call.
 //
 // - **Countdowns.** The core keeps deadlines; a record keeps the countdown fields its readers know, each the deadline less
 //   the record's tick, never below zero (the loader's inverse).
