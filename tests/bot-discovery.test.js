@@ -10,7 +10,7 @@ import { cellIndexAt, createDiscovery, discover, attachDiscovery } from '../shar
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { arena } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';
-import { stagePhysics } from './helpers/scenario.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 import { initCoreSight } from '../shared/sight-core.ts';
 import { adoptPackedTiles } from '../shared/free-space.ts';
 import { createKnowledgePlanner, packedTilesFor } from '../shared/navigation/knowledge.ts';
@@ -90,7 +90,7 @@ test('a bot that knows of nothing it needs explores', async t => {
   const start = { x: p.x, y: p.y }, before = p.discovery.discovered.size;
   for (let i = 0; i < 300; i++) step(s);
   assert.ok(p.discovery.discovered.size > before + 10, `discovered ${before} → ${p.discovery.discovered.size}`);
-  assert.ok(Math.hypot(p.x - start.x, p.y - start.y) > 500, 'it went looking');
+  assert.ok(Math.hypot(now(s, p).x - start.x, now(s, p).y - start.y) > 500, 'it went looking');
 });
 
 test('a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review)', async t => {

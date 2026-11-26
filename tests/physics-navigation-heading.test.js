@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, disposePhysics, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectBotIntent } from '../shared/simulation/bots.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { visiblePoint, visibleTo } from '../shared/simulation/visibility.ts';
 import { VISION } from '../shared/sight.ts';
 import { openArea } from './helpers/arena.js';
+import { tracked } from './helpers/scenario.js';
 
 function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, obstacles = [], items = [] } = {}) {
   const map = { seed: 448, width: 800, height: 800,
@@ -60,23 +61,29 @@ test('collectBotIntent preserves heading when a bot queues with no enemy', async
     items: [{ id: 'goal-cell', kind: 'cell', charge: 0, x: 500, y: 400 }] });
   const s = await createGame(448, map, content);
   try {
-    const [p, blocker] = s.players;
+    // The planner is a retained rule over a `Game`, which a started game no longer keeps current (docs/27.2 "Test API"):
+    // a copy of the game whose players and clock follow the match (`tracked`) is what it reads.
+    // The core plans for its own bots, so the roster's bot is driven by hand with the planner's intent, as the old step did.
+    s.players[0].bot = false;
+    s.players[1].bot = false;
+    const t = tracked(s), v = t.v;
+    const [p, blocker] = v.players;
     p.heading = 1.25;
-    blocker.bot = false;
     let queued = false, closest = Infinity, lastIntent;
     for (let i = 0; i < 120; i++) {
       p.heading = 1.25;
-      const intent = collectBotIntent(s, p);
+      const intent = collectBotIntent(v, p);
       lastIntent = intent.input;
       closest = Math.min(closest, blocker.x - p.x);
       if (intent.input.x === 0 && intent.input.y === 0) {
-        assert.ok(blocker.x - p.x <= actorRadius(s, p) + actorRadius(s, blocker) + 5,
+        assert.ok(blocker.x - p.x <= actorRadius(v, p) + actorRadius(v, blocker) + 5,
           `bot queued before reaching actor contact: gap=${blocker.x - p.x}`);
         assert.equal(intent.input.aim, p.heading);
         queued = true;
         break;
       }
-      step(s);
+      assert.ok(setInput(s, p.id, { seq: s.tick + 1, ...intent.input }));
+      t.step();
     }
     assert.equal(queued, true, `the actual bot planner queued at contact; closest=${closest}, last=${JSON.stringify(lastIntent)}`);
   } finally { disposePhysics(s); }

@@ -2,7 +2,7 @@ import { renderedPlayerView as playerView } from './helpers/relational.js';
 import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameRecord, createGame, disposePhysics, joinGame, setInput, step, snapshot, visibleTo, couldSee, synchronizePhysics, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, joinGame, setInput, stateOf, step, snapshot, visibleTo, couldSee, synchronizePhysics, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
 import { startGame } from '../shared/simulation/tick.ts';
 import { moveBody } from '../shared/movement.ts';
 import { lineClear } from '../shared/sight.ts';
@@ -11,7 +11,7 @@ import { collectInstanceEquipment, carriedCell } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { arena, openField } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';
-import { stagePhysics } from './helpers/scenario.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 
 // The core rules on the shipped content and its engine (#920). Scenes stand on open ground, people rather than
 // bots unless a case says otherwise; cases that need a whole match play the room arena, and cases that never
@@ -41,7 +41,7 @@ test('the committed frame shows a keyed door unlocked and open', async () => {
     assert.deepEqual(snapshot(s).gates[0], { gateIdx: 0, open: false, locked: true });
     input(s, holder, { interact: true });
     assert.deepEqual(snapshot(s).gates[0], { gateIdx: 0, open: true, locked: false });
-    assert.equal(holder.keys, 0);
+    assert.equal(now(s, holder).keys, 0);
   } finally { disposePhysics(s); }
 });
 
@@ -59,14 +59,14 @@ test('clients cannot send positions or amplify movement and stale inputs are rej
     const x = p.x;
     input(plain.s, plain.players[0], { x: 1 });
     input(s, p, { x: 999, y: 0, hp: 9999, keys: 9999, position: { x: 3000 } });
-    assert.ok(p.x > x, 'it moves');
-    assert.equal(p.x, plain.players[0].x, 'exactly as far as a unit input');
-    assert.equal(p.hp, plain.players[0].hp); assert.equal(p.keys, 0);
+    assert.ok(now(s, p).x > x, 'it moves');
+    assert.equal(now(s, p).x, now(plain.s, plain.players[0]).x, 'exactly as far as a unit input');
+    assert.equal(now(s, p).hp, now(plain.s, plain.players[0]).hp); assert.equal(now(s, p).keys, 0);
     assert.equal(setInput(s, p.id, { seq: p.lastSeq, x: 1 }), false);
     // A starved queue repeats the movement for a while, then the body comes to rest.
     for (let i = 0; i < 60; i++) step(s);
-    const stopped = p.x; step(s); assert.equal(p.x, stopped);
-    input(s, p, { x: { toString: null, valueOf: null }, y: [999] }); step(s); assert.equal(p.x, stopped);
+    const stopped = now(s, p).x; step(s); assert.equal(now(s, p).x, stopped);
+    input(s, p, { x: { toString: null, valueOf: null }, y: [999] }); step(s); assert.equal(now(s, p).x, stopped);
   } finally { disposePhysics(s); disposePhysics(plain.s); }
 });
 
@@ -181,25 +181,25 @@ test('each input is spent by exactly one tick, so a press is neither merged away
     assert.ok(setInput(s, p.id, { seq: 1, skill: true }));
     assert.ok(setInput(s, p.id, { seq: 2, x: 1 }));
     step(s);
-    assert.ok(p.cooldown > 0, 'the first tick spent the press');
+    assert.ok(now(s, p).cooldown > 0, 'the first tick spent the press');
     assert.equal(p.lastSeq, 1, 'and acknowledged only the input it actually spent');
-    const cooldown = p.cooldown, x = p.x;
+    const cooldown = now(s, p).cooldown, x = now(s, p).x;
     step(s);
     assert.equal(p.lastSeq, 2, 'the next tick spends the next input');
-    assert.ok(p.x > x, 'which carried the movement that would have been merged away');
-    assert.ok(p.cooldown < cooldown, 'and the press did not fire a second time');
+    assert.ok(now(s, p).x > x, 'which carried the movement that would have been merged away');
+    assert.ok(now(s, p).cooldown < cooldown, 'and the press did not fire a second time');
     // A starved queue repeats movement so a single late packet does not stop the player dead, but it
     // never re-fires a one-shot: losing a packet must not spend a charge the player never asked for.
-    const held = p.cooldown;
+    const held = now(s, p).cooldown;
     for (let i = 0; i < 3; i++) step(s);
-    assert.equal(p.cooldown, held - 3, 'a repeated input carries no press');
+    assert.equal(now(s, p).cooldown, held - 3, 'a repeated input carries no press');
   } finally { disposePhysics(s); }
   const { s: s2, players: [p2] } = await scene([contestant(1160), contestant(300)], openField(2400, { gates: [door('door', 1200, Y)] }).map);
   try {
     assert.ok(setInput(s2, p2.id, { seq: 1, interact: true }));
     assert.ok(setInput(s2, p2.id, { seq: 2, x: 0 }));
     step(s2);
-    assert.equal(s2.map.gates[0].open, true, 'the same holds for interact');
+    assert.equal(stateOf(s2).gates[0].open, true, 'the same holds for interact');
   } finally { disposePhysics(s2); }
 });
 

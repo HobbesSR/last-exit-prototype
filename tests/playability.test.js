@@ -2,7 +2,7 @@ import { startGame } from '../shared/simulation/tick.ts';
 import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { disposePhysics, step, setInput, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
+import { disposePhysics, step, setInput, stateOf, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { ItemMemory } from '../shared/simulation/bot-memory.ts';
@@ -12,7 +12,7 @@ import { lineClear, reachClear } from '../shared/sight.ts';
 import { buildingAt, roofConceals } from '../shared/view.ts';
 import { carriedCell } from '../shared/equipment.ts';
 import { openField } from './helpers/arena.js';
-import { everywhere, stagePhysics } from './helpers/scenario.js';
+import { everywhere, now, stagePhysics } from './helpers/scenario.js';
 
 // On the shipped content and its engine (#920 stage 2b). The streets generator's own property (connected, loopy
 // street mazes with separated spawns) went with the legacy generator; the engine pins a map's obstacles and gates at
@@ -61,8 +61,8 @@ test('a body pushed at a window stays behind it, whichever role it is', async ()
     await dispose(await stage(hall(), [{ role, bot: false, ...INSIDE }]), ({ s, players: [p] }) => {
       hold(s, p, { y: -1 }, 20);
       const gap = HALL.y + WALL + actorRadius(s, p);
-      assert.ok(p.y >= gap - 0.5, `${role} stays behind the window: ${p.y} against ${gap}`);
-      assert.ok(p.y < INSIDE.y, `${role} reached it`);
+      assert.ok(now(s, p).y >= gap - 0.5, `${role} stays behind the window: ${now(s, p).y} against ${gap}`);
+      assert.ok(now(s, p).y < INSIDE.y, `${role} reached it`);
     });
   }
 });
@@ -78,8 +78,8 @@ test('a pipe run, like a window, passes sight and bullets but blocks movement an
   for (const role of ['contestant', 'gladiator']) {
     await dispose(await stage(structuredClone(map), [{ role, bot: false, ...north }]), ({ s, players: [p] }) => {
       hold(s, p, { y: 1 }, 20);
-      assert.ok(p.y < spot.y - 6, `${role} stays behind the pipe: ${p.y}`);
-      assert.ok(p.y > north.y, `${role} reached it`);
+      assert.ok(now(s, p).y < spot.y - 6, `${role} stays behind the pipe: ${now(s, p).y}`);
+      assert.ok(now(s, p).y > north.y, `${role} reached it`);
     });
   }
 });
@@ -91,15 +91,17 @@ test('a door blocks both bodies until it is opened, and then admits them', async
   const { x, y } = { x: DOOR.x + DOOR.w / 2, y: HALL.y + HALL.h - WALL / 2 };
   for (const role of ['contestant', 'gladiator']) {
     await dispose(await stage(hall({ door: true }), [{ role, bot: false, x, y: y + 55 }]), ({ s, players: [p] }) => {
-      const door = s.map.gates[0], r = actorRadius(s, p);
+      // The map's gates are the start's; the gates as of the last tick are the core's records.
+      const gatesNow = () => ({ ...s.map, gates: s.map.gates.map((g, i) => ({ ...g, ...stateOf(s).gates[i] })) });
+      const r = actorRadius(s, p);
       assert.equal(canOccupy(s.map, x, y, r), false, 'closed');
       hold(s, p, { y: -1 }, 10);
-      assert.ok(p.y > y, `${role} stopped at the closed door: ${p.y}`);
+      assert.ok(now(s, p).y > y, `${role} stopped at the closed door: ${now(s, p).y}`);
       press(s, p, { interact: true });
-      assert.equal(door.open, true);
-      assert.equal(canOccupy(s.map, x, y, r), true, 'open');
+      assert.equal(stateOf(s).gates[0].open, true);
+      assert.equal(canOccupy(gatesNow(), x, y, r), true, 'open');
       hold(s, p, { y: -1 }, 30);
-      assert.ok(p.y < y - WALL, `${role} went through: ${p.y}`);
+      assert.ok(now(s, p).y < y - WALL, `${role} went through: ${now(s, p).y}`);
     });
   }
 });
@@ -112,8 +114,8 @@ test('dropping a selected charged cell frees a slot, preserves charge, and does 
     // delay fails.
     const droppedOn = s.tick + 1, free = droppedOn + HZ;
     press(s, p, { drop: true });
-    assert.equal(carriedCell(p), null);
-    const cell = s.items.find(i => i.kind === 'cell');
+    assert.equal(carriedCell(now(s, p)), null);
+    const cell = stateOf(s).items.find(i => i.kind === 'cell');
     assert.equal(cell.charge, CELL_CHARGE_TICKS);
     assert.equal(cell.pickupAfter, free, 'the record carries the one-second delay');
     assert.ok(canOccupy(s.map, cell.x, cell.y, actorRadius(s, p)));
@@ -122,11 +124,11 @@ test('dropping a selected charged cell frees a slot, preserves charge, and does 
     let collected = null;
     for (let i = 0; i < 3 * HZ && !collected; i++) {
       step(s);
-      if (carriedCell(p)) collected = s.tick;
+      if (carriedCell(now(s, p))) collected = s.tick;
       else assert.ok(s.tick < free, `refused on tick ${s.tick}, past the delay`);
     }
     assert.equal(collected, free, `collected on the first tick the delay allows, not ${collected}`);
-    assert.equal(carriedCell(p).charge, CELL_CHARGE_TICKS);
+    assert.equal(carriedCell(now(s, p)).charge, CELL_CHARGE_TICKS);
   });
 });
 
@@ -137,16 +139,17 @@ test('gladiators killed by contestants respawn after twenty seconds with upgrade
     Object.assign(g, { hp: 1, maxHp: 400, level: 3, kills: 2 });
     p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', instanceId: itemId(s, 'pistol-1'), lineageId: itemId(s, 'pistol-1') };
     setInput(s, p.id, { seq: p.lastSeq + 1, attack: true, aim: 0 });
-    for (let i = 0; i < 10 && g.status !== 'respawning'; i++) step(s);
-    assert.equal(g.status, 'respawning'); assert.equal(p.kills, 1);
-    p.input = {};
-    assert.equal(g.respawnAt - s.tick, s.content.gladiatorRespawnTicks); assert.equal(s.content.gladiatorRespawnTicks, 20 * 20, 'twenty seconds');
+    for (let i = 0; i < 10; i++) { step(s); if (now(s, g).status === 'respawning') break; }
+    assert.equal(now(s, g).status, 'respawning'); assert.equal(now(s, p).kills, 1);
+    assert.ok(setInput(s, p.id, { seq: p.lastSeq + 1, attack: false }));
+    assert.equal(now(s, g).respawnAt - s.tick, s.content.gladiatorRespawnTicks); assert.equal(s.content.gladiatorRespawnTicks, 20 * 20, 'twenty seconds');
     const killed = s.tick;
     while (s.tick < killed + s.content.gladiatorRespawnTicks - 1) step(s);
-    assert.equal(g.status, 'respawning'); step(s);
-    assert.equal(g.status, 'active'); assert.equal(g.hp, 400); assert.equal(g.level, 3); assert.equal(g.kills, 2);
-    assert.ok(g.x > s.hazardX + 400);
-    assert.ok(s.players.filter(q => q.role === 'contestant').every(q => Math.hypot(q.x - g.x, q.y - g.y) > 1000));
+    assert.equal(now(s, g).status, 'respawning'); step(s);
+    const back = now(s, g);
+    assert.equal(back.status, 'active'); assert.equal(back.hp, 400); assert.equal(back.level, 3); assert.equal(back.kills, 2);
+    assert.ok(back.x > stateOf(s).hazardX + 400);
+    assert.ok(stateOf(s).players.filter(q => q.role === 'contestant').every(q => Math.hypot(q.x - back.x, q.y - back.y) > 1000));
   });
 });
 
@@ -158,8 +161,8 @@ test('loot across a window cannot be collected even at pickup distance', async (
     await dispose(await stage(map, [{ role: 'contestant', bot: false, ...at }]), ({ s, players: [p] }) => {
       assert.ok(Math.hypot(at.x - s.items[0].x, at.y - s.items[0].y) <= 38, 'within pickup distance');
       step(s);
-      assert.equal(!!carriedCell(p), collects);
-      assert.equal(s.items.length, collects ? 0 : 1);
+      assert.equal(!!carriedCell(now(s, p)), collects);
+      assert.equal(stateOf(s).items.length, collects ? 0 : 1);
     });
   }
 });
@@ -171,8 +174,8 @@ test('bots open a building door to retrieve an indoor objective', async () => {
   await dispose(await stage(map, [{ role: 'contestant', x: at.x, y: at.y, knows: { surveyed: everywhere(map), gates: new Map([['door', { open: false, locked: false }]]) } }]), ({ s, players: [p] }) => {
     // The roof hides it from outside, so the bot is told it saw it earlier (#230).
     p.discovery.items = ItemMemory.from([[cell.id, { ...cell }]]);
-    for (let i = 0; i < 300 && !carriedCell(p); i++) step(s);
-    assert.equal(s.map.gates[0].open, true); assert.ok(carriedCell(p));
+    for (let i = 0; i < 300; i++) { step(s); if (carriedCell(now(s, p))) break; }
+    assert.equal(stateOf(s).gates[0].open, true); assert.ok(carriedCell(now(s, p)));
   });
 });
 
@@ -180,13 +183,13 @@ test('contestant bots initiate close-range fights after opening grace without be
   await dispose(await stage(openField(LENGTH).map, [{ role: 'contestant', x: 1500, y: Y, knows: 'everything' }, { role: 'contestant', bot: false, x: 1585, y: Y }]), ({ s, players: [p, target] }) => {
     p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', instanceId: itemId(s, 'pistol-1'), lineageId: itemId(s, 'pistol-1') };
     for (let i = 0; i < 5; i++) step(s);
-    assert.equal(target.hp, 100, 'opening grace avoids an immediate spawn fight');
+    assert.equal(now(s, target).hp, 100, 'opening grace avoids an immediate spawn fight');
     while (s.tick < 30 * HZ) step(s);
-    const nearX = p.x + (p.x < s.map.width - 150 ? 85 : -85);
-    assert.ok(startGame(s).boundary.teleport(target.id, [nearX, p.y]));
+    const nearX = now(s, p).x + (now(s, p).x < s.map.width - 150 ? 85 : -85);
+    assert.ok(startGame(s).boundary.teleport(target.id, [nearX, now(s, p).y]));
     step(s);
     for (let i = 0; i < 20; i++) step(s);
-    assert.ok(target.hp < 100, 'nearby contestant is challenged without retaliation trigger');
+    assert.ok(now(s, target).hp < 100, 'nearby contestant is challenged without retaliation trigger');
   });
 });
 
@@ -194,7 +197,7 @@ test('armed contestant bots create distance from a nearby hunter instead of walk
   await dispose(await stage(openField(LENGTH).map, [{ role: 'contestant', x: 1500, y: Y, knows: 'everything' }, { role: 'gladiator', bot: false, x: 1600, y: Y }]), ({ s, players: [p, hunter] }) => {
     p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 48, instanceId: itemId(s, 'pistol-1'), lineageId: itemId(s, 'pistol-1') };
     for (let i = 0; i < 12; i++) step(s);
-    assert.ok(Math.hypot(p.x - hunter.x, p.y - hunter.y) > 150);
-    assert.ok(hunter.hp < hunter.maxHp, 'retreating bot can still return fire');
+    assert.ok(Math.hypot(now(s, p).x - now(s, hunter).x, now(s, p).y - now(s, hunter).y) > 150);
+    assert.ok(now(s, hunter).hp < now(s, hunter).maxHp, 'retreating bot can still return fire');
   });
 });

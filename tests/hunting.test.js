@@ -5,7 +5,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { estimatedFrontX, giveUpSweep, hasEvidenceFurtherRight, noteHunterTarget, sweepTarget, transitPlan } from '../shared/simulation/hunting.ts';
 import { hearShot } from '../shared/simulation/hearing.ts';
 import { arena } from './helpers/arena.js';
-import { gunfight, run, stagePhysics } from './helpers/scenario.js';
+import { gunfight, now, run, stagePhysics } from './helpers/scenario.js';
 
 // Gladiator bots sweep regions ahead of the wall and take transit when it is quicker (#683, #681, 14 "Gladiator bots").
 
@@ -46,7 +46,7 @@ test('with no one seen and nothing heard, a gladiator sweeps the regions ahead, 
     actors: [{ role: 'gladiator', x: 300, y: 288 }, { role: 'contestant', bot: false, x: 3750, y: 60 }] });
   try {
     const centres = [1152, 1920, 2688].map(x => ({ x, y: 288 })), reached = centres.map(() => null);
-    run(s, { ticks: 900, trace: s => centres.forEach((c, i) => { if (reached[i] === null && Math.hypot(g.x - c.x, g.y - c.y) < 400) reached[i] = s.tick; }) });
+    run(s, { ticks: 900, trace: s => centres.forEach((c, i) => { if (reached[i] === null && Math.hypot(now(s, g).x - c.x, now(s, g).y - c.y) < 400) reached[i] = s.tick; }) });
     assert.ok(reached.every(t => t !== null), `reached ${reached}`);
     assert.ok(reached[0] < reached[1] && reached[1] < reached[2], `in order ${reached}`);
   } finally { disposePhysics(s); }
@@ -150,7 +150,7 @@ test('bot-match under content-12 runs cleanly and uses transit', async () => {
   });
   try {
     let usedTransit = false;
-    run(s, { ticks: 120, trace: s => { if (g.status === 'transit' || g.railCd > 0) usedTransit = true; } });
+    run(s, { ticks: 120, trace: s => { if (now(s, g).status === 'transit' || now(s, g).railCd > 0) usedTransit = true; } });
     assert.equal(s.tick, 120, 'ran 120 ticks cleanly');
     assert.ok(usedTransit, 'gladiator at exit planned and used transit toward the front');
   } finally { disposePhysics(s); }

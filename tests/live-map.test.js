@@ -3,7 +3,8 @@ import { identifyItems } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultContent } from '../shared/simulation/content.ts';
-import { createGame, disposePhysics, setInput, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, stateOf, step } from '../shared/simulation.ts';
+import { now } from './helpers/scenario.js';
 import { generatedMap } from './helpers/room-harness.js';
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -26,13 +27,13 @@ test('live sites allow charging, extraction, and safe hunter redeployment', asyn
   const press = (player, input) => { setInput(game, player.id, { seq: player.lastSeq + 1, ...input }); step(game); };
   press(contestant, { interact: true });
   for (let i = 0; i < game.content.cellChargeTicks; i++) step(game);
-  assert.equal(contestant.inventory[0].charge, game.content.cellChargeTicks);
+  assert.equal(now(game, contestant).inventory[0].charge, game.content.cellChargeTicks);
   assert.ok(boundary.teleport(contestant.id, [map.exit.x, map.exit.y]));
   step(game);
   press(contestant, { interact: true });
-  assert.equal(contestant.status, 'escaped');
-  assert.equal(game.slots, 2);
-  assert.equal(hunter.status, 'active');
+  assert.equal(now(game, contestant).status, 'escaped');
+  assert.equal(stateOf(game).slots, 2);
+  assert.equal(now(game, hunter).status, 'active');
   // On a station, to the engine's single-precision positions.
-  assert.ok(map.stations.some(site => distance(hunter, site) < 0.01));
+  assert.ok(map.stations.some(site => distance(now(game, hunter), site) < 0.01));
 });

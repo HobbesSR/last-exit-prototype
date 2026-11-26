@@ -10,7 +10,7 @@ import { canOccupy, moveBody } from '../../shared/movement.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
 import { DEPOT_WAREHOUSE_APPEARANCE } from '../../map/micro/strategies/depot.ts';
 import { resolveBuildingAppearance } from '../../public/appearance.js';
-import { createGame, disposePhysics, step } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, stateOf, step } from '../../shared/simulation.ts';
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // One generation of seed 1's chain serves the cases below that read it, moved here from
@@ -40,8 +40,10 @@ test('combat-neutralized bots fill all three extraction slots on representative 
       const limit = game.content.durationTicks;
       for (let i = 0; i <= limit && game.phase === 'live'; i++) step(game);
       assert.notEqual(game.phase, 'live', `seed ${seed}: the match ended within its ${limit}-tick duration`);
-      assert.equal(game.slots, 0, `seed ${seed}: three extraction slots filled`);
-      assert.equal(game.players.filter(player => player.status === 'escaped').length, 3, `seed ${seed}: three contestants escaped`);
+      // What the match did, as of its last tick; the game itself is the arrangement it started from.
+      const end = stateOf(game);
+      assert.equal(end.slots, 0, `seed ${seed}: three extraction slots filled`);
+      assert.equal(end.players.filter(player => player.status === 'escaped').length, 3, `seed ${seed}: three contestants escaped`);
     } finally { disposePhysics(game); }
   }
 });

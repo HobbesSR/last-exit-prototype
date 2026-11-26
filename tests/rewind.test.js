@@ -8,6 +8,7 @@ import { HZ, INTERPOLATION_DELAY_TICKS } from '../shared/simulation/rules.ts';
 import { createMatch } from '../server/match.js';
 import { openField } from './helpers/arena.js';
 import { roomHarness } from './helpers/room-harness.js';
+import { now } from './helpers/scenario.js';
 
 // On the shipped content and its engine (#920). A gladiator facing +x on open ground, a contestant in reach
 // to hit, and a second contestant to the south; `away` is out of the 86 unit reach. The engine pins the map
@@ -51,7 +52,7 @@ async function swingAtPastPosition({ measured = false, obstacles = [] } = {}) {
     step(s);
     assert.ok(setInput(s, attacker.id, { seq: 1, attack: true, aim: 0 }));
     step(s);
-    hp = target.hp;
+    hp = now(s, target).hp;
   }, obstacles)();
   return hp;
 }

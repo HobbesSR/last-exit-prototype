@@ -7,7 +7,7 @@ import { hearShot } from '../shared/simulation/hearing.ts';
 import { cellCenter, cellIndexAt } from '../shared/discovery.ts';
 import { canOccupy } from '../shared/movement.ts';
 import { openField } from './helpers/arena.js';
-import { stagePhysics } from './helpers/scenario.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 import { identifyItems } from './helpers/item-identity.js';
 
 // Bots act on heard gunfire under `hearingResponse: 'temperament'` (#685, 14 "Heard gunfire").
@@ -41,7 +41,7 @@ test('a gladiator goes to where it heard a shot, long after the cue has faded', 
     try {
       assert.ok(setInput(s, shooter.id, { seq: 1, attack: true, aim: 0 }));
       let closest = Infinity;
-      for (let tick = 0; tick < 700; tick++) { step(s); closest = Math.min(closest, away(gladiator, SHOT)); }
+      for (let tick = 0; tick < 700; tick++) { step(s); closest = Math.min(closest, away(now(s, gladiator), SHOT)); }
       runs.push(closest);
     } finally { disposePhysics(s); }
   }

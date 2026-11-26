@@ -1,12 +1,13 @@
 import { startGame } from '../shared/simulation/tick.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PHYSICS_VERSION, createGame, disposePhysics, setInput, snapshot, step } from '../shared/simulation.ts';
+import { PHYSICS_VERSION, createGame, disposePhysics, setInput, snapshot, stateOf, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { dynamicNavigationWork, dynamicWaypoint, observedBlockers } from '../shared/simulation/dynamic-navigation.ts';
 import { openArea } from './helpers/arena.js';
+import { now, tracked } from './helpers/scenario.js';
 
 function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, props = [], obstacles = [], items = [] } = {}) {
   const map = { seed: 448, width: 800, height: 800,
@@ -25,12 +26,17 @@ async function game(options) {
   for (const p of s.players) p.bot = false;
   return s;
 }
-function drive(s, p, target) {
-  const at = dynamicWaypoint(s, p, target), dx = at.x - p.x, dy = at.y - p.y;
+/**
+ * The retained navigation rules read a `Game`, and a started game keeps only its roster (docs/27.2 "Test API"). This is
+ * a copy of the game whose players and clock follow the match, read through `stateOf`; call `sync()` after each step.
+ * Props are the frame's. Arrange and drive through `s`; ask the rules through `v`.
+ */
+function drive(t, p, target) {
+  const { s } = t, at = dynamicWaypoint(t.v, p, target), dx = at.x - p.x, dy = at.y - p.y;
   const length = Math.max(9, Math.hypot(dx, dy));
   assert.ok(setInput(s, p.id, { seq: s.tick + 1, x: dx / length, y: dy / length }));
-  step(s);
-  const pose = snapshot(s).bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === s.players.indexOf(p));
+  t.step();
+  const pose = snapshot(s).bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === t.v.players.indexOf(p));
   assert.ok(pose && Math.hypot(pose.x - p.x, pose.y - p.y) < 0.01,
     `actor gameplay and body pose agree: player=(${p.x},${p.y}) body=${JSON.stringify(pose)}`);
   return at;
@@ -40,17 +46,17 @@ test('physical motor detours around a sleeping rotated crate and reaches the goa
   {
     const s = await game({ props: [{ id: 'crate', profile: 'crate', x: 300, y: 400, angle: Math.PI / 4 }] });
     try {
-      const p = s.players[0], target = { x: 480, y: 400 };
+      const t = tracked(s), p = t.v.players[0], target = { x: 480, y: 400 };
       const prop = () => snapshot(s).bodies.find(b => b.owner.kind === 'prop');
-      for (let i = 0; i < 400 && !prop().sleeping; i++) step(s);
+      for (let i = 0; i < 400 && !prop().sleeping; i++) t.step();
       assert.equal(prop().sleeping, true);
-      while (s.tick % 4 !== 0) step(s);
-      const first = dynamicWaypoint(s, p, target);
+      while (s.tick % 4 !== 0) t.step();
+      const first = dynamicWaypoint(t.v, p, target);
       assert.notDeepEqual(first, target);
-      assert.ok(dynamicNavigationWork(s) > 0 && dynamicNavigationWork(s) <= 192);
+      assert.ok(dynamicNavigationWork(t.v) > 0 && dynamicNavigationWork(t.v) <= 192);
       let deviated = false;
       for (let i = 0; i < 90; i++) {
-        const at = drive(s, p, target);
+        const at = drive(t, p, target);
         if (Math.abs(at.y - 400) > 5 || Math.abs(p.y - 400) > 5) deviated = true;
       }
       assert.ok(deviated, 'sleeping crate caused a detour');
@@ -62,12 +68,12 @@ test('physical motor detours around a sleeping rotated crate and reaches the goa
 test('mixed actor radii cause a detour while loot sensors leave the straight waypoint intact', async () => {
   const s = await game({ gladiator: true, items: [{ id: 'sensor', kind: 'cell', charge: 10, x: 220, y: 400 }] });
   try {
-    const p = s.players.find(p => p.role === 'contestant'), g = s.players.find(p => p.role === 'gladiator');
+    const t = tracked(s), p = t.v.players.find(p => p.role === 'contestant'), g = t.v.players.find(p => p.role === 'gladiator');
     const goal = { x: 480, y: 400 };
-    assert.equal(observedBlockers(s, p).length, 1, 'only the larger gladiator footprint blocks');
+    assert.equal(observedBlockers(t.v, p).length, 1, 'only the larger gladiator footprint blocks');
     let deviated = false;
     for (let i = 0; i < 80; i++) {
-      const at = drive(s, p, goal);
+      const at = drive(t, p, goal);
       if (Math.abs(at.y - 400) > 5) deviated = true;
     }
     assert.ok(deviated);
@@ -78,7 +84,7 @@ test('mixed actor radii cause a detour while loot sensors leave the straight way
   finally { disposePhysics(lootOnly); }
 });
 
-test('collectBotIntent drives an actual contestant around a crate toward a cell', async () => {
+test('the core bot planner drives an actual contestant around a crate toward a cell', async () => {
   const s = await game({ props: [{ id: 'crate', profile: 'crate', x: 300, y: 400, angle: Math.PI / 6 }],
     items: [{ id: 'goal-cell', kind: 'cell', charge: 0, x: 500, y: 400 }] });
   try {
@@ -87,10 +93,10 @@ test('collectBotIntent drives an actual contestant around a crate toward a cell'
     let deviated = false;
     for (let i = 0; i < 100; i++) {
       step(s);
-      if (Math.abs(p.y - 400) > 5) deviated = true;
+      if (Math.abs(now(s, p).y - 400) > 5) deviated = true;
     }
     assert.ok(deviated, 'bot chose an actual lateral motor path');
-    assert.ok(p.x > 390, `bot advanced toward the cell: ${p.x}`);
+    assert.ok(now(s, p).x > 390, `bot advanced toward the cell: ${now(s, p).x}`);
   } finally { disposePhysics(s); }
 });
 
@@ -99,13 +105,14 @@ test('narrow corridor queues behind an actor without tunneling, then resumes whe
     { id: 'bottom', x: 100, y: 420, w: 500, h: 280 }];
   const s = await game({ spawns: [{ x: 200, y: 400 }, { x: 300, y: 400 }], obstacles });
   try {
-    const [p, blocker] = s.players, goal = { x: 500, y: 400 };
-    for (let i = 0; i < 20; i++) drive(s, p, goal);
+    const t = tracked(s), [p, blocker] = t.v.players, goal = { x: 500, y: 400 };
+    for (let i = 0; i < 20; i++) drive(t, p, goal);
     assert.ok(p.x < blocker.x - 20, `actor waited outside blocker: ${p.x}`);
     assert.ok(blocker.x - p.x < 30, `actor reached the queue instead of stopping at observation range: gap=${blocker.x - p.x}`);
     assert.ok(p.y > 390 && p.y < 410, `actor stayed inside corridor: ${p.y}`);
     assert.ok(startGame(s).boundary.teleport(blocker.id, [650, 500]));
-    for (let i = 0; i < 50; i++) drive(s, p, goal);
+    t.sync();
+    for (let i = 0; i < 50; i++) drive(t, p, goal);
     assert.ok(p.x > 390, `actor resumed after corridor cleared: ${p.x}`);
   } finally { disposePhysics(s); }
 });
@@ -154,7 +161,8 @@ test('dynamic navigation adds no snapshot fields', async () => {
     startGame(fresh);
     const beforeKeys = Object.keys(snapshot(fresh)).sort();
     assert.equal(p8.version, PHYSICS_VERSION);
-    drive(p8, p8.players[0], { x: 300, y: 400 });
+    const t = tracked(p8);
+    drive(t, t.v.players[0], { x: 300, y: 400 });
     const current = snapshot(p8);
     assert.equal(current.version, PHYSICS_VERSION);
     assert.deepEqual(Object.keys(current).sort(), beforeKeys);

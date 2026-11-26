@@ -5,7 +5,7 @@ import { disposePhysics, joinGame, setInput, step, snapshot, } from '../shared/s
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openField } from './helpers/arena.js';
 import { roomHarness } from './helpers/room-harness.js';
-import { stagePhysics } from './helpers/scenario.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 import { inputLeadFrom, MAX_INPUT_LEAD_TICKS } from '../shared/simulation/input.ts';
 
 // On the shipped content and its engine (#920): a joined contestant on open ground, so what is measured is the
@@ -38,21 +38,21 @@ test('a starved queue repeats movement', scene(({ s, p }) => {
   p.x = s.map.exit.x; p.y = s.map.exit.y;
   setInput(s, p.id, { seq: 1, x: 1, interact: true });
   step(s);
-  const afterFirst = p.x;
+  const afterFirst = now(s, p).x;
   // Nothing more arrives. Movement continues, because one late packet is far likelier than a player
   // releasing every key, but spending a charge or opening a door again would be the client's loss
   // turned into an action it never asked for.
   step(s);
-  assert.ok(p.x > afterFirst, 'held movement carries on');
+  assert.ok(now(s, p).x > afterFirst, 'held movement carries on');
 }));
 
 test('a long silence stops the player rather than repeating forever', scene(({ s, p }) => {
   setInput(s, p.id, { seq: 1, x: 1 });
   step(s);
   for (let i = 0; i < 12; i++) step(s);
-  const settled = p.x;
+  const settled = now(s, p).x;
   step(s);
-  assert.equal(p.x, settled, 'a player whose client has gone quiet comes to a stop');
+  assert.equal(now(s, p).x, settled, 'a player whose client has gone quiet comes to a stop');
 }));
 
 test('sending faster than the tick consumes is clamped to the newest intent', scene(({ s, p }) => {
@@ -140,7 +140,7 @@ test('a late stamp is discarded, never rewound, and reported to the client', sce
   assert.equal(p.receivedSeq, 1, 'though it was received');
   step(s);
   assert.equal(p.lastSeq, -1, 'no tick spends it');
-  assert.equal(p.x, x);
+  assert.equal(now(s, p).x, x);
   assert.equal(own(s, p).inputMargin, -1, 'the client is told it arrived one tick late');
 }));
 

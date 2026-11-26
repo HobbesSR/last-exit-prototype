@@ -4,11 +4,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { isDeepStrictEqual } from 'node:util';
 import { phaseThree } from '../shared/simulation/phase-three.ts';
-import { disposePhysics, setInput, step, snapshot, } from '../shared/simulation.ts';
+import { disposePhysics, setInput, stateOf, step, snapshot, } from '../shared/simulation.ts';
 import { collectInstanceEquipment, WEAPONS, SLOT_COUNT } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openField } from './helpers/arena.js';
-import { stagePhysics } from './helpers/scenario.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 
 // Equipment on the shipped content and its engine (#920): a contestant on open ground, another in sight to the north
 // and a gladiator far off, all played by the test.
@@ -44,13 +44,18 @@ test('six slots hold distinct weapons, a cell and capped utility stacks without 
   assert.equal(p.inventory.length, 6); assert.equal(collectInstanceEquipment(s, p, ground(s, { kind: 'med' })), false);
 }));
 
-test('weapons stop firing at zero ammo and matching pickups replenish without losing excess rounds', scene(({ s, p }) => {
+test('weapons stop firing at zero ammo', scene(({ s, p }) => {
   collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType: 'pistol', ammo: 1 }));
   setInput(s, p.id, { seq: 1, attack: true }); step(s);
-  assert.equal(p.inventory[0].ammo, 0); assert.equal(s.projectiles.length, 1);
+  assert.equal(now(s, p).inventory[0].ammo, 0); assert.equal(stateOf(s).projectiles.length, 1);
   for (let i = 0; i < WEAPONS.pistol.life; i++) step(s);
   setInput(s, p.id, { seq: 2, attack: true }); step(s);
-  assert.equal(s.projectiles.length, 0);
+  assert.equal(stateOf(s).projectiles.length, 0);
+}));
+
+// A unit test of the pickup rule on the arranged record: it does not step (docs/27.2 "Test API").
+test('matching pickups replenish without losing excess rounds', scene(({ s, p }) => {
+  collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType: 'pistol', ammo: 1 }));
   p.inventory[0].ammo = WEAPONS.pistol.maxAmmo - 2;
   const loot = ground(s, { kind: 'weapon', weaponType: 'pistol', ammo: 10 });
   assert.equal(collectInstanceEquipment(s, p, loot), false);
@@ -58,21 +63,26 @@ test('weapons stop firing at zero ammo and matching pickups replenish without lo
   assert.equal(collectInstanceEquipment(s, p, loot), false); assert.equal(loot.ammo, 8);
 }));
 
-test('slot moves follow selection, merge compatible stacks, swap cells and reject invalid requests', scene(({ s, p }) => {
+// The merge and rejection rules, on the arranged record (a unit test of phase three: it does not step).
+test('slot moves merge compatible stacks and reject invalid requests', scene(({ s, p }) => {
   p.inventory[0] = { kind: 'med', count: 2 }; p.inventory[1] = { kind: 'med', count: 2 };
   assert.ok(moveSlot(s, p, 0, 1)); assert.equal(p.inventory[0].count, 1); assert.equal(p.inventory[1].count, 3);
   assert.equal(moveSlot(s, p, 0, 1), false);
+}));
+
+test('slot moves follow selection and swap cells', scene(({ s, p }) => {
   p.inventory[2] = { kind: 'cell', charge: 71, instanceId: 'cell-71', lineageId: 'cell-71' };
   identifyItems(s);
   setInput(s, p.id, { seq: 1, slot: 2 }); step(s);
   setInput(s, p.id, { seq: 2, moveSlot: { from: 2, to: 5 } }); step(s);
-  assert.equal(p.selectedSlot, 5); assert.equal(p.inventory[5].charge, 71); assert.equal(p.inventory[2], null);
-  const settled = structuredClone(p.inventory);
+  let me = now(s, p);
+  assert.equal(me.selectedSlot, 5); assert.equal(me.inventory[5].charge, 71); assert.equal(me.inventory[2], null);
+  const settled = structuredClone(me.inventory);
   step(s);
-  assert.deepEqual(p.inventory, settled, 'an input a tick already spent is not applied again');
-  const before = structuredClone(p.inventory);
+  assert.deepEqual(now(s, p).inventory, settled, 'an input a tick already spent is not applied again');
+  const before = structuredClone(now(s, p).inventory);
   setInput(s, p.id, { seq: 3, moveSlot: { from: 5, to: 999 } }); step(s);
-  assert.deepEqual(p.inventory, before);
+  assert.deepEqual(now(s, p).inventory, before);
 }));
 
 test('dropped weapons keep remaining ammo and a sixth-slot item can be selected', scene(({ s, p }) => {
@@ -80,8 +90,8 @@ test('dropped weapons keep remaining ammo and a sixth-slot item can be selected'
   identifyItems(s);
   setInput(s, p.id, { seq: 1, slot: 5 }); step(s);
   setInput(s, p.id, { seq: 2, drop: true }); step(s);
-  assert.equal(p.selectedSlot, 5); assert.equal(p.inventory[5], null);
-  assert.equal(s.items.find(i => i.weaponType === 'rifle').ammo, 7);
+  assert.equal(now(s, p).selectedSlot, 5); assert.equal(now(s, p).inventory[5], null);
+  assert.equal(stateOf(s).items.find(i => i.weaponType === 'rifle').ammo, 7);
 }));
 
 test('slot selection is validated and held; firing uses the selected weapon and utilities consume charges', scene(({ s, p }) => {
@@ -89,14 +99,14 @@ test('slot selection is validated and held; firing uses the selected weapon and 
   collectInstanceEquipment(s, p, ground(s, { kind: 'med' }));
   p.hp = 50;
   setInput(s, p.id, { seq: 1, slot: 2 }); step(s);
-  assert.equal(p.selectedSlot, 2);
+  assert.equal(now(s, p).selectedSlot, 2);
   setInput(s, p.id, { seq: 2, attack: true, aim: 0 }); step(s);
-  assert.equal(s.projectiles.length, 5); assert.equal(p.attackCd, WEAPONS.scattergun.cooldown);
-  setInput(s, p.id, { seq: 3, slot: 999 }); step(s); assert.equal(p.selectedSlot, 2);
-  while (p.attackCd > 0) step(s);
+  assert.equal(stateOf(s).projectiles.length, 5); assert.equal(now(s, p).attackCd, WEAPONS.scattergun.cooldown);
+  setInput(s, p.id, { seq: 3, slot: 999 }); step(s); assert.equal(now(s, p).selectedSlot, 2);
+  while (now(s, p).attackCd > 0) step(s);
   setInput(s, p.id, { seq: 4, slot: 3 }); step(s);
   setInput(s, p.id, { seq: 5, attack: true }); step(s);
-  assert.equal(p.hp, 90); assert.equal(p.inventory[3], null); assert.equal(p.weapon, 0);
+  assert.equal(now(s, p).hp, 90); assert.equal(now(s, p).inventory[3], null); assert.equal(now(s, p).weapon, 0);
   const view = playerView(s, snapshot(s), s.players[1].id);
   assert.equal(Object.hasOwn(view.players.find(other => other.id === p.id), 'inventory'), false);
 }));

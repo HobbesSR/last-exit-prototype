@@ -1,7 +1,7 @@
 import { renderedPlayerView as playerView, renderedSnapshot } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step as stepRaw, snapshot as snapshotRaw } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, stateOf, step as stepRaw, snapshot as snapshotRaw } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectAmmo, collectInstanceEquipment as collectRaw } from '../shared/equipment.ts';
 import { registerItemLabel } from '../shared/item-instances.ts';
@@ -17,6 +17,7 @@ import { rounds } from './helpers/rounds.js';
 import { openArea } from './helpers/arena.js';
 import { readArchive } from './helpers/recordings.js';
 import { identifyItems, registeredItemId as itemId, itemLabel } from './helpers/item-identity.js';
+import { now } from './helpers/scenario.js';
 
 const AMMO = contentById('content-ammo-1');
 const arena = () => ({ width: 600, height: 400,
@@ -77,22 +78,22 @@ test('a completed reload transfers min(missing, reserve) once and keeps unused l
   const { s, p } = await fixture(t);
   p.inventory[0] = pistol(5); p.reserves.pistol = 20;
   tick(s, p, { reload: true });
-  assert.ok(p.reload);
+  assert.ok(now(s, p).reload);
   for (let i = 1; i < AMMO.reloading.weapons.pistol.reloadTicks; i++) tick(s, p, { attack: true, reload: true });
-  assert.equal(s.projectiles.length, 0, 'attack is blocked while reloading');
-  assert.deepEqual([p.inventory[0].ammo, p.reserves.pistol], [5, 20]);
+  assert.equal(stateOf(s).projectiles.length, 0, 'attack is blocked while reloading');
+  assert.deepEqual([now(s, p).inventory[0].ammo, now(s, p).reserves.pistol], [5, 20]);
   tick(s, p);
-  assert.deepEqual([p.inventory[0].ammo, p.reserves.pistol, p.reload], [12, 13, null]);
+  assert.deepEqual([now(s, p).inventory[0].ammo, now(s, p).reserves.pistol, now(s, p).reload], [12, 13, null]);
   for (let i = 0; i < 25; i++) tick(s, p);
-  assert.deepEqual([p.inventory[0].ammo, p.reserves.pistol], [12, 13], 'transferred once; no auto-reload');
+  assert.deepEqual([now(s, p).inventory[0].ammo, now(s, p).reserves.pistol], [12, 13], 'transferred once; no auto-reload');
 
   const short = await fixture(t);
   short.p.inventory[0] = pistol(5); short.p.reserves.pistol = 3;
   tick(short.s, short.p, { reload: true });
   for (let i = 0; i < 20; i++) tick(short.s, short.p);
-  assert.deepEqual([short.p.inventory[0].ammo, short.p.reserves.pistol], [8, 0], 'a short reserve loads what it has');
+  assert.deepEqual([now(short.s, short.p).inventory[0].ammo, now(short.s, short.p).reserves.pistol], [8, 0], 'a short reserve loads what it has');
   tick(short.s, short.p, { reload: true });
-  assert.equal(short.p.reload, null, 'nothing to load: no reload starts');
+  assert.equal(now(short.s, short.p).reload, null, 'nothing to load: no reload starts');
 });
 
 test('movement continues while reloading, and the reload completes on the move', async t => {
@@ -101,8 +102,8 @@ test('movement continues while reloading, and the reload completes on the move',
   const x = p.x;
   tick(s, p, { reload: true, x: 1 });
   for (let i = 0; i < 20; i++) tick(s, p, { x: 1 });
-  assert.ok(p.x > x + 50, `moved ${p.x - x}`);
-  assert.deepEqual([p.inventory[0].ammo, p.reserves.pistol], [12, 18]);
+  assert.ok(now(s, p).x > x + 50, `moved ${now(s, p).x - x}`);
+  assert.deepEqual([now(s, p).inventory[0].ammo, now(s, p).reserves.pistol], [12, 18]);
 });
 
 test('switching slots interrupts a reload and dropping ammo publishes the reserve change and pickup', async t => {
@@ -124,7 +125,8 @@ test('death drops every reserve family and the magazines as recoverable pickups'
   const { s, p, q } = await fixture(t);
   p.inventory[0] = pistol(7); p.inventory[1] = { kind: 'weapon', weaponType: 'rifle', ammo: 3, instanceId: 'r', lineageId: 'r' };
   Object.assign(p.reserves, { pistol: 40, rifle: 0, shell: 9 });
-  tick(s, p, { reload: true });
+  // The rule runs on the game itself (a started game's players are not the match), so the reload under way is arranged on it.
+  p.reload = { slot: 0, instanceId: 'gun', until: 99 };
   const before = ['pistol', 'rifle', 'shell'].map(family => rounds(s, family));
   eliminate(s, p, null);
   assert.equal(p.reload, null);
@@ -186,10 +188,11 @@ test('the owner sees reserves and reload progress; other players and older conte
   q.x = p.x + 40;
   p.inventory[0] = pistol(1); p.reserves.pistol = 9;
   tick(s, p, { reload: true });
+  const reload = now(s, p).reload;
   const frame = snapshot(s), own = playerView(s, frame, p.id), other = playerView(s, frame, q.id);
   assert.deepEqual(own.players.find(r => r.id === p.id).reserves, { pistol: 9, rifle: 0, shell: 0 });
   // Progress names the reloading slot; the item's identity is not sent (#1131 stage 3).
-  assert.deepEqual(own.players.find(r => r.id === p.id).reload, { slot: 0, until: p.reload.until });
+  assert.deepEqual(own.players.find(r => r.id === p.id).reload, { slot: 0, until: reload.until });
   const seen = other.players.find(r => r.id === p.id);
   assert.equal(seen.reserves, undefined); assert.equal(seen.reload, undefined);
   // Ground ammo keeps its family on the live wire, as in recorded frames. Frames come from the core, so the box is

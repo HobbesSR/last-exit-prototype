@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { deserialize } from 'node:v8';
 import { gunzipSync } from 'node:zlib';
+import * as simulation from '../shared/simulation.ts';
 import { createGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { attachPortalGraph } from '../shared/navigation/portal-graph.ts';
@@ -17,6 +18,9 @@ import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 const args = process.argv.slice(2), at = flag => args[args.indexOf(flag) + 1];
 if (!args.includes('--out') && !args.includes('--compare')) throw new Error('Use --out <path> or --compare <path>');
 const fixture = deserialize(gunzipSync(readFileSync('tests/fixtures/behavior-physics-1.v8.gz')));
+// After a step the game keeps only its clock and arrangement; the match is read with `stateOf` (docs/27.2 "Test API").
+// A pristine base checkout predates `stateOf`, where the game's own fields are the state, so fall back to them there.
+const stateOf = simulation.stateOf ?? (s => ({ traps: s.traps, events: s.events, projectiles: s.projectiles }));
 const KINDS = ['mine', 'turret', 'flame', 'spider'];
 const MAX_TICKS = 4000;
 
@@ -36,16 +40,20 @@ async function trace(seed) {
   const s = await createGame(seed, map, contentById('content-7'));
   try {
     for (const p of s.players) if (p.role === 'gladiator') p.viewLagTicks = 3;
-    const r = physicsRuntime(s), effects = new Set(), events = new Set(), chunks = [];
+    const r = physicsRuntime(s), effects = new Set(), events = new Set(), shots = new Set(), chunks = [];
     let digest = createHash('sha256');
     while (s.phase === 'live' && s.tick < MAX_TICKS) {
       step(s);
       const frame = snapshot(s);
-      for (const record of [frame, s.traps, r.pendingSpawns, r.pendingImpulses]) digest.update(JSON.stringify(record));
+      const state = stateOf(s);
+      // The pending queues are the old world's; the core has no such queue, so they join the digest only where they exist.
+      for (const record of [frame, state.traps, ...(simulation.stateOf ? [] : [r.pendingSpawns, r.pendingImpulses])]) digest.update(JSON.stringify(record));
       for (const id of ['c0', 'g0', 'spectator']) digest.update(JSON.stringify(playerView(s, frame, id)));
-      for (const e of s.effects) if (!effects.has(e.id)) { effects.add(e.id); if (e.kind === 'shock') counts.shock++; if (e.kind === 'grapple') counts.grapple++; }
-      for (const e of s.events) if (!events.has(e.id)) { events.add(e.id); if (e.kind === 'eliminated') counts.eliminated++; }
-      counts.turretShots += r.pendingSpawns.filter(b => b.trap).length;
+      for (const e of frame.effects ?? s.effects) if (!effects.has(e.id)) { effects.add(e.id); if (e.kind === 'shock') counts.shock++; if (e.kind === 'grapple') counts.grapple++; }
+      for (const e of state.events) if (!events.has(e.id)) { events.add(e.id); if (e.kind === 'eliminated') counts.eliminated++; }
+      // A turret shot is a trap-owned bullet new this tick: a pending spawn on the base, a new projectile record here.
+      if (simulation.stateOf) { for (const q of state.projectiles) if (q.trap && !shots.has(q.id)) { shots.add(q.id); counts.turretShots++; } }
+      else counts.turretShots += r.pendingSpawns.filter(b => b.trap).length;
       if (s.tick % 250 === 0 || s.phase !== 'live') { chunks.push({ tick: s.tick, hash: digest.digest('hex') }); digest = createHash('sha256'); }
     }
     return { ticks: s.tick, phase: s.phase, counts, chunks };

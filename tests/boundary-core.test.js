@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { disposePhysics, enqueuePhysicsAttachment, enqueuePhysicsImpulse, step, synchronizePhysics } from '../shared/simulation.ts';
+import { stepGame } from '../shared/simulation/tick.ts';
 import { canOccupy } from '../shared/movement.ts';
 import { cos, hypot, sin } from '../shared/math.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { placeInCore } from '../shared/simulation/boundary.ts';
 import { setDoor } from '../shared/simulation/doors.ts';
 import { openField } from './helpers/arena.js';
-import { stagePhysics } from './helpers/scenario.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 
 // The tick boundary's body work runs in the core (`rust/core/src/boundary.rs`, `placement.rs`, #1234, docs/27
 // "Step 5b.3"): phase 1's station clearance and landing, the body sync and the pending admission. The fixture
@@ -86,9 +87,10 @@ test('a respawn takes the westmost clear station', async () => {
     s.players.filter(p => p.role === 'contestant').forEach(p => { p.x = Math.min(p.x, 400); });
     synchronizePhysics(s);
     g.status = 'respawning'; g.respawnAt = s.tick + 1;
-    const serial = s.serial;
-    step(s);
-    assert.deepEqual([g.status, g.x, g.y, s.serial > serial], ['active', 1800, 150, true]);
+    // The match's own record of the landing: the body is placed (the arrangement's serial no longer follows the match).
+    const { discontinuities } = stepGame(s); const landed = now(s, g);
+    assert.deepEqual([landed.status, landed.x, landed.y, discontinuities.some(d => d.kind === 'placed' && d.body.kind === 'actor')],
+      ['active', 1800, 150, true]);
   } finally { disposePhysics(s); }
 });
 

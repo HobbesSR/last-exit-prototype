@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, disposePhysics, HZ, setInput, snapshot, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics, HZ, setInput, snapshot, stateOf, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { dynamicWaypoint } from '../shared/simulation/dynamic-navigation.ts';
 import { openArea } from './helpers/arena.js';
+import { tracked } from './helpers/scenario.js';
 
 const walls = [
   { id: 'top', x: 100, y: 100, w: 600, h: 270 },
@@ -26,17 +27,24 @@ async function game({ spawns = [{ x: 150, y: 400 }], props = [] } = {}) {
   return s;
 }
 
-function move(s, p, target) {
-  const at = dynamicWaypoint(s, p, target);
+/**
+ * The retained navigation rule reads a `Game`, and a started game keeps only its roster (docs/27.2 "Test API"). This is
+ * a copy of the game whose players and clock follow the match, read through `stateOf`; `step` steps the match and syncs.
+ * Props are the frame's. Arrange and drive through `s`; ask the rule through `v`.
+ */
+
+function move(t, p, target) {
+  const { s } = t, at = dynamicWaypoint(t.v, p, target);
   const dx = at.x - p.x, dy = at.y - p.y;
   const length = Math.max(9, Math.hypot(dx, dy));
   assert.ok(setInput(s, p.id, { seq: s.tick + 1, x: dx / length, y: dy / length }));
   return at;
 }
 
-function checkedStep(s, p, before) {
-  step(s);
-  const pose = snapshot(s).bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === s.players.indexOf(p));
+function checkedStep(t, p, before) {
+  const { s } = t;
+  t.step();
+  const pose = snapshot(s).bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === t.v.players.indexOf(p));
   assert.ok(pose && Math.hypot(pose.x - p.x, pose.y - p.y) < 0.01,
     `gameplay and body poses agree at tick ${s.tick}`);
   assert.ok(Math.hypot(p.x - before.x, p.y - before.y) <= s.content.actorPhysics.maxSpeed / HZ + 0.02,
@@ -48,14 +56,14 @@ function checkedStep(s, p, before) {
 test('a follower closes the gap in a 60-unit corridor and resumes when its leader moves', async () => {
   const s = await game({ spawns: [{ x: 150, y: 400 }, { x: 350, y: 400 }] });
   try {
-    const [follower, leader] = s.players;
+    const t = tracked(s), [follower, leader] = t.v.players;
     let closest = Infinity;
     for (let i = 0; i < 400; i++) {
       const before = { x: follower.x, y: follower.y };
-      move(s, follower, { x: 750, y: 400 });
+      move(t, follower, { x: 750, y: 400 });
       if (leader.x < 700) assert.ok(setInput(s, leader.id, { seq: s.tick + 1, x: 1, y: 0 }));
       else assert.ok(setInput(s, leader.id, { seq: s.tick + 1, x: 0, y: 0 }));
-      checkedStep(s, follower, before);
+      checkedStep(t, follower, before);
       if (leader.x >= 695) closest = Math.min(closest, leader.x - follower.x);
     }
     const contact = actorRadius(s, follower) + actorRadius(s, leader) + 2;
@@ -64,9 +72,9 @@ test('a follower closes the gap in a 60-unit corridor and resumes when its leade
     const beforeResume = follower.x;
     for (let i = 0; i < 40; i++) {
       const before = { x: follower.x, y: follower.y };
-      move(s, follower, { x: 750, y: 400 });
+      move(t, follower, { x: 750, y: 400 });
       assert.ok(setInput(s, leader.id, { seq: s.tick + 1, x: 1, y: 0 }));
-      checkedStep(s, follower, before);
+      checkedStep(t, follower, before);
     }
     assert.ok(follower.x > beforeResume + 10, `follower did not resume: ${beforeResume} -> ${follower.x}`);
   } finally { disposePhysics(s); }
@@ -75,12 +83,12 @@ test('a follower closes the gap in a 60-unit corridor and resumes when its leade
 test('the motor pushes a corridor-filling crate forward without tunneling or teleporting', async () => {
   const s = await game({ props: [{ id: 'crate', profile: 'crate', x: 350, y: 400, angle: Math.PI / 2 }] });
   try {
-    const p = s.players[0], prop = () => snapshot(s).bodies.find(b => b.owner.kind === 'prop');
+    const t = tracked(s), p = t.v.players[0], prop = () => snapshot(s).bodies.find(b => b.owner.kind === 'prop');
     const startCrate = prop().x;
     for (let i = 0; i < 400 && p.x < 650; i++) {
       const before = { x: p.x, y: p.y };
-      move(s, p, { x: 750, y: 400 });
-      checkedStep(s, p, before);
+      move(t, p, { x: 750, y: 400 });
+      checkedStep(t, p, before);
       const crate = prop();
       const verticalExtent = Math.abs(Math.sin(crate.angle)) * 24 + Math.abs(Math.cos(crate.angle)) * 12;
       assert.ok(crate.y - verticalExtent >= 370 - 0.6 && crate.y + verticalExtent <= 430 + 0.6,

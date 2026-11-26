@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
-import { createGame, disposePhysics, playerView, setInput, snapshot, step } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, playerView, setInput, snapshot, step, stateOf } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { resetInput } from '../../shared/simulation/input.ts';
 import { setDoor } from '../../shared/simulation/doors.ts';
@@ -208,7 +208,7 @@ async function run(profile, variant = null) {
         step(game);
         repeats.push(game.players[0].inputStalled ?? 0);
         if (profile.contact) {
-          const [a, b] = game.players, WALL_FACE = 600;
+          const [a, b] = stateOf(game).players, WALL_FACE = 600;
           if (profile.contact === 'wall') {
             const gap = Math.abs(a.x - (WALL_FACE - radii.c0));
             minWallGap = Math.min(minWallGap, gap);
@@ -235,7 +235,7 @@ async function run(profile, variant = null) {
       enqueue(at + TICK_MS - 1, 4, () => {
         const pose = predictor?.value();
         if (pose) {
-          const authoritative = game.players.find(p => p.id === 'c0');
+          const authoritative = stateOf(game).players[game.players.findIndex(p => p.id === 'c0')];
           errors.push(Math.hypot(pose.x - authoritative.x, pose.y - authoritative.y));
           trace.push({ x: pose.x, y: pose.y });
           if (profile.staleDoor && tick >= 5 && tick <= 39) {

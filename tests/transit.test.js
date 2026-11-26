@@ -5,7 +5,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { queueInput, consumeInput } from '../shared/simulation/input.ts';
 import { transitOptions, transitTicks } from '../shared/simulation/transit.ts';
 import { openField } from './helpers/arena.js';
-import { stagePhysics } from './helpers/scenario.js';
+import { now, stagePhysics } from './helpers/scenario.js';
 
 // Gladiators choose their transit destination (#692, 12 "Transit route selection", 14).
 
@@ -24,7 +24,7 @@ async function scene(content = SELECTABLE) {
   const send = input => { setInput(s, g.id, { seq: ++seq, ...input }); step(s); };
   return { s, g, send };
 }
-const rails = s => s.effects.filter(e => e.kind === 'rail').length;
+const rails = s => snapshot(s).effects.filter(e => e.kind === 'rail').length;
 
 test('content-10 is content-9 with selectable transit, tuned to be instant', () => {
   const { id, transit, transitTime, ...ten } = contentById('content-10'), { id: nine, ...rest } = contentById('content-9');
@@ -37,7 +37,7 @@ test('a gladiator may transit to any station ahead, by name', async () => {
     assert.deepEqual(transitOptions(s, g).ahead.map(st => st.id), ['st1', 'st2', 'st3']);
     assert.equal(transitOptions(s, g).next.id, 'st1');
     send({ transit: 'st3' });
-    assert.deepEqual([g.x, Math.round(g.y), g.railCd, g.status, rails(s)], [5000, 576, 180, 'active', 2]);
+    assert.deepEqual([now(s, g).x, Math.round(now(s, g).y), now(s, g).railCd, now(s, g).status, rails(s)], [5000, 576, 180, 'active', 2]);
   } finally { disposePhysics(s); }
 });
 
@@ -46,7 +46,7 @@ test('plain interact still goes to the next station ahead', async () => {
     const { s, g, send } = await scene(content);
     try {
       send({ interact: true });
-      assert.deepEqual([g.x, g.railCd], [2000, 180], content.id);
+      assert.deepEqual([now(s, g).x, now(s, g).railCd], [2000, 180], content.id);
     } finally { disposePhysics(s); }
   }
 });
@@ -55,7 +55,7 @@ test('without selectable transit the choice is ignored', async () => {
   const { s, g, send } = await scene(PLAIN);
   try {
     send({ transit: 'st3' });
-    assert.deepEqual([g.x, g.railCd], [500, 0]);
+    assert.deepEqual([now(s, g).x, now(s, g).railCd], [500, 0]);
   } finally { disposePhysics(s); }
 });
 
@@ -66,12 +66,12 @@ test('with a travel time the gladiator is out of the world until it lands, and t
     const options = transitOptions(s, g), from = { x: g.x, y: g.y };
     send({ transit: 'st3' });
     const left = s.tick;
-    assert.deepEqual([g.status, g.transit, g.railCd, rails(s)], ['transit', { to: 'st3', arriveAt: left + 65 }, 0, 1]);
+    assert.deepEqual([now(s, g).status, now(s, g).transit, now(s, g).railCd, rails(s)], ['transit', { to: 'st3', arriveAt: left + 65 }, 0, 1]);
     // The core's transit (`tick/interaction.rs`, #1283) keeps the rule the client and the bots read in TypeScript.
-    assert.equal(left + transitTicks(s, from, options.ahead.find(st => st.id === 'st3')), g.transit.arriveAt);
-    for (let i = 0; i < 100 && g.status === 'transit'; i++) { send({ transit: 'st2', interact: true }); assert.ok(s.tick <= left + 65, 'lands on time'); }
-    assert.deepEqual([s.tick, g.x, Math.round(g.y), g.railCd, g.transit], [left + 65, 5000, 576, 180, undefined]);
-    assert.ok(s.effects.some(e => e.kind === 'rail' && e.x === 5000), 'the rail effect marks the landing');
+    assert.equal(left + transitTicks(s, from, options.ahead.find(st => st.id === 'st3')), now(s, g).transit.arriveAt);
+    for (let i = 0; i < 100 && now(s, g).status === 'transit'; i++) { send({ transit: 'st2', interact: true }); assert.ok(s.tick <= left + 65, 'lands on time'); }
+    assert.deepEqual([s.tick, now(s, g).x, Math.round(now(s, g).y), now(s, g).railCd, now(s, g).transit], [left + 65, 5000, 576, 180, undefined]);
+    assert.ok(snapshot(s).effects.some(e => e.kind === 'rail' && e.x === 5000), 'the rail effect marks the landing');
   } finally { disposePhysics(s); }
 });
 
@@ -92,11 +92,11 @@ test('the body leaves on departure and is placed on landing', async () => {
   try {
     const body = () => snapshot(s).bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === s.players.indexOf(g));
     setInput(s, g.id, { seq: 1, transit: 'st2' }); step(s);
-    assert.equal(g.status, 'transit');
+    assert.equal(now(s, g).status, 'transit');
     step(s);
     assert.equal(body(), undefined, 'no body in transit');
-    for (let i = 0; i < 10 && g.status === 'transit'; i++) step(s);
-    assert.equal(g.status, 'active');
+    for (let i = 0; i < 10 && now(s, g).status === 'transit'; i++) step(s);
+    assert.equal(now(s, g).status, 'active');
     assert.ok(Math.hypot(body().x - 3500, body().y - 576) < 100, `landed at ${body().x},${body().y}`);
   } finally { disposePhysics(s); }
 });
