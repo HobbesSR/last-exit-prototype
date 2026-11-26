@@ -170,8 +170,9 @@ function matchOf(game, payloads, wire, navigation, setupItems) {
     discontinuities = t?.discontinuities ?? [];
     return t && frames.frame();
   };
-  /** A frame's gates over the map's geometry, and its items each at its place (a body's pose where it has one). */
-  const dynamicOf = frame => ({ gates: mergeGateGeometry({ gates: publishGates(game) }, frame.gates), items: hydrateFrame(frame).items });
+  /** A frame's gates over the map's geometry, its items each at its place (a body's pose where it has one), and its traps. */
+  const dynamicOf = frame => ({ gates: mergeGateGeometry({ gates: publishGates(game) }, frame.gates), items: hydrateFrame(frame).items,
+    traps: frame.traps });
   const capture = (privateRoutes = false) => {
     if (disposedFrame) {
       const frame = structuredClone(disposedFrame);

@@ -140,6 +140,8 @@ test('a started match seats joins and builds the live map from the core, not fro
     assert.deepEqual([live.items[0].id, live.items[0].x, live.items[0].y], [held.id, held.x, held.y], 'the live map has each item where the match has it');
     assert.equal(live.gates[0].open, false, 'and each gate as the match has it');
     assert.deepEqual(match.map().items.map(i => i.x), [held.x]);
+    game.traps.push({ id: 'stale-trap', x: 20, y: 20 });
+    assert.deepEqual(match.map().traps, match.frame().traps, 'the map query has the traps as the match has them');
   } finally { match.dispose(); }
 });
 
