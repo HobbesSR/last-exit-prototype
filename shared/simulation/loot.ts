@@ -1,14 +1,10 @@
 import { canOccupy } from '../movement.ts';
 import { reachClear } from '../sight.ts';
-import { allocateItemId, forkItemAllocation } from '../item-instances.ts';
 import { scatterInCore } from './boundary.ts';
-import { planAmmoInCore } from './phase-three.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { itemsNear } from './ground-items.ts';
-import { HZ } from './rules.ts';
 import { distance } from './geometry.ts';
-import type { AmmoFamily, Game, Player, Vec2 } from '../types.ts';
-import type { DropPlan } from './action-records.ts';
+import type { Game, Vec2 } from '../types.ts';
 import { cos, sin } from '../math.ts';
 
 /**
@@ -33,20 +29,3 @@ export function scatterPoint(s: Game, origin: Vec2, phase: number, items: readon
 /** A drop, fully represented but not yet committed. */
 export type { DropPlan } from './action-records.ts';
 
-/**
- * One L2 ammo pickup of `count` reserve rounds, planned without changing the match: an optional drop refuses
- * capacity or placement failure, a mandatory one falls back to the player's position.
- */
-export function planAmmoDrop(s: Game, p: Player, family: AmmoFamily, count: number, mandatory = false): DropPlan | null {
-  if (physicsRuntime(s)) return planAmmoInCore(s, p, family, count, mandatory);
-  if (!Number.isSafeInteger(count) || count < 1 || ![p.x, p.y].every(Number.isFinite)) return null;
-  if (!mandatory && s.items.length + 1 > s.content.itemInstances.groundCapacity) return null;
-  const point = scatterPoint(s, p, s.scatterSerial ?? 0, s.items);
-  if (!point && !mandatory) return null;
-  const allocation = forkItemAllocation(s);
-  try {
-    const id = allocateItemId(allocation);
-    const at = point ?? { x: p.x, y: p.y };
-    return { records: [{ kind: 'ammo', id, lineageId: id, family, count, x: at.x, y: at.y, droppedBy: p.id, pickupAfter: s.tick + HZ }], itemSerial: allocation.itemSerial!, scatterSerial: allocation.scatterSerial!, allocation };
-  } catch { return null; }
-}

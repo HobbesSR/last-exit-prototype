@@ -1,8 +1,6 @@
-import { isAmmoFamily } from '../equipment.ts';
-import { commitItemAllocation, allocateItemId } from '../item-instances.ts';
-import { planAmmoDrop, scatterPoint } from './loot.ts';
+import { allocateItemId } from '../item-instances.ts';
+import { scatterPoint } from './loot.ts';
 import { addItems } from './ground-items.ts';
-import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
 import type { AmmoFamily, Game, GroundItem, Player, WeaponItem } from '../types.ts';
 
 // L2 reloading (14 "Reloading", #444): weapon-owned magazines, per-player reserves outside the six
@@ -53,18 +51,4 @@ export function seedAmmo(s: Game, rest: Map<GroundItem, number>): void {
     addItems(s, { kind: 'ammo', id, lineageId: id, family: rules.weapons[weapon.weaponType ?? 'pistol'].family, count, x: at.x, y: at.y,
       ...(weapon.buildingId !== undefined ? { buildingId: weapon.buildingId } : {}) });
   }
-}
-
-/** A validated ammo-drop intent: up to `count` reserve rounds of one family as one pickup. */
-export function dropReserve(s: Game, p: Player, family: AmmoFamily, count: number, mandatory = false): boolean {
-  if (!s.content.reloading || !p.reserves || !isAmmoFamily(family) || !Number.isSafeInteger(count)) return false;
-  const rounds = Math.min(count, p.reserves[family]);
-  if (rounds <= 0) return false;
-  const plan = planAmmoDrop(s, p, family, rounds, mandatory);
-  // An optional drop also needs a body for its pickup where items are physical, as a slot drop does.
-  if (!plan || !mandatory && !canRepresentPhysicalDrop(s, plan.records.length)) return false;
-  commitItemAllocation(s, plan.allocation); addItems(s, ...plan.records);
-  p.reserves[family] -= rounds;
-  launchPhysicalDrops(s, plan.records, p);
-  return true;
 }

@@ -5,7 +5,7 @@ import { createGame, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { allocateItemId, initializeItemInstances } from '../shared/item-instances.ts';
 import { seedAmmo } from '../shared/simulation/ammo.ts';
-import { planAmmoDrop, scatterPoint } from '../shared/simulation/loot.ts';
+import { scatterPoint } from '../shared/simulation/loot.ts';
 import { arena } from './helpers/arena.js';
 import { identifyItems, registeredItemId as itemId } from './helpers/item-identity.js';
 
@@ -16,14 +16,6 @@ function fixture() {
   const content = { ...structuredClone(contentById('content-ammo-1')),
     roster: { contestants: ['A'], gladiators: [] }, discovery: false };
   const s = createGameRecord(17, map, content);
-  return { s, p: s.players[0] };
-}
-// A game with a physics world plans an ammo drop in the core (`planAmmoInCore`).
-async function liveFixture() {
-  const { map } = arena({ cols: 6, rows: 4, cellSize: 100, spawns: [{ x: 120, y: 200 }] });
-  const content = { ...structuredClone(contentById('content-ammo-1')),
-    roster: { contestants: ['A'], gladiators: [] }, discovery: false };
-  const s = await createGame(17, map, content);
   return { s, p: s.players[0] };
 }
 const pose = ({ x, y }) => ({ x, y });
@@ -51,19 +43,6 @@ test('scatter follows legacy carried reservations and seed ammo', () => {
   seedAmmo(s, new Map([[weapon, 4]]));
   assert.deepEqual(pose(s.items.at(-1)), seeded);
   assert.equal(scatterPhase(s), 10);
-});
-
-test('discarded ammo plans do not consume scatter phases', async () => {
-  const { s, p } = await liveFixture();
-  const before = scatterPhase(s);
-  const initialAllocation = allocationState(s);
-  assert.ok(planAmmoDrop(s, p, 'pistol', 2));
-  assert.equal(scatterPhase(s), before, 'successful planning alone never commits legacy phases');
-  assert.deepEqual(allocationState(s), initialAllocation, 'discarded plans publish neither numeric IDs nor registry additions');
-  s.content = { ...s.content, itemInstances: { groundCapacity: 0 } };
-  assert.equal(planAmmoDrop(s, p, 'pistol', 2), null);
-  assert.equal(scatterPhase(s), before);
-  disposePhysics(s);
 });
 
 test('occupied legacy allocations preserve their skipped phase and malformed counters fail', () => {
