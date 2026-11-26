@@ -1,11 +1,12 @@
 import { bodyRelations, hydrateFrame, compactItems, omitBodyPose as omitPose } from '../relational-frame.ts';
-import { viewSourceOf, type ViewSource } from './view-source.ts';
+import { heardBy } from './hearing.ts';
+import { playerSlot } from './relations.ts';
 import { lineClear, VISION } from '../sight.ts';
 import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
 import { OBSERVED, frameFields, ownPlayerFields, itemFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
-import type { Effect, Game, Gate, GateState, GateIdx, GroundItem, HeardCue, ItemKey, Player, PlayerId, PlayerIdx, Projectile, Projected, Snapshot, Trap, Vec2, World } from '../types.ts';
+import type { Effect, Game, Gate, GateState, GateIdx, GroundItem, HeardCue, ItemKey, Player, PlayerId, PlayerIdx, Projectile, Projected, Snapshot, Tick, Trap, Vec2, World } from '../types.ts';
 import { publishItems, framedItems, shareItemPublication } from './ground-items.ts';
 import { publishGates, publishedGates, shareGatePublication } from './frame-gates.ts';
 import { settledLayer } from '../frame-layers.ts';
@@ -63,16 +64,51 @@ export function dynamicGates(gates: readonly Gate[]): GateState[] {
   }
   return list;
 }
+/** A viewer's knowledge that frames do not carry, by roster place: the core's for a started game (`TickProjection`). */
+export interface ViewKnowledge {
+  /** The discovery cells a contestant has discovered, in the order learned, or null when it keeps no memory. */
+  discovered(slot: PlayerIdx): Iterable<number> | null;
+  /** The cues a player hears that last past `tick`. */
+  heard(slot: PlayerIdx, tick: Tick): readonly HeardCue[];
+}
+/** What the rules' projection reads besides the frame: the seat a player ID holds, its knowledge, and the ground. */
+export interface ViewSource {
+  /** The roster place a player ID holds now, or undefined for a non-player viewer. */
+  slotOf(id: PlayerId): PlayerIdx | undefined;
+  knowledge: ViewKnowledge;
+  /** The ground list `framedItems` may use the item grid of, besides a frame store's: the unstarted game's own. */
+  ground?: readonly GroundItem[] | undefined;
+}
+const sources = new WeakMap<Game, ViewSource>();
+/** A started game's session registers its rules' source: its seats and the core's knowledge (`createTickSession`). */
+export function registerViewSource(s: Game, source: ViewSource): void { sources.set(s, source); }
 /**
- * One viewer's view of a frame, from the frame and `source` alone (docs/27.2 "Projection and knowledge"): the seat from the
- * match's IDs, discovery and cues from the knowledge cache. `wire` is the match's outward ID mapping (#1164); the identity
- * unless the server keyed the match.
+ * The rules' source for a game a test or tool holds: its session's once started (the seats through `MatchIds`, knowledge
+ * from the core), else its players as arranged.
+ */
+export function viewSourceOf(s: Game): ViewSource {
+  return sources.get(s) ?? {
+    slotOf: id => playerSlot(s, id),
+    knowledge: {
+      discovered: slot => s.players[slot]?.discovery?.discovered ?? null,
+      heard: (slot, tick) => { const p = s.players[slot]; return p ? heardBy(p, tick) : []; },
+    },
+    ground: s.items,
+  };
+}
+/**
+ * One viewer's view of a frame by the TypeScript rules, from the frame and `source` alone (docs/27.2 "Projection and
+ * knowledge"). `wire` is the match's outward ID mapping (#1164); the identity unless the server keyed the match.
  */
 export function projectView(source: ViewSource, frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds = wireIds()) {
   start('sim.playerView');
   try { return buildPlayerView(source, frame, id, wire); } finally { stop('sim.playerView'); }
 }
-/** `projectView` for a game a test or tool holds: its session's source once started (`viewSourceOf`). */
+/**
+ * A view of a snapshot a test or tool holds, by the TypeScript rules (`viewSourceOf`): a started game's with the core's
+ * knowledge. The snapshot is the caller's to edit, so the core never decides it (review 1135); the view the core decides of
+ * the store's current frame, as a room projects it, is `currentView` (`tick.ts`).
+ */
 export function playerView(s: Game, frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds = wireIds()) {
   return projectView(viewSourceOf(s), frame, id, wire);
 }

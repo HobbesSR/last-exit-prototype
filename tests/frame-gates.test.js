@@ -55,6 +55,9 @@ test('frame gates serialize, project and encode as cloned gates did (#655)', asy
       assert.equal(JSON.stringify(frame.gates), JSON.stringify(expected));
       assert.equal(gatesJson(frame.gates), JSON.stringify(expected));
       const views = [...s.players.map(p => p.id), null].map(id => playerView(s, frame, id));
+      // The store runs ahead of the core here, so the rules project, with the core's latest knowledge: a contestant still
+      // sees what it has discovered (review 1134).
+      s.players.forEach((p, i) => { if (p.role === 'contestant') assert.ok(Array.isArray(views[i].self.discovered) && views[i].self.discovered.length, `tick ${tick}: ${p.id} keeps its discovery`); });
       // Every view carries every gate, so they share one projected list.
       for (const view of views) assert.equal(view.gates, views[0].gates);
       const cloned = playerView(s, { ...frame, gates: expected }, null);

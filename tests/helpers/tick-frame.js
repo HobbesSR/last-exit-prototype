@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { heardOf } from '../../shared/simulation/tick-knowledge.ts';
-import { playerView } from '../../shared/simulation/visibility.ts';
+import { heardOf } from '../../shared/simulation/tick-projection.ts';
+import { projectView, viewSourceOf } from '../../shared/simulation/visibility.ts';
 
 // Checks on the new tick's frames (docs/27.2 "Frames (3d.3)") and the knowledge written beside them, shared by
 // tests/tick-adapter.test.js and its slow whole-match test.
@@ -43,19 +43,19 @@ export function checkRecords(frames, snap, tick) {
 }
 
 /**
- * Hold the knowledge cache (`tick-knowledge.ts`), refreshed only for the contestants a tick's discovery names and the
- * players who hear something, to the core's whole memory and cues as of its last completed tick; and hold that a started
- * game's players keep neither (#1343). `remembers` limits which contestants' memory is decoded: decoding every memory
- * every tick dominates a whole match's check.
+ * Hold the knowledge the core sends with its decisions (`TickProjection`: cells learned since those held, the live cues) to
+ * the core's whole memory and cues as of its last completed tick; and hold that a started game's players keep neither
+ * (#1343, #1357). `remembers` limits which contestants' memory is decoded: decoding every memory every tick dominates a
+ * whole match's check.
  */
-export function checkKnowledge(s, match, knowledge, tick, remembers = () => true) {
+export function checkKnowledge(s, match, projection, tick, remembers = () => true) {
   s.players.forEach((p, slot) => {
-    assert.equal(p.discovery ?? p.heard, undefined, `tick ${tick}: ${p.id}'s knowledge is the cache's, not the game's`);
+    assert.equal(p.discovery ?? p.heard, undefined, `tick ${tick}: ${p.id}'s knowledge is the core's, not the game's`);
     const live = match.heard(p.id).map(heardOf).filter(cue => cue.until > tick);
-    assert.deepEqual([...knowledge.heard(slot, tick)], live, `tick ${tick}: ${p.id} hears`);
+    assert.deepEqual([...projection.heard(slot, tick)], live, `tick ${tick}: ${p.id} hears`);
     if (!remembers(p)) return;
-    const memory = p.role === 'contestant' && knowledge.ctx.discovery ? match.memory(p.id) : null;
-    const cells = knowledge.discovered(slot);
+    const memory = p.role === 'contestant' && s.content.discovery === true ? match.memory(p.id) : null;
+    const cells = projection.discovered(slot);
     assert.deepEqual(cells && [...cells].sort((a, b) => a - b), memory && [...memory.discovered].sort((a, b) => a - b),
       `tick ${tick}: ${p.id} has discovered`);
   });
@@ -71,7 +71,7 @@ export function checkProjection(s, projection, frame, tick, ids = s.players.map(
   for (const id of ids) {
     const core = projection.project(frame, id);
     assert.ok(core, `tick ${tick}: no core decision for ${id}`);
-    assert.deepEqual(core, playerView(s, frame, id), `tick ${tick}: ${id}'s view`);
+    assert.deepEqual(core, projectView(viewSourceOf(s), frame, id), `tick ${tick}: ${id}'s view`);
   }
   return ids.length;
 }

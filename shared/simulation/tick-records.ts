@@ -9,7 +9,7 @@ import type { BodyId, EventParticipant, Game, GroundItem, InventoryItem, Player,
 
 // The one mapping from the core's records to the records Node's frames hold (docs/27.2 "Frames"): actors to player
 // fields, ground and carried items, traps and projectiles, T's facts to effects and events, and bodies' lifetimes. Pure
-// functions over a match's `Context`, which the frame store (`tick-frame.ts`) and knowledge (`tick-knowledge.ts`) call.
+// functions over a match's `Context`, which the frame store (`tick-frame.ts`) calls.
 //
 // - **Countdowns.** The core keeps deadlines; a record keeps the countdown fields its readers know, each the deadline less
 //   the record's tick, never below zero (the loader's inverse).

@@ -14,7 +14,7 @@ import { stepTick } from '../shared/simulation/tick-step.ts';
 import { BodyLives } from '../shared/simulation/tick-records.ts';
 import { templatesOf } from '../shared/simulation/boundary.ts';
 import { TickFrames } from '../shared/simulation/tick-frame.ts';
-import { playerView } from '../shared/simulation/visibility.ts';
+import { playerView, projectView, viewSourceOf } from '../shared/simulation/visibility.ts';
 import { createFrameEncoder, createRecordingReader } from '../shared/recording-format.ts';
 import { SCHEMA } from '../shared/recording.ts';
 import { arena } from './helpers/arena.js';
@@ -65,19 +65,19 @@ async function run(fn, content) {
 }
 
 test('a bot match on the new path holds the frame store records and knowledge equal to the match snapshot every tick', async () => {
-  await run((s, { match, frames, knowledge, projection }, step) => {
+  await run((s, { match, frames, projection }, step) => {
     assert.ok(s.players.every(p => p.bot));
     const kinds = new Set(), record = recordingRoundTrip();
     checkProjection(s, projection, frames.frame(), 0);
     const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
-    checkKnowledge(s, match, knowledge, 0);
+    checkKnowledge(s, match, projection, 0);
     let previous = checkFrame(frames.frame(), match.snapshot(), 0, words), placed = 0;
     for (let i = 0; i < 240; i++) {
       const t = step();
       if (!t) break;
       for (const e of t.changes.events) kinds.add(e.fact.kind);
       const snap = match.snapshot();
-      checkKnowledge(s, match, knowledge, t.tick);
+      checkKnowledge(s, match, projection, t.tick);
       const frame = frames.frame(), bodies = checkFrame(frame, snap, t.tick, words);
       checkRecords(frames, snap, t.tick);
       // A body keeps its ID and generation until it is placed or warped; a placed body is marked on that tick only.
@@ -288,12 +288,12 @@ test('each escape event reports the slots left after it', async () => {
   });
 });
 
-test('with discovery off the knowledge writer keeps no memory, as the old game keeps none', async () => {
-  await run((s, { match, knowledge }, step) => {
+test('with discovery off the core keeps no memory to send, as the old game keeps none', async () => {
+  await run((s, { match, projection }, step) => {
     assert.ok(s.players.every(p => p.discovery === undefined));
     for (let i = 0; i < 40; i++) {
       const t = step();
-      checkKnowledge(s, match, knowledge, t.tick);
+      checkKnowledge(s, match, projection, t.tick);
     }
     // The bots keep the old game's full-map knowledge: no memory is attached.
     assert.ok(s.players.every(p => p.discovery === undefined));
@@ -498,8 +498,16 @@ test("the core's projection keeps arranged effects aligned and redecides when a 
     // The far contestant is out of the near one's reach: the broadcast's decision leaves it out.
     projection.decide(s.players.map(p => p.id));
     assert.ok(!projection.project(frame, near.id).players.some(p => p.playerIdx === 1));
-    // The owner finishes within the tick, stranding active contestants; the final broadcast redecides.
+    // The owner finishes within the tick, stranding active contestants; the final broadcast redecides. A frame captured
+    // before the finish is no longer the core's to decide: projected by the rules, the far contestant is still active and
+    // out of reach (review 1134).
+    const before = frame;
     frames.end({ strand: true });
+    // The room's path refuses it: the core decided the frame as it was before the finish (review 1136).
+    assert.equal(projection.project(before, near.id), undefined, "the room's path does not decide a capture from before the finish");
+    const earlier = playerView(s, before, near.id);
+    assert.ok(!earlier.players.some(p => p.playerIdx === 1), 'the capture before the finish keeps its active contestant out of reach');
+    assert.deepEqual(earlier, projectView(viewSourceOf(s), before, near.id));
     frame = frames.frame();
     assert.equal(frame.players[1].status, 'stranded');
     const view = projection.project(frame, near.id);

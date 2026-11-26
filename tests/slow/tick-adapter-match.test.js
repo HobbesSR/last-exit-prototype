@@ -14,7 +14,7 @@ import { checkFrame, checkKnowledge, checkProjection, checkRecords } from '../he
 // A whole bot match on the new tick's path (27.2 "Node adapter (3d.2)"), on a chain arena stored in the frozen fixture, so no
 // map is generated here. The match runs on an in-process session with today's default content to its end. Each tick's
 // frame (27.2 "Frames (3d.3)") is held to the snapshot's poses and projected for one player in turn, the frame store's
-// records to the snapshot every tenth tick, and the knowledge written for projection to the match's cues every tick and
+// records to the snapshot every tenth tick, and the knowledge the core sends with its decisions to its cues every tick and
 // to its memory wherever a tick's discovery changed it. The cheap witness is ../tick-adapter.test.js.
 
 const { arenas } = deserialize(gunzipSync(readFileSync(new URL('../fixtures/behavior-physics-1.v8.gz', import.meta.url))));
@@ -27,7 +27,7 @@ function play() {
     attachPortalGraph(map, structuredClone(arena.graph));
     const s = await createGame(9, map, defaultContent());
     try {
-      const session = startGame(s), { match, frames, knowledge } = session, facts = new Map();
+      const session = startGame(s), { match, frames, projection } = session, facts = new Map();
       let views = checkProjection(s, session.projection, frames.frame(), 0);
       const words = s.players.map(p => match.ids.actorOfPlayer.get(p.id));
       let t;
@@ -37,7 +37,7 @@ function play() {
         const learned = new Set([...t.discovery.gates, ...t.discovery.samples].map(x => x.actor));
         const whole = t.tick % 100 === 0 || s.phase !== 'live';
         const snap = match.snapshot();
-        checkKnowledge(s, match, knowledge, t.tick, p => whole || learned.has(match.ids.actorOfPlayer.get(p.id)));
+        checkKnowledge(s, match, projection, t.tick, p => whole || learned.has(match.ids.actorOfPlayer.get(p.id)));
         const frame = frames.frame();
         checkFrame(frame, snap, t.tick, words);
         // The frame store's records are folded from the change lists; a drift persists, so every tenth tick catches it.

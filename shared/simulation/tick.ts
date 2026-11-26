@@ -1,35 +1,33 @@
 import { TickProjection } from './tick-projection.ts';
 import { start, stop } from '../profiler.ts';
-import type { Game, GameEvent } from '../types.ts';
+import type { Game, GameEvent, PlayerId } from '../types.ts';
 import { TickBoundary } from './tick-boundary.ts';
 import { TickFrames } from './tick-frame.ts';
 import type { FrameRecords } from './tick-frame.ts';
-import { TickKnowledge } from './tick-knowledge.ts';
 import { createTickMatch } from './tick-match.ts';
 import { stepTick } from './tick-step.ts';
-import { contextOf } from './tick-records.ts';
 import { disposePhysics as disposeSetup } from './physics-runtime.ts';
-import { snapshot as setupSnapshot } from './visibility.ts';
+import { projectView, registerViewSource, snapshot as setupSnapshot, viewSourceOf, type ViewSource } from './visibility.ts';
+import { wireIds } from './wire-ids.ts';
 import type { WireIds } from './wire-ids.ts';
-import { registerViewSource, type ViewSource } from './view-source.ts';
 
 /**
  * Start the authority after the caller finishes arranging the match's initial state. A room reads its roster from the
- * frame store (#1346), an in-process game is read through `stateOf` (#1345), and both are projected from `view`: the
- * match's seats and the knowledge cache (#1343).
+ * frame store (#1346), and an in-process game is read through `stateOf` (#1345). Both are projected by `projection`: the
+ * core decides each player view of the current tick (#1357). `view` is the rules' source for the rest: the match's seats
+ * and the knowledge the core sent.
  */
 export function createTickSession(game: Game, wire?: WireIds, navigation?: number) {
   const match = createTickMatch(game, navigation);
   try {
-    const knowledge = new TickKnowledge(game, match, contextOf(game, match));
     const frames = new TickFrames(game, match);
     framesByGame.set(game, frames);
     const ids = match.ids;
-    const view: ViewSource = { knowledge, slotOf: id => { const word = ids.actorOfPlayer.get(id); return word === undefined ? undefined : ids.slotOfActor.get(word); } };
-    registerViewSource(game, view);
     // The core decides what each player viewer may receive; the room assembles from the frames (27.2, #1357).
     const projection = new TickProjection(game, match, frames);
-    return { match, knowledge, boundary: new TickBoundary(game, match, wire), frames, view, projection };
+    const view: ViewSource = { knowledge: projection, slotOf: id => { const word = ids.actorOfPlayer.get(id); return word === undefined ? undefined : ids.slotOfActor.get(word); } };
+    registerViewSource(game, view);
+    return { match, boundary: new TickBoundary(game, match, wire), frames, view, projection };
   } catch (error) { match.dispose(); throw error; }
 }
 
@@ -73,6 +71,20 @@ export function stepGame(s: Game) {
   const session = startGame(s);
   start('sim.step');
   try { return stepTick({ s, ...session }); } finally { stop('sim.step'); }
+}
+
+/**
+ * These viewers' views of a game's current frame as a room projects them (docs/27.2 "The core's projection"). For a started
+ * game it is the frame store's own frame, made once, with every seated player decided by the core in one call and anyone
+ * else by the rules, as a broadcast does. For an unstarted game it is the rules' views of its setup. The frame is made here,
+ * so no caller can edit what the core decides (review 1135).
+ */
+export function currentViews(s: Game, ids: readonly (PlayerId | null | undefined)[], wire: WireIds = wireIds()) {
+  const session = sessions.get(s);
+  if (!session) { const frame = setupSnapshot(s); return ids.map(id => projectView(viewSourceOf(s), frame, id, wire)); }
+  const frame = session.frames.frame();
+  session.projection.decide(ids.filter((id): id is PlayerId => id != null));
+  return ids.map(id => session.projection.project(frame, id, wire) ?? projectView(session.view, frame, id, wire));
 }
 
 export function snapshot(s: Game) {

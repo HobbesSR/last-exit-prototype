@@ -22,8 +22,8 @@ const arena = () => ({ width: 600, height: 400,
   buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
 const content = (id = 'content-ammo-1') => ({ ...structuredClone(contentById(id)), roster: { contestants: ['A', 'B'], gladiators: [] }, discovery: false });
 /** A physics match on the arena, disposed when test `t` ends. */
-async function fixture(t, id) {
-  const s = await createGame(17, arena(), content(id));
+async function fixture(t, id, map = arena()) {
+  const s = await createGame(17, map, content(id));
   t.after(() => disposePhysics(s));
   for (const p of s.players) { p.bot = false; p.input = {}; }
   return { s, p: s.players[0], q: s.players[1] };
@@ -132,7 +132,10 @@ test('wire input: L2 commands are validated and absent unless sent, so older inp
 });
 
 test('the owner sees reserves and reload progress; other players and older content do not', async t => {
-  const { s, p, q } = await fixture(t);
+  // A med kit on the ground beside them, so a shown item can be removed from a snapshot in place below.
+  const map = arena();
+  map.items.push({ id: 'med', kind: 'med', x: 200, y: 260 });
+  const { s, p, q } = await fixture(t, undefined, map);
   q.x = p.x + 40;
   p.inventory[0] = pistol(1); p.reserves.pistol = 9;
   tick(s, p, { reload: true });
@@ -144,11 +147,19 @@ test('the owner sees reserves and reload progress; other players and older conte
   const seen = other.players.find(r => r.id === p.id);
   assert.equal(seen.reserves, undefined); assert.equal(seen.reload, undefined);
   // Ground ammo keeps its family on the live wire, as in recorded frames. Frames come from the core, so the box is
-  // given to the projection on a frame rather than arranged on the game mid-match.
+  // given to the projection on a frame rather than arranged on the game mid-match. An edited frame is not the core's to
+  // decide, so `playerView` projects it by the rules (#1357, review 1134).
   const id = Math.max(0, ...frame.items.map(item => item.id)) + 1;
   const boxed = { ...frame, items: [...frame.items, { id, kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }] };
   const box = playerView(s, boxed, q.id).items.find(item => item.id === id);
   assert.equal(box.family, 'shell');
+  // So is the store's own snapshot edited in place: the snapshot is the caller's, and the rules project it (review 1135).
+  frame.items = [...frame.items, { id, kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }];
+  assert.equal(playerView(s, frame, q.id).items.find(item => item.id === id)?.family, 'shell', 'an item added in place is shown');
+  const shown = playerView(s, frame, q.id).items.find(item => item.kind === 'med');
+  assert.ok(shown, 'the med kit on the ground is shown');
+  frame.items = frame.items.filter(item => item.id !== shown.id);
+  assert.ok(!playerView(s, frame, q.id).items.some(item => item.id === shown.id), 'an item removed in place is not');
   const plain = createGameRecord(17, arena(), content('content-7'));
   assert.equal(Object.hasOwn(snapshot(plain).players[0], 'reserves'), false);
 });
