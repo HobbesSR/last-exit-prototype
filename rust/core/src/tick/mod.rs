@@ -223,9 +223,26 @@ pub struct Scenario {
     hazard_areas: Vec<[f64; 4]>,
     hazard_wall: Option<hazards::Wall>,
     discovery: Option<discovery::Sampler>,
+    known: BTreeMap<ActorId, Memory>,
 }
 
 impl Scenario {
+    /// Arranged knowledge (27.2 "Test API"): what a contestant knows when the match starts, before
+    /// the opening discovery adds what it sees. Only surveyed cells and remembered doors, so its
+    /// planner may treat that layout as known; nothing is discovered, seen or remembered as loot. A
+    /// room never arranges it.
+    pub fn know(
+        &mut self,
+        actor: ActorId,
+        surveyed: impl IntoIterator<Item = u32>,
+        gates: impl IntoIterator<Item = (GateId, DoorMemory)>,
+    ) -> &mut Self {
+        let memory = self.known.entry(actor).or_default();
+        memory.surveyed.extend(surveyed);
+        memory.gates.extend(gates);
+        self
+    }
+
     /// The map's discovery tables, with the sight index and gate set its samples cast through.
     pub fn discovery(
         &mut self,
@@ -278,7 +295,7 @@ impl Scenario {
         self
     }
 
-    pub fn start(self, seed: u64, time_limit: Tick) -> Match {
+    pub fn start(mut self, seed: u64, time_limit: Tick) -> Match {
         let ids = Ids::from_state(&self.state);
         let sites = interaction::Sites::new(&self.state);
         let mut bodies = Bodies::default();
@@ -317,7 +334,7 @@ impl Scenario {
             .actors
             .keys()
             .filter(|id| id.kind == ActorKind::Contestant)
-            .map(|&id| (id, Memory::default()))
+            .map(|&id| (id, self.known.remove(&id).unwrap_or_default()))
             .collect();
         let mut state = self.state;
         state.hazard_x = hazard_map.wall_at(0).or(state.hazard_x);

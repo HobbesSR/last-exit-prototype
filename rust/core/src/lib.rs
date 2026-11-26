@@ -47,7 +47,8 @@ use std::slice;
 /// 49: runtime map rule tables and flat navigation uploads (27, #1318).
 /// 50: committed bot planning and the setup roster (27.2, #1321).
 /// 51: private bot routes move from the completed tick to `match_bot_routes` (27.2, #1338).
-pub const ADAPTER_VERSION: u32 = 51;
+/// 52: the setup carries arranged knowledge for scenarios (27.2 "Test API", #1358).
+pub const ADAPTER_VERSION: u32 = 52;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
