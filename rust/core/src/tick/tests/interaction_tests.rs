@@ -791,3 +791,134 @@ fn a_bot_skips_open_doors_and_opens_a_closed_door_beyond_it() {
     assert!(game.state().gates[&shut_gate].open);
     assert!(game.state().gates[&open_gate].open);
 }
+
+#[test]
+fn same_tick_door_close_commits_before_transit_placement() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 0.0);
+    add_actor(&mut scenario, B, 100.0);
+    let gate = GateId(0);
+    scenario.state.gates.insert(
+        gate,
+        Gate {
+            building: None,
+            open: true,
+            door: true,
+            position: [20.0, 0.0],
+            ..Gate::default()
+        },
+    );
+    let mut door = body(20.0);
+    door.params.kind = crate::physics::KIND_STATIC;
+    door.shape = crate::physics::SHAPE_BOX;
+    door.dimensions = [2.0, 5.0];
+    scenario.body(BodyId::Gate(gate), door);
+    let destination = StationId(1);
+    scenario.state.stations.insert(
+        StationId(0),
+        Station {
+            kind: StationKind::Transit,
+            position: [100.0, 0.0],
+        },
+    );
+    scenario.state.stations.insert(
+        destination,
+        Station {
+            kind: StationKind::Transit,
+            position: [20.0, 0.0],
+        },
+    );
+    let mut game = scenario.start(50, 10);
+    interact(&mut game, A, 1, Some(Target::Gate(gate)));
+    submit(
+        &mut game,
+        B,
+        1,
+        1,
+        Input {
+            transit: Some(destination),
+            ..Input::default()
+        },
+    );
+    let tick = game.step(&Combat::default()).unwrap();
+    assert!(
+        !game.state().gates[&gate].open,
+        "gate closes in Apply step 3"
+    );
+    assert!(has(
+        &tick,
+        Fact::TransitLanded {
+            actor: B,
+            destination
+        }
+    ));
+    let landed = game.position(BodyId::Actor(B)).unwrap();
+    assert!((landed[0] - 20.0).abs() < 0.01);
+}
+
+#[test]
+fn valid_transit_clears_velocity_and_tethers_and_records_warped_discontinuity() {
+    let mut scenario = Scenario::default();
+    add_actor(&mut scenario, A, 50.0);
+    scenario.state.actors.insert(B, actor(Presence::Active));
+    let mut b_body = body(0.0);
+    b_body.params.pose[2] = 100.0; // non-zero velocity before transit
+    scenario.body(BodyId::Actor(B), b_body);
+    scenario.state.hooks.insert(
+        HookId(1),
+        Hook {
+            owner: B,
+            expires_at: 60,
+            phase: HookPhase::Pulling {
+                target: A,
+                length: 50.0,
+            },
+        },
+    );
+    let destination = StationId(1);
+    scenario.state.stations.insert(
+        StationId(0),
+        Station {
+            kind: StationKind::Transit,
+            position: [0.0, 0.0],
+        },
+    );
+    scenario.state.stations.insert(
+        destination,
+        Station {
+            kind: StationKind::Transit,
+            position: [400.0, 0.0],
+        },
+    );
+    let mut game = scenario.start(50, 10);
+    submit(
+        &mut game,
+        B,
+        1,
+        1,
+        Input {
+            transit: Some(destination),
+            ..Input::default()
+        },
+    );
+    let tick = game.step(&Combat::default()).unwrap();
+    assert!(has(
+        &tick,
+        Fact::TransitLanded {
+            actor: B,
+            destination
+        }
+    ));
+    assert!(
+        game.state().hooks.is_empty(),
+        "transit clears attached tethers"
+    );
+    assert!(
+        tick.discontinuities
+            .contains(&Discontinuity::Warped(BodyId::Actor(B))),
+        "transit records Discontinuity::Warped"
+    );
+    let pose = game.bodies.pose(BodyId::Actor(B)).unwrap();
+    assert!((pose.at[0] - 400.0).abs() < 0.01);
+    assert_eq!(pose.velocity, [0.0, 0.0], "transit zeroes body velocity");
+}
