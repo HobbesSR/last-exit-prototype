@@ -105,6 +105,7 @@
 //! | Discovery sample | [`SAMPLE_STRIDE`] 3: actor, eye |
 //! | Discovery | a section of gate observations, a section of samples |
 //! | Completed tick | tick, inbound section, changes, discontinuities section, discovery. The solved paths stay in Rust |
+//! | Live step | a completed tick, then the effects it made (a section of [`EFFECT_STRIDE`] 5: event index, kind code, `at`, radius; `presentation.rs`) |
 //! | Memory | presence word (0 for no memory), then `discovered`, `seen`, `surveyed` (sections of cell words), items (a section of [`REMEMBERED_ITEM_STRIDE`] 18: position, ground item row), gates (a section of [`DOOR_MEMORY_STRIDE`] 3: gate, open, locked), revision |
 //! | Cue | [`CUE_STRIDE`] 4: `at`, tick, until. Heard is a section of cues, oldest first |
 //!
@@ -1896,6 +1897,19 @@ pub fn put_completed(w: &mut Vec<f64>, tick: &CompletedTick) {
     put_discovery(w, &tick.discovery);
 }
 
+/// Words per effect a live step made: event index, kind code, `at`, radius.
+pub const EFFECT_STRIDE: usize = 5;
+
+pub fn put_effects(w: &mut Vec<f64>, effects: &[super::presentation::Effect]) {
+    w.size(effects.len());
+    for effect in effects {
+        w.int(effect.event);
+        w.int(effect.kind.code());
+        w.extend(effect.at);
+        w.push(effect.radius);
+    }
+}
+
 pub fn get_completed(r: &mut Reader) -> Result<DecodedTick> {
     let tick = r.u32()?;
     let count = r.count(INBOUND_STRIDE)?;
@@ -2471,6 +2485,7 @@ impl Setup {
 pub struct LiveMatch {
     game: Match,
     rules: Combat,
+    presented: super::presentation::Presentation,
     input: Vec<f64>,
     flags: Vec<u8>,
     output: Vec<f64>,
@@ -2488,9 +2503,16 @@ impl LiveMatch {
         let (scenario, rules, seed, time_limit) = setup.into_scenario(handles);
         let mut game = scenario.start(seed, time_limit);
         game.bots = planner;
+        let actors: Vec<ActorId> = game.state().actors.keys().copied().collect();
+        let presented = super::presentation::Presentation::new(
+            actors
+                .into_iter()
+                .filter_map(|id| game.position(BodyId::Actor(id)).map(|at| (id, at))),
+        );
         Ok(Self {
             game,
             rules,
+            presented,
             input: Vec::new(),
             flags: Vec::new(),
             output: Vec::new(),
@@ -2562,6 +2584,13 @@ impl LiveMatch {
             return false;
         };
         put_completed(&mut self.output, &tick);
+        let made = self.presented.take(
+            tick.tick,
+            &tick.changes,
+            self.game.state(),
+            self.rules.hazards.mine.blast,
+        );
+        put_effects(&mut self.output, made);
         true
     }
 

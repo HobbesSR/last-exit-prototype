@@ -18,6 +18,7 @@ mod movement;
 mod order;
 mod output;
 mod placement;
+pub mod presentation;
 mod projectile;
 mod rewind;
 mod solve;

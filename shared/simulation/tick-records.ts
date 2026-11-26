@@ -1,12 +1,11 @@
 import { discoveryGrid } from '../discovery.ts';
 import { WEAPONS as WEAPON_ORDER } from '../enum-tables.ts';
-import { cos, sin } from '../math.ts';
 import { effect, event } from './event-records.ts';
 import { bodyKey } from './tick-codec.ts';
-import type { Actor, CarriedItem, Discontinuity, Equipment, Fact, GroundItem as CoreGround, Loot, Point, Projectile as CoreProjectile, Tick,
-  Trap as CoreTrap, Window } from './tick-codec.ts';
+import type { Actor, CarriedItem, Discontinuity, Equipment, Fact, GroundItem as CoreGround, Loot, MadeEffect, Point, Projectile as CoreProjectile,
+  Tick, Trap as CoreTrap, Window } from './tick-codec.ts';
 import type { MatchIds, TickMatch } from './tick-match.ts';
-import type { BodyId, EventParticipant, Game, GroundItem, InventoryItem, Player, PlayerStatus, Projectile, Trap, Vec2 } from '../types.ts';
+import type { BodyId, EventParticipant, Game, GroundItem, InventoryItem, Player, PlayerStatus, Projectile, Trap } from '../types.ts';
 
 // The one mapping from the core's records to the records Node's frames hold (docs/27.2 "Frames"): actors to player
 // fields, ground and carried items, traps and projectiles, T's facts to effects and events, and bodies' lifetimes. Pure
@@ -14,13 +13,12 @@ import type { BodyId, EventParticipant, Game, GroundItem, InventoryItem, Player,
 //
 // - **Countdowns.** The core keeps deadlines; a record keeps the countdown fields its readers know, each the deadline less
 //   the record's tick, never below zero (the loader's inverse).
-// - **Facts make presentation.** Effects and `GameEvent` payloads are built from T's facts after the records apply, with
-//   the old effect kinds and radii, at the committed poses.
+// - **Facts make presentation.** `GameEvent` payloads are built from T's facts after the records apply. The effects are
+//   the core's (`presentation.rs`): which fact makes one, its kind and radius, and where it is drawn.
+//   Here each takes its serial, in fact order with the events.
 // - **Identity.** A core item ID is the outward `ItemId` (the loader keeps them). Actors, gates, traps and stations go
 //   through `MatchIds`.
 
-/** The old effect kinds and radii (`rust/core/src/action_combat.rs`, `combat.rs`, `hazards.rs`, `phase_six.rs`). */
-const EFFECT = Object.freeze({ slash: 55, slashReach: 30, shock: 130, scan: 450, upgrade: 75, loot: 30, rail: 60, charge: 70, grapple: 35 });
 const STATUS: Record<Actor['presence'], PlayerStatus> = {
   pending: 'respawning', active: 'active', eliminated: 'eliminated', escaped: 'escaped', transit: 'transit', stranded: 'stranded',
 };
@@ -32,7 +30,7 @@ interface Shape { inventory: boolean; reserves: boolean }
 
 /** What the mapping needs besides the core's records: the IDs and what the start fixed. */
 export interface Context {
-  ids: MatchIds; metadata: ReadonlyMap<number, Metadata>; shapes: ReadonlyMap<number, Shape>; blast: number;
+  ids: MatchIds; metadata: ReadonlyMap<number, Metadata>; shapes: ReadonlyMap<number, Shape>;
   grid: { cols: number; rows: number };
   /** Whether the content keeps discovery. Off, contestants keep no memory, as the old game attaches none. */
   discovery: boolean;
@@ -45,7 +43,7 @@ export function contextOf(s: Game, match: TickMatch): Context {
   const metadata = new Map<number, Metadata>();
   for (const item of s.items) metadata.set(item.id, { nodeId: item.nodeId, tier: item.tier });
   const shapes = new Map(s.players.map((p, slot) => [match.ids.actorAtSlot[slot]!, { inventory: p.inventory !== undefined, reserves: p.reserves !== undefined }] as const));
-  return { ids: match.ids, metadata, shapes, blast: s.content.traps.mine.blast, grid: discoveryGrid(s.map),
+  return { ids: match.ids, metadata, shapes, grid: discoveryGrid(s.map),
     discovery: s.content.discovery === true, weaponQuality: s.content.lootTiers !== undefined };
 }
 
@@ -147,28 +145,26 @@ export function projectileOf(ctx: Context, id: number, p: CoreProjectile, tick: 
 /** Where a tick's presentation goes (`event-records.ts`): its effects and events, each taking its ID from `serial`. */
 export type { Stage } from './event-records.ts';
 import type { Stage } from './event-records.ts';
-/** What the facts name, at the committed poses: an actor's place, aim and participant, and a trap's place. */
+/** Who the facts name: an actor's participant in an event. */
 export interface Cast {
-  actor(word: number): Vec2 & { heading: number };
   participant(word: number): EventParticipant;
-  trap(index: number): Vec2;
-  blast: number;
 }
 
 /**
- * Age the stage's effects by one tick, then present T's facts on it. Returns whether the match finished. `escaped` gives
+ * Age the stage's effects by one tick, then present T's facts on it: their events, and the effects the core made of them
+ * (`made`, by event index), each taking the next serial in fact order. Returns whether the match finished. `escaped` gives
  * `pod_powered` with the slots left after that escape; `eliminated` takes its source from T's `killCredited`.
  */
-export function present(stage: Stage, facts: readonly Fact[], cast: Cast): boolean {
+export function present(stage: Stage, facts: readonly Fact[], made: readonly MadeEffect[], cast: Cast): boolean {
   for (const e of stage.effects) e.life--;
   stage.effects = stage.effects.filter(e => e.life > 0);
-  const credited = new Map<number, number>();
+  const credited = new Map<number, number>(), effects = new Map(made.map(e => [e.event, e] as const));
   let finished = false;
   for (const f of facts) if (f.kind === 'killCredited') credited.set(f.target, f.actor);
-  for (const f of facts) {
+  facts.forEach((f, index) => {
     switch (f.kind) {
       case 'escaped': event(stage, { kind: 'pod_powered', actor: cast.participant(f.actor), slotsRemaining: f.slots }); break;
-      case 'cellCharged': event(stage, { kind: 'cell_charged', actor: cast.participant(f.actor) }); effect(stage, cast.actor(f.actor), 'charge', EFFECT.charge); break;
+      case 'cellCharged': event(stage, { kind: 'cell_charged', actor: cast.participant(f.actor) }); break;
       case 'eliminated': {
         const source = credited.get(f.actor);
         event(stage, { kind: 'eliminated', target: cast.participant(f.actor), ...(source !== undefined ? { source: cast.participant(source) } : {}) });
@@ -176,21 +172,11 @@ export function present(stage: Stage, facts: readonly Fact[], cast: Cast): boole
       }
       case 'respawned': event(stage, { kind: 'respawned', actor: cast.participant(f.actor) }); break;
       case 'finished': event(stage, { kind: 'match_finished' }); finished = true; break;
-      case 'meleeSwung': {
-        const p = cast.actor(f.actor);
-        effect(stage, { x: p.x + cos(p.heading) * EFFECT.slashReach, y: p.y + sin(p.heading) * EFFECT.slashReach }, 'slash', EFFECT.slash);
-        break;
-      }
-      case 'wardenPulsed': effect(stage, cast.actor(f.actor), 'shock', EFFECT.shock); break;
-      case 'specterScanned': effect(stage, cast.actor(f.actor), 'scan', EFFECT.scan); break;
-      case 'boosted': effect(stage, cast.actor(f.actor), 'upgrade', EFFECT.upgrade); break;
-      case 'utilityUsed': case 'pickup': effect(stage, cast.actor(f.actor), 'loot', EFFECT.loot); break;
-      case 'transitDeparted': case 'transitLanded': effect(stage, cast.actor(f.actor), 'rail', EFFECT.rail); break;
-      case 'mineExploded': effect(stage, cast.trap(f.trap), 'shock', cast.blast); break;
-      case 'spiderGrappled': effect(stage, { x: f.at[0], y: f.at[1] }, 'grapple', EFFECT.grapple); break;
       default: break;
     }
-  }
+    const e = effects.get(index);
+    if (e) effect(stage, { x: e.at[0], y: e.at[1] }, e.kind, e.radius);
+  });
   return finished;
 }
 

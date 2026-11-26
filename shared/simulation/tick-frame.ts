@@ -4,12 +4,12 @@ import { compactItems, omitBodyPose } from '../relational-frame.ts';
 import { settledLayer } from '../frame-layers.ts';
 import { shareGatePublication } from './frame-gates.ts';
 import { addItemsFromCore, groundItem, indexGround, publishItems, removeItem, replaceItem, shareItemPublication } from './ground-items.ts';
-import { bodyKey, bodyOrder } from './tick-codec.ts';
+import { bodyKey, bodyOrder, PRESENTS_NOTHING } from './tick-codec.ts';
 import { event } from './event-records.ts';
 import { BodyLives, contextOf, groundOf, participantOf, present, projectileOf, writeActor, writeTrap } from './tick-records.ts';
 import type { FramePresentation } from './visibility.ts';
 import type { BodyShape, NumericHookFlight, NumericPhysicsBody, NumericPhysicsTether, PhysicsBodyOwner } from '../physics/types.ts';
-import type { Actor, BodyRef, DecodedTick, Hook, Inbound, Point, PoseEntry, Projectile as CoreProjectile, Snapshot as CoreSnapshot, Tick,
+import type { Actor, BodyRef, DecodedTick, Hook, Inbound, Point, PoseEntry, Presented, Projectile as CoreProjectile, Snapshot as CoreSnapshot, Tick,
   Trap as CoreTrap } from './tick-codec.ts';
 import type { BodyLife, Cast, Context, Stage } from './tick-records.ts';
 import type { TickMatch } from './tick-match.ts';
@@ -138,16 +138,13 @@ export class TickFrames {
     this.#phase = s.phase;
     this.#stage = { tick: snap.tick, serial: s.serial, effects: structuredClone(s.effects), events: structuredClone(s.events) };
     this.#cast = {
-      actor: word => { const [x, y] = this.#at.get(word)!; return { x, y, heading: this.#actors.get(word)!.aim }; },
       participant: word => { const slot = ctx.ids.slotOfActor.get(word)!; return participantOf(slot, s.players[slot]!); },
-      trap: index => { const [x, y] = this.#traps[index]!.position; return { x, y }; },
-      blast: ctx.blast,
     };
     for (const pose of snap.poses) this.poses.set(bodyKey(pose.body), pose);
     this.lives.start(snap.poses.map(p => bodyKey(p.body)));
     for (const e of snap.state.hooks) this.hooks.set(e.id, e.hook);
     for (const e of snap.state.projectiles) this.#projectiles.set(e.id, e.projectile);
-    match.follow(t => this.take(t), (tick, rows) => this.#queued(tick, rows));
+    match.follow((t, presented) => this.take(t, presented), (tick, rows) => this.#queued(tick, rows));
   }
 
   /** Rows the match queued for `tick`: a join or leave is a seat change the frame shows until that tick completes. */
@@ -159,8 +156,8 @@ export class TickFrames {
   #serial(id: number): void { if (this.#itemSerial === undefined || this.#itemSerial <= id) this.#itemSerial = id + 1; }
   #carried(a: Actor): void { for (const slot of a.inventory.slots) if (slot) this.#serial(slot.id); }
 
-  /** Apply one completed tick: changed records whole, removals, poses and lifetimes, then T's facts. */
-  take(t: DecodedTick): void {
+  /** Apply one completed tick: changed records whole, removals, poses and lifetimes, then T's facts and the effects made of them. */
+  take(t: DecodedTick, presented: Presented = PRESENTS_NOTHING): void {
     const ctx = this.ctx, c = t.changes, tick = t.tick, ground = this.#ground as Game, at = poseMap(c.poses);
     this.#tick = tick;
     for (const [word, seat] of this.#seats) if (seat.tick <= tick) this.#seats.delete(word);
@@ -204,7 +201,7 @@ export class TickFrames {
       if (pose.body.kind === 'actor') this.#at.set(pose.body.id, pose.at);
     }
     this.#stage.tick = tick;
-    if (present(this.#stage, c.events.map(e => e.fact), this.#cast)) this.#phase = 'finished';
+    if (present(this.#stage, c.events.map(e => e.fact), presented.effects, this.#cast)) this.#phase = 'finished';
   }
 
   /** A roster place's outward label changed: ground records name their dropper by label, so they follow it. */

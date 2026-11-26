@@ -12,8 +12,8 @@ import { sightOf } from './sight-runtime.ts';
 import { discoveryTables } from '../discovery.ts';
 import { authoredProps } from './world-physics.ts';
 import { createRuntimeNavigation } from '../navigation/runtime-map.ts';
-import { SLOT_COUNT, actorWord, decodeBotRoutes, decodeCompleted, decodeCues, decodeMemory, decodeSnapshot, encodeInbound, encodeSetup } from './tick-codec.ts';
-import type { Actor, ActorEntry, Presence, Window, BodyRow, SetupBody, DecodedTick, Equipment, GateEntry, GroundEntry, Inbound, KnownSetup, Loot, MatchSetup, Memory, MotorSurface, Cue, BotLabel,
+import { SLOT_COUNT, actorWord, decodeBotRoutes, decodeStep, decodeCues, decodeMemory, decodeSnapshot, encodeInbound, encodeSetup } from './tick-codec.ts';
+import type { Actor, ActorEntry, Presence, Window, BodyRow, SetupBody, DecodedTick, Presented, Equipment, GateEntry, GroundEntry, Inbound, KnownSetup, Loot, MatchSetup, Memory, MotorSurface, Cue, BotLabel,
   Point, Snapshot, State, StationEntry, Tick, TrapEntry, TrapKind, Tuning, WeaponTuning } from './tick-codec.ts';
 import type { CoreExports } from '../core.ts';
 import type { ChargerId, Game, GateId, InventoryItem, Kit, Player, PlayerId, PlayerIdx, PlayerStatus, StationId, TrapId, WeaponType } from '../types.ts';
@@ -457,13 +457,13 @@ export class TickMatch {
     if (accepted.length) for (const take of this.#submitted) take(tick, accepted);
     return queued;
   }
-  readonly #followers: ((completed: DecodedTick) => void)[] = [];
+  readonly #followers: ((completed: DecodedTick, presented: Presented) => void)[] = [];
   readonly #submitted: ((tick: Tick, rows: readonly Inbound[]) => void)[] = [];
   /**
-   * Hand every completed tick to `take` as the step decodes it, before the step returns, and, given `submitted`, the rows
+   * Hand every completed tick and what it presents to `take` as the step decodes it, before the step returns, and, given `submitted`, the rows
    * the match queued for a tick as they are submitted (the frames, `tick-frame.ts`).
    */
-  follow(take: (completed: DecodedTick) => void, submitted?: (tick: Tick, rows: readonly Inbound[]) => void): void {
+  follow(take: (completed: DecodedTick, presented: Presented) => void, submitted?: (tick: Tick, rows: readonly Inbound[]) => void): void {
     this.#followers.push(take);
     if (submitted) this.#submitted.push(submitted);
   }
@@ -471,8 +471,8 @@ export class TickMatch {
   step(): DecodedTick | null {
     const pointer = this.#core.match_step(this.#live()) >>> 0;
     if (pointer === 0) return null;
-    const completed = this.#read(pointer, decodeCompleted);
-    for (const take of this.#followers) take(completed);
+    const { completed, presented } = this.#read(pointer, decodeStep);
+    for (const take of this.#followers) take(completed, presented);
     return completed;
   }
   snapshot(): Snapshot { return this.#read(this.#core.match_snapshot(this.#live()), decodeSnapshot); }
