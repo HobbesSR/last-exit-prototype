@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { physicsSpeedLimit } from '../shared/physics/motion-limits.ts';
 import { createPhysicsWorld } from '../shared/physics/world.ts';
+import { contentById } from '../shared/simulation/content.ts';
+import { MAX_PHYSICS_EXTENT } from '../shared/simulation/physics-geometry.ts';
 
 const circle = (id, options = {}) => ({ id, kind: 'prop', shape: { kind: 'circle', radius: 12 },
   x: 0, y: 0, ...options });
@@ -347,4 +350,66 @@ test('a hull Rapier rejects mid-commit keeps what the commit already did (review
     assert.deepEqual(world.snapshot().pending.add.map(spec => spec.id), ['z']);
     assert.throws(() => world.commitMutations(), /invalid convex body/);
   } finally { world.dispose(); }
+});
+
+test('actors pressing each other and a corner wall recover within 29.1 gates at MAX_PHYSICS_EXTENT', async () => {
+  const { bodyRadius } = contentById('content-6').actorPhysics.geometry.contestant;
+  const speedLimit = physicsSpeedLimit(bodyRadius);
+  const actor = (id, x, y) => ({
+    id, kind: 'actor', shape: { kind: 'circle', radius: bodyRadius }, x, y, friction: 0, restitution: 0,
+  });
+  const ids = ['a', 'b', 'c'];
+  const runCorner = async (wallX, wallY) => {
+    const world = await createPhysicsWorld();
+    try {
+      world.queueAddBody({ id: 'east', kind: 'static', mapGeometry: true, shape: { kind: 'box', hx: 20, hy: 200 }, x: wallX + 20, y: wallY - 100 });
+      world.queueAddBody({ id: 'south', kind: 'static', mapGeometry: true, shape: { kind: 'box', hx: 200, hy: 20 }, x: wallX - 100, y: wallY + 20 });
+      world.queueAddBody(actor('a', wallX - 24, wallY - 24));
+      world.queueAddBody(actor('b', wallX - 48, wallY - 36));
+      world.queueAddBody(actor('c', wallX - 36, wallY - 48));
+      world.commitMutations();
+      for (const id of ids) world.setMotor(id, { x: 240, y: 240, accel: 3600 });
+      const wallHits = new Set();
+      for (let tick = 0; tick < 25; tick++) {
+        const { paths } = world.step();
+        for (const contact of world.drainContacts()) {
+          if (contact.type !== 'start') continue;
+          if (contact.a === 'east' || contact.a === 'south') wallHits.add(contact.b);
+          if (contact.b === 'east' || contact.b === 'south') wallHits.add(contact.a);
+        }
+        for (const id of ids) {
+          for (const p of paths[id]) {
+            assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y));
+            assert.ok(p.x + bodyRadius <= wallX + 0.5, `${id} crossed east wall at tick ${tick}: ${p.x}`);
+            assert.ok(p.y + bodyRadius <= wallY + 0.5, `${id} crossed south wall at tick ${tick}: ${p.y}`);
+          }
+          const t = world.getTransform(id);
+          assert.ok(Math.hypot(t.vx, t.vy) <= speedLimit + 0.01, `${id} exceeded speed limit at tick ${tick}`);
+        }
+      }
+      assert.deepEqual([...wallHits].sort(), ids, `every actor reached a corner wall under load at (${wallX},${wallY})`);
+      for (const id of ids) world.setMotor(id, { x: 0, y: 0, accel: 3600 });
+      for (let tick = 0; tick < 4; tick++) world.step();
+      const recovered = ids.map(id => {
+        const t = world.getTransform(id);
+        assert.ok(t.x + bodyRadius <= wallX + 0.05, `${id} failed 4-tick 0.05 east recovery at (${wallX},${wallY}): ${t.x + bodyRadius - wallX}`);
+        assert.ok(t.y + bodyRadius <= wallY + 0.05, `${id} failed 4-tick 0.05 south recovery at (${wallX},${wallY}): ${t.y + bodyRadius - wallY}`);
+        return { id, dx: wallX - t.x, dy: wallY - t.y };
+      });
+      assert.ok(recovered[0].dx <= bodyRadius + 0.5 && recovered[0].dy <= bodyRadius + 0.5, 'lead actor held against both corner walls');
+      for (let tick = 0; tick < 8; tick++) world.step();
+      return ids.map((id, i) => {
+        const t = world.getTransform(id);
+        return { ...recovered[i], speed: Math.hypot(t.vx, t.vy) };
+      });
+    } finally { world.dispose(); }
+  };
+  const origin = await runCorner(200, 200);
+  const corner = await runCorner(MAX_PHYSICS_EXTENT, MAX_PHYSICS_EXTENT / 2);
+  for (let i = 0; i < ids.length; i++) {
+    // At 2^18 units, 1 f32 ULP (~0.02 u) per 0.0125 s substep is ~1.56 u/s; settling below 2 u/s rules out blowup.
+    assert.ok(corner[i].speed < 2, `${ids[i]} did not settle at far corner: speed ${corner[i].speed}`);
+    assert.ok(Math.hypot(corner[i].dx - origin[i].dx, corner[i].dy - origin[i].dy) <= 0.5,
+      `${ids[i]} far-corner pose drifted: origin=${JSON.stringify(origin[i])} corner=${JSON.stringify(corner[i])}`);
+  }
 });
