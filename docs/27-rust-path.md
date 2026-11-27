@@ -838,10 +838,12 @@ in `shared/discovery.ts` is now its adapter, through the game's binding (`shared
   still built only when something unseen needs it. JavaScript keeps the queries, which have other callers.
 - **Applied in the rule's order:** discovered cells, surveyed cells, seen cells, then items remembered and
   forgotten, then doors (`observeGate`), so set and map insertion orders, and a bot's ties, are unchanged.
-- **The roof rule has two copies on purpose.** `roofAt` keeps JavaScript callers (the fog, projection,
-  `simulation/visibility.ts`), so the core's port is held equal to it by `tests/discovery.test.js` ("the core
-  reads roofs as roofAt does"), as math is by its digests. `litPoint` stays in `sight.ts` for the fog too.
-  Giving each one owner again, once its callers move, is #1222.
+- **The roof rule has two copies on purpose until the batched port.** `roofAt` keeps JavaScript callers (the fog,
+  projection, `simulation/visibility.ts`), so the core's port is held equal to it by `tests/discovery.test.js`
+  ("the core reads roofs as roofAt does"), as math is by its digests. `litPoint` stays in `sight.ts` for the fog
+  too. Decision (Corey, 2026-11-26, #1222): replace the browser fog and visibility queries with dedicated, batched
+  core query interface(s) (preferring specific optimal interfaces for external core queries, one crossing per frame)
+  and remove the duplicate TypeScript copies and parity test.
 - **Cost:** [42.62](42.62-discovery-core-adapter.md). The crossing is about 2% of the TypeScript's cost.
 
 **Step 3, the live stores (#1211).** The ground and the traps are the game's (`s.items`, `s.traps`), and the doors are
@@ -943,8 +945,8 @@ the same handles and slots.
   contact-blocks-at-a-gate are `canOccupy`'s.
 - **Two copies on purpose,** as the roof rule's are: the TypeScript keeps its callers (movement, bots, tools), and
   `tests/collision-core.test.js` holds the two equal, depth for depth on every collider of the room arena and answer
-  for answer at the places tolerances decide, with gates toggled between calls. Giving each one owner again is #1215
-  and #1222.
+  for answer at the places tolerances decide, with gates toggled between calls. Giving each one owner again is
+  #1222 (live bots/navigation moved under #1215).
 - **Cost:** [42.66](42.66-collision-queries-core.md). A query costs about a quarter of the TypeScript's; the open mask,
   about 0.55 µs for 421 gates, is the part to write once per batch.
 
@@ -1054,7 +1056,7 @@ and event and effect records in the leaf `event-records.ts`, so the core adapter
   | Rule and core owner | Remaining TypeScript caller | Equality evidence | One owner again |
   | --- | --- | --- | --- |
   | Phase 3 lab adapter, `phase_three.rs` (`actions_run`) | `shared/simulation/phase-three.ts` (`phaseThree`), called only by `public/dev/physics-lab-model.js` for `/dev/physics` | Rules execute in `phase_three.rs`; `tests/physics-playtest.browser.mjs` exercises the lab | Settled (Corey, 2026-11-26, #1279 / #1358): kept as lab-only adapter |
-  | Motor, `action_combat::motor` | Client prediction (`public/physics-prediction.js`) and the waiting-room simulation (`shared/simulation/waiting.ts`), via `movementSpeed` and `characterMotor` | `tests/fixtures/motor-parity.txt` holds one table (roles, boost/stun/sneak, zero input, surface ties) that `physics-prediction-contract` checks `characterMotor` and `movementSpeed` against and `tick/motor.rs` (`motor_matches_the_parity_table`) checks the core's `motor` against; parameters are shared | #1241 decides a batched core caller versus retained arithmetic with parity for client prediction and the waiting-room simulation |
+  | Motor, `action_combat::motor` | Client prediction (`public/physics-prediction.js`) and the waiting-room simulation (`shared/simulation/waiting.ts`), via `movementSpeed` and `characterMotor` | `tests/fixtures/motor-parity.txt` holds one table (roles, boost/stun/sneak, zero input, surface ties) that `physics-prediction-contract` checks `characterMotor` and `movementSpeed` against and `tick/motor.rs` (`motor_matches_the_parity_table`) checks the core's `motor` against; parameters are shared | Settled (Corey, 2026-11-26, #1241): replace the duplicate TypeScript arithmetic with specific, batched core interface(s) for external callers rather than retaining parity copies |
   | Utility outcome, `action_combat::attack` | None: the bots' preview and the bare-record attack retired (#1358) | `utility-use` holds that a bot commits a use only when it applies and its cooldown allows, and the core's own tests hold the caps and refusal | Done |
   | Contestant attack/hearing, `action_combat::attack` and `phase_three.rs` | None: `combat.ts`'s `attack`, `hearing.ts`'s `hearShot`, and `action-parity` retired (#1358) | Native `tick/` combat and hearing tests and frozen characterization cover live calls | Closed (#1358) |
   | Non-warden skill and hook launch/cancel, `phase_three.rs`/`action_combat.rs` | `hook.ts`'s `hookSkill`, called on an unstarted game in `tests/physics-projection.test.js` (`combat.ts`'s `skill` and `action-parity` retired, #1358) | `physics-hook` and native `tick/` tests (`tick/tests/movement_tests.rs`, `combat_tests.rs`) cover capacity, launch, cancel and skills | #1241. The hook's later rules (5d.1) and the warden skill (5d.2) moved with no TypeScript copy |
