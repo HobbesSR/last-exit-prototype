@@ -114,6 +114,7 @@ test('every wire message and HTTP payload sent or handled in server/ or public/ 
     'healthResponse',
     'profileResponse',
     'profileToggleResponse',
+    'transportResponse',
     'clientConfigResponse',
     'roomsResponse',
     'createRoomResponse',

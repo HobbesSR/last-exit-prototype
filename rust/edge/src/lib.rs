@@ -99,6 +99,7 @@ enum Down {
 /// datagrams can be sent without waiting behind stream writes.
 struct Session {
     tx: mpsc::UnboundedSender<Down>,
+    close_requested: watch::Sender<Option<tokio::time::Instant>>,
     datagrams: Option<(Connection, AtomicU16)>,
 }
 
@@ -386,6 +387,13 @@ async fn read_link(
                     let session = link.sessions.lock().unwrap().get(&id).cloned();
                     if let Some(session) = session {
                         let _ = session.tx.send(Down::Close(code, body[6..].to_vec()));
+                        let _ = session.close_requested.send_if_modified(|slot| {
+                            if slot.is_some() {
+                                return false;
+                            }
+                            *slot = Some(tokio::time::Instant::now());
+                            true
+                        });
                     }
                 }
                 SEND if body.len() >= 5 => {
@@ -470,10 +478,12 @@ async fn serve_session(link: &Arc<Link>, max_bytes: usize, request: SessionReque
     };
     let id = link.next_id.fetch_add(1, Ordering::Relaxed);
     let (tx, rx) = mpsc::unbounded_channel();
+    let (close_requested, _) = watch::channel(None);
     link.sessions.lock().unwrap().insert(
         id,
         Arc::new(Session {
             tx,
+            close_requested,
             datagrams: Some((connection.clone(), AtomicU16::new(0))),
         }),
     );
@@ -684,10 +694,12 @@ where
 
     let id = link.next_id.fetch_add(1, Ordering::Relaxed);
     let (tx, mut rx) = mpsc::unbounded_channel();
+    let (close_requested, mut close_rx) = watch::channel(None::<tokio::time::Instant>);
     link.sessions.lock().unwrap().insert(
         id,
         Arc::new(Session {
             tx: tx.clone(),
+            close_requested,
             datagrams: None,
         }),
     );
@@ -704,21 +716,31 @@ where
 
     let (mut ws_sink, ws_stream) = ws.split();
     let outcome = tokio::select! {
-        outcome = ws_read_loop(ws_stream, &link, id, max_bytes) => outcome,
-        outcome = ws_deliver_loop(&mut ws_sink, &mut rx, &link, id, &mut down) => outcome,
+        outcome = ws_read_loop(ws_stream, &link, id, max_bytes) => Some(outcome),
+        outcome = ws_deliver_loop(&mut ws_sink, &mut rx, &link, id, &mut down) => Some(outcome),
+        _ = async {
+            let _ = close_rx.wait_for(|at| at.is_some()).await;
+            let requested = *close_rx.borrow();
+            if let Some(at) = requested {
+                tokio::time::sleep_until(at + FLUSH_WAIT).await;
+            }
+        } => None,
     };
     let close_frame = match outcome {
-        WsOutcome::Close(code, reason) => Some((code, reason)),
-        WsOutcome::LinkLost => Some((CLOSE_GOING_AWAY, b"link lost".to_vec())),
-        WsOutcome::ClientClosed => None,
-        WsOutcome::Gone => {
+        Some(WsOutcome::Close(code, reason)) => Some((code, reason)),
+        Some(WsOutcome::LinkLost) => Some((CLOSE_GOING_AWAY, b"link lost".to_vec())),
+        Some(WsOutcome::ClientClosed) => None,
+        Some(WsOutcome::Gone) | None => {
             link.sessions.lock().unwrap().remove(&id);
             link.send(frame::encode(CLOSED, &[&id.to_be_bytes()])).await;
             return;
         }
     };
-    // Bound teardown inside this session task so a stalled write is dropped on expiry with no detached writer.
-    let _ = tokio::time::timeout(FLUSH_WAIT, async {
+    // Bound teardown inside this session task, anchored to when CLOSE arrived if Node initiated closure.
+    let flush_budget = close_rx.borrow().map_or(FLUSH_WAIT, |at| {
+        (at + FLUSH_WAIT).saturating_duration_since(tokio::time::Instant::now())
+    });
+    let _ = tokio::time::timeout(flush_budget, async {
         if let Some((code, reason)) = close_frame {
             let frame = CloseFrame {
                 code: CloseCode::from(code),

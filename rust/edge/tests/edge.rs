@@ -580,6 +580,44 @@ async fn websocket_carries_messages_checks_origin_and_enforces_limits() {
     );
     assert_eq!(node.next().await, (CLOSED, session_nc));
 
+    // Stalled reader: Node CLOSE starts FLUSH_WAIT even while queued DELIVERs are backed up, then drops and reports CLOSED.
+    let sock_stalled = tokio::net::TcpSocket::new_v4().unwrap();
+    sock_stalled.set_recv_buffer_size(4096).unwrap();
+    let tcp_stalled = sock_stalled
+        .connect(std::net::SocketAddr::from(([127, 0, 0, 1], ws_port)))
+        .await
+        .unwrap();
+    let req_stalled = format!("ws://127.0.0.1:{ws_port}/arena")
+        .into_client_request()
+        .unwrap();
+    let (_ws_stalled, _) = timeout(
+        Duration::from_secs(5),
+        tokio_tungstenite::client_async(req_stalled, tcp_stalled),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    let session_stalled = node.next().await.1[..4].to_vec();
+    let bulk = vec![0x7au8; MAX_BYTES];
+    for _ in 0..512 {
+        node.send(DELIVER, &[&session_stalled, &[frame::BINARY], &bulk])
+            .await;
+    }
+    node.send(CLOSE, &[&session_stalled, &1000u16.to_be_bytes(), b"bye"])
+        .await;
+    timeout(Duration::from_secs(4), async {
+        loop {
+            let (kind, body) = node.next().await;
+            if kind == WRITTEN {
+                continue;
+            }
+            assert_eq!((kind, body), (CLOSED, session_stalled));
+            break;
+        }
+    })
+    .await
+    .unwrap();
+
     // Link drop closes open WebSocket sessions with 1001 even when deliveries are in flight.
     let ws2 = ws_connect(ws_port, "/arena", None).await.unwrap();
     let session2 = node.next().await.1[..4].to_vec();

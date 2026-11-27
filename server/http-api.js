@@ -6,6 +6,7 @@ import {
   healthResponse,
   profileResponse,
   profileToggleResponse,
+  transportResponse,
   clientConfigResponse,
   roomsResponse,
   createRoomResponse,
@@ -51,6 +52,13 @@ export function installHttpApi(app, service, directory, replays, pool = null, ed
   });
   app.post(HTTP_ENDPOINT.PROFILE, (req, res) => {
     res.json(profileToggleResponse(service.setProfiling(req.body?.enabled !== false)));
+  });
+  app.get(HTTP_ENDPOINT.TRANSPORT, (_req, res) => {
+    const offers = edge?.() ?? null;
+    res.set('Cache-Control', 'no-store').json(transportResponse({
+      webTransport: offers?.webTransport ?? null,
+      webSocket: offers?.webSocket ?? null,
+    }));
   });
   // What the deploy form offers and states (22.7), from each value's owner. Defaults for a new room only:
   // a room's own labels come with its welcome, and every request is still validated here.

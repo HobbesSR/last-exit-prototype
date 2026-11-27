@@ -156,16 +156,8 @@ export async function checkContentPresentation(browser) {
     let failConfig = true;
     await owner.route('**/api/client-config', async route => {
       if (!failConfig) return route.continue();
-      const response = await route.fetch();
-      const config = await response.json();
       await new Promise(resolve => setTimeout(resolve, 300));
-      // Keep only the edge transport offers so deploy-form options fail to load while the socket still
-      // discovers the edge; under #1207 / 24.5, an HTTP 503 hides both edge ports (`tests/arena-socket.test.js`).
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ webTransport: config.webTransport, webSocket: config.webSocket }),
-      });
+      return route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"unavailable"}' });
     });
     await owner.goto(`${base}/?seed=4217`);
     // The first visit's room is created and admitted while configuration is failing.

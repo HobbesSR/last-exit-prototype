@@ -32,6 +32,9 @@ test('client configuration states each owner\'s values, the server\'s default co
     });
     const text = JSON.stringify(config);
     assert.ok(!text.includes(room.id) && !text.includes(room.ownerKey), 'no room or credential');
+    const transport = await fetch(base + '/api/transport');
+    assert.equal(transport.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(await transport.json(), { webTransport: null, webSocket: null });
 
     // Room names count code points, so astral characters fit 24 where the old UTF-16 limit allowed 12.
     const astral = n => '\u{1F680}'.repeat(n);

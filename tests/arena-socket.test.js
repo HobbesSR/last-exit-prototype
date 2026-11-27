@@ -90,6 +90,16 @@ test('without a WebTransport offer, or a WebTransport in the browser, the edge W
     assert.equal(closed.code, 1006);
     assert.equal(FakeWebSocket.made.length, 0);
   }
+
+  const Transport = fakeTransport({ opens: false });
+  const fallback = opener({
+    WebTransport: Transport,
+    fetchConfig: async () => { throw new Error('503'); },
+    fetchTransport: async () => offer,
+  })();
+  await new Promise(r => setTimeout(r, 40));
+  assert.equal(fallback.transport, 'websocket', 'transport fallback bypasses a failed deploy-config endpoint');
+  assert.equal(FakeWebSocket.made[0].url, 'ws://arena.test:4434/arena');
 });
 
 test('a WebTransport that never opens falls back after the timeout, and the page then stays on the WebSocket', async () => {

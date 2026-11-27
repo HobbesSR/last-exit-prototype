@@ -148,15 +148,23 @@ export function createArenaSocketOpener(env = {}) {
   const WS = () => env.WebSocket ?? globalThis.WebSocket;
   const WT = () => ('WebTransport' in env ? env.WebTransport : globalThis.WebTransport);
   const timeoutMs = env.timeoutMs ?? FALLBACK_MS;
-  const fetchConfig = env.fetchConfig ?? (() => fetch('/api/client-config', { cache: 'no-store' }).then(r => r.ok ? r.json() : null));
+  const readJson = url => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+  const fetchConfig = env.fetchConfig ?? (() => readJson('/api/client-config'));
+  // Deploy-form outages (e.g. /api/client-config HTTP 503) must not block initial room admission (22.7),
+  // so fall back to /api/transport when client-config does not return a readable object.
+  const fetchTransport = env.fetchTransport ?? (env.fetchConfig ? () => null : () => readJson('/api/transport'));
   let configPromise = null, fellBack = false;
 
-  // Once per page; a failed or unreadable answer is forgotten, so a later socket asks again.
+  // Once per page; a failed or unreadable answer falls back to /api/transport, and a complete failure is forgotten.
   function config() {
-    configPromise ??= Promise.resolve().then(fetchConfig).catch(() => null).then(value => {
-      if (value === null || typeof value !== 'object') configPromise = null;
-      return value ?? null;
-    });
+    configPromise ??= Promise.resolve()
+      .then(fetchConfig)
+      .catch(() => null)
+      .then(value => value !== null && typeof value === 'object' ? value : Promise.resolve().then(fetchTransport).catch(() => null))
+      .then(value => {
+        if (value === null || typeof value !== 'object') configPromise = null;
+        return value ?? null;
+      });
     return configPromise;
   }
 
