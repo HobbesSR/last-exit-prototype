@@ -307,24 +307,23 @@ const JOIN_TELEMETRY_SCRIPT = ({ wsProxyPort } = {}) => {
   };
 };
 
-async function runOne(transport, profile, runIndex, { server, base, browser }, offer, linkTap) {
+async function runOne(transport, profile, runIndex, { server, base, browser }, offer, wsOffer, linkTap) {
   const profileSeed = seed ^ (runIndex * 0x9E3779B1) ^ (NETWORK_PROFILES.findIndex(p => p.name === profile.name) * 0x85EBCA6B);
   const relay = transport === 'wt'
     ? await startLossyRelay({ target: offer.port, profile, seed: profileSeed, tick: TICK })
-    : await startTcpDelayProxy({ target: server.http.address().port, profile, seed: profileSeed, rewriteHost: true });
+    : await startTcpDelayProxy({ target: wsOffer.port, profile, seed: profileSeed, rewriteHost: true });
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const errors = [];
   collectBrowserErrors(page, errors, { consoleErrors: true });
 
-  if (transport === 'wt') {
-    await page.route('**/api/client-config', async route => {
-      const response = await route.fetch(), config = await response.json();
-      config.webTransport = { ...config.webTransport, port: relay.port };
-      await route.fulfill({ response, json: config });
-    });
-  }
+  await page.route('**/api/client-config', async route => {
+    const response = await route.fetch(), config = await response.json();
+    if (transport === 'wt') config.webTransport = { ...config.webTransport, port: relay.port };
+    else config.webSocket = { ...config.webSocket, port: relay.port };
+    await route.fulfill({ response, json: config });
+  });
 
-  await page.addInitScript(JOIN_TELEMETRY_SCRIPT, { wsProxyPort: transport === 'ws' ? relay.port : null });
+  await page.addInitScript(JOIN_TELEMETRY_SCRIPT, { wsProxyPort: null });
 
   // Wait until no prior session is still receiving frames over edgeLink.
   let sendsBefore = server.edgeLink.counts().sends;
@@ -466,23 +465,25 @@ async function runOne(transport, profile, runIndex, { server, base, browser }, o
 
 const lock = await acquireMachineLock('bench');
 const replayDir = await mkdtemp(path.join(tmpdir(), 'last-exit-join-latency-'));
-const session = await serveWithBrowser({ profile: false, profileSummary: false, roomThreads: false, edgeLink: 0, replayDir });
+const session = await serveWithBrowser({ profile: false, profileSummary: false, roomThreads: false, edgeLink: 0, edge: false, replayDir });
 const linkTap = await startEdgeLinkTap(session.server.edgeLink.port);
-const edge = spawn(binary, ['--link', `127.0.0.1:${linkTap.port}`, '--port', '0'], { stdio: ['ignore', 'ignore', 'inherit'] });
+const edge = spawn(binary, ['--link', `127.0.0.1:${linkTap.port}`, '--port', '0', '--ws-port', '0'], { stdio: ['ignore', 'ignore', 'inherit'] });
 const results = [], browserVersion = session.browser.version();
 
 try {
-  let offer = null;
-  for (let i = 0; i < 100 && !offer; i++) {
-    offer = (await (await fetch(`${session.base}/api/client-config`)).json()).webTransport;
-    if (!offer) await new Promise(resolve => setTimeout(resolve, 100));
+  let offer = null, wsOffer = null;
+  for (let i = 0; i < 100 && (!offer || !wsOffer); i++) {
+    const cfg = await (await fetch(`${session.base}/api/client-config`)).json();
+    offer = cfg.webTransport;
+    wsOffer = cfg.webSocket;
+    if (!offer || !wsOffer) await new Promise(resolve => setTimeout(resolve, 100));
   }
-  if (!offer) throw new Error('The edge never linked.');
+  if (!offer || !wsOffer) throw new Error('The edge never linked.');
 
   for (const profile of chosen) {
     for (let i = 0; i < runs; i++) {
       for (const transport of transports) {
-        const r = await runOne(transport, profile, i, session, offer, linkTap);
+        const r = await runOne(transport, profile, i, session, offer, wsOffer, linkTap);
         results.push(r);
         console.log(
           `${transport.toUpperCase()} ${profile.name}#${i}: join ${r.joinToLiveMs} ms | connect ${r.connectMs} ms | ` +

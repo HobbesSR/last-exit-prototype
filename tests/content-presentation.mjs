@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createArenaServer } from '../server/index.js';
 import { createMapGenerator } from '../server/map-generator.js';
+import { spawnEdge } from './helpers/edge.js';
 import { listen } from './helpers/listen.js';
 import { createGameRecord, snapshot, VERSION } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
@@ -126,6 +127,7 @@ export async function checkContentPresentation(browser) {
   };
   const server = await createArenaServer({ replayDir, content: contentB, devTools: 'all', generateMap });
   const base = await listen(server);
+  const edge = await spawnEdge(server);
   const errors = [], pages = [];
   // Each page may expect the refusals it arranges; any other console error fails the check.
   const open = async (expected = /status of 503/) => {
@@ -144,7 +146,7 @@ export async function checkContentPresentation(browser) {
         ws.send(JSON.stringify({ type: 'welcome', id: 'p0', room: 'forged', owner: false, ready: true, started: true, contentId, presentation,
           map: { width: 777, height: 100, obstacles: [], gates: [], items: [] }, state: { tick: 1, phase: 'live', players: [] } }));
       }));
-      await page.goto(`${base}/?room=forged`);
+      await page.goto(`${base}/?room=forged&transport=ws`);
       await page.waitForFunction(() => document.getElementById('connection-text').textContent === 'UNAVAILABLE');
       assert.deepEqual(await page.evaluate(() => [window.arenaDebug().mapWidth, window.arenaDebug().content, window.arenaDebug().tick]), [undefined, null, undefined], `refused ${contentId} ${presentation?.contentId}`);
       await page.close();
@@ -154,8 +156,15 @@ export async function checkContentPresentation(browser) {
     let failConfig = true;
     await owner.route('**/api/client-config', async route => {
       if (!failConfig) return route.continue();
+      const response = await route.fetch();
+      const config = await response.json();
       await new Promise(resolve => setTimeout(resolve, 300));
-      return route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"unavailable"}' });
+      // Keep only the edge transport offers so deploy-form options fail to load while the socket still connects.
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ webTransport: config.webTransport, webSocket: config.webSocket }),
+      });
     });
     await owner.goto(`${base}/?seed=4217`);
     // The first visit's room is created and admitted while configuration is failing.
@@ -256,6 +265,6 @@ export async function checkContentPresentation(browser) {
     assert.deepEqual(errors, []);
   } finally {
     for (const page of pages) await page.close().catch(() => {});
-    await server.close(); await maps.close(); await rm(replayDir, { recursive: true, force: true });
+    await edge.stop(); await server.close(); await maps.close(); await rm(replayDir, { recursive: true, force: true });
   }
 }

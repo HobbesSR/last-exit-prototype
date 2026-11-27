@@ -13,6 +13,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
+import { spawnEdge } from './helpers/edge.js';
 import { lineClear } from '../shared/sight.ts';
 import path from 'node:path';
 import { cliArgs } from './helpers/args.js';
@@ -30,6 +31,7 @@ await mkdir(outDir, { recursive: true });
 
 const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'), roomThreads: false });
 const base = await listen(server);
+const edge = await spawnEdge(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT } });
 
@@ -161,6 +163,7 @@ try {
   console.log(`final: blaster ${final?.weapon ?? 0}, charges ${final?.keys ?? 0}, hp ${final?.hp ?? 0}, status ${final?.status}`);
 } finally {
   await browser.close();
+  await edge.stop();
   await server.close();
 }
 

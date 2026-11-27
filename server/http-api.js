@@ -54,16 +54,20 @@ export function installHttpApi(app, service, directory, replays, pool = null, ed
   });
   // What the deploy form offers and states (22.7), from each value's owner. Defaults for a new room only:
   // a room's own labels come with its welcome, and every request is still validated here.
-  app.get(HTTP_ENDPOINT.CLIENT_CONFIG, (_req, res) => res.set('Cache-Control', 'no-store').json(clientConfigResponse({
-    devTools: service.devTools,
-    presentation: service.defaultPresentation(),
-    seed: { min: 1, max: MAX_ARENA_SEED },
-    roomNameMaxLength: MAX_ROOM_NAME,
-    playerNameMaxLength: MAX_PLAYER_NAME,
-    sizes: ROOM_SIZE_NAMES, defaultSize: zoneSizeName(DEFAULT_LIVE_ZONE_SIZE),
-    matchmakingCountdownMs: MATCHMAKING_COUNTDOWN_MS,
-    webTransport: edge?.() ?? null,
-  })));
+  app.get(HTTP_ENDPOINT.CLIENT_CONFIG, (_req, res) => {
+    const offers = edge?.() ?? null;
+    res.set('Cache-Control', 'no-store').json(clientConfigResponse({
+      devTools: service.devTools,
+      presentation: service.defaultPresentation(),
+      seed: { min: 1, max: MAX_ARENA_SEED },
+      roomNameMaxLength: MAX_ROOM_NAME,
+      playerNameMaxLength: MAX_PLAYER_NAME,
+      sizes: ROOM_SIZE_NAMES, defaultSize: zoneSizeName(DEFAULT_LIVE_ZONE_SIZE),
+      matchmakingCountdownMs: MATCHMAKING_COUNTDOWN_MS,
+      webTransport: offers?.webTransport ?? null,
+      webSocket: offers?.webSocket ?? null,
+    }));
+  });
   // Open rooms' public summaries, for the lobby browser (22.5); the directory decides which are listed.
   app.get(HTTP_ENDPOINT.ROOMS, (_req, res) => res.set('Cache-Control', 'no-store').json(roomsResponse(directory.list())));
   app.post(HTTP_ENDPOINT.ROOMS, (req, res) => {

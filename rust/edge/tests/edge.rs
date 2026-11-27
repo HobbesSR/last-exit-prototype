@@ -1,7 +1,9 @@
-//! The edge against a fake Node: a TCP link listener written here and a real WebTransport client.
+//! The edge against a fake Node: a TCP link listener written here and real WebTransport and WebSocket clients.
 
+use std::sync::Arc;
 use std::time::Duration;
 
+use futures_util::{SinkExt, StreamExt};
 use last_exit_edge::frame::link::{
     ACCEPT, CLOSE, CLOSED, DATAGRAM, DELIVER, EDGE, MESSAGE, OPEN, SEND, WRITTEN,
 };
@@ -11,11 +13,19 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::task::JoinHandle;
 use tokio::time::timeout;
+use tokio_rustls::TlsConnector;
+use tokio_rustls::rustls;
+use tokio_rustls::rustls::pki_types::{CertificateDer, ServerName, pem::PemObject};
+use tokio_tungstenite::WebSocketStream;
+use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use tokio_tungstenite::tungstenite::protocol::CloseFrame;
+use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use wtransport::config::ClientConfig;
 use wtransport::endpoint::ConnectOptions;
 use wtransport::error::ConnectionError;
 use wtransport::tls::Sha256Digest;
-use wtransport::{Connection, Endpoint, RecvStream, SendStream};
+use wtransport::{Connection, Endpoint, Identity, RecvStream, SendStream};
 
 const MAX_BYTES: usize = 1000;
 const HTTP_PORT: u16 = 3000;
@@ -70,19 +80,28 @@ impl Node {
         let (kind, body) = self.next().await;
         assert_eq!(kind, EDGE);
         let accept =
-            format!("{{\"link\":4,\"httpPort\":{HTTP_PORT},\"maxMessageBytes\":{MAX_BYTES}}}");
+            format!("{{\"link\":5,\"httpPort\":{HTTP_PORT},\"maxMessageBytes\":{MAX_BYTES}}}");
         self.send(ACCEPT, &[accept.as_bytes()]).await;
         String::from_utf8(body).unwrap()
     }
 }
 
-/// Starts an edge on any port against a fake Node, and returns both with the edge's port and hash.
-async fn start(
+/// Starts an edge on any ports against a fake Node, and returns both with the edge's WT port, WS port, and hash.
+async fn start_with(
     rotate_after: Duration,
-) -> (Node, JoinHandle<Result<(), String>>, u16, Sha256Digest) {
+    identity: Option<(std::path::PathBuf, std::path::PathBuf)>,
+) -> (
+    Node,
+    JoinHandle<Result<(), String>>,
+    u16,
+    u16,
+    Option<Sha256Digest>,
+) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let mut config = Config::new(listener.local_addr().unwrap().to_string());
     config.port = 0;
+    config.ws_port = 0;
+    config.identity = identity;
     config.rotate_after = rotate_after;
     let edge = tokio::spawn(async move { run(config).await.map_err(|error| error.to_string()) });
     let mut node = Node {
@@ -91,26 +110,45 @@ async fn start(
         decoder: Decoder::new(0),
     };
     let json = node.handshake().await;
-    let (port, hash) = parse_edge(&json);
-    (node, edge, port, hash)
+    let (port, ws_port, ws_tls, hash) = parse_edge(&json);
+    assert_eq!(ws_tls, hash.is_none());
+    (node, edge, port, ws_port, hash)
 }
 
-fn parse_edge(json: &str) -> (u16, Sha256Digest) {
+async fn start(
+    rotate_after: Duration,
+) -> (Node, JoinHandle<Result<(), String>>, u16, Sha256Digest) {
+    let (node, edge, port, _ws_port, hash) = start_with(rotate_after, None).await;
+    (node, edge, port, hash.unwrap())
+}
+
+fn parse_edge(json: &str) -> (u16, u16, bool, Option<Sha256Digest>) {
     let after = |key: &str| &json[json.find(key).unwrap() + key.len()..];
     let port: String = after("\"port\":")
         .chars()
         .take_while(char::is_ascii_digit)
         .collect();
-    let hash: String = after("\"certificateHash\":\"")
+    let ws_port: String = after("\"wsPort\":")
         .chars()
-        .take_while(|c| *c != '"')
+        .take_while(char::is_ascii_digit)
         .collect();
-    let bytes: Vec<u8> = (0..32)
-        .map(|i| u8::from_str_radix(&hash[2 * i..2 * i + 2], 16).unwrap())
-        .collect();
+    let ws_tls = after("\"wsTls\":").starts_with("true");
+    let hash_rest = after("\"certificateHash\":");
+    let hash = if let Some(quoted) = hash_rest.strip_prefix('"') {
+        let hex: String = quoted.chars().take_while(|c| *c != '"').collect();
+        let bytes: Vec<u8> = (0..32)
+            .map(|i| u8::from_str_radix(&hex[2 * i..2 * i + 2], 16).unwrap())
+            .collect();
+        Some(Sha256Digest::new(bytes.try_into().unwrap()))
+    } else {
+        assert!(hash_rest.starts_with("null"));
+        None
+    };
     (
         port.parse().unwrap(),
-        Sha256Digest::new(bytes.try_into().unwrap()),
+        ws_port.parse().unwrap(),
+        ws_tls,
+        hash,
     )
 }
 
@@ -183,8 +221,9 @@ async fn carries_messages_both_ways_and_closes_with_the_code() {
         open_stream(&connection, &frame::encode(frame::TEXT, &[b"hi"])).await;
 
     let (kind, body) = node.next().await;
-    assert_eq!((kind, body.len()), (OPEN, 4));
-    let session = body.clone();
+    assert_eq!((kind, body.len()), (OPEN, 5));
+    assert_eq!(body[4], frame::DATAGRAMS);
+    let session = body[..4].to_vec();
     let (kind, body) = node.next().await;
     assert_eq!(kind, MESSAGE);
     assert_eq!(body, [&session[..], &[frame::TEXT], b"hi"].concat());
@@ -222,8 +261,9 @@ async fn forwards_datagrams_unparsed_and_drops_empty_or_oversize_ones() {
     let (mut node, _edge, port, hash) = start(Duration::from_secs(3600)).await;
     let connection = connect(port, &hash, "/arena", None).await.unwrap();
     let (_send, _recv) = open_stream(&connection, &frame::encode(frame::TEXT, &[b"hi"])).await;
-    let (kind, session) = node.next().await;
+    let (kind, open_body) = node.next().await;
     assert_eq!(kind, OPEN);
+    let session = open_body[..4].to_vec();
     assert_eq!(node.next().await.0, MESSAGE);
 
     connection.send_datagram(b"[1]").unwrap();
@@ -247,8 +287,9 @@ async fn sends_datagrams_as_numbered_fragments_and_drops_oversize_messages() {
     let (mut node, _edge, port, hash) = start(Duration::from_secs(3600)).await;
     let connection = connect(port, &hash, "/arena", None).await.unwrap();
     let (_send, _recv) = open_stream(&connection, &frame::encode(frame::TEXT, &[b"hi"])).await;
-    let (kind, session) = node.next().await;
+    let (kind, open_body) = node.next().await;
     assert_eq!(kind, OPEN);
+    let session = open_body[..4].to_vec();
     assert_eq!(node.next().await.0, MESSAGE);
     let max = connection.max_datagram_size().expect("datagrams supported");
     println!("client max_datagram_size on loopback: {max}");
@@ -301,8 +342,9 @@ async fn a_client_frame_at_the_limit_passes_and_one_over_closes_with_1008() {
     let mut bytes = frame::encode(frame::TEXT, &[&vec![b'x'; MAX_BYTES]]);
     bytes.extend(frame::encode(frame::TEXT, &[&vec![b'x'; MAX_BYTES + 1]]));
     let (_send, _recv) = open_stream(&connection, &bytes).await;
-    let (kind, session) = node.next().await;
+    let (kind, open_body) = node.next().await;
     assert_eq!(kind, OPEN);
+    let session = open_body[..4].to_vec();
     assert_eq!(
         node.next().await.0,
         MESSAGE,
@@ -320,8 +362,9 @@ async fn an_unknown_flag_closes_with_1008_as_a_bad_frame() {
     let (mut node, _edge, port, hash) = start(Duration::from_secs(3600)).await;
     let connection = connect(port, &hash, "/arena", None).await.unwrap();
     let (_send, _recv) = open_stream(&connection, &frame::encode(2, &[b"x"])).await;
-    let (kind, session) = node.next().await;
+    let (kind, open_body) = node.next().await;
     assert_eq!(kind, OPEN);
+    let session = open_body[..4].to_vec();
     assert_eq!(
         closed_with(&connection).await,
         (1008, b"bad frame".to_vec())
@@ -368,8 +411,8 @@ async fn rotates_the_certificate_and_says_so() {
     let (mut node, _edge, _port, hash) = start(Duration::from_millis(300)).await;
     let (kind, body) = node.next().await;
     assert_eq!(kind, EDGE);
-    let (_, rotated) = parse_edge(std::str::from_utf8(&body).unwrap());
-    assert_ne!(rotated, hash);
+    let (_, _, _, rotated) = parse_edge(std::str::from_utf8(&body).unwrap());
+    assert_ne!(rotated.unwrap(), hash);
 }
 
 #[tokio::test]
@@ -377,6 +420,7 @@ async fn another_link_version_is_fatal() {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let mut config = Config::new(listener.local_addr().unwrap().to_string());
     config.port = 0;
+    config.ws_port = 0;
     let edge = tokio::spawn(async move { run(config).await.map_err(|error| error.to_string()) });
     let (mut stream, _) = listener.accept().await.unwrap();
     stream
@@ -391,4 +435,188 @@ async fn another_link_version_is_fatal() {
         .unwrap()
         .unwrap();
     assert!(result.is_err());
+}
+
+async fn ws_connect(
+    ws_port: u16,
+    path: &str,
+    origin: Option<&str>,
+) -> Result<WebSocketStream<TcpStream>, String> {
+    let tcp = TcpStream::connect(("127.0.0.1", ws_port))
+        .await
+        .map_err(|e| e.to_string())?;
+    let mut req = format!("ws://127.0.0.1:{ws_port}{path}")
+        .into_client_request()
+        .unwrap();
+    if let Some(origin) = origin {
+        req.headers_mut().insert("origin", origin.parse().unwrap());
+    }
+    let (ws, _) = timeout(
+        Duration::from_secs(5),
+        tokio_tungstenite::client_async(req, tcp),
+    )
+    .await
+    .map_err(|_| "timed out".to_string())?
+    .map_err(|e| e.to_string())?;
+    Ok(ws)
+}
+
+#[tokio::test]
+async fn websocket_carries_messages_checks_origin_and_enforces_limits() {
+    let (mut node, _edge, _port, ws_port, _hash) =
+        start_with(Duration::from_secs(3600), None).await;
+    assert!(ws_connect(ws_port, "/other", None).await.is_err());
+    assert!(
+        ws_connect(ws_port, "/arena", Some("http://127.0.0.1:3001"))
+            .await
+            .is_err()
+    );
+    assert!(
+        ws_connect(ws_port, "/arena", Some("http://evil.test:3000"))
+            .await
+            .is_err()
+    );
+
+    let ws = ws_connect(ws_port, "/arena", Some("http://127.0.0.1:3000"))
+        .await
+        .unwrap();
+    let (kind, body) = node.next().await;
+    assert_eq!((kind, body.len()), (OPEN, 5));
+    assert_eq!(body[4], frame::STREAM_ONLY);
+    let session = body[..4].to_vec();
+
+    let (mut sink, mut stream) = ws.split();
+    sink.send(Message::Text("hi".into())).await.unwrap();
+    assert_eq!(
+        node.next().await,
+        (MESSAGE, [&session[..], &[frame::TEXT], b"hi"].concat())
+    );
+
+    node.send(DELIVER, &[&session, &[frame::BINARY], b"abcde"])
+        .await;
+    let msg = timeout(Duration::from_secs(5), stream.next())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert_eq!(msg, Message::Binary(b"abcde".to_vec().into()));
+    assert_eq!(
+        node.next().await,
+        (WRITTEN, [&session[..], &5u64.to_be_bytes()].concat())
+    );
+
+    // Oversize WebSocket message closes with 1008.
+    sink.send(Message::Text("x".repeat(MAX_BYTES + 1).into()))
+        .await
+        .unwrap();
+    let close = loop {
+        match timeout(Duration::from_secs(5), stream.next())
+            .await
+            .unwrap()
+        {
+            Some(Ok(Message::Close(frame))) => break frame.unwrap(),
+            Some(Ok(_)) => continue,
+            other => panic!("expected close frame, got {other:?}"),
+        }
+    };
+    assert_eq!(close.code, CloseCode::Policy);
+    assert_eq!(node.next().await, (CLOSED, session));
+
+    // Link drop closes open WebSocket sessions with 1001.
+    let ws2 = ws_connect(ws_port, "/arena", None).await.unwrap();
+    assert_eq!(node.next().await.0, OPEN);
+    let (_sink2, mut stream2) = ws2.split();
+    node.stream = None;
+    let close2 = loop {
+        match timeout(Duration::from_secs(5), stream2.next())
+            .await
+            .unwrap()
+        {
+            Some(Ok(Message::Close(frame))) => break frame.unwrap(),
+            Some(Ok(_)) => continue,
+            other => panic!("expected close frame, got {other:?}"),
+        }
+    };
+    assert_eq!(close2.code, CloseCode::from(1001));
+    assert_eq!(close2.reason.as_str(), "link lost");
+}
+
+#[tokio::test]
+async fn wss_uses_the_configured_pem_identity() {
+    let dir = std::env::temp_dir().join(format!("last-exit-edge-wss-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let cert_path = dir.join("cert.pem");
+    let key_path = dir.join("key.pem");
+    let identity = Identity::self_signed(["localhost", "127.0.0.1"]).unwrap();
+    identity
+        .certificate_chain()
+        .store_pemfile(&cert_path)
+        .await
+        .unwrap();
+    identity
+        .private_key()
+        .store_secret_pemfile(&key_path)
+        .await
+        .unwrap();
+
+    let (mut node, _edge, _port, ws_port, _hash) = start_with(
+        Duration::from_secs(3600),
+        Some((cert_path.clone(), key_path.clone())),
+    )
+    .await;
+
+    let mut roots = rustls::RootCertStore::empty();
+    for cert in CertificateDer::pem_file_iter(&cert_path).unwrap() {
+        roots.add(cert.unwrap()).unwrap();
+    }
+    let tls_config = rustls::ClientConfig::builder_with_provider(Arc::new(
+        rustls::crypto::ring::default_provider(),
+    ))
+    .with_safe_default_protocol_versions()
+    .unwrap()
+    .with_root_certificates(roots)
+    .with_no_client_auth();
+    let connector = TlsConnector::from(Arc::new(tls_config));
+    let tcp = TcpStream::connect(("127.0.0.1", ws_port)).await.unwrap();
+    let tls = connector
+        .connect(ServerName::try_from("localhost").unwrap(), tcp)
+        .await
+        .unwrap();
+    let req = format!("wss://localhost:{ws_port}/arena")
+        .into_client_request()
+        .unwrap();
+    let (ws, _) = tokio_tungstenite::client_async(req, tls).await.unwrap();
+
+    let (kind, body) = node.next().await;
+    assert_eq!((kind, body.len()), (OPEN, 5));
+    assert_eq!(body[4], frame::STREAM_ONLY);
+    let session = body[..4].to_vec();
+
+    let (mut sink, mut stream) = ws.split();
+    sink.send(Message::Text("secure".into())).await.unwrap();
+    assert_eq!(
+        node.next().await,
+        (MESSAGE, [&session[..], &[frame::TEXT], b"secure"].concat())
+    );
+    node.send(CLOSE, &[&session, &1000u16.to_be_bytes(), b"done"])
+        .await;
+    let close = loop {
+        match timeout(Duration::from_secs(5), stream.next())
+            .await
+            .unwrap()
+        {
+            Some(Ok(Message::Close(frame))) => break frame.unwrap(),
+            Some(Ok(_)) => continue,
+            other => panic!("expected close frame, got {other:?}"),
+        }
+    };
+    assert_eq!(
+        close,
+        CloseFrame {
+            code: CloseCode::Normal,
+            reason: "done".into()
+        }
+    );
+    assert_eq!(node.next().await, (CLOSED, session));
+    let _ = std::fs::remove_dir_all(&dir);
 }

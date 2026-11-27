@@ -19,14 +19,14 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { serialize, deserialize } from 'node:v8';
-import { createServer } from 'node:http';
 import { Worker } from 'node:worker_threads';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createMapGenerator } from '../../server/map-generator.js';
 import { createFileReplayStore } from '../../server/replay-store.js';
 import { createRoomService } from '../../server/room-service.js';
-import { attachWebSockets } from '../../server/websocket.js';
+import { attachEdgeLink } from '../../server/edge-link.js';
 import { startScheduler } from '../../server/scheduler.js';
+import { spawnEdge } from '../../tests/helpers/edge.js';
 import { liveZoneSize } from '../../map/live.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
@@ -170,10 +170,10 @@ async function runPair(index, [mapA, mapB]) {
   const service = createRoomService({ replays, devTools: 'all', threads: host === 'threads', reportError: error => errors.push(String(error)) });
   if (profile) service.setProfiling(true);
   const profiles = { A: {}, B: {} }, thread = descriptor => service.rooms.get(descriptor.id);
-  const http = createServer((_request, response) => { response.writeHead(404); response.end(); });
-  const wss = attachWebSockets(http, service);
-  await new Promise(resolve => http.listen(0, '127.0.0.1', resolve));
-  const url = `ws://127.0.0.1:${http.address().port}`;
+  const edgeLink = attachEdgeLink({ service, port: 0, httpPort: 0 });
+  await edgeLink.listening;
+  const edge = await spawnEdge({ edgeLink });
+  const url = `ws://127.0.0.1:${edgeLink.info().webSocket.port}/arena`;
   const stopScheduler = startScheduler(service.advance), clients = clientWorker();
   try {
     await clients.ready;
@@ -216,9 +216,8 @@ async function runPair(index, [mapA, mapB]) {
     stopScheduler();
     await service.close();
     await clients.close();
-    for (const socket of wss.clients) socket.terminate();
-    await new Promise(resolve => wss.close(resolve));
-    await new Promise(resolve => http.close(resolve));
+    await edge.stop();
+    await edgeLink.close();
     const metas = await Promise.all((await readdir(dir)).filter(f => f.endsWith('.meta.json')).map(async f => JSON.parse(await readFile(path.join(dir, f), 'utf8'))));
     const recorder = metas.map(meta => ({ room: meta.id === a.id ? 'A' : 'B', frames: meta.frames, droppedFrames: meta.recording?.droppedFrames ?? 0 }));
     return {

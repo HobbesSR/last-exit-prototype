@@ -182,14 +182,15 @@ export function createArenaSocketOpener(env = {}) {
     });
     socket.CONNECTING = CONNECTING; socket.OPEN = OPEN; socket.CLOSING = CLOSING; socket.CLOSED = CLOSED;
 
-    function useWebSocket() {
+    function useWebSocket(wsOffer) {
       const location = where();
-      const ws = new (WS())(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
+      const protocol = wsOffer.tls ? 'wss' : 'ws';
+      const ws = new (WS())(`${protocol}://${location.hostname}:${wsOffer.port}/arena`);
       underlying = ws; transport = 'websocket'; ws.binaryType = binaryType;
       ws.addEventListener('open', () => { if (readyState !== CONNECTING) return; readyState = OPEN; socket.dispatchEvent(event('open')); });
       ws.addEventListener('message', e => socket.dispatchEvent(event('message', { data: e.data })));
-      ws.addEventListener('error', () => socket.dispatchEvent(event('error')));
-      ws.addEventListener('close', e => settle(e.code, e.reason, e.wasClean));
+      ws.addEventListener('error', () => { if (readyState === CONNECTING) configPromise = null; socket.dispatchEvent(event('error')); });
+      ws.addEventListener('close', e => { if (readyState === CONNECTING) configPromise = null; settle(e.code, e.reason, e.wasClean); });
       if (wantClose) ws.close(...wantClose);
       socket.send = data => ws.send(data);
       socket.sendInput = socket.send;
@@ -321,31 +322,30 @@ export function createArenaSocketOpener(env = {}) {
 
     (async () => {
       const forced = forcedTransport(where().search);
-      // One budget covers the config, the session and its stream; a forced choice has none.
-      const deadline = forced === 'wt' ? null : Date.now() + timeoutMs;
+      // One budget covers the config, the session and its stream when WebTransport can fall back; a forced
+      // choice or a page already on WebSocket waits on the config without cutting it off.
+      const deadline = forced === null && !fellBack ? Date.now() + timeoutMs : null;
       const remaining = () => Math.max(0, deadline - Date.now());
-      let offer = null;
-      // A page that has fallen back stays on the WebSocket, so only a forced WebTransport still needs the offer.
-      if (forced === 'wt' || (forced === null && !fellBack)) {
-        let timer = null;
-        const timeout = deadline === null ? null : new Promise(resolve => { timer = setTimeout(() => resolve(null), remaining()); });
-        const loaded = await (timeout ? Promise.race([config(), timeout]) : config());
-        clearTimeout(timer);
-        offer = loaded?.webTransport ?? null;
-      }
+      let timer = null;
+      const timeout = deadline === null ? null : new Promise(resolve => { timer = setTimeout(() => resolve(null), remaining()); });
+      const loaded = await (timeout ? Promise.race([config(), timeout]) : config());
+      clearTimeout(timer);
       if (wantClose) { settle(1006, '', false); return; }
+      const offer = loaded?.webTransport ?? null;
+      const wsOffer = loaded?.webSocket ?? null;
       const choice = chooseTransport({ forced, webTransport: offer, available: !!WT(), fellBack });
       if (choice === 'wt') {
-        if (!offer || !WT()) { fail(); return; }
+        if (!offer || !WT()) { configPromise = null; fail(); return; }
         if (await useWebTransport(offer, deadline === null ? null : remaining())) return;
-        // The edge may have restarted or rotated its certificate: the next socket asks for the config again.
-        configPromise = null;
-        if (wantClose) { settle(1006, '', false); return; }
-        if (forced === 'wt') { fail(); return; }
+        // The edge may have restarted or rotated its certificate: forget the cached offer when staying on
+        // WebTransport or aborted, while a page falling back keeps its WebSocket offer without re-fetching.
+        if (wantClose) { configPromise = null; settle(1006, '', false); return; }
+        if (forced === 'wt') { configPromise = null; fail(); return; }
         fellBack = true;
       }
       if (wantClose) { settle(1006, '', false); return; }
-      useWebSocket();
+      if (!wsOffer) { configPromise = null; fail(); return; }
+      useWebSocket(wsOffer);
     })();
     return socket;
   };

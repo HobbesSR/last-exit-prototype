@@ -203,8 +203,8 @@ async function run(profile, runIndex, { server, base, browser }, offer) {
 
 const lock = await acquireMachineLock('bench');
 const replayDir = await mkdtemp(path.join(tmpdir(), 'last-exit-fast-loss-'));
-const session = await serveWithBrowser({ profile: true, profileSummary: false, roomThreads: false, edgeLink: 0, replayDir });
-const edge = spawn(binary, ['--link', `127.0.0.1:${session.server.edgeLink.port}`, '--port', '0'], { stdio: ['ignore', 'ignore', 'inherit'] });
+const session = await serveWithBrowser({ profile: true, profileSummary: false, roomThreads: false, edgeLink: 0, edge: false, replayDir });
+const edge = spawn(binary, ['--link', `127.0.0.1:${session.server.edgeLink.port}`, '--port', '0', '--ws-port', '0'], { stdio: ['ignore', 'ignore', 'inherit'] });
 const results = [], browserVersion = session.browser.version();
 try {
   let offer = null;

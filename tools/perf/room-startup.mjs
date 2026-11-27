@@ -7,6 +7,7 @@
 // Add --sockets --viewers=4 for worker-owned socket clients; --root=PATH selects
 // alternate server modules while retaining this harness and its map preparation.
 import { readFile, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { serialize, deserialize } from 'node:v8';
 import { Session } from 'node:inspector/promises';
 import { Writable } from 'node:stream';
@@ -20,6 +21,7 @@ import { unpackMap } from '../../server/map-pack.js';
 import { startScheduler } from '../../server/scheduler.js';
 import { liveZoneSize } from '../../map/live.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
+import { spawnEdge } from '../../tests/helpers/edge.js';
 import { cliArgs } from '../../tests/helpers/args.js';
 import { portalGraphOf } from '../../shared/navigation/portal-graph.ts';
 import { prebuiltTiles } from '../../shared/simulation/bot-routes.ts';
@@ -36,7 +38,9 @@ const root = resolve(args.get('root') ?? fileURLToPath(new URL('../../', import.
 const serverModule = name => import(pathToFileURL(resolve(root, 'server', name)).href);
 const { createRoomService } = await serverModule('room-service.js');
 const { createReplayWriter } = await serverModule('replay-writer.js');
-const { attachWebSockets } = sockets ? await serverModule('websocket.js') : {};
+const hasLegacyWs = sockets && existsSync(resolve(root, 'server', 'websocket.js'));
+const { attachWebSockets } = hasLegacyWs ? await serverModule('websocket.js') : {};
+const { attachEdgeLink } = sockets && !hasLegacyWs ? await serverModule('edge-link.js') : {};
 // WeakMap-backed navigation caches and profiling must come from the same module
 // instances as the selected match, including when measuring archived sources.
 const fromRoot = file => import(pathToFileURL(resolve(root, file)).href);
@@ -54,7 +58,7 @@ const service = createRoomService({ devTools: 'all', reportError: error => error
     return writer;
   }
 } });
-let stopScheduler, second, http, wss, clientWorker, socketUrl, closingClients = false;
+let stopScheduler, second, http, wss, edgeLink, edge, clientWorker, socketUrl, closingClients = false;
 let rpcId = 0, workerFailure;
 const pending = new Map();
 const rpc = (method, fields = {}) => new Promise((resolve, reject) => {
@@ -65,15 +69,22 @@ const rpc = (method, fields = {}) => new Promise((resolve, reject) => {
   clientWorker.postMessage({ id, method, ...fields });
 });
 async function openSockets() {
-  http = createServer((_request, response) => { response.writeHead(404); response.end(); });
-  wss = attachWebSockets(http, service);
-  wss.on('error', error => errors.push(String(error)));
-  http.on('error', error => errors.push(String(error)));
-  await new Promise((resolve, reject) => {
-    http.once('error', reject);
-    http.listen(0, '127.0.0.1', () => { http.off('error', reject); resolve(); });
-  });
-  socketUrl = `ws://127.0.0.1:${http.address().port}`;
+  if (hasLegacyWs) {
+    http = createServer((_request, response) => { response.writeHead(404); response.end(); });
+    wss = attachWebSockets(http, service);
+    wss.on('error', error => errors.push(String(error)));
+    http.on('error', error => errors.push(String(error)));
+    await new Promise((resolve, reject) => {
+      http.once('error', reject);
+      http.listen(0, '127.0.0.1', () => { http.off('error', reject); resolve(); });
+    });
+    socketUrl = `ws://127.0.0.1:${http.address().port}`;
+  } else {
+    edgeLink = attachEdgeLink({ service, port: 0, httpPort: 0 });
+    await edgeLink.listening;
+    edge = await spawnEdge({ edgeLink });
+    socketUrl = `ws://127.0.0.1:${edgeLink.info().webSocket.port}/arena`;
+  }
   clientWorker = new Worker(new URL('./startup-client.mjs', import.meta.url));
   await new Promise((resolve, reject) => {
     const readyTimeout = setTimeout(() => fail(new Error('client worker startup timed out')), 30000);
@@ -108,6 +119,14 @@ async function closeSockets() {
     for (const socket of wss.clients) socket.terminate();
     await new Promise((resolve, reject) => wss.close(error => error ? reject(error) : resolve()));
     wss = null;
+  }
+  if (edge) {
+    await edge.stop();
+    edge = null;
+  }
+  if (edgeLink) {
+    await edgeLink.close();
+    edgeLink = null;
   }
   if (http) {
     if (http.listening) await new Promise((resolve, reject) => http.close(error => error ? reject(error) : resolve()));

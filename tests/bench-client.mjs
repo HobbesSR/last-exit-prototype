@@ -9,6 +9,7 @@ import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
+import { spawnEdge } from './helpers/edge.js';
 import { acquireMachineLock } from './helpers/machine-lock.js';
 import { format } from '../shared/profiler.ts';
 import { HZ } from '../shared/simulation.ts';
@@ -29,6 +30,7 @@ const server = await createArenaServer({ replayDir: path.resolve('test-results/r
   content: () => contentById(contentId),
   ...(args.has('server-profile') ? { profile: true, profileSummary: false } : {}) });
 const base = await listen(server);
+const edge = await spawnEdge(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: !args.has('headed'), args: args.has('software-gl') ? ['--disable-gpu'] : [] });
 try {
   const page = await browser.newPage({ viewport: { width: viewportWidth, height: viewportHeight }, deviceScaleFactor });
@@ -105,5 +107,6 @@ try {
 } finally {
   lock.release();
   await browser.close();
+  await edge.stop();
   await server.close();
 }

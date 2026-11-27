@@ -12,7 +12,6 @@ import { createRoomDirectory } from './room-directory.js';
 import { createMapGenerator } from './map-generator.js';
 import { createMapPool, MAP_POOL_SIZE } from './map-pool.js';
 import { installHttpApi } from './http-api.js';
-import { attachWebSockets } from './websocket.js';
 import { attachEdgeLink } from './edge-link.js';
 import { startScheduler } from './scheduler.js';
 import { NOTICES_URL, serveSharedModules, VENDOR_DIRECTORIES, VENDOR_MODULES } from './shared-assets.js';
@@ -54,10 +53,10 @@ function printListeningUrls(host, port, policy) {
  * to keep ready per size (#266); none unless asked, so tests and benchmarks run without background generation.
  * `runtimeMap` selects an experimental worker navigation handoff. `'deferred'` builds contestant tiles
  * synchronously during room preparation, on the host thread when `roomThreads` is false (#1317).
- * `edgeLink` is a loopback TCP port (0 for any) where the WebTransport edge connects (24.5); none unless given.
+ * `edgeLink` is the loopback TCP port (0 for any) where the Rust edge connects (24.5).
  * `content` supplies new rooms' content, for tests that need a set this build does not ship; never a request input.
  */
-export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS, generateMap, mapPool = 0, runtimeMap = false, content, matchFactory, strictProtocol = false, roomThreads = true, wireKey = 'random', edgeLink } = {}) {
+export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS, generateMap, mapPool = 0, runtimeMap = false, content, matchFactory, strictProtocol = false, roomThreads = true, wireKey = 'random', edgeLink = 0 } = {}) {
   profiler.enable(profile);
   const policy = devToolsPolicy(devTools);
   const replays = await createFileReplayStore(replayDir);
@@ -107,13 +106,13 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use(express.static(path.join(ROOT, 'public')));
   let edge = null;
   installHttpApi(app, service, directory, replays, pool, () => edge?.info() ?? null);
-  // Matchmaking messages go to the directory, which answers with a room for the host to admit into.
-  const http = createHttpServer(app), wss = attachWebSockets(http, { connect: service.connect, receive: directory.receive, disconnect: service.disconnect });
+  const http = createHttpServer(app);
   const stopScheduler = startScheduler(service.advance);
-  const linkReady = edgeLink === undefined ? Promise.resolve() : (edge = attachEdgeLink({
+  edge = attachEdgeLink({
     service: { connect: service.connect, receive: directory.receive, acknowledge: service.acknowledge, disconnect: service.disconnect },
     port: edgeLink, httpPort: () => http.address()?.port,
-  })).listening;
+  });
+  const linkReady = edge.listening;
   // The host thread's series, then each threaded room's own (#1115).
   const summary = setInterval(() => {
     if (!profileSummary || !profiler.profiling()) return;
@@ -127,13 +126,11 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   function close() {
     if (!closing) {
       stopScheduler(); clearInterval(summary);
-      for (const ws of wss.clients) ws.terminate();
       // Stop admitting connections before waiting for potentially slow archive publication.
-      const socketsClosed = new Promise(resolve => wss.close(resolve));
       const httpClosed = http.listening ? new Promise(resolve => http.close(resolve)) : Promise.resolve();
       pool?.close();
       const linkClosed = edge?.close();
-      closing = Promise.all([service.close(), socketsClosed, httpClosed, linkClosed, maps?.close(), poolMaps?.close()]).then(() => undefined);
+      closing = Promise.all([service.close(), httpClosed, linkClosed, maps?.close(), poolMaps?.close()]).then(() => undefined);
     }
     return closing;
   }
@@ -145,9 +142,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const devTools = process.argv.find(arg => arg.startsWith('--dev-tools='))?.slice('--dev-tools='.length);
   // MAP_POOL sets how many maps are kept ready per size (#266); 0 turns the pool off.
   const mapPool = process.env.MAP_POOL ? Number(process.env.MAP_POOL) : MAP_POOL_SIZE;
-  // EDGE_LINK_PORT is where the WebTransport edge connects, on loopback (24.5); unset runs without one.
-  const edgeLink = process.env.EDGE_LINK_PORT ? Number(process.env.EDGE_LINK_PORT) : undefined;
-  if (edgeLink !== undefined && !(Number.isInteger(edgeLink) && edgeLink >= 0 && edgeLink <= 65535)) {
+  // EDGE_LINK_PORT is where `last-exit-edge` connects, on loopback (24.5); unset picks any free port.
+  const edgeLink = process.env.EDGE_LINK_PORT !== undefined && process.env.EDGE_LINK_PORT !== ''
+    ? Number(process.env.EDGE_LINK_PORT) : 0;
+  if (!(Number.isInteger(edgeLink) && edgeLink >= 0 && edgeLink <= 65535)) {
     console.error(`EDGE_LINK_PORT must be a port number from 0 to 65535, not ${JSON.stringify(process.env.EDGE_LINK_PORT)}.`); process.exit(1);
   }
   const arena = await createArenaServer(devTools === undefined ? { mapPool, edgeLink } : { devTools, mapPool, edgeLink });
@@ -167,7 +165,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   arena.http.on('listening', () => {
     printListeningUrls(host, arena.http.address().port, arena.policy);
     // The bound port, so EDGE_LINK_PORT=0 still tells the edge where to connect.
-    if (arena.edgeLink) console.log(`WebTransport edge link on 127.0.0.1:${arena.edgeLink.port} (npm run edge -- --link 127.0.0.1:${arena.edgeLink.port})`);
+    console.log(`Edge link on 127.0.0.1:${arena.edgeLink.port} (npm run edge -- --link 127.0.0.1:${arena.edgeLink.port})`);
   });
   arena.http.listen(port, host);
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await arena.close(); process.exit(0); });

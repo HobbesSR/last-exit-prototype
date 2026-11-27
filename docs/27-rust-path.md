@@ -579,9 +579,10 @@ The tick core derives built-in bot commands. External clients can drive a seat t
 
 ## The edge
 
-A Rust process built on `wtransport` (over `quinn`, `rustls` and `tokio`; MIT or Apache-2.0) terminates
-WebTransport. It forwards sessions to Node over one local framed connection. Rooms stay behind the session seam
-(`deliver`, `close`), so they cannot tell which transport carries a session.
+A Rust process built on `wtransport` (over `quinn`, `rustls` and `tokio`; MIT or Apache-2.0) and
+`tokio-tungstenite`/`tokio-rustls` terminates WebTransport and WebSocket (`/arena`). It forwards sessions to Node over
+one local framed connection. Rooms stay behind the session seam (`deliver`, `close`), so they cannot tell which
+transport carries a session.
 
 That seam has synchronous expectations, so the local framing must carry what the room host reads today:
 - **Backlog and skips.** `deliver` returns `false` for a droppable state frame it skipped (`server/room-views.js`
@@ -589,14 +590,15 @@ That seam has synchronous expectations, so the local framing must carry what the
   frame. The real backlog now sits in the edge's QUIC streams. The edge therefore reports each session's backlog
   to Node, and Node decides skips against that report. Otherwise Node either queues into the local pipe or
   believes it delivered a keyframe the edge dropped.
-- **Certificates and the address.** The edge generates and rotates the development certificate and binds its own
-  UDP port. Node serves `/api/client-config`, so the edge reports the current certificate hash and its URL to Node.
-- **Origin checks.** The edge validates a session's `Origin` as `server/websocket.js` does, against the HTTP
-  origin, not the edge's port.
+- **Certificates and the address.** The edge defaults its bind address to `127.0.0.1` (use `--bind` or `--lan`),
+  generates and rotates the self-signed WebTransport development certificate, binds its UDP WebTransport port and TCP
+  WebSocket port (`--ws-port`), and optionally serves `wss://` with `--cert`/`--key`. Node serves
+  `/api/client-config`, so the edge reports its ports, TLS flag, and certificate hash to Node.
+- **Origin checks.** The edge validates a session's `Origin` against the HTTP origin, not the edge's port.
 
 Review 907 on PR #1172 raised these.
-- **WebSocket.** It stays in Node at first, as the fallback, and moves to the edge afterwards. Node then has one
-  peer type.
+- **WebSocket.** Moved to the edge in stage 4 (#1207), declaring its stream-only capability on `OPEN` so Node handles
+  one peer type behind `edgeLink`.
 - **The local framing** between the edge and Node is a contract with its own version. A future Rust host absorbs it,
   or keeps it as the edge in 28.1's topology.
 - **What the edge holds.** Datagram size enforcement and 24.2's fragmentation belong to the edge. Acknowledgements,

@@ -144,11 +144,14 @@ try {
   // while the dev feed carries on is a second-long gap.
   const gaps = () => page.evaluate(() => window.arenaProfile().series.find(row => row.name === 'net.stateGap') ?? { calls: 0, mean: 0, max: 0 });
   const profileAfresh = () => page.evaluate(() => { window.arenaProfiling(false); window.arenaProfiling(true); });
-  const session = [...room.clients].find(client => client.playerId === subject), deliver = session.deliver;
+  const session = [...room.clients].find(client => client.playerId === subject);
+  const { deliver, datagram } = session;
   await profileAfresh();
   session.deliver = (payload, droppable) => droppable ? false : deliver(payload, droppable);
+  session.datagram = () => false;
   await new Promise(resolve => setTimeout(resolve, 1000));
   session.deliver = deliver;
+  session.datagram = datagram;
   await page.waitForFunction(() => window.arenaProfile().series.find(row => row.name === 'net.stateGap')?.calls >= 5);
   const withheld = await gaps();
   assert.ok(withheld.max >= 800, `a withheld second is measured on the live socket in the dev view: ${JSON.stringify(withheld)}`);
@@ -273,13 +276,23 @@ try {
   // stamp inputs beyond the measured lead on resume; inspect the first sends, before it recovers.
   await page.evaluate(() => {
     window.pauseInputs = [];
-    const send = WebSocket.prototype.send;
-    window.restorePauseSend = () => { WebSocket.prototype.send = send; };
-    WebSocket.prototype.send = function(data) {
-      const message = JSON.parse(data);
-      if (message.type === 'input') window.pauseInputs.push({ tick: message.tick, frameTick: window.arenaDebug().tick });
-      return send.call(this, data);
+    const seen = new Set();
+    const wsSend = WebSocket.prototype.send, write = WritableStreamDefaultWriter.prototype.write, text = new TextDecoder();
+    window.restorePauseSend = () => { WebSocket.prototype.send = wsSend; WritableStreamDefaultWriter.prototype.write = write; };
+    const record = input => {
+      if (input?.type !== 'input' || seen.has(input.seq)) return;
+      seen.add(input.seq);
+      window.pauseInputs.push({ tick: input.tick, frameTick: window.arenaDebug().tick });
     };
+    const inspect = raw => {
+      try {
+        const message = JSON.parse(typeof raw === 'string' ? raw : text.decode(raw));
+        if (message.type === 'input') record(message);
+        else if (Array.isArray(message.inputs)) for (const input of message.inputs) record(input);
+      } catch { /* Ignore non-JSON or length-prefixed stream frames. */ }
+    };
+    WebSocket.prototype.send = function(data) { inspect(data); return wsSend.call(this, data); };
+    WritableStreamDefaultWriter.prototype.write = function(chunk) { inspect(chunk); return write.call(this, chunk); };
   });
   await page.waitForTimeout(1600);
   assert.equal(room.match.tick, pausedAt, 'a paused room does not advance');
@@ -421,7 +434,7 @@ try {
     });
     ws.onMessage(message => server.send(message));
   });
-  await dev.goto(`${optIn.base}/?room=${roomId}&dev`);
+  await dev.goto(`${optIn.base}/?room=${roomId}&dev&transport=ws`);
   await until(() => envelopes.some(m => m.type === 'welcome'), () => 'the watcher received its welcome');
   const welcome = envelopes.find(m => m.type === 'welcome');
   assert.equal(welcome.ready, true);

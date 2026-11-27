@@ -1,16 +1,17 @@
 import { createServer } from 'node:net';
-import { CLIENT_MESSAGE, CLOSE_CODE, CLOSE_REASON, MAX_MESSAGE_BYTES, deliverable, isWebTransportOffer, parseMessage, parseInputDatagram, acceptMessageRate, validateClientMessage } from './protocol.js';
+import { CLIENT_MESSAGE, CLOSE_CODE, CLOSE_REASON, MAX_MESSAGE_BYTES, deliverable, isWebTransportOffer, isWebSocketOffer, parseMessage, parseInputDatagram, acceptMessageRate, validateClientMessage } from './protocol.js';
 
-// The link between the WebTransport edge and this process (24.5 "The link"): one loopback TCP connection the
-// edge opens, carrying every edge session as a peer behind the same session seam a WebSocket uses, so a room
-// cannot tell the transport. Inputs may also arrive as datagrams (24.5 "Stage 2's contracts"), each carrying the
-// newest input and those just before it; the link passes each input on once, in order, so the room sees what a
-// WebSocket would have given it. A datagram also carries the client's acknowledgement of fast state (24.5
-// "Stage 3's contracts"), passed on when it differs from the last. Every edge session offers the room
-// `datagram(bytes)`, which the edge sends to the client as up to four datagram fragments, so a player session on
-// the edge is sent fast state on datagrams (24.5 "Delivery").
+// The link between the Rust edge (`last-exit-edge`) and this process (24.5 "The link"): one loopback TCP
+// connection the edge opens, carrying every WebTransport and WebSocket session as a peer behind one session
+// seam, so a room cannot tell the transport except by whether it has datagrams (`OPEN`'s capability flag).
+// Inputs may also arrive as datagrams (24.5 "Stage 2's contracts"), each carrying the newest input and those
+// just before it; the link passes each input on once, in order, so the room sees what a stream would have
+// given it. A datagram also carries the client's acknowledgement of fast state (24.5 "Stage 3's contracts"),
+// passed on when it differs from the last. Every session with datagrams offers the room `datagram(bytes)`,
+// which the edge sends to the client as up to four datagram fragments, so a player session on WebTransport is
+// sent fast state on datagrams (24.5 "Delivery").
 
-export const LINK_VERSION = 4;
+export const LINK_VERSION = 5;
 /** The longest frame (type and body) the link accepts; a longer length is a malformed link. */
 export const MAX_LINK_FRAME_BYTES = 64 * 1024 * 1024;
 
@@ -21,6 +22,8 @@ export const FRAME = Object.freeze({
 
 /** A message frame's flag byte, as the client stream and MESSAGE/DELIVER carry it. */
 export const FLAG = Object.freeze({ TEXT: 0, BINARY: 1 });
+/** OPEN's capability byte: 0 for stream-only (WebSocket), 1 for datagrams (WebTransport). */
+export const CAPABILITY = Object.freeze({ STREAM_ONLY: 0, DATAGRAMS: 1 });
 const { TEXT: FLAG_TEXT, BINARY: FLAG_BINARY } = FLAG;
 const encoder = new TextEncoder(), decoder = new TextDecoder('utf-8', { fatal: true });
 
@@ -41,9 +44,12 @@ const closeHeader = (id, code) => { const b = Buffer.allocUnsafe(6); b.writeUInt
 function readEdge(body) {
   try {
     const edge = JSON.parse(decoder.decode(body));
-    // What the browser will be offered must pass the same check /api/client-config applies.
-    if (!edge || typeof edge !== 'object' || !isWebTransportOffer({ port: edge.port, certificateHash: edge.certificateHash })) return null;
-    return edge;
+    // What the browser will be offered must pass the same checks /api/client-config applies.
+    if (!edge || typeof edge !== 'object') return null;
+    const webTransport = { port: edge.port, certificateHash: edge.certificateHash };
+    const webSocket = { port: edge.wsPort, tls: edge.wsTls };
+    if (!isWebTransportOffer(webTransport) || !isWebSocketOffer(webSocket)) return null;
+    return { link: edge.link, webTransport, webSocket };
   } catch { return null; }
 }
 
@@ -70,13 +76,13 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
     const send = frame => { if (!socket.destroyed) socket.write(frame); };
     const drop = () => socket.destroy();
 
-    function openSession(id) {
+    function openSession(id, datagrams) {
       // `inputSeq` is the newest input `seq` passed on from either path; `ack` the newest acknowledgement.
-      const state = { sent: 0, written: 0, closing: false, ended: false, rate: { start: Date.now(), messages: 0 }, inputSeq: -Infinity, ack: -1, session: null };
+      const state = { sent: 0, written: 0, closing: false, ended: false, datagrams, rate: { start: Date.now(), messages: 0 }, inputSeq: -Infinity, ack: -1, session: null };
       link.sessions.set(id, state);
       const buffered = () => Math.max(0, state.sent - state.written);
       state.session = service.connect({
-        // Says whether the payload went, as a WebSocket's does (server/websocket.js).
+        // Says whether the payload went, so a skipped state frame is known not to have delivered a keyframe.
         deliver: (payload, droppable = false, binary = false) => {
           if (state.ended || state.closing || socket.destroyed || !deliverable(buffered(), droppable)) return false;
           const bytes = typeof payload === 'string' ? encoder.encode(payload) : payload;
@@ -86,12 +92,14 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
         },
         // One message for the edge to send as datagrams (FRAGMENT_BYTES each, at most MAX_FRAGMENTS). It never waits
         // on the stream's backlog: a datagram may be lost, and the room re-sends whole until it is acknowledged.
-        datagram: payload => {
-          if (state.ended || state.closing || socket.destroyed) return false;
-          send(encodeFrame(FRAME.SEND, u32(id), payload));
-          counts.sends++;
-          return true;
-        },
+        ...(datagrams ? {
+          datagram: payload => {
+            if (state.ended || state.closing || socket.destroyed) return false;
+            send(encodeFrame(FRAME.SEND, u32(id), payload));
+            counts.sends++;
+            return true;
+          },
+        } : {}),
         bytes: true,
         buffered,
         close: (code, reason) => {
@@ -127,7 +135,7 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
         if (type !== FRAME.EDGE) return drop();
         const edge = readEdge(body);
         if (!edge || edge.link !== LINK_VERSION) return drop();
-        link.accepted = true; info = { port: edge.port, certificateHash: edge.certificateHash };
+        link.accepted = true; info = { webTransport: edge.webTransport, webSocket: edge.webSocket };
         const http = typeof httpPort === 'function' ? httpPort() : httpPort;
         send(encodeFrame(FRAME.ACCEPT, encoder.encode(JSON.stringify({ link: LINK_VERSION, httpPort: http, maxMessageBytes: MAX_MESSAGE_BYTES }))));
         return;
@@ -136,14 +144,15 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
         case FRAME.EDGE: {
           const edge = readEdge(body);
           if (!edge || edge.link !== LINK_VERSION) return drop();
-          info = { port: edge.port, certificateHash: edge.certificateHash };
+          info = { webTransport: edge.webTransport, webSocket: edge.webSocket };
           return;
         }
         case FRAME.OPEN: {
-          if (body.length !== 4) return drop();
-          const id = body.readUInt32BE(0);
+          if (body.length !== 5) return drop();
+          const id = body.readUInt32BE(0), capability = body[4];
+          if (capability !== CAPABILITY.STREAM_ONLY && capability !== CAPABILITY.DATAGRAMS) return drop();
           if (link.sessions.has(id)) return drop();
-          return openSession(id);
+          return openSession(id, capability === CAPABILITY.DATAGRAMS);
         }
         case FRAME.MESSAGE: {
           if (body.length < 5) return drop();
@@ -164,6 +173,7 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
           const id = body.readUInt32BE(0), state = link.sessions.get(id);
           counts.datagrams++;
           if (!state || state.closing) return;
+          if (!state.datagrams) return reject(id, state, CLOSE_REASON.INVALID_MESSAGE);
           // A datagram is one message to the rate limit, and each new input past its first is one more: the limit
           // counts inputs as on a WebSocket, and a datagram of repeats still costs one.
           const now = Date.now();

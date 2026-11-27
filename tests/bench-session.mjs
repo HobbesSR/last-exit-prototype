@@ -10,6 +10,7 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { listen } from './helpers/listen.js';
+import { spawnEdge } from './helpers/edge.js';
 import { acquireMachineLock } from './helpers/machine-lock.js';
 import { cliArgs } from './helpers/args.js';
 
@@ -28,6 +29,7 @@ const { chromium } = createRequire(path.join(root, 'package.json'))('@playwright
 const { createArenaServer } = await import(pathToFileURL(path.join(root, 'server/index.js')).href);
 const server = await createArenaServer({ replayDir: path.join(root, 'test-results/replays'), profile: true, profileSummary: false, roomThreads: false });
 const base = await listen(server);
+const edge = await spawnEdge(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: !args.has('headed'), args: chromeArgs });
 const rows = [];
 try {
@@ -93,5 +95,6 @@ try {
 } finally {
   lock.release();
   await browser.close();
+  await edge.stop();
   await server.close();
 }

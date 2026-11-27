@@ -37,8 +37,10 @@ try {
       while (performance.now() < deadline) { const value = check(); if (value) return value; await sleep(10); }
       throw new Error(`Timed out waiting for ${label}`);
     }
+    const config = await (await fetch('/api/client-config')).json();
+    const wsBase = `${config.webSocket.tls ? 'wss' : 'ws'}://${location.hostname}:${config.webSocket.port}/arena`;
     async function connect(role, name, extra = {}) {
-      const ws = new WebSocket(base.replace('http:', 'ws:'));
+      const ws = new WebSocket(wsBase);
       ws.binaryType = 'arraybuffer';
       const decoder = createLayerDecoder(), messages = [], frames = [];
       ws.onmessage = event => {
