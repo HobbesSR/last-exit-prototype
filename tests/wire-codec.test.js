@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { gzipSync } from 'node:zlib';
 import { roomHarness } from './helpers/room-harness.js';
-import { STATE_SCHEMA, readServerMessage, wireCodec } from '../shared/wire-schema.ts';
+import { GZIP_FORMAT, STATE_SCHEMA, readServerMessage, wireCodec } from '../shared/wire-schema.ts';
+import { encodeCompressedMessage } from '../server/room-views.js';
+import { gunzip } from '../shared/gzip.ts';
 import { createDescriptorCodec, FORMAT } from '../shared/wire-codec.ts';
 import { WIRE_VERSION } from '../shared/protocol.ts';
 import {
@@ -251,4 +254,49 @@ test('a grid type carries whole multiples of its quantum exactly, and refuses an
   const huge = scalar({ grid: 1e300 });
   assert.equal(huge.decode(huge.encode({ type: 'm', v: 1e300 })).v, 1e300);
   assert.throws(() => huge.decode(craft(varint(zigzag(1e9)))), /grid step out of range/, 'a step past the largest finite value');
+});
+
+test('gunzip and compressed envelopes round-trip stored, fixed and dynamic blocks and refuse malformed input', () => {
+  const decoder = new TextDecoder();
+  // Stored (level 0), fixed/dynamic (default & high compression), empty, multi-byte UTF-8, and repetitive map-like JSON.
+  const repeated = JSON.stringify({ type: 'ready', map: { obstacles: Array.from({ length: 400 }, (_, i) => ({ x: i * 10, y: (i % 7) * 12, w: 40, h: 40 })) } });
+  for (const text of ['', 'hi', 'Ωmega 漢字 🙂', repeated]) {
+    const raw = Buffer.from(text, 'utf8');
+    for (const level of [0, 1, 6, 9]) {
+      const gz = gzipSync(raw, { level });
+      assert.equal(decoder.decode(gunzip(gz, 1 << 20)), text, `level ${level}, len ${raw.length}`);
+    }
+  }
+  // Gzip header optional fields (FEXTRA, FNAME, FCOMMENT, FHCRC) are skipped cleanly.
+  const baseGz = gzipSync(Buffer.from('{"ok":true}', 'utf8'));
+  const extraHeader = Uint8Array.from([
+    0x1f, 0x8b, 0x08, 0x1e, 0, 0, 0, 0, 0, 3,
+    3, 0, 1, 2, 3, // FEXTRA
+    b('a'), 0, // FNAME
+    b('c'), 0, // FCOMMENT
+    0, 0, // FHCRC
+    ...baseGz.subarray(10),
+  ]);
+  function b(ch) { return ch.charCodeAt(0); }
+  assert.equal(decoder.decode(gunzip(extraHeader, 1024)), '{"ok":true}');
+
+  const msg = { type: 'ready', payload: 'hello', list: Array.from({ length: 100 }, (_, i) => i) };
+  const frame = encodeCompressedMessage(JSON.stringify(msg));
+  assert.equal(frame[0], GZIP_FORMAT);
+  assert.deepEqual(readServerMessage(frame), msg);
+  assert.deepEqual(readServerMessage(frame.slice().buffer), msg);
+
+  // Refusals: version skew, non-canonical varint, oversized output, CRC/size mismatch, trailing bytes, truncation.
+  assert.throws(() => readServerMessage(Uint8Array.from([GZIP_FORMAT, WIRE_VERSION + 1, ...baseGz])), /unsupported schema version/);
+  assert.throws(() => readServerMessage(Uint8Array.from([GZIP_FORMAT, 0x80 | WIRE_VERSION, 0x00, ...baseGz])), /non-canonical varint/);
+  assert.throws(() => gunzip(gzipSync(Buffer.alloc(1024, 65)), 512), /too large/);
+  const trailing = Uint8Array.from([...baseGz, 0]);
+  assert.throws(() => gunzip(trailing, 1024), /trailing bytes/);
+  const badCrc = Uint8Array.from(baseGz); badCrc[badCrc.length - 8] ^= 1;
+  assert.throws(() => gunzip(badCrc, 1024), /crc mismatch/);
+  const badSize = Uint8Array.from(baseGz); badSize[badSize.length - 1] ^= 1;
+  assert.throws(() => gunzip(badSize, 1024), /size mismatch/);
+  for (let cut = 0; cut < baseGz.length; cut++) {
+    assert.throws(() => gunzip(baseGz.subarray(0, cut), 1024), RangeError, `cut at ${cut}`);
+  }
 });

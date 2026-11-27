@@ -19,7 +19,7 @@ import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projecte
  */
 
 /** Wire protocol version for server<->client WebSocket and HTTP messages (bumped on breaking shape changes). */
-export const WIRE_VERSION = 13;
+export const WIRE_VERSION = 14;
 
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -100,7 +100,7 @@ export type JoinRole = typeof JOIN_ROLES[number];
  * when it joins, and the welcome confirms it. `binary` is the descriptor codec (`shared/wire-schema.ts`) and
  * the default. `json` is a debug encoding of the same projection, granted only to a connection the server's
  * dev-tools policy authorizes; a join that asks for it otherwise is refused, never quietly given binary.
- * Every other message, including the welcome's and ready's frames, stays JSON.
+ * Every other message stays JSON, with `welcome` and `ready` envelopes compressed as gzip JSON frames (#1201).
  */
 export const STATE_ENCODINGS = Object.freeze(['binary', 'json'] as const);
 export type StateEncoding = typeof STATE_ENCODINGS[number];

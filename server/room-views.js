@@ -1,19 +1,43 @@
+import { gzipSync } from 'node:zlib';
 import { waitingSeats } from '../shared/simulation/waiting.ts';
 import { zoneSizeName } from '../map/live.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
 import { createDiscoveryEncoder } from '../shared/discovery.ts';
 import { stringifyWithMap } from './map-payload.js';
-import { assertServerMessage, fastMessage, lobbyMessage, slowMessage, stateMessage, seatsMessage } from './protocol.js';
-import { wireCodec } from '../shared/wire-schema.ts';
-import { against } from '../shared/wire-codec.ts';
+import { SERVER_MESSAGE, WIRE_VERSION, assertServerMessage, fastMessage, lobbyMessage, slowMessage, stateMessage, seatsMessage } from './protocol.js';
+import { GZIP_FORMAT, wireCodec } from '../shared/wire-schema.ts';
+import { against, writeVarintTo } from '../shared/wire-codec.ts';
 import { createEventWindow, createFastHistory, fastFrame, DATAGRAM_PAYLOAD_BYTES, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
 export const SPECTATOR_DELAY_TICKS = 60;
-export const send = (session, value) => session.deliver(stringifyWithMap(assertServerMessage(value)));
+
+const HEADER_VERSION = (() => {
+  const buf = new Uint8Array(9);
+  buf[0] = GZIP_FORMAT;
+  return buf.subarray(0, writeVarintTo(buf, 1, WIRE_VERSION));
+})();
+
+/** Compresses a JSON server envelope (`welcome` or `ready`) as `[GZIP_FORMAT, varint(WIRE_VERSION), ...gzip]`. */
+export function encodeCompressedMessage(json) {
+  const gz = gzipSync(Buffer.from(json, 'utf8'));
+  const out = new Uint8Array(HEADER_VERSION.length + gz.length);
+  out.set(HEADER_VERSION, 0);
+  out.set(gz, HEADER_VERSION.length);
+  return out;
+}
+
+export const send = (session, value) => {
+  const json = stringifyWithMap(assertServerMessage(value));
+  const payload = value.type === SERVER_MESSAGE.WELCOME || value.type === SERVER_MESSAGE.READY
+    ? encodeCompressedMessage(json)
+    : json;
+  return session.deliver(payload);
+};
 /**
  * A `state` message written as a session's join negotiated (24.1): the descriptor codec's bytes, or JSON text
- * for a dev-tools session that asked for it. Every other message is JSON. A payload is a Uint8Array exactly
- * when it is binary, which is how the transport below tells a binary frame from text.
+ * for a dev-tools session that asked for it. Above, `send` encodes `welcome` and `ready` as `GZIP_FORMAT`
+ * binary frames; every other message stays plain JSON text. A payload is a `Uint8Array` exactly when it is
+ * binary, which is how the transport below tells a binary frame from text.
  */
 const writeState = (frame, encoding) => {
   const message = stateMessage(frame);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
-import { wireCodec } from '../shared/wire-schema.ts';
+import { wireCodec, readServerMessage } from '../shared/wire-schema.ts';
 import { MissingBaseline } from '../shared/wire-codec.ts';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '../shared/discovery.ts';
@@ -236,7 +236,7 @@ test('a slow message the stream skips is sent again on the next tick, with its k
   const session = h.service.connect({
     deliver: payload => {
       if (typeof payload === 'string') return true;
-      const message = codec.decode(payload);
+      const message = readServerMessage(payload);
       if (message.type !== 'slow') return true;
       if (skip) { skip = false; return false; }
       slow.push(message); return true;
@@ -329,7 +329,7 @@ test("a fast message over the edge's four fragments goes on the stream, its delt
   // datagram, as an ending session's does: neither arrives, so neither may be counted.
   const refused = { stream: false, datagram: false };
   const offer = (bytes, into, path) => {
-    const message = codec.decode(bytes, { baseline: reader.baseline });
+    const message = readServerMessage(bytes, { baseline: reader.baseline });
     if (message.type !== 'fast') return true;
     if (!refused[path]) { refused[path] = true; return false; }
     into.push({ bytes: bytes.length, tick: message.state.tick });

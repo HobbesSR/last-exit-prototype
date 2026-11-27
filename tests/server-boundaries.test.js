@@ -14,10 +14,11 @@ test('server ownership stays acyclic and transport cannot reach mutable simulati
     if (name !== 'index.js') assert.ok(!imports.includes('./index.js'), `${name} imports composition root`);
     if (name !== 'match.js') assert.ok(!imports.includes('../shared/simulation.ts'), `${name} bypasses match boundary`);
     assert.doesNotMatch(code, /room\.game\b/, `${name} uses diagnostic state in application code`);
-    // Static delivery of the shared modules reads source files from disk. That is asset IO, not
-    // replay IO: it owns no recording state, so it stays subject to the second assertion.
+    // Static delivery of the shared modules reads source files from disk, and room-views.js gzips
+    // outbound welcome/ready envelopes (#1201); neither owns replay IO.
     if (!['replay-store.js', 'replay-writer.js', 'replay-worker.js', 'shared-assets.js', 'vendor-modules.js'].includes(name)) {
-      assert.ok(!imports.some(i => /node:(fs|zlib|stream|crypto)/.test(i) && i !== 'node:crypto'), `${name} owns replay IO`);
+      const forbidden = name === 'room-views.js' ? /node:(fs|stream|crypto)/ : /node:(fs|zlib|stream|crypto)/;
+      assert.ok(!imports.some(i => forbidden.test(i) && i !== 'node:crypto'), `${name} owns replay IO`);
     }
     if (!['replay-store.js', 'replay-writer.js', 'replay-worker.js'].includes(name)) {
       assert.doesNotMatch(code, /writableNeedDrain|\.recorder\b|\.hash\b/, `${name} depends on replay implementation`);

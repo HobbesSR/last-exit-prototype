@@ -117,8 +117,8 @@ for (const threads of [false, true]) {
         await until(() => p.frames.some(f => f.phase === 'live'), 'live state frames');
         const own = p.session.playerId ?? p.welcome().id;
         assert.ok(p.frames.findLast(f => f.phase === 'live').players.some(x => x.id === own), 'a player is in its own live view');
-        // State crosses the room's thread as the codec's bytes, and nothing else does (24.1).
-        assert.deepEqual([...new Set(p.binary)], ['state'], 'state arrives binary');
+        // Envelopes (compressed JSON, #1201) and state (codec D, 24.1) cross as binary bytes; other messages stay text.
+        assert.deepEqual(new Set(p.binary), new Set(['welcome', 'ready', 'state']), 'envelopes and state arrive binary');
       }
 
       owner.send({ type: 'finish' });

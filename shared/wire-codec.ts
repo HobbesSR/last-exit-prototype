@@ -106,6 +106,30 @@ export function sameValue(a: Value, b: Value): boolean {
 
 const varintSize = (v: number) => { let n = 1; while (v >= 0x80) { v = Math.floor(v / 0x80); n++; } return n; };
 
+/** Writes an unsigned integer varint (up to `Number.MAX_SAFE_INTEGER`) into `out` at `at`, returning the new offset. */
+export function writeVarintTo(out: Uint8Array, at: number, v: number): number {
+  while (v >= 0x80) { out[at++] = (v % 0x80) | 0x80; v = Math.floor(v / 0x80); }
+  out[at++] = v;
+  return at;
+}
+
+/** Reads a canonical unsigned varint starting at `at` in `bytes`, returning `[value, nextOffset]`. */
+export function readVarintAt(bytes: Uint8Array, at: number, end = bytes.length): [number, number] {
+  let v = 0, scale = 1;
+  for (let i = 0; i < 8; i++) {
+    if (at >= end) bad('truncated message');
+    const x = bytes[at++]!;
+    v += (x & 0x7f) * scale;
+    if (x < 0x80) {
+      if (!Number.isSafeInteger(v)) bad('varint out of range');
+      if (x === 0 && i > 0) bad('non-canonical varint');
+      return [v, at];
+    }
+    scale *= 0x80;
+  }
+  return bad('varint too long');
+}
+
 class Writer {
   bytes: Uint8Array; view: DataView; at = 0;
   constructor(size: number) { this.bytes = new Uint8Array(size); this.view = new DataView(this.bytes.buffer); }
@@ -119,9 +143,7 @@ class Writer {
   // Unsigned varint up to 2^53, 7 bits per byte; arithmetic rather than bit operations past 31 bits.
   uint(v: number) {
     this.reserve(8);
-    const b = this.bytes;
-    while (v >= 0x80) { b[this.at++] = (v % 0x80) | 0x80; v = Math.floor(v / 0x80); }
-    b[this.at++] = v;
+    this.at = writeVarintTo(this.bytes, this.at, v);
   }
   // A fixed-length bitset of n bits, little-endian.
   bits(n: number, has: (i: number) => boolean) {
@@ -168,17 +190,9 @@ class Reader {
   }
   byte() { if (this.at >= this.end) bad('truncated message'); return this.bytes[this.at++]!; }
   uint() {
-    let v = 0, scale = 1;
-    for (let i = 0; i < 8; i++) {
-      const x = this.byte(); v += (x & 0x7f) * scale;
-      if (x < 0x80) {
-        if (!Number.isSafeInteger(v)) bad('varint out of range');
-        if (x === 0 && i > 0) bad('non-canonical varint');
-        return v;
-      }
-      scale *= 0x80;
-    }
-    return bad('varint too long');
+    const [v, next] = readVarintAt(this.bytes, this.at, this.end);
+    this.at = next;
+    return v;
   }
   // -0 reads as 0, as the writer writes it and JSON carries it.
   f64() { if (this.at + 8 > this.end) bad('truncated message'); const v = this.view.getFloat64(this.at, true); this.at += 8; if (!Number.isFinite(v)) bad('non-finite number'); return v === 0 ? 0 : v; }
