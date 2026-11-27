@@ -39,7 +39,7 @@ function fakeTransport({ opens = true, maxDatagramSize = null } = {}) {
 }
 
 const location = { hostname: 'arena.test', host: 'arena.test:3100', protocol: 'http:', search: '' };
-const offer = { webTransport: { port: 4433, certificateHash: '0a'.repeat(32) } };
+const offer = { webTransport: { port: 4433, certificateHash: '0a'.repeat(32) }, webSocket: { port: 4434, tls: false } };
 const opener = (extra = {}) => { FakeWebSocket.made = []; return createArenaSocketOpener({ location, WebSocket: FakeWebSocket, timeoutMs: 20, fetchConfig: async () => offer, ...extra }); };
 const frame = (flag, bytes) => { const out = new Uint8Array(5 + bytes.length); new DataView(out.buffer).setUint32(0, 1 + bytes.length); out[4] = flag; out.set(bytes, 5); return out; };
 
@@ -65,15 +65,41 @@ test('frames are length-prefixed with a text/binary flag, and read back across a
   assert.throws(() => createFrameReader()(Uint8Array.of(0, 0, 0, 0, 0)), /Malformed/);
 });
 
-test('without an offer, or a WebTransport in the browser, the WebSocket is used', async () => {
-  for (const extra of [{ fetchConfig: async () => ({ webTransport: null }) }, { fetchConfig: async () => { throw new Error('down'); } },
-    { WebTransport: undefined }]) {
+test('without a WebTransport offer, or a WebTransport in the browser, the edge WebSocket is used', async () => {
+  for (const extra of [
+    { fetchConfig: async () => ({ webTransport: null, webSocket: { port: 4434, tls: false } }) },
+    { WebTransport: undefined },
+  ]) {
     const open = opener({ WebTransport: fakeTransport(), ...extra }), socket = open();
     assert.equal(socket.readyState, 0);
     await new Promise(r => setTimeout(r, 5));
     assert.equal(socket.transport, 'websocket');
-    assert.equal(FakeWebSocket.made[0].url, 'ws://arena.test:3100');
+    assert.equal(FakeWebSocket.made[0].url, 'ws://arena.test:4434/arena');
   }
+  const tlsOpen = opener({ WebTransport: undefined, fetchConfig: async () => ({ webTransport: null, webSocket: { port: 4435, tls: true } }) });
+  tlsOpen();
+  await new Promise(r => setTimeout(r, 5));
+  assert.equal(FakeWebSocket.made[0].url, 'wss://arena.test:4435/arena');
+
+  for (const extra of [
+    { fetchConfig: async () => ({ webTransport: null, webSocket: null }) },
+    { fetchConfig: async () => { throw new Error('down'); } },
+  ]) {
+    const socket = opener({ WebTransport: undefined, ...extra })();
+    const closed = await next(socket, 'close');
+    assert.equal(closed.code, 1006);
+    assert.equal(FakeWebSocket.made.length, 0);
+  }
+
+  const Transport = fakeTransport({ opens: false });
+  const fallback = opener({
+    WebTransport: Transport,
+    fetchConfig: async () => { throw new Error('503'); },
+    fetchTransport: async () => offer,
+  })();
+  await new Promise(r => setTimeout(r, 40));
+  assert.equal(fallback.transport, 'websocket', 'transport fallback bypasses a failed deploy-config endpoint');
+  assert.equal(FakeWebSocket.made[0].url, 'ws://arena.test:4434/arena');
 });
 
 test('a WebTransport that never opens falls back after the timeout, and the page then stays on the WebSocket', async () => {
@@ -96,13 +122,50 @@ test('a WebTransport that never opens falls back after the timeout, and the page
   assert.equal(fetches, 1, 'the config is fetched once per page');
 });
 
-test('forced modes: ws never asks for the config; wt never falls back', async () => {
+test('a config answer arriving after the WebTransport budget still opens the WebSocket, and browsers without WebTransport wait past it', async () => {
+  const Transport = fakeTransport();
+  let fetches = 0, release;
+  const open = opener({
+    WebTransport: Transport,
+    timeoutMs: 20,
+    fetchConfig: () => { fetches++; return new Promise(resolve => { release = resolve; }); },
+  });
+  const first = open(), opened = next(first, 'open');
+  await new Promise(r => setTimeout(r, 40));
+  assert.equal(Transport.made.length, 0, 'WebTransport budget expired before config arrived');
+  assert.equal(FakeWebSocket.made.length, 0);
+  release(offer);
+  await new Promise(r => setTimeout(r, 10));
+  assert.equal(first.transport, 'websocket');
+  assert.equal(FakeWebSocket.made[0].url, 'ws://arena.test:4434/arena');
+  FakeWebSocket.made[0].dispatchEvent(new Event('open'));
+  await opened; assert.equal(first.readyState, 1);
+
+  const second = open(); await new Promise(r => setTimeout(r, 10));
+  assert.equal(second.transport, 'websocket');
+  assert.equal(Transport.made.length, 0, 'fallen-back page skips WebTransport afterwards');
+  assert.equal(fetches, 1);
+
+  const plainOpen = opener({
+    WebTransport: undefined,
+    timeoutMs: 20,
+    fetchConfig: async () => { await new Promise(r => setTimeout(r, 50)); return offer; },
+  });
+  const plain = plainOpen(), plainOpened = next(plain, 'open');
+  for (let i = 0; i < 60 && !FakeWebSocket.made.length; i++) await new Promise(r => setTimeout(r, 2));
+  assert.equal(plain.transport, 'websocket');
+  FakeWebSocket.made[0].dispatchEvent(new Event('open'));
+  await plainOpened; assert.equal(plain.readyState, 1);
+});
+
+test('forced modes: ws fetches config once and skips WebTransport; wt never falls back', async () => {
   const Transport = fakeTransport({ opens: false });
   let fetches = 0;
   const fetchConfig = async () => { fetches++; return offer; };
   const forcedWs = opener({ WebTransport: Transport, fetchConfig, location: { ...location, search: '?transport=ws' } })();
   await new Promise(r => setTimeout(r, 5));
-  assert.equal(forcedWs.transport, 'websocket'); assert.equal(fetches, 0); assert.equal(Transport.made.length, 0);
+  assert.equal(forcedWs.transport, 'websocket'); assert.equal(fetches, 1); assert.equal(Transport.made.length, 0);
+  assert.equal(FakeWebSocket.made[0].url, 'ws://arena.test:4434/arena');
 
   const forcedWt = opener({ WebTransport: Transport, fetchConfig, location: { ...location, search: '?transport=wt' } })();
   await new Promise(r => setTimeout(r, 60));

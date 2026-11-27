@@ -50,6 +50,7 @@ export const HTTP_ENDPOINT = Object.freeze({
   HEALTH: '/api/health',
   PROFILE: '/api/profile',
   CLIENT_CONFIG: '/api/client-config',
+  TRANSPORT: '/api/transport',
   ROOMS: '/api/rooms',
   REPLAYS: '/api/replays',
 } as const);
@@ -407,6 +408,13 @@ export interface ClientConfigResponse {
   matchmakingCountdownMs: number;
   /** Where the WebTransport edge is, or null while none is linked (24.5). */
   webTransport: { port: number; certificateHash: string | null } | null;
+  /** Where the edge's WebSocket listener is, or null while none is linked (24.5 stage 4). */
+  webSocket: { port: number; tls: boolean } | null;
+}
+
+export interface TransportResponse {
+  webTransport: { port: number; certificateHash: string | null } | null;
+  webSocket: { port: number; tls: boolean } | null;
 }
 
 export interface RoomSummary {
@@ -779,8 +787,9 @@ const PROFILE_KEYS = ['enabled', 'tickRate', 'budgetMs', 'effectiveHz', 'frames'
 const ROOM_PROFILE_KEYS = ['id', 'frames', 'effectiveHz', 'series'] as const;
 const CLIENT_CONFIG_KEYS = [
   'wireVersion', 'devTools', 'presentation', 'seed', 'roomNameMaxLength',
-  'playerNameMaxLength', 'sizes', 'defaultSize', 'matchmakingCountdownMs', 'webTransport',
+  'playerNameMaxLength', 'sizes', 'defaultSize', 'matchmakingCountdownMs', 'webTransport', 'webSocket',
 ] as const;
+const TRANSPORT_KEYS = ['webTransport', 'webSocket'] as const;
 const ROOM_SUMMARY_KEYS = ['id', 'name', 'kind', 'phase', 'ready', 'size', 'createdAt', 'players', 'open'] as const;
 const CREATE_ROOM_KEYS = ['id', 'name', 'ownerKey', 'seed', 'size'] as const;
 
@@ -846,6 +855,28 @@ export function isWebTransportOffer(value: unknown): value is { port: number; ce
     (certificateHash === null || (typeof certificateHash === 'string' && /^[0-9a-f]{64}$/i.test(certificateHash)));
 }
 
+/**
+ * The edge's WebSocket offer as the browser is given it (24.5 stage 4): its TCP port, and whether TLS is used.
+ */
+export function isWebSocketOffer(value: unknown): value is { port: number; tls: boolean } {
+  if (!isRecord(value) || !hasExactKeys(value, ['port', 'tls'])) return false;
+  const { port, tls } = value;
+  return Number.isInteger(port) && (port as number) >= 1 && (port as number) <= 65535 && typeof tls === 'boolean';
+}
+
+export function transportResponse(fields: TransportResponse): TransportResponse {
+  const raw = fields as unknown as Record<string, unknown>;
+  if (
+    !isRecord(raw) ||
+    !hasExactKeys(raw, TRANSPORT_KEYS) ||
+    (raw.webTransport !== null && !isWebTransportOffer(raw.webTransport)) ||
+    (raw.webSocket !== null && !isWebSocketOffer(raw.webSocket))
+  ) {
+    throw new TypeError('Invalid /api/transport response payload.');
+  }
+  return fields;
+}
+
 export function clientConfigResponse(fields: Omit<ClientConfigResponse, 'wireVersion'>): ClientConfigResponse {
   const payload: ClientConfigResponse = { wireVersion: WIRE_VERSION, ...fields };
   const raw = payload as unknown as Record<string, unknown>;
@@ -866,7 +897,8 @@ export function clientConfigResponse(fields: Omit<ClientConfigResponse, 'wireVer
     !raw.sizes.every(nonEmptyString) ||
     !nonEmptyString(raw.defaultSize) ||
     !nonNegativeInt(raw.matchmakingCountdownMs) ||
-    (raw.webTransport !== null && !isWebTransportOffer(raw.webTransport))
+    (raw.webTransport !== null && !isWebTransportOffer(raw.webTransport)) ||
+    (raw.webSocket !== null && !isWebSocketOffer(raw.webSocket))
   ) {
     throw new TypeError('Invalid /api/client-config response payload.');
   }

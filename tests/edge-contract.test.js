@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { FLAG, FRAME, LINK_VERSION } from '../server/edge-link.js';
+import { CAPABILITY, FLAG, FRAME, LINK_VERSION } from '../server/edge-link.js';
 import { FLAG as CLIENT_FLAG } from '../public/arena-socket.js';
 import { CLOSE_CODE } from '../server/protocol.js';
 import { DATAGRAM_HEADER_BYTES, DATAGRAM_PAYLOAD_BYTES, MAX_FAST_FRAGMENTS } from '../shared/fast-state.ts';
@@ -58,12 +58,13 @@ test('the link version agrees in Rust, Node and 24.5', () => {
   assert.equal(Number(stated[1]), LINK_VERSION);
 });
 
-test('the message flags agree in Rust, Node, the client and 24.5', () => {
+test('the message flags and OPEN capability agree in Rust, Node, the client and 24.5', () => {
   const stated = DOC.match(/a `u8` flag, (\d+) for text \(UTF-8\) and (\d+) for binary/);
   assert.ok(stated, "24.5's client stream states the flags");
   assert.deepEqual(FLAG, { TEXT: rust('TEXT'), BINARY: rust('BINARY') });
   assert.deepEqual(CLIENT_FLAG, FLAG);
   assert.deepEqual({ TEXT: Number(stated[1]), BINARY: Number(stated[2]) }, FLAG);
+  assert.deepEqual(CAPABILITY, { STREAM_ONLY: rust('STREAM_ONLY'), DATAGRAMS: rust('DATAGRAMS') });
 });
 
 test("the edge's own close codes agree with the protocol and 24.5", () => {

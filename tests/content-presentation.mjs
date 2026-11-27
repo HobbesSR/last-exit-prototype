@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createArenaServer } from '../server/index.js';
 import { createMapGenerator } from '../server/map-generator.js';
+import { spawnEdge } from './helpers/edge.js';
 import { listen } from './helpers/listen.js';
 import { createGameRecord, snapshot, VERSION } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
@@ -126,6 +127,7 @@ export async function checkContentPresentation(browser) {
   };
   const server = await createArenaServer({ replayDir, content: contentB, devTools: 'all', generateMap });
   const base = await listen(server);
+  const edge = await spawnEdge(server);
   const errors = [], pages = [];
   // Each page may expect the refusals it arranges; any other console error fails the check.
   const open = async (expected = /status of 503/) => {
@@ -144,22 +146,23 @@ export async function checkContentPresentation(browser) {
         ws.send(JSON.stringify({ type: 'welcome', id: 'p0', room: 'forged', owner: false, ready: true, started: true, contentId, presentation,
           map: { width: 777, height: 100, obstacles: [], gates: [], items: [] }, state: { tick: 1, phase: 'live', players: [] } }));
       }));
-      await page.goto(`${base}/?room=forged`);
+      await page.goto(`${base}/?room=forged&transport=ws`);
       await page.waitForFunction(() => document.getElementById('connection-text').textContent === 'UNAVAILABLE');
       assert.deepEqual(await page.evaluate(() => [window.arenaDebug().mapWidth, window.arenaDebug().content, window.arenaDebug().tick]), [undefined, null, undefined], `refused ${contentId} ${presentation?.contentId}`);
       await page.close();
     }
     const owner = await open(), posts = [];
     owner.on('request', r => { if (r.method() === 'POST' && new URL(r.url()).pathname === '/api/rooms') posts.push(r.postDataJSON()); });
-    let failConfig = true;
+    let holdConfig = true, failConfig = true, releaseHeld = null;
     await owner.route('**/api/client-config', async route => {
       if (!failConfig) return route.continue();
-      await new Promise(resolve => setTimeout(resolve, 300));
+      if (holdConfig) await new Promise(resolve => { releaseHeld = resolve; });
       return route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"unavailable"}' });
     });
     await owner.goto(`${base}/?seed=4217`);
-    // The first visit's room is created and admitted while configuration is failing.
+    // The first visit's room is created and admitted while configuration is still held open (not yet failing or answered).
     await owner.waitForFunction(() => document.getElementById('lobby-dialog').open && window.arenaDebug().me?.id, null, { timeout: 120000 });
+    holdConfig = false; releaseHeld?.();
     await owner.waitForFunction(() => !document.getElementById('config-error').hidden);
     assert.deepEqual(posts, [{ seed: '4217' }], 'one automatic room, naming only the address\'s seed');
     const roomId = await owner.evaluate(() => window.arenaDebug().room), ownerId = await owner.evaluate(() => window.arenaDebug().me.id);
@@ -256,6 +259,6 @@ export async function checkContentPresentation(browser) {
     assert.deepEqual(errors, []);
   } finally {
     for (const page of pages) await page.close().catch(() => {});
-    await server.close(); await maps.close(); await rm(replayDir, { recursive: true, force: true });
+    await edge.stop(); await server.close(); await maps.close(); await rm(replayDir, { recursive: true, force: true });
   }
 }

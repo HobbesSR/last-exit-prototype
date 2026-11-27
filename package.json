@@ -10,11 +10,11 @@
   "packageManager": "npm@12.0.2",
   "scripts": {
     "predev": "node tools/build-core.mjs",
-    "dev": "node --env-file-if-exists=.env.local server/index.js --dev-tools=all",
+    "dev": "node --env-file-if-exists=.env.local tools/dev.mjs --dev-tools=all",
     "core:build": "node tools/build-core.mjs",
     "edge": "cargo run --release --manifest-path rust/Cargo.toml -p last-exit-edge --",
     "predev:lan": "node tools/build-core.mjs",
-    "dev:lan": "node --env-file-if-exists=.env.local server/index.js --lan --dev-tools=all",
+    "dev:lan": "node --env-file-if-exists=.env.local tools/dev.mjs --lan --dev-tools=all",
     "test": "node --test --test-global-setup=tests/helpers/test-lock-setup.mjs --test-concurrency=4 tests/*.test.js",
     "test:all": "node --test --test-global-setup=tests/helpers/test-lock-setup.mjs --test-concurrency=4 tests/*.test.js tests/slow/*.test.js",
     "test:slow": "node --test --test-global-setup=tests/helpers/test-lock-setup.mjs --test-concurrency=4 tests/slow/*.test.js",
@@ -48,8 +48,7 @@
     "lucide": "^0.468.0",
     "pathfinding": "^0.4.18",
     "phaser": "^3.90.0",
-    "sat": "^0.9.0",
-    "ws": "^8.18.0"
+    "sat": "^0.9.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
@@ -59,6 +58,7 @@
     "msgpackr": "2.1.3",
     "protobufjs": "8.8.1",
     "protobufjs-cli": "2.7.1",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "ws": "^8.18.0"
   }
 }

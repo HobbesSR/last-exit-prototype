@@ -1,5 +1,5 @@
-//! The `Origin` check: the same rule `server/websocket.js` applies, with Node's HTTP port standing in for the
-//! page's port (docs/24.5 "The client stream").
+//! The `Origin` check: the host must match the request authority's host and the port must match Node's
+//! HTTP port (docs/24.5 "The client stream").
 
 /// Splits `host[:port]`, where an IPv6 host is bracketed and stays so. `None` when it is not well formed.
 fn split_host_port(text: &str) -> Option<(&str, Option<u16>)> {

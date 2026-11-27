@@ -4,23 +4,33 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createArenaServer } from '../../server/index.js';
 import { listen } from './listen.js';
+import { spawnEdge } from './edge.js';
 import { buildCore } from '../../tools/build-core.mjs';
 
 /**
- * An arena server on an ephemeral loopback port, and the headless Chrome the browser scripts
- * drive it with. close() disposes both, browser first. The core is built first: the server's
- * games and the client's scene both load it (docs/27).
+ * An arena server on an ephemeral loopback port, its `last-exit-edge` process (unless `edge: false`),
+ * and the headless Chrome the browser scripts drive it with. close() disposes browser, edge, and server.
+ * The core is built first: the server's games and the client's scene both load it (docs/27).
  */
-export async function serveWithBrowser(options) {
+export async function serveWithBrowser(options = {}) {
   buildCore();
-  const server = await createArenaServer({ strictProtocol: true, ...options });
+  const { edge: withEdge = true, ...serverOptions } = options;
+  const server = await createArenaServer({ strictProtocol: true, ...serverOptions });
+  let edge = null;
   try {
     const base = await listen(server);
+    if (withEdge) {
+      edge = await spawnEdge(server);
+      // Most browser scripts close `server` directly instead of calling `close()`.
+      const stopServer = server.close.bind(server);
+      server.close = async () => { try { await edge.stop(); } finally { await stopServer(); } };
+    }
     const browser = await chromium.launch({ channel: 'chrome', headless: true });
     return { server, base, browser, async close() {
       try { await browser.close(); } finally { await server.close(); }
     } };
   } catch (error) {
+    try { await edge?.stop(); } catch (cleanupError) { console.error('Edge cleanup failed:', cleanupError); }
     try { await server.close(); } catch (cleanupError) { console.error('Browser setup cleanup failed:', cleanupError); }
     throw error;
   }

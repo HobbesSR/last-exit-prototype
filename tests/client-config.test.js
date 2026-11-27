@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createArenaServer } from '../server/index.js';
 import { MATCHMAKING_COUNTDOWN_MS } from '../server/room-service.js';
-import { WIRE_VERSION, MAX_ROOM_NAME, ROOM_SIZE_NAMES, isWebTransportOffer } from '../server/protocol.js';
+import { WIRE_VERSION, MAX_ROOM_NAME, ROOM_SIZE_NAMES, isWebTransportOffer, isWebSocketOffer } from '../server/protocol.js';
 import { listen } from './helpers/listen.js';
 import { roomHarness, generatedMap } from './helpers/room-harness.js';
 import { createGameRecord, joinGame } from '../shared/simulation.ts';
@@ -28,10 +28,13 @@ test('client configuration states each owner\'s values, the server\'s default co
       wireVersion: WIRE_VERSION, devTools: 'none',
       presentation: describeContent(injected()),
       seed: { min: 1, max: MAX_ARENA_SEED }, roomNameMaxLength: MAX_ROOM_NAME, playerNameMaxLength: MAX_PLAYER_NAME,
-      sizes: ROOM_SIZE_NAMES, defaultSize: '12x6', matchmakingCountdownMs: MATCHMAKING_COUNTDOWN_MS, webTransport: null,
+      sizes: ROOM_SIZE_NAMES, defaultSize: '12x6', matchmakingCountdownMs: MATCHMAKING_COUNTDOWN_MS, webTransport: null, webSocket: null,
     });
     const text = JSON.stringify(config);
     assert.ok(!text.includes(room.id) && !text.includes(room.ownerKey), 'no room or credential');
+    const transport = await fetch(base + '/api/transport');
+    assert.equal(transport.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(await transport.json(), { webTransport: null, webSocket: null });
 
     // Room names count code points, so astral characters fit 24 where the old UTF-16 limit allowed 12.
     const astral = n => '\u{1F680}'.repeat(n);
@@ -64,4 +67,12 @@ test('the WebTransport offer is a port and a SHA-256 hex hash or null, and nothi
     { port: '4433', certificateHash: null }, { port: 4433, certificateHash: 'ab' }, { port: 4433, certificateHash: 'zz'.repeat(32) },
     { port: 4433, certificateHash: null, url: 'x' }, { port: 4433 }])
     assert.equal(isWebTransportOffer(bad), false, JSON.stringify(bad));
+});
+
+test('the WebSocket offer is a port and a tls boolean, and nothing else', () => {
+  for (const good of [{ port: 4434, tls: false }, { port: 1, tls: true }, { port: 65535, tls: false }])
+    assert.equal(isWebSocketOffer(good), true, JSON.stringify(good));
+  for (const bad of [null, {}, { port: 0, tls: false }, { port: 65536, tls: false }, { port: 4434.5, tls: false },
+    { port: '4434', tls: false }, { port: 4434, tls: 'false' }, { port: 4434, tls: false, url: 'x' }, { port: 4434 }])
+    assert.equal(isWebSocketOffer(bad), false, JSON.stringify(bad));
 });

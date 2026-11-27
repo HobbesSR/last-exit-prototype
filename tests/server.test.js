@@ -8,7 +8,7 @@ import { WIRE_VERSION } from '../server/protocol.js';
 import { VERSION } from '../shared/simulation/rules.ts';
 import { PHYSICS_VERSION } from '../shared/simulation/physics-runtime.ts';
 import { listen } from './helpers/listen.js';
-import { next, open, createRoom, readSocketMessage } from './helpers/arena-socket.js';
+import { attachTestEdge, next, open, createRoom, readSocketMessage } from './helpers/arena-socket.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { generatedMap, reusedMap } from './helpers/room-harness.js';
 import { archiveText, readArchive, storedDigest } from './helpers/recordings.js';
@@ -33,6 +33,7 @@ const fastMap = reusedMap;
 test('abandoned live rooms keep a reconnect grace then stop simulation and finalize their replay', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-abandoned-'));
   const server = await createArenaServer({ replayDir: dir, generateMap: fastMap, roomThreads: false });
+  await attachTestEdge(server);
   const until = async predicate => {
     const deadline = Date.now() + 5000;
     while (!await predicate()) { assert.ok(Date.now() < deadline, 'condition timed out'); await new Promise(r => setTimeout(r, 15)); }
@@ -85,6 +86,7 @@ test('a room created with no seed is answered with a pooled map\'s seed, and hea
 test('resume credentials restore the same player even while the previous socket is open', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-resume-'));
   const server = await createArenaServer({ replayDir: dir, generateMap: fastMap, roomThreads: false });
+  await attachTestEdge(server);
   try {
     const base = await listen(server);
     const room = await createRoom(server, base, '{"seed":9}');
@@ -109,6 +111,7 @@ test('resume credentials restore the same player even while the previous socket 
 test('spectators hold no slot, need the owner key, and receive the directed view', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-spectator-'));
   const server = await createArenaServer({ replayDir: dir, generateMap: fastMap, roomThreads: false });
+  await attachTestEdge(server);
   try {
     const base = await listen(server);
     const room = await createRoom(server, base, '{"seed":9}');
@@ -154,6 +157,7 @@ test('spectators hold no slot, need the owner key, and receive the directed view
 test('two clients share authority; replay preserves each recorded frame and survives restart', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-test-'));
   const server = await createArenaServer({ replayDir: dir, generateMap: fastMap, wireKey: WIRE_KEY });
+  await attachTestEdge(server);
   let restarted;
   try {
     const base = await listen(server);

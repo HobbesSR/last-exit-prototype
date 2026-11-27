@@ -53,11 +53,11 @@ async function run(profile, runIndex, { server, base, browser }, offer) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const errors = [];
   collectBrowserErrors(page, errors, { consoleErrors: true });
-  // The page learns the edge from the client config: point it at the relay instead.
-  await page.route('**/api/client-config', async route => {
-    const response = await route.fetch(), config = await response.json();
-    config.webTransport = { ...config.webTransport, port: relay.port };
-    await route.fulfill({ response, json: config });
+  // The page discovers the edge from /api/transport: point it at the relay instead.
+  await page.route('**/api/transport', async route => {
+    const response = await route.fetch(), transport = await response.json();
+    transport.webTransport = { ...transport.webTransport, port: relay.port };
+    await route.fulfill({ response, json: transport });
   });
   // How each WebTransport session ended, and when, as the page saw it.
   await page.addInitScript(() => {
@@ -203,8 +203,8 @@ async function run(profile, runIndex, { server, base, browser }, offer) {
 
 const lock = await acquireMachineLock('bench');
 const replayDir = await mkdtemp(path.join(tmpdir(), 'last-exit-fast-loss-'));
-const session = await serveWithBrowser({ profile: true, profileSummary: false, roomThreads: false, edgeLink: 0, replayDir });
-const edge = spawn(binary, ['--link', `127.0.0.1:${session.server.edgeLink.port}`, '--port', '0'], { stdio: ['ignore', 'ignore', 'inherit'] });
+const session = await serveWithBrowser({ profile: true, profileSummary: false, roomThreads: false, edgeLink: 0, edge: false, replayDir });
+const edge = spawn(binary, ['--link', `127.0.0.1:${session.server.edgeLink.port}`, '--port', '0', '--ws-port', '0'], { stdio: ['ignore', 'ignore', 'inherit'] });
 const results = [], browserVersion = session.browser.version();
 try {
   let offer = null;

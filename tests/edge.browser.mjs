@@ -1,43 +1,38 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
+import { spawnEdge } from './helpers/edge.js';
 import { startLossyRelay } from './helpers/lossy-relay.js';
 
-// The WebTransport edge end to end (#1095, 24.5 stages 1 to 3): the Rust edge, linked to this server, carries a real
-// Chrome session behind the session seam. A room cannot tell the transport, so the default room's join, start and
-// walk must work on WebTransport as they do on the WebSocket. On it the player's match frames come as `fast`
-// datagrams the page rebuilds and acknowledges, so the walk is drawn from them. The page reaches the edge through a
-// UDP relay, which later loses datagrams: the page keeps drawing through loss and recovers from an outage longer than
-// the 32-tick history with whole frames. Needs the Rust toolchain: the edge is built first.
-const RUST = path.resolve('rust');
-execFileSync('cargo', ['build', '--locked', '-p', 'last-exit-edge'], { cwd: RUST, stdio: 'inherit' });
-const binary = path.join(RUST, 'target', 'debug', process.platform === 'win32' ? 'last-exit-edge.exe' : 'last-exit-edge');
-
+// The Rust edge end to end (#1095, #1207, 24.5 stages 1 to 4): `last-exit-edge`, linked to this server,
+// carries both WebTransport and WebSocket Chrome sessions behind the session seam. A room cannot tell the
+// transport, so the default room's join, start and walk must work on both. On WebTransport the player's match
+// frames come as `fast` datagrams the page rebuilds and acknowledges, so the walk is drawn from them. The page
+// reaches the edge through a UDP relay, which later loses datagrams: the page keeps drawing through loss and
+// recovers from an outage longer than the 32-tick history with whole frames. Needs the Rust toolchain: the edge
+// is built first.
 const replayDir = await mkdtemp(path.join(tmpdir(), 'last-exit-edge-'));
-const { server, base, browser, close } = await serveWithBrowser({ profileSummary: false, roomThreads: false, edgeLink: 0, replayDir });
-const edge = spawn(binary, ['--link', `127.0.0.1:${server.edgeLink.port}`, '--port', '0'], { stdio: ['ignore', 'inherit', 'inherit'] });
+const { server, base, browser, close } = await serveWithBrowser({ profileSummary: false, roomThreads: false, edgeLink: 0, edge: false, replayDir });
+const edge = await spawnEdge(server, { stdio: ['ignore', 'inherit', 'inherit'] });
 const errors = [];
 let relay = null;
 try {
-  // The edge reports its port and certificate over the link, and the page learns them from the client config.
-  let offer = null;
-  for (let i = 0; i < 100 && !offer; i++) {
-    offer = (await (await fetch(`${base}/api/client-config`)).json()).webTransport;
-    if (!offer) await new Promise(resolve => setTimeout(resolve, 100));
-  }
+  // The edge reports its WebTransport and WebSocket ports over the link, and the page learns them from client config.
+  const config = await (await fetch(`${base}/api/client-config`)).json();
+  const offer = config.webTransport, wsOffer = config.webSocket;
   assert.ok(offer?.port && /^[0-9a-f]{64}$/.test(offer.certificateHash), 'the linked edge is offered with its certificate hash');
+  assert.ok(wsOffer?.port && wsOffer.tls === false, 'the linked edge also offers plain WebSocket in dev');
 
   // Forced WebTransport never falls back, so a match that starts and moves proves the edge carried it. The page
   // learns the edge from the client config, which points it at the relay; lossless, the relay only forwards.
   relay = await startLossyRelay({ target: offer.port, profile: { rtt: 0, jitter: 0, loss: 0 }, seed: 1095 });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   collectBrowserErrors(page, errors, { consoleErrors: true });
-  await page.route('**/api/client-config', async route => {
-    const response = await route.fetch(), config = await response.json();
-    await route.fulfill({ response, json: { ...config, webTransport: { ...config.webTransport, port: relay.port } } });
+  await page.route('**/api/transport', async route => {
+    const response = await route.fetch(), transport = await response.json();
+    await route.fulfill({ response, json: { ...transport, webTransport: { ...transport.webTransport, port: relay.port } } });
   });
   await page.goto(`${base}/?seed=4217&transport=wt`);
   const start = page.getByRole('button', { name: 'Start match', exact: true });
@@ -101,23 +96,37 @@ try {
   });
   assert.equal(used, 'webtransport', 'an unforced socket chooses WebTransport when the edge is offered');
 
+  // Forced WebSocket (`?transport=ws`) also routes through the Rust edge on its separate WS port.
+  const wsWatcher = await browser.newPage();
+  collectBrowserErrors(wsWatcher, errors, { consoleErrors: true });
+  await wsWatcher.goto(`${base}/?room=${room}&mode=spectator&transport=ws`);
+  const wsUsed = await wsWatcher.evaluate(async () => {
+    const { openArenaSocket } = await import('/arena-socket.js');
+    const socket = openArenaSocket();
+    await new Promise((resolve, reject) => { socket.addEventListener('open', resolve); socket.addEventListener('close', reject); });
+    const transport = socket.transport; socket.close(); return transport;
+  });
+  assert.equal(wsUsed, 'websocket', 'forced WebSocket connects through the edge');
+  await wsWatcher.close();
+
   // Nothing went wrong while the edge was up.
   assert.deepEqual(errors, []);
-  // The edge going away withdraws the offer, so later pages use the WebSocket; the room outlives it. The pages
-  // whose sessions it carried may report the lost connection, and only that.
+  // The edge going away withdraws both offers; the room outlives it. The pages whose sessions it carried
+  // may report the lost connection, and only that.
   const sinceKill = errors.length;
-  edge.kill();
+  await edge.stop();
   let withdrawn = false;
   for (let i = 0; i < 100 && !withdrawn; i++) {
-    withdrawn = (await (await fetch(`${base}/api/client-config`)).json()).webTransport === null;
+    const after = await (await fetch(`${base}/api/client-config`)).json();
+    withdrawn = after.webTransport === null && after.webSocket === null;
     if (!withdrawn) await new Promise(resolve => setTimeout(resolve, 100));
   }
-  assert.ok(withdrawn, 'a lost edge is no longer offered');
+  assert.ok(withdrawn, 'a lost edge withdraws both WebTransport and WebSocket offers');
   assert.equal(server.rooms.has(room), true, 'the room outlives the edge');
   assert.deepEqual(errors.slice(sinceKill).filter(text => !/WebTransport|ERR_QUIC|net::/.test(text)), []);
   console.log('edge browser check passed');
 } finally {
   await relay?.stop();
-  edge.kill();
+  await edge.stop();
   try { await close(); } finally { await rm(replayDir, { recursive: true, force: true }); }
 }

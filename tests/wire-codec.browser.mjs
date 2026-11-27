@@ -55,7 +55,7 @@ try {
     });
     routed.push(ws);
   });
-  await live.goto(`${base}/?seed=9`);
+  await live.goto(`${base}/?seed=9&transport=ws`);
   const start = live.getByRole('button', { name: 'Start match', exact: true });
   await start.waitFor({ state: 'visible', timeout: 60000 });
   await start.click();

@@ -4,13 +4,13 @@ import net from 'node:net';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { attachEdgeLink, encodeFrame, FRAME, LINK_VERSION } from '../server/edge-link.js';
+import { attachEdgeLink, CAPABILITY, encodeFrame, FRAME, LINK_VERSION } from '../server/edge-link.js';
 import { createArenaServer } from '../server/index.js';
 import { MAX_BUFFERED_BYTES, MAX_MESSAGE_BYTES, MAX_MESSAGES_PER_SECOND, CLOSE_CODE, CLOSE_REASON } from '../server/protocol.js';
 import { listen } from './helpers/listen.js';
 
-// A fake edge over a real loopback socket against a stub service: the link's framing and session contract,
-// with no Rust and no rooms.
+const u8 = n => Uint8Array.of(n);
+const openBody = (id, datagrams = true) => [u32(id), u8(datagrams ? CAPABILITY.DATAGRAMS : CAPABILITY.STREAM_ONLY)];
 
 const json = value => Buffer.from(JSON.stringify(value));
 const u32 = n => { const b = Buffer.alloc(4); b.writeUInt32BE(n); return b; };
@@ -49,7 +49,7 @@ async function fakeEdge(port) {
   return {
     socket, frames, get closed() { return closed; },
     send: (type, ...parts) => socket.write(encodeFrame(type, ...parts)),
-    hello: (fields = {}) => socket.write(encodeFrame(FRAME.EDGE, json({ link: LINK_VERSION, port: 4433, certificateHash: 'ab'.repeat(32), validUntil: 1, ...fields }))),
+    hello: (fields = {}) => socket.write(encodeFrame(FRAME.EDGE, json({ link: LINK_VERSION, port: 4433, wsPort: 4434, wsTls: false, certificateHash: 'ab'.repeat(32), validUntil: 1, ...fields }))),
     next: async type => { await waitFor(() => frames.some(f => f.type === type), `frame ${type}`); return frames.splice(frames.findIndex(f => f.type === type), 1)[0]; },
     end: () => socket.destroy(),
   };
@@ -75,21 +75,21 @@ test('the first EDGE is answered with ACCEPT, a different link version closes th
   const first = await edge(); first.hello();
   const accept = await first.next(FRAME.ACCEPT);
   assert.deepEqual(JSON.parse(accept.body.toString()), { link: LINK_VERSION, httpPort: 4242, maxMessageBytes: MAX_MESSAGE_BYTES });
-  assert.deepEqual(link.info(), { port: 4433, certificateHash: 'ab'.repeat(32) });
+  assert.deepEqual(link.info(), { webTransport: { port: 4433, certificateHash: 'ab'.repeat(32) }, webSocket: { port: 4434, tls: false } });
 
   const second = await edge(); await waitFor(() => second.closed, 'a second edge refused');
   assert.equal(first.closed, false);
 
-  first.hello({ port: 5544, certificateHash: null }); // a rotation: no second ACCEPT
-  await waitFor(() => link.info()?.port === 5544, 'rotated info');
-  assert.deepEqual(link.info(), { port: 5544, certificateHash: null });
+  first.hello({ port: 5544, wsPort: 5545, wsTls: true, certificateHash: null }); // a rotation: no second ACCEPT
+  await waitFor(() => link.info()?.webTransport?.port === 5544, 'rotated info');
+  assert.deepEqual(link.info(), { webTransport: { port: 5544, certificateHash: null }, webSocket: { port: 5545, tls: true } });
   assert.equal(first.frames.some(f => f.type === FRAME.ACCEPT), false);
 });
 
 test('an edge session is a peer: text and binary deliveries, WRITTEN-driven backlog, droppable skips, and messages in', async t => {
   const { service, edge } = await started(t);
   const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
-  e.send(FRAME.OPEN, u32(7));
+  e.send(FRAME.OPEN, ...openBody(7));
   await waitFor(() => service.peers.length === 1, 'a session');
   const { peer } = service.peers[0];
   assert.equal(peer.bytes, true);
@@ -124,11 +124,12 @@ test('an edge session is a peer: text and binary deliveries, WRITTEN-driven back
   assert.equal(peer.deliver('{}', true), true);
 });
 
-test('an edge session offers datagrams: each goes to the edge as one SEND, outside the backlog, and none once closing', async t => {
+test('an edge session offers datagrams when opened with capability 1, and omits them for stream-only (0)', async t => {
   const { service, edge } = await started(t);
   const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
-  e.send(FRAME.OPEN, u32(3));
-  await waitFor(() => service.peers.length === 1, 'a session');
+  e.send(FRAME.OPEN, ...openBody(3, true));
+  e.send(FRAME.OPEN, ...openBody(4, false));
+  await waitFor(() => service.peers.length === 2, 'two sessions');
   const { peer } = service.peers[0];
   assert.equal(typeof peer.datagram, 'function', 'so the room gives it the split');
   assert.equal(peer.datagram(Uint8Array.of(1, 2, 3)), true);
@@ -136,13 +137,20 @@ test('an edge session offers datagrams: each goes to the edge as one SEND, outsi
   assert.deepEqual([sent.body.readUInt32BE(0), [...sent.body.subarray(4)]], [3, [1, 2, 3]]);
   assert.equal(peer.buffered(), 0, 'a datagram is not stream backlog');
   peer.close(1000, 'bye');
+  assert.deepEqual([(await e.next(FRAME.CLOSE)).body.readUInt32BE(0)], [3]);
   assert.equal(peer.datagram(Uint8Array.of(4)), false);
+
+  const wsPeer = service.peers[1].peer;
+  assert.equal(wsPeer.datagram, undefined, 'a stream-only WebSocket session offers no datagrams');
+  e.send(FRAME.DATAGRAM, u32(4), json({ ack: 1, inputs: [] }));
+  const close = await e.next(FRAME.CLOSE);
+  assert.deepEqual([close.body.readUInt32BE(0), close.body.readUInt16BE(4)], [4, 1008]);
 });
 
 test('close, invalid input and edge-side ends reach the session seam once', async t => {
   const { service, edge } = await started(t);
   const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
-  for (const id of [1, 2, 3, 4]) e.send(FRAME.OPEN, u32(id));
+  for (const id of [1, 2, 3, 4]) e.send(FRAME.OPEN, ...openBody(id));
   await waitFor(() => service.peers.length === 4, 'four sessions');
   const closeOf = frame => [frame.body.readUInt32BE(0), frame.body.readUInt16BE(4), frame.body.subarray(6).toString()];
 
@@ -169,7 +177,7 @@ test('close, invalid input and edge-side ends reach the session seam once', asyn
 test('input datagrams reach the room once each, in order, whichever path an input took', async t => {
   const { service, link, edge } = await started(t);
   const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
-  for (const id of [1, 2, 3, 4, 5]) e.send(FRAME.OPEN, u32(id));
+  for (const id of [1, 2, 3, 4, 5]) e.send(FRAME.OPEN, ...openBody(id));
   await waitFor(() => service.peers.length === 5, 'five sessions');
   const input = seq => ({ type: 'input', seq, tick: 100 + seq, x: 1 });
   const datagram = (id, ...seqs) => e.send(FRAME.DATAGRAM, u32(id), json({ inputs: seqs.map(input) }));
@@ -211,7 +219,7 @@ test('input datagrams reach the room once each, in order, whichever path an inpu
 test('acknowledgements ride the input datagrams and reach the service unless repeated', async t => {
   const { service, edge } = await started(t);
   const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
-  for (const id of [1, 2]) e.send(FRAME.OPEN, u32(id));
+  for (const id of [1, 2]) e.send(FRAME.OPEN, ...openBody(id));
   await waitFor(() => service.peers.length === 2, 'two sessions');
   const send = (id, body) => e.send(FRAME.DATAGRAM, u32(id), json(body));
   send(1, { ack: 40, inputs: [{ type: 'input', seq: 1, tick: 41 }] });
@@ -225,7 +233,7 @@ test('acknowledgements ride the input datagrams and reach the service unless rep
   assert.deepEqual(service.acks, [[0, 40], [0, 42], [0, 41], [0, 45]]);
   // Neither an empty datagram nor a malformed acknowledgement is one.
   for (const [i, bad] of [{ inputs: [] }, { ack: -1, inputs: [] }, { ack: null, inputs: [{ type: 'input', seq: 1 }] }, { ack: 1.5, inputs: [] }, { ack: 3, inputs: [], extra: 1 }].entries()) {
-    e.send(FRAME.OPEN, u32(10 + i));
+    e.send(FRAME.OPEN, ...openBody(10 + i));
     send(10 + i, bad);
     const close = await e.next(FRAME.CLOSE);
     assert.deepEqual([close.body.readUInt32BE(0), close.body.subarray(6).toString()], [10 + i, CLOSE_REASON.INVALID_MESSAGE], JSON.stringify(bad));
@@ -236,7 +244,7 @@ test('acknowledgements ride the input datagrams and reach the service unless rep
 test('an invalid input passes on to be refused, but does not hold back the valid ones after it', async t => {
   const { service, edge } = await started(t);
   const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
-  e.send(FRAME.OPEN, u32(1));
+  e.send(FRAME.OPEN, ...openBody(1));
   await waitFor(() => service.peers.length === 1, 'a session');
   // No tick: the validator refuses it. A high seq on it must not latch.
   e.send(FRAME.DATAGRAM, u32(1), json({ inputs: [{ type: 'input', seq: 1000 }] }));
@@ -249,7 +257,7 @@ test('an invalid input passes on to be refused, but does not hold back the valid
 test('a malformed frame drops the link and its sessions, and a new edge may then connect', async t => {
   const { service, link, edge } = await started(t);
   const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
-  e.send(FRAME.OPEN, u32(1));
+  e.send(FRAME.OPEN, ...openBody(1));
   await waitFor(() => service.peers.length === 1, 'a session');
   e.socket.write(u32(64 * 1024 * 1024 + 1));
   await waitFor(() => e.closed, 'the link dropped');
@@ -257,7 +265,7 @@ test('a malformed frame drops the link and its sessions, and a new edge may then
   const again = await edge(); again.hello(); await again.next(FRAME.ACCEPT);
 
   const silent = await edge(); await waitFor(() => silent.closed, 'a second live edge refused');
-  const raw = await fakeEdge(link.port); raw.send(FRAME.OPEN, u32(1)); // before EDGE
+  const raw = await fakeEdge(link.port); raw.send(FRAME.OPEN, ...openBody(1)); // before EDGE
   await waitFor(() => raw.closed, 'OPEN before EDGE refused'); raw.end();
   again.socket.destroy(); await waitFor(() => link.info() === null, 'the linked edge gone');
   // An offer the browser could not be given is refused at the link, so client-config never carries it.
@@ -265,21 +273,24 @@ test('a malformed frame drops the link and its sessions, and a new edge may then
   await waitFor(() => bad.closed && link.info() === null, 'a malformed certificate hash refused');
 });
 
-test('client configuration offers WebTransport while an edge is linked, and through a real server a session gets a welcome path', async () => {
+test('client configuration offers WebTransport and WebSocket while an edge is linked, and through a real server a session gets a welcome path', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-edge-'));
   const server = await createArenaServer({ replayDir: dir, roomThreads: false, edgeLink: 0, generateMap: () => new Promise(() => {}) });
   try {
     const base = await listen(server);
     const config = async () => (await fetch(base + '/api/client-config')).json();
     assert.equal((await config()).webTransport, null);
+    assert.equal((await config()).webSocket, null);
     const e = await fakeEdge(server.edgeLink.port);
-    e.hello({ port: 4444 });
+    e.hello({ port: 4444, wsPort: 4445, wsTls: false });
     const accept = JSON.parse((await e.next(FRAME.ACCEPT)).body.toString());
     assert.equal(accept.httpPort, server.http.address().port);
-    assert.deepEqual((await config()).webTransport, { port: 4444, certificateHash: 'ab'.repeat(32) });
+    const loaded = await config();
+    assert.deepEqual(loaded.webTransport, { port: 4444, certificateHash: 'ab'.repeat(32) });
+    assert.deepEqual(loaded.webSocket, { port: 4445, tls: false });
 
-    // An unknown room is refused through the directory as for a WebSocket: an error message, delivered as text.
-    e.send(FRAME.OPEN, u32(1));
+    // An unknown room is refused through the directory: an error message, delivered as text.
+    e.send(FRAME.OPEN, ...openBody(1));
     e.send(FRAME.MESSAGE, u32(1), Buffer.from([0]), json({ type: 'join', room: 'nope', mode: 'player' }));
     const delivered = await e.next(FRAME.DELIVER);
     assert.equal(delivered.body[4], 0);
@@ -288,5 +299,6 @@ test('client configuration offers WebTransport while an edge is linked, and thro
     e.end();
     await waitFor(() => server.edgeLink.info() === null, 'link loss');
     assert.equal((await config()).webTransport, null);
+    assert.equal((await config()).webSocket, null);
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });

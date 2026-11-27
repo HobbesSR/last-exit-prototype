@@ -5,6 +5,10 @@
 pub const TEXT: u8 = 0;
 /// Flag for a binary message.
 pub const BINARY: u8 = 1;
+/// OPEN's capability byte for a stream-only session (WebSocket).
+pub const STREAM_ONLY: u8 = 0;
+/// OPEN's capability byte for a session with datagrams (WebTransport).
+pub const DATAGRAMS: u8 = 1;
 
 /// The link's frame types (docs/24.5 "The link"). `tests/edge-contract.test.js` holds Node's `FRAME` and 24.5's
 /// table to exactly this list.
