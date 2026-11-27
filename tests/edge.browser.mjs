@@ -30,9 +30,9 @@ try {
   relay = await startLossyRelay({ target: offer.port, profile: { rtt: 0, jitter: 0, loss: 0 }, seed: 1095 });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   collectBrowserErrors(page, errors, { consoleErrors: true });
-  await page.route('**/api/client-config', async route => {
-    const response = await route.fetch(), config = await response.json();
-    await route.fulfill({ response, json: { ...config, webTransport: { ...config.webTransport, port: relay.port } } });
+  await page.route('**/api/transport', async route => {
+    const response = await route.fetch(), transport = await response.json();
+    await route.fulfill({ response, json: { ...transport, webTransport: { ...transport.webTransport, port: relay.port } } });
   });
   await page.goto(`${base}/?seed=4217&transport=wt`);
   const start = page.getByRole('button', { name: 'Start match', exact: true });

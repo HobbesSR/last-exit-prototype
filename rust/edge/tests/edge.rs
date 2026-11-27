@@ -599,16 +599,21 @@ async fn websocket_carries_messages_checks_origin_and_enforces_limits() {
     .unwrap();
     let session_stalled = node.next().await.1[..4].to_vec();
     let bulk = vec![0x7au8; MAX_BYTES];
-    for _ in 0..512 {
+    let burst_frames = 4096usize;
+    let total_bytes = (burst_frames * MAX_BYTES) as u64;
+    for _ in 0..burst_frames {
         node.send(DELIVER, &[&session_stalled, &[frame::BINARY], &bulk])
             .await;
     }
     node.send(CLOSE, &[&session_stalled, &1000u16.to_be_bytes(), b"bye"])
         .await;
+    let mut last_written = 0u64;
     timeout(Duration::from_secs(4), async {
         loop {
             let (kind, body) = node.next().await;
             if kind == WRITTEN {
+                assert_eq!(&body[..4], &session_stalled[..]);
+                last_written = u64::from_be_bytes(body[4..12].try_into().unwrap());
                 continue;
             }
             assert_eq!((kind, body), (CLOSED, session_stalled));
@@ -617,6 +622,10 @@ async fn websocket_carries_messages_checks_origin_and_enforces_limits() {
     })
     .await
     .unwrap();
+    assert!(
+        last_written < total_bytes,
+        "stalled reader absorbed entire burst ({last_written}/{total_bytes})"
+    );
 
     // Link drop closes open WebSocket sessions with 1001 even when deliveries are in flight.
     let ws2 = ws_connect(ws_port, "/arena", None).await.unwrap();

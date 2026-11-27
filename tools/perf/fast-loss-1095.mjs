@@ -53,11 +53,11 @@ async function run(profile, runIndex, { server, base, browser }, offer) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const errors = [];
   collectBrowserErrors(page, errors, { consoleErrors: true });
-  // The page learns the edge from the client config: point it at the relay instead.
-  await page.route('**/api/client-config', async route => {
-    const response = await route.fetch(), config = await response.json();
-    config.webTransport = { ...config.webTransport, port: relay.port };
-    await route.fulfill({ response, json: config });
+  // The page discovers the edge from /api/transport: point it at the relay instead.
+  await page.route('**/api/transport', async route => {
+    const response = await route.fetch(), transport = await response.json();
+    transport.webTransport = { ...transport.webTransport, port: relay.port };
+    await route.fulfill({ response, json: transport });
   });
   // How each WebTransport session ended, and when, as the page saw it.
   await page.addInitScript(() => {

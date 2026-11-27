@@ -714,43 +714,43 @@ where
         return;
     }
 
-    let (mut ws_sink, ws_stream) = ws.split();
-    let outcome = tokio::select! {
-        outcome = ws_read_loop(ws_stream, &link, id, max_bytes) => Some(outcome),
-        outcome = ws_deliver_loop(&mut ws_sink, &mut rx, &link, id, &mut down) => Some(outcome),
-        _ = async {
-            let _ = close_rx.wait_for(|at| at.is_some()).await;
-            let requested = *close_rx.borrow();
-            if let Some(at) = requested {
-                tokio::time::sleep_until(at + FLUSH_WAIT).await;
-            }
-        } => None,
-    };
-    let close_frame = match outcome {
-        Some(WsOutcome::Close(code, reason)) => Some((code, reason)),
-        Some(WsOutcome::LinkLost) => Some((CLOSE_GOING_AWAY, b"link lost".to_vec())),
-        Some(WsOutcome::ClientClosed) => None,
-        Some(WsOutcome::Gone) | None => {
-            link.sessions.lock().unwrap().remove(&id);
-            link.send(frame::encode(CLOSED, &[&id.to_be_bytes()])).await;
-            return;
-        }
-    };
-    // Bound teardown inside this session task, anchored to when CLOSE arrived if Node initiated closure.
-    let flush_budget = close_rx.borrow().map_or(FLUSH_WAIT, |at| {
-        (at + FLUSH_WAIT).saturating_duration_since(tokio::time::Instant::now())
-    });
-    let _ = tokio::time::timeout(flush_budget, async {
-        if let Some((code, reason)) = close_frame {
-            let frame = CloseFrame {
-                code: CloseCode::from(code),
-                reason: String::from_utf8_lossy(&reason).into_owned().into(),
+    {
+        let (mut ws_sink, ws_stream) = ws.split();
+        let outcome = tokio::select! {
+            outcome = ws_read_loop(ws_stream, &link, id, max_bytes) => Some(outcome),
+            outcome = ws_deliver_loop(&mut ws_sink, &mut rx, &link, id, &mut down) => Some(outcome),
+            _ = async {
+                let _ = close_rx.wait_for(|at| at.is_some()).await;
+                let requested = *close_rx.borrow();
+                if let Some(at) = requested {
+                    tokio::time::sleep_until(at + FLUSH_WAIT).await;
+                }
+            } => None,
+        };
+        if !matches!(outcome, Some(WsOutcome::Gone) | None) {
+            let close_frame = match outcome {
+                Some(WsOutcome::Close(code, reason)) => Some((code, reason)),
+                Some(WsOutcome::LinkLost) => Some((CLOSE_GOING_AWAY, b"link lost".to_vec())),
+                _ => None,
             };
-            let _ = ws_sink.send(Message::Close(Some(frame))).await;
+            // Bound teardown inside this session task, anchored to when CLOSE arrived if Node initiated closure.
+            let flush_budget = close_rx.borrow().map_or(FLUSH_WAIT, |at| {
+                (at + FLUSH_WAIT).saturating_duration_since(tokio::time::Instant::now())
+            });
+            let _ = tokio::time::timeout(flush_budget, async {
+                if let Some((code, reason)) = close_frame {
+                    let frame = CloseFrame {
+                        code: CloseCode::from(code),
+                        reason: String::from_utf8_lossy(&reason).into_owned().into(),
+                    };
+                    let _ = ws_sink.send(Message::Close(Some(frame))).await;
+                }
+                let _ = ws_sink.close().await;
+            })
+            .await;
         }
-        let _ = ws_sink.close().await;
-    })
-    .await;
+    }
+    // Both socket halves are dropped before removing the session or waiting on the bounded link queue.
     link.sessions.lock().unwrap().remove(&id);
     link.send(frame::encode(CLOSED, &[&id.to_be_bytes()])).await;
 }

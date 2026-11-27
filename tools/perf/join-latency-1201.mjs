@@ -316,11 +316,11 @@ async function runOne(transport, profile, runIndex, { server, base, browser }, o
   const errors = [];
   collectBrowserErrors(page, errors, { consoleErrors: true });
 
-  await page.route('**/api/client-config', async route => {
-    const response = await route.fetch(), config = await response.json();
-    if (transport === 'wt') config.webTransport = { ...config.webTransport, port: relay.port };
-    else config.webSocket = { ...config.webSocket, port: relay.port };
-    await route.fulfill({ response, json: config });
+  await page.route('**/api/transport', async route => {
+    const response = await route.fetch(), payload = await response.json();
+    if (transport === 'wt') payload.webTransport = { ...payload.webTransport, port: relay.port };
+    else payload.webSocket = { ...payload.webSocket, port: relay.port };
+    await route.fulfill({ response, json: payload });
   });
 
   await page.addInitScript(JOIN_TELEMETRY_SCRIPT, { wsProxyPort: null });
