@@ -13,6 +13,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createServer, connect } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { gunzipSync } from 'node:zlib';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 import { cliArgs } from '../../tests/helpers/args.js';
 import { collectBrowserErrors, serveWithBrowser } from '../../tests/helpers/browser.js';
@@ -40,6 +41,17 @@ const stats = list => {
   return { n: list.length, min: r(sorted[0]), p50: r(at(0.5)), p95: r(at(0.95)), max: r(sorted.at(-1)) };
 };
 
+const GZIP_FORMAT = 0xd2;
+const parseCompressedEnvelope = payload => {
+  if (payload.length < 3 || payload[0] !== GZIP_FORMAT) return null;
+  let at = 1;
+  while (at < payload.length && (payload[at++] & 0x80) !== 0) {}
+  if (at >= payload.length) return null;
+  try {
+    return JSON.parse(gunzipSync(payload.subarray(at)).toString('utf8'));
+  } catch { return null; }
+};
+
 /**
  * Transparent loopback TCP tap between `last-exit-edge` and Node's `edgeLink` server, recording every
  * `DELIVER` and `WRITTEN` frame for the active session without adding delay.
@@ -59,6 +71,8 @@ async function startEdgeLinkTap(targetPort) {
         let msgType = flag === 1 ? 'binary' : 'text';
         if (flag === 0) {
           try { msgType = JSON.parse(payload.toString('utf8')).type ?? 'text'; } catch { /* leave as text */ }
+        } else {
+          msgType = parseCompressedEnvelope(payload)?.type ?? 'binary';
         }
         events.push({ dir, at: t, type: 'DELIVER', sessionId, flag, payloadBytes: payload.length, msgType });
       } else if (dir === 'down' && type === FRAME.SEND && body.length >= 4) {
@@ -127,31 +141,45 @@ const JOIN_TELEMETRY_SCRIPT = ({ wsProxyPort } = {}) => {
     openAt: null,
     sent: [],
     received: [],
-    datagramsBeforeLive: 0,
+    datagramTimestamps: [],
     firstDatagramAt: null,
     readyBreakdown: null,
     welcomeBreakdown: null,
     sessionsEnded: [],
+    pendingDecodes: [],
   };
-  const recordIncoming = (isBinary, payloadBytes, textOrNull, firstByteAt, completeAt) => {
-    let msgType = isBinary ? 'binary' : 'text';
-    if (!isBinary && textOrNull) {
-      try {
-        const msg = JSON.parse(textOrNull);
-        msgType = msg.type ?? 'text';
-        if (msg.type === 'welcome' && !log.welcomeBreakdown) {
-          log.welcomeBreakdown = Object.fromEntries(
-            Object.entries(msg).map(([k, v]) => [k, JSON.stringify(v)?.length ?? 0])
-          );
-        }
-        if (msg.type === 'ready' && !log.readyBreakdown) {
-          log.readyBreakdown = Object.fromEntries(
-            Object.entries(msg).map(([k, v]) => [k, JSON.stringify(v)?.length ?? 0])
-          );
-        }
-      } catch { /* ignore */ }
+  const inspectEnvelope = (entry, msg) => {
+    entry.msgType = msg.type ?? entry.msgType;
+    if (msg.type === 'welcome' && !log.welcomeBreakdown) {
+      log.welcomeBreakdown = Object.fromEntries(
+        Object.entries(msg).map(([k, v]) => [k, JSON.stringify(v)?.length ?? 0])
+      );
     }
-    log.received.push({ msgType, isBinary, payloadBytes, firstByteAt, completeAt });
+    if (msg.type === 'ready' && !log.readyBreakdown) {
+      log.readyBreakdown = Object.fromEntries(
+        Object.entries(msg).map(([k, v]) => [k, JSON.stringify(v)?.length ?? 0])
+      );
+    }
+  };
+  const decodeCompressedEnvelope = async (entry, source) => {
+    const raw = source instanceof Blob ? new Uint8Array(await source.arrayBuffer()) : source;
+    if (!raw || raw.length < 3 || raw[0] !== 0xd2) return;
+    let at = 1;
+    while (at < raw.length && (raw[at++] & 0x80) !== 0) {}
+    if (at >= raw.length) return;
+    const stream = new Blob([raw.subarray(at)]).stream().pipeThrough(new DecompressionStream('gzip'));
+    inspectEnvelope(entry, JSON.parse(await new Response(stream).text()));
+  };
+  const recordIncoming = (isBinary, payloadBytes, textOrBinary, firstByteAt, completeAt) => {
+    const entry = { msgType: isBinary ? 'binary' : 'text', isBinary, payloadBytes, firstByteAt, completeAt };
+    log.received.push(entry);
+    if (!isBinary && typeof textOrBinary === 'string') {
+      try { inspectEnvelope(entry, JSON.parse(textOrBinary)); } catch { /* ignore */ }
+    } else if (isBinary && textOrBinary) {
+      if (textOrBinary instanceof Blob || textOrBinary[0] === 0xd2) {
+        log.pendingDecodes.push(decodeCompressedEnvelope(entry, textOrBinary).catch(() => {}));
+      }
+    }
   };
   const recordOutgoing = (isBinary, payloadBytes, textOrNull) => {
     let msgType = isBinary ? 'binary' : 'text';
@@ -202,7 +230,8 @@ const JOIN_TELEMETRY_SCRIPT = ({ wsProxyPort } = {}) => {
                   const len = new DataView(joined.buffer, joined.byteOffset + at, 4).getUint32(0);
                   if (len < 1 || joined.length - at < 4 + len) break;
                   const flag = joined[at + 4], payload = joined.subarray(at + 5, at + 4 + len);
-                  recordIncoming(flag === 1, payload.length, flag === 0 ? decoder.decode(payload) : null, frameStartAt, t);
+                  const body = flag === 0 ? decoder.decode(payload) : (payload[0] === 0xd2 ? payload.slice() : null);
+                  recordIncoming(flag === 1, payload.length, body, frameStartAt, t);
                   at += 4 + len;
                   frameStartAt = at < joined.length ? t : null;
                 }
@@ -221,8 +250,9 @@ const JOIN_TELEMETRY_SCRIPT = ({ wsProxyPort } = {}) => {
             reader.read = async () => {
               const res = await origRead();
               if (!res.done && res.value) {
-                if (log.firstDatagramAt === null) log.firstDatagramAt = now();
-                if (!log.received.some(m => m.msgType === 'ready')) log.datagramsBeforeLive++;
+                const at = now();
+                if (log.firstDatagramAt === null) log.firstDatagramAt = at;
+                log.datagramTimestamps.push(at);
               }
               return res;
             };
@@ -256,9 +286,10 @@ const JOIN_TELEMETRY_SCRIPT = ({ wsProxyPort } = {}) => {
         if (typeof e.data === 'string') {
           recordIncoming(false, encoder.encode(e.data).length, e.data, t, t);
         } else if (e.data instanceof ArrayBuffer) {
-          recordIncoming(true, e.data.byteLength, null, t, t);
+          const bytes = new Uint8Array(e.data);
+          recordIncoming(true, e.data.byteLength, bytes[0] === 0xd2 ? bytes : null, t, t);
         } else if (e.data instanceof Blob) {
-          recordIncoming(true, e.data.size, null, t, t);
+          recordIncoming(true, e.data.size, e.data, t, t);
         }
       });
       const origSend = this.send.bind(this);
@@ -326,13 +357,22 @@ async function runOne(transport, profile, runIndex, { server, base, browser }, o
     const liveAt = now();
     await page.waitForTimeout(300);
 
-    const trace = await page.evaluate(() => window.__joinTrace);
+    const trace = await page.evaluate(async () => {
+      await Promise.all(window.__joinTrace.pendingDecodes);
+      const { pendingDecodes: _, ...rest } = window.__joinTrace;
+      return rest;
+    });
     const tapEvents = linkTap.slice(tapFrom);
     const relayCounts = await relay.counts();
 
     const findRecv = type => trace.received.find(m => m.msgType === type);
     const welcomeMsg = findRecv('welcome');
     const readyMsg = findRecv('ready');
+    if (!welcomeMsg || !readyMsg) {
+      const seen = [...new Set(trace.received.map(m => m.msgType))].join(', ');
+      throw new Error(`Missing welcome/ready trace entry for ${transport} ${profile.name}#${runIndex} (received: ${seen || 'none'})`);
+    }
+    const datagramsBeforeLive = trace.datagramTimestamps.filter(at => at <= readyMsg.completeAt).length;
     const readyIdx = trace.received.indexOf(readyMsg);
     const beforeReady = readyIdx >= 0 ? trace.received.slice(0, readyIdx) : trace.received;
     const streamBytesBeforeReady = beforeReady.reduce((sum, m) => sum + m.payloadBytes, 0);
@@ -359,7 +399,10 @@ async function runOne(transport, profile, runIndex, { server, base, browser }, o
           readyCumEnd = cumPayload;
         }
       }
-      const readyWrittenEv = readyCumEnd === null ? null : writtens.find(w => w.writtenBytes >= readyCumEnd);
+      if (readyDeliverAt === null) {
+        throw new Error(`Edge tap missed ready DELIVER frame for ${profile.name}#${runIndex}`);
+      }
+      const readyWrittenEv = writtens.find(w => w.writtenBytes >= readyCumEnd);
       edgeMetrics = {
         deliverFramesBeforeReady: delivers.filter(d => readyDeliverAt === null || d.at <= readyDeliverAt).length,
         deliverBytesThroughReady: readyCumEnd,
@@ -407,7 +450,7 @@ async function runOne(transport, profile, runIndex, { server, base, browser }, o
         welcomeBreakdown: trace.welcomeBreakdown,
         readyBreakdown: trace.readyBreakdown,
       },
-      datagramsBeforeLive: trace.datagramsBeforeLive,
+      datagramsBeforeLive,
       edgeMetrics,
       rttMs,
       relay: relayCounts,
