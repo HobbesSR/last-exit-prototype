@@ -113,6 +113,18 @@ impl RouteState {
         self.plan.is_some()
     }
 
+    #[cfg(test)]
+    pub(super) fn pending_expansions(&self) -> Option<usize> {
+        self.search
+            .as_ref()
+            .map(|running| running.search.expansions())
+    }
+
+    #[cfg(test)]
+    pub(super) fn is_stale(&self) -> bool {
+        self.plan.as_ref().is_some_and(|plan| plan.stale)
+    }
+
     pub fn clear_route(&mut self) {
         self.route.clear();
         self.generation = self.generation.wrapping_add(1);
@@ -625,69 +637,5 @@ mod tests {
         );
         assert_eq!(status, Some(RouteStatus::NoKnownRoute));
         assert_eq!(state.generation, original_gen + 1);
-    }
-
-    #[test]
-    fn shared_tick_allowance_caps_multiple_bots_at_3000_expansions() {
-        let map = RuntimeNavigation::for_cells(24, 20, 1, |col, _| (col == 20).then_some(0));
-        let gate_positions =
-            BTreeMap::from([(GateId(0), [20.0 * 192.0 + 96.0, 10.0 * 192.0 + 96.0])]);
-        let open_doors = BTreeMap::from([(
-            GateId(0),
-            DoorMemory {
-                open: true,
-                locked: false,
-            },
-        )]);
-        let closed_doors = BTreeMap::from([(
-            GateId(0),
-            DoorMemory {
-                open: false,
-                locked: true,
-            },
-        )]);
-        let point = [19.0 * 192.0 + 96.0, 10.0 * 192.0 + 96.0];
-        let target = [23.0 * 192.0 + 96.0, 10.0 * 192.0 + 96.0];
-        let mut bots: Vec<_> = (0..7)
-            .map(|_| plan_route(&map, &open_doors, &gate_positions, point, target))
-            .collect();
-        let knowledge = known_knowledge(&map, &closed_doors);
-
-        let mut allowance = TICK_ALLOWANCE;
-        for (i, bot) in bots[..6].iter_mut().enumerate() {
-            assert_eq!(
-                bot.repair(
-                    &map,
-                    CONTESTANT_CLEARANCE,
-                    &knowledge,
-                    &closed_doors,
-                    &gate_positions,
-                    point,
-                    &mut allowance,
-                ),
-                Some(false)
-            );
-            assert_eq!(allowance, TICK_ALLOWANCE - (i + 1) * REPAIR_BUDGET);
-        }
-        assert_eq!(allowance, 0);
-
-        let skipped_route = bots[6].route.clone();
-        let skipped_gen = bots[6].generation;
-        assert_eq!(
-            bots[6].repair(
-                &map,
-                CONTESTANT_CLEARANCE,
-                &knowledge,
-                &closed_doors,
-                &gate_positions,
-                point,
-                &mut allowance,
-            ),
-            None
-        );
-        assert_eq!(allowance, 0);
-        assert_eq!(bots[6].route, skipped_route);
-        assert_eq!(bots[6].generation, skipped_gen);
-        assert!(!bots[6].plan.as_ref().unwrap().stale);
     }
 }
