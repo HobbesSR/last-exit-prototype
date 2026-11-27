@@ -345,7 +345,7 @@ from Node's records between them, so they can become one call (6e.5).
   through (`adoptItemPoses`), and `writePhysicalItemPoses` is gone.
   - The records are visited in the bodies' ID order, where Node used its item set's order. Each replacement keeps its
     record's place, so the list is the same.
-- **The witness.** `storeDrift` now compares the cues and both flags. `groundDrift` holds the poses every tick.
+- **The witness.** `storeDrift` now compares the cues and both flags. `groundDrift` holds the poses every tick. *(Historical witness: `storeDrift`, `groundDrift`, `hookDrift`, `projectileDrift`, and `registryDrift` retired with the `#1283` cutover and were removed in `#1389`.)*
 - **Cost:** measured once, at the end of step 6.
 
 **Step 6e.5a, `tick_begin` (#1214, adapter version 40).** D4's first call. Phase 1 and the boundary it ends at are one
@@ -358,8 +358,8 @@ core call (`tick_begin` in `lib.rs`, `tick-begin.ts`), where they were six:
 5. a turret's spawns entering the projectiles, then the pending admission;
 6. the commit of what is still queued.
 
-The output is each step's own, in order. Node applies each with that step's applier, split out for this:
-`applyPhaseOne`, `applySyncLog`, `applyHookOutput` and `applyAdmission`, then the commit's facts (`adoptCommit`). A step
+The output is each step's own, in order. Node applied each with that step's applier, split out for this:
+`applyPhaseOne`, `applySyncLog`, `applyHookOutput` and `applyAdmission`, then the commit's facts (`adoptCommit`). *(Historical: `applyAdmission` retired with the `#1283` cutover and was removed in `#1389`.)* A step
 that refuses ends the call, and its later sections are empty, as Node's throw ended the tick. Phase 1's sync is timed as
 `sim.begin` with the rest of the call; `sim.sync` now times phase 7's syncs only.
 - **Cost:** measured once, at the end of step 6.
@@ -381,8 +381,9 @@ phase's input from the intents and its stores:
   bodies were functions both the exports and `tick_finish` called (`actions_call`, `combat_call`); `combat_run` and
   `combat_call` retired in #1358.
 
-**Node's part.** It applies each step's section with that step's applier: `applyLoop`, `adoptFloorDrag`, the commit's
+**Node's part.** It applied each step's section with that step's applier: `applyLoop`, `adoptFloorDrag`, the commit's
 facts, `parseStep` and the players' poses, `applyItemPoses`, `applyCombat`, `applyHookOutput`, then `applyCombat` again.
+*(Historical: `applyLoop` and `applyItemPoses` retired with the `#1283` cutover and were removed in `#1389`.)*
 The header carries the serial and the item serials the call left. Phases 3 to 5 are timed as `sim.finish`, where
 `sim.actions`, `sim.solve`, `sim.poses` and `sim.projectiles` timed them.
 
@@ -528,9 +529,10 @@ agents' debate on #1312 agreed it (turns 2 and 3, comments 18374, 18378 and 1838
    layer during room preparation. Both packages belong to the same room. The eager flat variant stocks both
    layers and keeps v1 `f64` points to reproduce the direct-writer baseline. Run
    `node --expose-gc tools/runtime-map-measure.mjs 36x18 4217 --compact` to compare actual v1 and v2
-   bytes for both layers with the same geometry. Deferred preparation builds the contestant layer
-   synchronously in the room worker by default. With inline rooms (`roomThreads: false`) it
-   blocks the host event loop until the build finishes. Both flat variants remain opt-in.
+   bytes for both layers with the same geometry. The server's `runtimeMap` opt-in switch was retired in `#1389` (the
+   server always uses the legacy `packMap` + `prebuiltTiles` handoff; `tools/runtime-map-room-measure.mjs` last existed
+   on `main` at `b023fd20`), so both flat variants are now test-only (`packRuntimeMap` via `core-navigation`,
+   `room-runtime-map`, `room-tick`, and `slow/characterization-physics-bots`).
    Rust validates both uploaded clearances together during room preparation and retains the original allocations.
    The match holds a reference before its first tick. The room and match release their references on disposal
    (#1318). Starting in 4e the live planner uses the validated Rust package directly.

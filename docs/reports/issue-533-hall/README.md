@@ -1,5 +1,7 @@
 # Hall structural composition evidence (#533)
 
+> Note: `tools/hall-composition-audit.mjs` and `tools/hall-chain-diagnostics.mjs` were retired in `#1389` and last existed on `main` at `b023fd20`.
+
 The production hall builder now composes side-connected rectangular bays after
 its unchanged primary lattice. Wings retain a 2.5-cell perimeter walk, two-cell
 pillar separation and open joins. `roofed` encloses each bay. Selected bays stay

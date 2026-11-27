@@ -49,8 +49,6 @@ export function hookSkill(s: Game, p: Player): void {
 const MODE_PREPARE = 0, MODE_FINISH = 1;
 const OUT_HEADER = 6, OP_COMMIT = 2, OP_REMOVED = 20, OP_ROPE = 21, STATE_STRIDE = 9;
 const PHASES = ['flying', 'pending', 'pulling'] as const;
-/** Words per hook uploaded (`world::HOOK_RECORD`). */
-const HOOK_RECORD = 15;
 
 /**
  * The hooks are the core's (#1214 stage 6d.4): the world keeps them, the rules and phase 3's launch and cancel change
@@ -67,16 +65,6 @@ function hookRows(r: PhysicsRuntime): number[] {
     PHASES.indexOf(hook.phase), hook.generationA, hook.targetIdx ?? NaN, hook.targetActorKey === undefined ? NaN : world.key(hook.targetActorKey),
     hook.generationB ?? NaN, hook.hitTick ?? NaN, hook.desiredLength ?? NaN);
   return rows;
-}
-
-/** Where the core's hooks differ from the mirror, as `hook.word: core != mirror` lines; empty when they agree. For tests. */
-export function hookDrift(r: PhysicsRuntime): string[] {
-  const rows = hookRows(r), { core, world: native } = r.world.boundaryCall();
-  const at = core.physics_hooks_dump(native) >>> 0, count = new Float64Array(core.memory.buffer, at, 1)[0]!;
-  if (count !== r.hooks.length) return [`the core holds ${count} hooks, the mirror ${r.hooks.length}`];
-  const kept = new Float64Array(core.memory.buffer, at + 8, rows.length), out: string[] = [];
-  rows.forEach((v, k) => { if (!Object.is(kept[k], v)) out.push(`${Math.floor(k / HOOK_RECORD)}.${k % HOOK_RECORD}: ${kept[k]} != ${v}`); });
-  return out;
 }
 
 /** Upload the hooks when the mirror changed without the core's facts. */
@@ -126,7 +114,7 @@ function runHooks(s: Game, mode: number, paths?: Record<string, Vec2[]>): void {
  * Apply a hook run's output: each rope queued, each commit's facts, each hook removed, then the hooks' fields as the
  * rules left them. `hooks` is the mirror's list as the run began. `tick_begin` runs the prepare in its call (6e.5).
  */
-export function applyHookOutput(s: Game, r: PhysicsRuntime, out: Float64Array, hooks: readonly HookState[]): void {
+function applyHookOutput(s: Game, r: PhysicsRuntime, out: Float64Array, hooks: readonly HookState[]): void {
   const world = r.world, tuning = s.content.hook, players = s.players;
   const removed = new Set<HookState>(), states = out.length - hooks.length * STATE_STRIDE;
   for (let at = OUT_HEADER; at < states;) {

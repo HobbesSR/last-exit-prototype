@@ -1,5 +1,7 @@
 # Cord handoff cost (#661)
 
+> Note: `tools/cord-handoff-profile.mjs` was retired in `#1389` and last existed on `main` at `b023fd20`.
+
 This report compares the cord-domain optimization against `2f66bc6`.
 The production change is confined to `map/micro/cord-witness.ts`: row-major
 contiguous access cells become padded row strips before clipping. The union is

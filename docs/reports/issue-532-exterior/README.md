@@ -1,5 +1,7 @@
 # Secondary exterior compound outbuildings (#532)
 
+> Note: `tools/hall-chain-diagnostics.mjs` was retired in `#1389` and last existed on `main` at `b023fd20`.
+
 The production compound builder now tries one detached HOUSE after its unchanged
 ring and courtyard, before offering exterior yards to cover. This completes one
 useful exterior composition class; multiple rings, larger-hut authored margins,

@@ -25,7 +25,7 @@ export function envelopePresentation(data) {
  * refused rather than sent bytes it cannot read, and the `state` encoding it reads. JSON is a debug encoding
  * (`?wire=json`), which the server grants only with dev tools.
  */
-export function joinNegotiation(search = globalThis.location?.search ?? '') {
+function joinNegotiation(search = globalThis.location?.search ?? '') {
   return { wireVersion: WIRE_VERSION, stateEncoding: new URLSearchParams(search).get('wire') === 'json' ? 'json' : 'binary' };
 }
 

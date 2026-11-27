@@ -70,7 +70,7 @@ function packEquipment(s: Game, token: (item: InventoryItem) => number | undefin
 }
 
 /** Each player's rank in ID order, which is `ordered(s)`'s. */
-export function idRanks(s: Game): number[] {
+function idRanks(s: Game): number[] {
   const players = s.players, ranks = new Array<number>(players.length);
   players.map((_, i) => i).sort((a, b) => players[a]!.id < players[b]!.id ? -1 : players[a]!.id > players[b]!.id ? 1 : 0)
     .forEach((idx, rank) => { ranks[idx] = rank; });
@@ -81,10 +81,6 @@ export function idRanks(s: Game): number[] {
 export const PLAYER_ROW = 15;
 /** Words per player uploaded (`players::STORE_ROW`): the fields, `movedThisTick`, then `players::Extra`. */
 const STORE_ROW = PLAYER_ROW + 1 + 12;
-/** Words per heard cue (`players::CUE`), after each player's carried items. */
-const CUE = 4;
-/** Words of a player's equipment header (`players::EQUIP_HEAD`), and per carried item (`players::ITEM_ROW`). */
-const EQUIP_HEAD = 13, ITEM_ROW = 10;
 const num = (value: number | null | undefined): number => value ?? NaN;
 
 /** Write a player's fields (`combat::Row`) at `at`; returns where they end. */
@@ -117,36 +113,6 @@ function packPlayers(s: Game, keys: readonly (readonly [number, number])[], data
     data[at++] = p.bot ? 1 : 0; data[at++] = p.discovery ? 1 : 0;
   }
 }
-
-/**
- * Where the core's store differs from a fresh upload of the records, as `player.field: store != record` lines; empty when
- * they agree. For tests: after a tick, every write must have reached both.
- */
-export function storeDrift(s: Game, r: PhysicsRuntime): string[] {
-  const { core, world } = r.world.boundaryCall();
-  // The tokens are the table's, so a store item that names another record than the one in the slot shows as drift.
-  const keys = s.players.map(p => [r.world.key(`actor:${p.id}`), r.world.key(`hook:${p.id}`)] as const), equipment = packEquipment(s, item => carriedToken(r, item));
-  const fixed = s.players.length * STORE_ROW;
-  const fresh = new Float64Array(fixed + equipment.length);
-  packPlayers(s, keys, fresh);
-  fresh.set(equipment, fixed);
-  if (core.players_count(world) !== s.players.length) return [`the store holds ${core.players_count(world)} players, the roster ${s.players.length}`];
-  const dumped = core.players_dump(world) >>> 0;
-  const kept = new Float64Array(core.memory.buffer, dumped, fresh.length);
-  const out: string[] = [];
-  for (let k = 0; k < fixed; k++) if (!Object.is(kept[k], fresh[k]))
-    out.push(`${s.players[Math.floor(k / STORE_ROW)]!.id}.${FIELDS[k % STORE_ROW]}: ${kept[k]} != ${fresh[k]}`);
-  // The equipment as a whole per player: its words differ in length when an inventory does.
-  for (let at = fixed, i = 0; at < fresh.length; i++) {
-    const items = EQUIP_HEAD + Math.max(0, fresh[at + 4]!) * ITEM_ROW, words = items + 1 + fresh[at + items]! * CUE;
-    const a = Array.from(kept.subarray(at, at + words)), b = Array.from(fresh.subarray(at, at + words));
-    if (a.some((v, k) => !Object.is(v, b[k]))) out.push(`${s.players[i]!.id}.equipment: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
-    at += words;
-  }
-  return out;
-}
-const FIELDS = ['role', 'status', 'kit', 'x', 'y', 'heading', 'hp', 'maxHp', 'shield', 'level', 'cooldown', 'attackCd', 'stun', 'rank',
-  'viewLagTicks', 'movedThisTick', 'respawnAt', 'arriveAt', 'destination', 'railCd', 'cloak', 'revealed', 'boost', 'key', 'hookKey', 'kills', 'bot', 'discovery'];
 
 /**
  * Upload every player to the world's store, in roster order. Call it before any other input of the call is viewed: the

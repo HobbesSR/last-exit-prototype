@@ -1,5 +1,7 @@
 # Production park pocket adoption (#698)
 
+> Note: `tools/park-pocket-audit.mjs` and `tools/experiments/park-pocket-routes.mjs` were retired in `#1389` and last existed on `main` at `b023fd20`.
+
 Findings and limits: [42.25](../../42.25-park-pocket.md). Definitions:
 [51.10](../../51.10-measurement.md). Open `index.html` for paired real-mask
 previews and both-body route/structure summaries.

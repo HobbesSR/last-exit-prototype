@@ -1,5 +1,5 @@
 import type { ItemRegistry } from '../item-instances.ts';
-import type { Game, ItemId } from '../types.ts';
+import type { Game } from '../types.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 
 // The core's item registry (`rust/core/src/registry.rs`, #1214, docs/27 "The state flip", step 6e.1). Node's registry
@@ -51,31 +51,4 @@ export function syncRegistry(s: Game, r: PhysicsRuntime): void {
 export function sawCoreRegistrations(s: Game, r: PhysicsRuntime, before: number): void {
   const seen = synced.get(r), root = s.itemIdentities;
   if (seen && root && seen.root === root && seen.count === before) seen.count = root.labels.size;
-}
-
-/** Where the core's registry differs from the game's, as lines; empty when they agree. For tests. */
-export function registryDrift(s: Game, r: PhysicsRuntime): string[] {
-  const root = s.itemIdentities;
-  if (!root) return ['the game has no registry'];
-  const { core, world } = r.world.boundaryCall();
-  const at = (core as typeof core & RegistryExports).item_registry_dump(world) >>> 0;
-  const count = new Float64Array(core.memory.buffer, at, 1)[0]!;
-  const words = new Float64Array(core.memory.buffer, at + 8, count * 2 + 1).slice();
-  const keys = new Map<number, number>();
-  for (let k = 0; k < count; k++) keys.set(words[k * 2]!, words[k * 2 + 1]!);
-  const reservedCount = new Float64Array(core.memory.buffer, at + 8 + count * 16, 1)[0]!;
-  const reserved = new Set(new Float64Array(core.memory.buffer, at + 16 + count * 16, reservedCount));
-  const out: string[] = [];
-  if (count !== root.labels.size) out.push(`the core holds ${count} registrations, the game ${root.labels.size}`);
-  const phases = new Set<number>();
-  for (const [id, label] of root.labels) {
-    const key = keys.get(id as ItemId);
-    if (key === undefined) out.push(`${id} (${label}) is not in the core's registry`);
-    else if (!Object.is(key, r.world.key(`item:${label}`))) out.push(`${id} (${label}): key ${key} != ${r.world.key(`item:${label}`)}`);
-    const phase = phaseOf(label);
-    if (phase >= 0) phases.add(phase);
-  }
-  for (const phase of phases) if (!reserved.has(phase)) out.push(`instance-${phase} is not reserved in the core`);
-  if (reserved.size !== phases.size) out.push(`the core reserves ${reserved.size} phases, the game ${phases.size}`);
-  return out;
 }

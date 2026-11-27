@@ -182,8 +182,8 @@ fn shape(kind: u32, a: f64, b: f64, vertices: &[f64]) -> Option<ColliderBuilder>
 /// An anchor's position and velocity in world units: `x, y, vx, vy`.
 type Anchor = (f64, f64, f64, f64);
 
-/// `constraintForce` (`shared/physics/constraints.ts`) for one constraint row of the step's input:
-/// the bounded force on the first body, in world units, and the distance between the anchors.
+/// Compute the spring or rope constraint force for one constraint row of the step's input:
+/// returns the bounded force `(fx, fy)` on the first body in world units and the distance between anchors.
 fn constraint_force(row: &[f64], a: Anchor, b: Anchor) -> (f64, f64, f64) {
     let (rope, max_distance, rest_length, stiffness, damping, max_force) =
         (row[2] == 1.0, row[3], row[4], row[5], row[6], row[7]);

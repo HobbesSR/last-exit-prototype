@@ -313,7 +313,7 @@ export function drawObstacle(g, o, ink, mapAppearance, artOpts) {
 }
 
 /** A door or window marking on the ground outside a building wall. */
-export function drawDecal(g, d) {
+function drawDecal(g, d) {
   // Drawn in the decal's own frame: `u` runs along its wall, `v` away from the building.
   const along = d.side === 'N' || d.side === 'S', length = along ? d.w : d.h, depth = along ? d.h : d.w;
   const at = (u, v) => d.side === 'S' ? { x: d.x + u, y: d.y + v } : d.side === 'N' ? { x: d.x + u, y: d.y + d.h - v }
