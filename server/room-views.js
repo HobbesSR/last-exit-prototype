@@ -35,8 +35,9 @@ export const send = (session, value) => {
 };
 /**
  * A `state` message written as a session's join negotiated (24.1): the descriptor codec's bytes, or JSON text
- * for a dev-tools session that asked for it. Every other message is JSON. A payload is a Uint8Array exactly
- * when it is binary, which is how the transport below tells a binary frame from text.
+ * for a dev-tools session that asked for it. Above, `send` encodes `welcome` and `ready` as `GZIP_FORMAT`
+ * binary frames; every other message stays plain JSON text. A payload is a `Uint8Array` exactly when it is
+ * binary, which is how the transport below tells a binary frame from text.
  */
 const writeState = (frame, encoding) => {
   const message = stateMessage(frame);
