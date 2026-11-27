@@ -838,12 +838,14 @@ in `shared/discovery.ts` is now its adapter, through the game's binding (`shared
   still built only when something unseen needs it. JavaScript keeps the queries, which have other callers.
 - **Applied in the rule's order:** discovered cells, surveyed cells, seen cells, then items remembered and
   forgotten, then doors (`observeGate`), so set and map insertion orders, and a bot's ties, are unchanged.
-- **The roof rule has two copies on purpose until the batched port.** `roofAt` keeps JavaScript callers (the fog,
-  projection, `simulation/visibility.ts`), so the core's port is held equal to it by `tests/discovery.test.js`
-  ("the core reads roofs as roofAt does"), as math is by its digests. `litPoint` stays in `sight.ts` for the fog
-  too. Decision (Corey, 2026-11-26, #1222): replace the browser fog and visibility queries with dedicated, batched
-  core query interface(s) (preferring specific optimal interfaces for external core queries, one crossing per frame)
-  and remove the duplicate TypeScript copies and parity test.
+- **The roof rule has two copies on purpose until the batched port.** `roofAt` keeps JavaScript callers—browser fog
+  and rendering (`public/arena-scene.js`, `public/frame-drawing.js`), projection, and `visiblePoint`
+  (`shared/simulation/visibility.ts`, still exercised directly by `tests/physics-navigation-heading.test.js`)—so the
+  core's port is held equal to it by `tests/discovery.test.js` ("the core reads roofs as roofAt does"), as math is by
+  its digests. `litPoint` stays in `sight.ts` for the fog too. Decision (Corey, 2026-11-26, #1222): replace the
+  browser fog and rendering queries with dedicated, batched core query interface(s) (preferring specific optimal
+  interfaces for external core queries, one crossing per frame for fog/rendering), migrate remaining callers such as
+  `visiblePoint`, and then remove the duplicate TypeScript copies and parity test.
 - **Cost:** [42.62](42.62-discovery-core-adapter.md). The crossing is about 2% of the TypeScript's cost.
 
 **Step 3, the live stores (#1211).** The ground and the traps are the game's (`s.items`, `s.traps`), and the doors are
@@ -943,10 +945,13 @@ the same handles and slots.
 - **The disk tests are SAT.js's,** `testCircleCircle` and `testCirclePolygon` as `diskPenetration` calls them,
   including SAT's `x || 0` on constructed vectors and its merging of repeated points. The 0.01 obstacle tolerance and
   contact-blocks-at-a-gate are `canOccupy`'s.
-- **Two copies on purpose,** as the roof rule's are: the TypeScript keeps its callers (movement, bots, tools), and
-  `tests/collision-core.test.js` holds the two equal, depth for depth on every collider of the room arena and answer
-  for answer at the places tolerances decide, with gates toggled between calls. Giving each one owner again is
-  #1222 (live bots/navigation moved under #1215).
+- **Two copies on purpose,** as the roof rule's are: live bot and navigation callers moved into the core (#1215),
+  while `canOccupy`, `lineClear`, and `reachClear` still keep remaining TypeScript callers (`shared/simulation/waiting.ts`,
+  `shared/simulation/visibility.ts`, `shared/view.ts`, `shared/gate-query.ts`, `map/`, and browser labs such as
+  `public/lab-walk.js` and `public/micro-lab.js`). `tests/collision-core.test.js` holds the two copies equal, depth
+  for depth on every collider of the room arena and answer for answer at the places tolerances decide, with gates
+  toggled between calls. Retiring the TypeScript collision copies remains open until those remaining callers' owner and
+  scope are settled (`#1222` covers `roofAt` and `litPoint`).
 - **Cost:** [42.66](42.66-collision-queries-core.md). A query costs about a quarter of the TypeScript's; the open mask,
   about 0.55 µs for 421 gates, is the part to write once per batch.
 
