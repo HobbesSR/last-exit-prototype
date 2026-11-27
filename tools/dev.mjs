@@ -1,6 +1,8 @@
 // Starts the Node arena server alongside `last-exit-edge` for local development (`npm run dev` / `npm run dev:lan`).
 import { execFileSync, spawn } from 'node:child_process';
+import { lookup } from 'node:dns/promises';
 import { existsSync } from 'node:fs';
+import { isIP } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,8 +16,13 @@ if (!existsSync(EDGE_BIN)) {
   process.exit(1);
 }
 
+const lan = process.argv.includes('--lan') || process.env.LAN === '1';
+const configuredHost = process.env.HOST || (lan ? '0.0.0.0' : '127.0.0.1');
+// Resolve hostname binds (such as HOST=localhost) once so Node HTTP and `last-exit-edge --bind` agree on the IP.
+const bindIp = isIP(configuredHost) ? configuredHost : (await lookup(configuredHost)).address;
+
 const serverArgs = ['server/index.js', ...process.argv.slice(2)];
-const nodeEnv = { ...process.env };
+const nodeEnv = { ...process.env, HOST: bindIp };
 if (nodeEnv.EDGE_LINK_PORT === undefined || nodeEnv.EDGE_LINK_PORT === '') nodeEnv.EDGE_LINK_PORT = '0';
 
 const server = spawn(process.execPath, serverArgs, { cwd: ROOT, env: nodeEnv, stdio: ['inherit', 'pipe', 'inherit'] });
@@ -36,12 +43,8 @@ function startEdge(linkPort) {
     '--link', `127.0.0.1:${linkPort}`,
     '--port', process.env.EDGE_PORT || '0',
     '--ws-port', process.env.EDGE_WS_PORT || '0',
+    '--bind', bindIp,
   ];
-  if (process.argv.includes('--lan') || process.env.LAN === '1') {
-    args.push('--lan');
-  } else if (process.env.HOST) {
-    args.push('--bind', process.env.HOST);
-  }
   if (process.env.EDGE_CERT && process.env.EDGE_KEY) {
     args.push('--cert', process.env.EDGE_CERT, '--key', process.env.EDGE_KEY);
   }

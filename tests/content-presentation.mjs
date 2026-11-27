@@ -159,7 +159,8 @@ export async function checkContentPresentation(browser) {
       const response = await route.fetch();
       const config = await response.json();
       await new Promise(resolve => setTimeout(resolve, 300));
-      // Keep only the edge transport offers so deploy-form options fail to load while the socket still connects.
+      // Keep only the edge transport offers so deploy-form options fail to load while the socket still
+      // discovers the edge; under #1207 / 24.5, an HTTP 503 hides both edge ports (`tests/arena-socket.test.js`).
       return route.fulfill({
         status: 200,
         contentType: 'application/json',

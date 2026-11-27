@@ -522,10 +522,72 @@ async fn websocket_carries_messages_checks_origin_and_enforces_limits() {
     assert_eq!(close.code, CloseCode::Policy);
     assert_eq!(node.next().await, (CLOSED, session));
 
-    // Link drop closes open WebSocket sessions with 1001.
+    // Client-initiated close on an idle session completes the close handshake cleanly.
+    let ws_client_close = ws_connect(ws_port, "/arena", None).await.unwrap();
+    let (kind_cc, body_cc) = node.next().await;
+    assert_eq!((kind_cc, body_cc.len()), (OPEN, 5));
+    let session_cc = body_cc[..4].to_vec();
+    let (mut sink_cc, mut stream_cc) = ws_client_close.split();
+    sink_cc
+        .send(Message::Close(Some(CloseFrame {
+            code: CloseCode::Normal,
+            reason: "client bye".into(),
+        })))
+        .await
+        .unwrap();
+    let reply_cc = loop {
+        match timeout(Duration::from_secs(5), stream_cc.next())
+            .await
+            .unwrap()
+        {
+            Some(Ok(Message::Close(frame))) => break frame.unwrap(),
+            Some(Ok(_)) => continue,
+            other => panic!("expected close reply frame, got {other:?}"),
+        }
+    };
+    assert_eq!(reply_cc.code, CloseCode::Normal);
+    assert_eq!(node.next().await, (CLOSED, session_cc));
+
+    // Node-initiated close drains earlier DELIVER payloads then sends the close frame.
+    let ws_node_close = ws_connect(ws_port, "/arena", None).await.unwrap();
+    let session_nc = node.next().await.1[..4].to_vec();
+    let (_sink_nc, mut stream_nc) = ws_node_close.split();
+    node.send(DELIVER, &[&session_nc, &[frame::TEXT], b"last"])
+        .await;
+    node.send(CLOSE, &[&session_nc, &1000u16.to_be_bytes(), b"done"])
+        .await;
+    let first_nc = timeout(Duration::from_secs(5), stream_nc.next())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert_eq!(first_nc, Message::Text("last".into()));
+    let close_nc = loop {
+        match timeout(Duration::from_secs(5), stream_nc.next())
+            .await
+            .unwrap()
+        {
+            Some(Ok(Message::Close(frame))) => break frame.unwrap(),
+            Some(Ok(_)) => continue,
+            other => panic!("expected node close frame, got {other:?}"),
+        }
+    };
+    assert_eq!(close_nc.code, CloseCode::Normal);
+    assert_eq!(close_nc.reason.as_str(), "done");
+    assert_eq!(
+        node.next().await,
+        (WRITTEN, [&session_nc[..], &4u64.to_be_bytes()].concat())
+    );
+    assert_eq!(node.next().await, (CLOSED, session_nc));
+
+    // Link drop closes open WebSocket sessions with 1001 even when deliveries are in flight.
     let ws2 = ws_connect(ws_port, "/arena", None).await.unwrap();
-    assert_eq!(node.next().await.0, OPEN);
+    let session2 = node.next().await.1[..4].to_vec();
     let (_sink2, mut stream2) = ws2.split();
+    node.send(DELIVER, &[&session2, &[frame::BINARY], &vec![0x5a; 4096]])
+        .await;
+    node.send(DELIVER, &[&session2, &[frame::BINARY], &vec![0x5b; 4096]])
+        .await;
     node.stream = None;
     let close2 = loop {
         match timeout(Duration::from_secs(5), stream2.next())

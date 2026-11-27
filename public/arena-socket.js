@@ -322,18 +322,21 @@ export function createArenaSocketOpener(env = {}) {
 
     (async () => {
       const forced = forcedTransport(where().search);
-      // One budget covers the config, the session and its stream when WebTransport can fall back; a forced
-      // choice or a page already on WebSocket waits on the config without cutting it off.
-      const deadline = forced === null && !fellBack ? Date.now() + timeoutMs : null;
+      // One budget covers waiting on the config, opening WebTransport and its stream when fallback is possible;
+      // a page forced to a transport, already fallen back, or without WebTransport waits on config without cutting off WS discovery.
+      const deadline = forced === null && !fellBack && !!WT() ? Date.now() + timeoutMs : null;
       const remaining = () => Math.max(0, deadline - Date.now());
       let timer = null;
-      const timeout = deadline === null ? null : new Promise(resolve => { timer = setTimeout(() => resolve(null), remaining()); });
-      const loaded = await (timeout ? Promise.race([config(), timeout]) : config());
+      const TIMED_OUT = Symbol('timeout');
+      const pending = config();
+      const timeout = deadline === null ? null : new Promise(resolve => { timer = setTimeout(() => resolve(TIMED_OUT), remaining()); });
+      const raced = await (timeout ? Promise.race([pending, timeout]) : pending);
       clearTimeout(timer);
       if (wantClose) { settle(1006, '', false); return; }
+      const expired = raced === TIMED_OUT;
+      const loaded = expired ? null : raced;
       const offer = loaded?.webTransport ?? null;
-      const wsOffer = loaded?.webSocket ?? null;
-      const choice = chooseTransport({ forced, webTransport: offer, available: !!WT(), fellBack });
+      const choice = chooseTransport({ forced, webTransport: offer, available: !!WT(), fellBack: fellBack || expired });
       if (choice === 'wt') {
         if (!offer || !WT()) { configPromise = null; fail(); return; }
         if (await useWebTransport(offer, deadline === null ? null : remaining())) return;
@@ -343,7 +346,10 @@ export function createArenaSocketOpener(env = {}) {
         if (forced === 'wt') { configPromise = null; fail(); return; }
         fellBack = true;
       }
+      if (expired) fellBack = true;
+      const resolved = expired ? await pending : loaded;
       if (wantClose) { settle(1006, '', false); return; }
+      const wsOffer = resolved?.webSocket ?? null;
       if (!wsOffer) { configPromise = null; fail(); return; }
       useWebSocket(wsOffer);
     })();

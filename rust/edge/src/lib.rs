@@ -683,7 +683,7 @@ where
     };
 
     let id = link.next_id.fetch_add(1, Ordering::Relaxed);
-    let (tx, rx) = mpsc::unbounded_channel();
+    let (tx, mut rx) = mpsc::unbounded_channel();
     link.sessions.lock().unwrap().insert(
         id,
         Arc::new(Session {
@@ -702,24 +702,42 @@ where
         return;
     }
 
-    let (ws_sink, ws_stream) = ws.split();
-    let mut write_handle = tokio::spawn(ws_write_loop(ws_sink, rx, link.clone(), id));
+    let (mut ws_sink, ws_stream) = ws.split();
     let outcome = tokio::select! {
-        outcome = ws_read_loop(ws_stream, &link, id, max_bytes) => Some(outcome),
-        _ = down.wait_for(|down| *down) => Some(Outcome::Close(CLOSE_GOING_AWAY, b"link lost".to_vec())),
-        _ = &mut write_handle => None,
+        outcome = ws_read_loop(ws_stream, &link, id, max_bytes) => outcome,
+        outcome = ws_deliver_loop(&mut ws_sink, &mut rx, &link, id, &mut down) => outcome,
     };
-    if let Some(outcome) = outcome {
-        match outcome {
-            Outcome::Close(code, reason) => {
-                let _ = tx.send(Down::Close(code, reason));
-                let _ = tokio::time::timeout(FLUSH_WAIT, write_handle).await;
-            }
-            Outcome::Gone => write_handle.abort(),
+    let close_frame = match outcome {
+        WsOutcome::Close(code, reason) => Some((code, reason)),
+        WsOutcome::LinkLost => Some((CLOSE_GOING_AWAY, b"link lost".to_vec())),
+        WsOutcome::ClientClosed => None,
+        WsOutcome::Gone => {
+            link.sessions.lock().unwrap().remove(&id);
+            link.send(frame::encode(CLOSED, &[&id.to_be_bytes()])).await;
+            return;
         }
-    }
+    };
+    // Bound teardown inside this session task so a stalled write is dropped on expiry with no detached writer.
+    let _ = tokio::time::timeout(FLUSH_WAIT, async {
+        if let Some((code, reason)) = close_frame {
+            let frame = CloseFrame {
+                code: CloseCode::from(code),
+                reason: String::from_utf8_lossy(&reason).into_owned().into(),
+            };
+            let _ = ws_sink.send(Message::Close(Some(frame))).await;
+        }
+        let _ = ws_sink.close().await;
+    })
+    .await;
     link.sessions.lock().unwrap().remove(&id);
     link.send(frame::encode(CLOSED, &[&id.to_be_bytes()])).await;
+}
+
+enum WsOutcome {
+    Close(u16, Vec<u8>),
+    LinkLost,
+    ClientClosed,
+    Gone,
 }
 
 async fn ws_read_loop<S>(
@@ -727,7 +745,7 @@ async fn ws_read_loop<S>(
     link: &Link,
     id: u32,
     max_bytes: usize,
-) -> Outcome
+) -> WsOutcome
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
@@ -736,7 +754,7 @@ where
             Ok(Message::Text(text)) => {
                 let bytes = text.as_bytes();
                 if bytes.len() > max_bytes {
-                    return Outcome::Close(CLOSE_POLICY, b"message too large".to_vec());
+                    return WsOutcome::Close(CLOSE_POLICY, b"message too large".to_vec());
                 }
                 if !link
                     .send(frame::encode(
@@ -745,12 +763,12 @@ where
                     ))
                     .await
                 {
-                    return Outcome::Gone;
+                    return WsOutcome::LinkLost;
                 }
             }
             Ok(Message::Binary(bytes)) => {
                 if bytes.len() > max_bytes {
-                    return Outcome::Close(CLOSE_POLICY, b"message too large".to_vec());
+                    return WsOutcome::Close(CLOSE_POLICY, b"message too large".to_vec());
                 }
                 if !link
                     .send(frame::encode(
@@ -759,71 +777,75 @@ where
                     ))
                     .await
                 {
-                    return Outcome::Gone;
+                    return WsOutcome::LinkLost;
                 }
             }
-            Ok(Message::Close(_)) => return Outcome::Gone,
+            Ok(Message::Close(_)) => return WsOutcome::ClientClosed,
             Ok(Message::Ping(_) | Message::Pong(_) | Message::Frame(_)) => {}
             Err(WsError::Capacity(_)) => {
-                return Outcome::Close(CLOSE_POLICY, b"message too large".to_vec());
+                return WsOutcome::Close(CLOSE_POLICY, b"message too large".to_vec());
             }
             Err(WsError::Protocol(_) | WsError::Utf8(_)) => {
-                return Outcome::Close(CLOSE_POLICY, b"bad frame".to_vec());
+                return WsOutcome::Close(CLOSE_POLICY, b"bad frame".to_vec());
             }
-            Err(_) => return Outcome::Gone,
+            Err(_) => return WsOutcome::Gone,
         }
     }
-    Outcome::Gone
+    WsOutcome::Gone
 }
 
-async fn ws_write_loop<S>(
-    mut ws_sink: futures_util::stream::SplitSink<tokio_tungstenite::WebSocketStream<S>, Message>,
-    mut rx: mpsc::UnboundedReceiver<Down>,
-    link: Arc<Link>,
+async fn ws_deliver_loop<S>(
+    ws_sink: &mut futures_util::stream::SplitSink<tokio_tungstenite::WebSocketStream<S>, Message>,
+    rx: &mut mpsc::UnboundedReceiver<Down>,
+    link: &Link,
     id: u32,
-) where
+    down: &mut watch::Receiver<bool>,
+) -> WsOutcome
+where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     let mut written: u64 = 0;
-    while let Some(message) = rx.recv().await {
+    loop {
+        let Some(message) = (tokio::select! {
+            biased;
+            _ = down.wait_for(|down| *down) => return WsOutcome::LinkLost,
+            message = rx.recv() => message,
+        }) else {
+            return if *down.borrow() {
+                WsOutcome::LinkLost
+            } else {
+                WsOutcome::Gone
+            };
+        };
         match message {
             Down::Deliver(flag, payload) => {
                 let len = payload.len() as u64;
                 let msg = if flag == frame::TEXT {
                     let Ok(text) = String::from_utf8(payload) else {
-                        return;
+                        return WsOutcome::Gone;
                     };
                     Message::Text(text.into())
                 } else {
                     Message::Binary(payload.into())
                 };
-                if ws_sink.send(msg).await.is_err() {
-                    return;
+                tokio::select! {
+                    biased;
+                    _ = down.wait_for(|down| *down) => return WsOutcome::LinkLost,
+                    sent = ws_sink.send(msg) => {
+                        if sent.is_err() {
+                            return WsOutcome::Gone;
+                        }
+                    }
                 }
                 written += len;
                 let report = frame::encode(WRITTEN, &[&id.to_be_bytes(), &written.to_be_bytes()]);
                 if !link.send(report).await {
-                    return;
+                    return WsOutcome::LinkLost;
                 }
             }
-            Down::Close(code, reason) => {
-                let frame = CloseFrame {
-                    code: CloseCode::from(code),
-                    reason: String::from_utf8_lossy(&reason).into_owned().into(),
-                };
-                let _ = tokio::time::timeout(FLUSH_WAIT, ws_sink.send(Message::Close(Some(frame))))
-                    .await;
-                let _ = tokio::time::timeout(FLUSH_WAIT, ws_sink.close()).await;
-                return;
-            }
+            Down::Close(code, reason) => return WsOutcome::Close(code, reason),
         }
     }
-    let frame = CloseFrame {
-        code: CloseCode::from(CLOSE_GOING_AWAY),
-        reason: "link lost".into(),
-    };
-    let _ = tokio::time::timeout(FLUSH_WAIT, ws_sink.send(Message::Close(Some(frame)))).await;
-    let _ = tokio::time::timeout(FLUSH_WAIT, ws_sink.close()).await;
 }
 
 #[cfg(test)]

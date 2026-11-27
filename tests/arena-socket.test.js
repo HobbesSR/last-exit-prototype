@@ -112,6 +112,42 @@ test('a WebTransport that never opens falls back after the timeout, and the page
   assert.equal(fetches, 1, 'the config is fetched once per page');
 });
 
+test('a config answer arriving after the WebTransport budget still opens the WebSocket, and browsers without WebTransport wait past it', async () => {
+  const Transport = fakeTransport();
+  let fetches = 0, release;
+  const open = opener({
+    WebTransport: Transport,
+    timeoutMs: 20,
+    fetchConfig: () => { fetches++; return new Promise(resolve => { release = resolve; }); },
+  });
+  const first = open(), opened = next(first, 'open');
+  await new Promise(r => setTimeout(r, 40));
+  assert.equal(Transport.made.length, 0, 'WebTransport budget expired before config arrived');
+  assert.equal(FakeWebSocket.made.length, 0);
+  release(offer);
+  await new Promise(r => setTimeout(r, 10));
+  assert.equal(first.transport, 'websocket');
+  assert.equal(FakeWebSocket.made[0].url, 'ws://arena.test:4434/arena');
+  FakeWebSocket.made[0].dispatchEvent(new Event('open'));
+  await opened; assert.equal(first.readyState, 1);
+
+  const second = open(); await new Promise(r => setTimeout(r, 10));
+  assert.equal(second.transport, 'websocket');
+  assert.equal(Transport.made.length, 0, 'fallen-back page skips WebTransport afterwards');
+  assert.equal(fetches, 1);
+
+  const plainOpen = opener({
+    WebTransport: undefined,
+    timeoutMs: 20,
+    fetchConfig: async () => { await new Promise(r => setTimeout(r, 50)); return offer; },
+  });
+  const plain = plainOpen(), plainOpened = next(plain, 'open');
+  for (let i = 0; i < 60 && !FakeWebSocket.made.length; i++) await new Promise(r => setTimeout(r, 2));
+  assert.equal(plain.transport, 'websocket');
+  FakeWebSocket.made[0].dispatchEvent(new Event('open'));
+  await plainOpened; assert.equal(plain.readyState, 1);
+});
+
 test('forced modes: ws fetches config once and skips WebTransport; wt never falls back', async () => {
   const Transport = fakeTransport({ opens: false });
   let fetches = 0;

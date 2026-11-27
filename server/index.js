@@ -31,9 +31,10 @@ function lanUrls(port) {
 }
 function printListeningUrls(host, port, policy) {
   const localHost = host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
-  console.log(`Last Exit is running at http://${localHost}:${port}`);
+  const urlHost = localHost.includes(':') ? `[${localHost}]` : localHost;
+  console.log(`Last Exit is running at http://${urlHost}:${port}`);
   if (policy !== 'none') {
-    console.log(`Developer Portal is available at http://${localHost}:${port}/dev`);
+    console.log(`Developer Portal is available at http://${urlHost}:${port}/dev`);
   }
   if (host === '0.0.0.0' || host === '::') {
     const urls = lanUrls(port);
