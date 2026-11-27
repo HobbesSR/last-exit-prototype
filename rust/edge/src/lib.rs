@@ -720,10 +720,11 @@ where
             outcome = ws_read_loop(ws_stream, &link, id, max_bytes) => Some(outcome),
             outcome = ws_deliver_loop(&mut ws_sink, &mut rx, &link, id, &mut down) => Some(outcome),
             _ = async {
-                let _ = close_rx.wait_for(|at| at.is_some()).await;
-                let requested = *close_rx.borrow();
-                if let Some(at) = requested {
-                    tokio::time::sleep_until(at + FLUSH_WAIT).await;
+                match close_rx.wait_for(|at| at.is_some()).await.map(|r| *r) {
+                    Ok(Some(at)) => tokio::time::sleep_until(at + FLUSH_WAIT).await,
+                    Ok(None) => {}
+                    // When the session is cleared on link drop, let `down` close it with 1001.
+                    Err(_) => std::future::pending::<()>().await,
                 }
             } => None,
         };
