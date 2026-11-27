@@ -147,12 +147,12 @@ the core does all of that where the loop committed the drop (`phase_three.rs`, `
   that would no longer be packed answer only for duplicate identities, which these lists exist to refuse.
 - **What still stops:** an elimination's drops (mode 4, 6e), the standalone plans (modes 2 and 3), and phase 6's pickups
   and swaps (6d.6c).
-- **Continuity.** The fixture and its bots variant pass. `tools/trap-continuity.mjs` matched a pristine export of
-  `0e174e9e` hash for hash. Those traces drop only through eliminations, and the fixture syncs one loop drop in its run,
-  so `tests/phase-three-core.test.js` holds the continuation equal to the stop and resume. Two droppers drop in one tick:
-  one rearranges unidentified items, splits a stack and drops ammo, and the other drops beside it. Over three ticks the
-  records, counters, inventories, frames, markers and body sets match a run through the old stop (`setInRunDrops(false)`,
-  the test's switch). With the taken spots left unextended, the test fails at tick 1.
+- **Continuity.** The fixture and its bots variant passed. `tools/trap-continuity.mjs` matched a pristine export of
+  `0e174e9e` hash for hash. Those traces dropped only through eliminations, and the fixture synced one loop drop in its run,
+  so `tests/phase-three-core.test.js` (retired in #1358; `setInRunDrops` retired in 6e.5b) held the continuation equal to the stop and resume. Two droppers dropped in one tick:
+  one rearranged unidentified items, split a stack and dropped ammo, and the other dropped beside it. Over three ticks the
+  records, counters, inventories, frames, markers and body sets matched a run through the old stop (`setInRunDrops(false)`,
+  the test's switch). With the taken spots left unextended, the test failed at tick 1.
 - **Cost:** measured once, at the end of step 6.
 
 **Step 6d.6c.1, phase 6 reads the ground from the core (#1214, adapter version 32).** The ground store keeps a grid
@@ -219,10 +219,11 @@ then read the actors still to run as the call resuming there would, and went on 
   a gladiator's transit step. Its words carry the markers and, where a swap may drop records, the keys of the bodies it
   may queue, as for phase 3's drops.
 - **The witness.** `trap-continuity` and the bots fixture took all their pickups (83 and 223) inside the run, none
-  falling back, and matched hash for hash. They never swap, so `phase-six-core.test.js` runs an A/B test against the
-  old stop (`setInRunStops(false)`). A swaps, its drop lands by B, who takes a record of it in the same tick, and C takes
-  two records in a row. Over three ticks, records, counters, inventories, frames, markers and bodies match. With only
-  the stopping actor rebuilt, the run fails.
+  falling back, and matched hash for hash. They never swapped, so `phase-six-core.test.js` (retired in #1358;
+  `setInRunStops` retired in 6e.5c) ran an A/B test against the
+  old stop (`setInRunStops(false)`). A swapped, its drop landed by B, who took a record of it in the same tick, and C took
+  two records in a row. Over three ticks, records, counters, inventories, frames, markers and bodies matched. With only
+  the stopping actor rebuilt, the run failed.
 - **Cost:** measured once, at the end of step 6.
 
 **Step 6d.6d, a mine's explosion in the run (#1214, adapter version 34).** `STOP_EXPLOSION` is gone. Where a mine
@@ -405,11 +406,12 @@ a tick is `tick_begin`, Node's phase 2, then `tick_finish(intents)`, which now a
 - **Phase 7 runs in the call:** the sync, `finishMatch`, the second sync, and the rewind frame. `actions_run`,
   `combat_run`, `interactions_run`, `hazards_run` and `phase_seven_run` shared their bodies with `tick_finish`
   (`*_call`); `combat_run`, `interactions_run`, `hazards_run`, `phase_seven_run` and their `*_call` helpers all retired in #1358 (only `actions_run` stays for the dev physics lab).
-- **Dev physics lab adapter (Corey, 2026-11-26, #1279 / #1358):** `shared/simulation/phase-three.ts` and
-  `actions_run` are intentionally retained solely as the lab-only adapter for `/dev/physics`
-  (`public/dev/physics-lab-model.js`), rather than adding lab-only seams (Scene E's spring jelly, free test
-  impulses, and solver contact/force overlays) to `tick::Match` or retiring the lab. Production matches and
-  tests no longer call `phaseThree` or `actions_run`.
+- **<a id="dev-physics-lab-adapter"></a>Dev physics lab adapter (Corey, 2026-11-26, #1279 / #1358):**
+  `shared/simulation/phase-three.ts` and `actions_run` are intentionally retained solely as the lab-only adapter for
+  `/dev/physics` (`public/dev/physics-lab-model.js`), rather than adding lab-only seams (Scene E's spring jelly, free
+  test impulses, and solver contact/force overlays) to `tick::Match` or retiring the lab. `public/dev/physics-lab-model.js`
+  is the sole caller; `tests/physics-playtest.browser.mjs` exercises the adapter through `/dev/physics`, and production
+  matches and other tests no longer call `phaseThree` or `actions_run`.
 - **At this stage, Node ran discovery after the call** (`advanceDiscovery`). A contestant stranded by the terminal
   result stopped sampling on that tick. The [authoritative tick cutover](27.2-tick-architecture.md#the-cutover-3d4d)
   retired this Node pass and kept its position after terminal resolution and rewind capture.
@@ -1052,7 +1054,7 @@ and event and effect records in the leaf `event-records.ts`, so the core adapter
   | Rule and core owner | Remaining TypeScript caller | Equality evidence | One owner again |
   | --- | --- | --- | --- |
   | Phase 3 lab adapter, `phase_three.rs` (`actions_run`) | `shared/simulation/phase-three.ts` (`phaseThree`), called only by `public/dev/physics-lab-model.js` for `/dev/physics` | Rules execute in `phase_three.rs`; `tests/physics-playtest.browser.mjs` exercises the lab | Settled (Corey, 2026-11-26, #1279 / #1358): kept as lab-only adapter |
-  | Motor, `action_combat::motor` | Client prediction's `movementSpeed` and `characterMotor` (`public/physics-prediction.js`, `shared/simulation/waiting.ts`) | `tests/fixtures/motor-parity.txt` holds one table (roles, boost/stun/sneak, zero input, surface ties) that `physics-prediction-contract` checks `characterMotor` and `movementSpeed` against and `tick/motor.rs` (`motor_matches_the_parity_table`) checks the core's `motor` against; parameters are shared | #1241 decides a batched core caller versus retained prediction arithmetic with parity |
+  | Motor, `action_combat::motor` | Client prediction (`public/physics-prediction.js`) and the waiting-room simulation (`shared/simulation/waiting.ts`), via `movementSpeed` and `characterMotor` | `tests/fixtures/motor-parity.txt` holds one table (roles, boost/stun/sneak, zero input, surface ties) that `physics-prediction-contract` checks `characterMotor` and `movementSpeed` against and `tick/motor.rs` (`motor_matches_the_parity_table`) checks the core's `motor` against; parameters are shared | #1241 decides a batched core caller versus retained arithmetic with parity for client prediction and the waiting-room simulation |
   | Utility outcome, `action_combat::attack` | None: the bots' preview and the bare-record attack retired (#1358) | `utility-use` holds that a bot commits a use only when it applies and its cooldown allows, and the core's own tests hold the caps and refusal | Done |
   | Contestant attack/hearing, `action_combat::attack` and `phase_three.rs` | None: `combat.ts`'s `attack`, `hearing.ts`'s `hearShot`, and `action-parity` retired (#1358) | Native `tick/` combat and hearing tests and frozen characterization cover live calls | Closed (#1358) |
   | Non-warden skill and hook launch/cancel, `phase_three.rs`/`action_combat.rs` | `hook.ts`'s `hookSkill`, called on an unstarted game in `tests/physics-projection.test.js` (`combat.ts`'s `skill` and `action-parity` retired, #1358) | `physics-hook` and native `tick/` tests (`tick/tests/movement_tests.rs`, `combat_tests.rs`) cover capacity, launch, cancel and skills | #1241. The hook's later rules (5d.1) and the warden skill (5d.2) moved with no TypeScript copy |
@@ -1121,13 +1123,14 @@ adapter, deleted with `combat.ts`'s `damage` entry and `lifecycle.ts`'s `elimina
   packed the frames when a caster's view lagged. Since 5e.2 phase 7 records them in the core, so none cross.
 - **Event and effect records** (`event`, `effect`, `participant`) moved from `loot.ts` to the leaf
   `event-records.ts`, so the adapters build the records the core's facts name without importing their callers.
-- **No TypeScript copy.** `damage`, `eliminate`, the warden skill, the gladiator attack and the projectile sweep have
-  no record-level copy: their only bare-record callers were tests, which now build real games
+- **No TypeScript copy.** `damage`, `eliminate`, the warden skill, the gladiator attack and the projectile sweep had
+  no record-level copy: their only bare-record callers were tests, which built real games
   (`tests/physics-projectiles.test.js` and `tests/physics-explosion.test.js`, both retired in #1358 for
-  native tests in `tick/tests/combat_tests.rs`, `tick/sweep.rs` and `tick/tests/hazard_tests.rs`), and `action-parity` no
-  longer compares melee. Scenario `attack` and `skill` calls for a gladiator or warden run the caster run, which skips
-  a caster that is not active, as the tick did. Phase 6's environment and traps call the core's damage directly
-  since 5e.2 (#1245).
+  native tests in `tick/tests/combat_tests.rs`, `tick/sweep.rs` and `tick/tests/hazard_tests.rs`), and `action-parity`
+  (also retired in #1358) no longer compared melee. Scenario `attack` and `skill` calls for a gladiator or warden ran
+  the caster run until `combat.ts` and `combat_run` retired in #1358, skipping any inactive caster as the tick did.
+  Phase 6's environment and traps called the core's damage directly since 5e.2 (#1245) until `phase_six.rs` and
+  `hazards.rs` retired into `tick/` in #1358.
 - **Cost:** [42.71](42.71-phase-five-core.md).
 
 **Step 5e.1, phase 6's per-actor loop (#1230, adapter version 16).** `rust/core/src/phase_six.rs` (retired in #1358 for `tick/interaction.rs` and `tick/items.rs`) ran, in `ordered(s)`
@@ -1159,7 +1162,7 @@ keys, a gladiator's transit and the sensors' reveal. `shared/simulation/phase-si
   a match, so they cross once per gate set; the adapter asked the set whether it held them (`gate_set_details`, retired in #1358).
   Locks change, so each call with an interaction writes them into a mask beside the open mask (`gate_set_locked`).
   The adapter writes both masks in one pass over the gates. Node's string-keyed bucket query cost about 15 µs a tick
-  in the bench, where bots interact on most ticks. `phase-six-core` holds the core's choice of gate equal to
+  in the bench, where bots interact on most ticks. `phase-six-core` (retired in #1358 alongside `phase_six.rs`) held the core's choice of gate equal to
   `nearbyGate` over a cluster of doors, including ties and a door behind another.
 - **Packing follows reads.** An actor's inventory crosses only when the turn can read it: when it interacts, is
   charging, has records in reach or can swap. A gladiator with nothing to do crosses as one row.
