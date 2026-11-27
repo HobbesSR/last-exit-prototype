@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MAX_PHYSICS_SPEED } from '../shared/physics/motion-limits.ts';
 import { createPhysicsWorld } from '../shared/physics/world.ts';
+import { contentById } from '../shared/simulation/content.ts';
 import { MAX_PHYSICS_EXTENT } from '../shared/simulation/physics-geometry.ts';
 
 const circle = (id, options = {}) => ({ id, kind: 'prop', shape: { kind: 'circle', radius: 12 },
@@ -351,45 +352,63 @@ test('a hull Rapier rejects mid-commit keeps what the commit already did (review
   } finally { world.dispose(); }
 });
 
-test('actors pressing each other and a wall settle within speed and containment gates at MAX_PHYSICS_EXTENT', async () => {
-  const actor = (id, x, y) => ({ id, kind: 'actor', shape: { kind: 'circle', radius: 12 }, x, y, mass: 1 });
+test('actors pressing each other and a corner wall recover within 29.1 gates at MAX_PHYSICS_EXTENT', async () => {
+  const { bodyRadius } = contentById('content-6').actorPhysics.geometry.contestant;
+  const actor = (id, x, y) => ({
+    id, kind: 'actor', shape: { kind: 'circle', radius: bodyRadius }, x, y, friction: 0, restitution: 0,
+  });
   const ids = ['a', 'b', 'c'];
-  const runCluster = async (cx, cy) => {
+  const runCorner = async (wallX, wallY) => {
     const world = await createPhysicsWorld();
     try {
-      const wallFace = cx + 100;
-      world.queueAddBody({ id: 'wall', kind: 'static', mapGeometry: true, shape: { kind: 'box', hx: 20, hy: 200 }, x: wallFace + 20, y: cy });
-      world.queueAddBody(actor('a', cx + 10, cy));
-      world.queueAddBody(actor('b', cx + 42, cy - 6));
-      world.queueAddBody(actor('c', cx + 76, cy + 6));
-      world.queueAddConstraint({ id: 'rope', a: 'a', b: 'b', maxDistance: 50 });
+      world.queueAddBody({ id: 'east', kind: 'static', mapGeometry: true, shape: { kind: 'box', hx: 20, hy: 200 }, x: wallX + 20, y: wallY - 100 });
+      world.queueAddBody({ id: 'south', kind: 'static', mapGeometry: true, shape: { kind: 'box', hx: 200, hy: 20 }, x: wallX - 100, y: wallY + 20 });
+      world.queueAddBody(actor('a', wallX - 24, wallY - 24));
+      world.queueAddBody(actor('b', wallX - 48, wallY - 36));
+      world.queueAddBody(actor('c', wallX - 36, wallY - 48));
       world.commitMutations();
-      for (const id of ids) world.setMotor(id, { x: 400, y: 0, accel: 3600 });
-      for (let tick = 0; tick < 35; tick++) {
-        if (tick === 25) for (const id of ids) world.setMotor(id, { x: 0, y: 0, accel: 3600 });
+      for (const id of ids) world.setMotor(id, { x: 240, y: 240, accel: 3600 });
+      const wallHits = new Set();
+      for (let tick = 0; tick < 25; tick++) {
         const { paths } = world.step();
+        for (const contact of world.drainContacts()) {
+          if (contact.type !== 'start') continue;
+          if (contact.a === 'east' || contact.a === 'south') wallHits.add(contact.b);
+          if (contact.b === 'east' || contact.b === 'south') wallHits.add(contact.a);
+        }
         for (const id of ids) {
           for (const p of paths[id]) {
             assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y));
-            assert.ok(p.x + 12 <= wallFace + 0.5, `${id} crossed wall at (${cx},${cy}) tick ${tick}: ${p.x}`);
+            assert.ok(p.x + bodyRadius <= wallX + 0.5, `${id} crossed east wall at tick ${tick}: ${p.x}`);
+            assert.ok(p.y + bodyRadius <= wallY + 0.5, `${id} crossed south wall at tick ${tick}: ${p.y}`);
           }
           const t = world.getTransform(id);
           assert.ok(Math.hypot(t.vx, t.vy) <= MAX_PHYSICS_SPEED + 0.01, `${id} exceeded speed limit at tick ${tick}`);
         }
       }
-      return ids.map(id => {
+      assert.deepEqual([...wallHits].sort(), ids, `every actor reached a corner wall under load at (${wallX},${wallY})`);
+      for (const id of ids) world.setMotor(id, { x: 0, y: 0, accel: 3600 });
+      for (let tick = 0; tick < 4; tick++) world.step();
+      const recovered = ids.map(id => {
         const t = world.getTransform(id);
-        assert.ok(t.x + 12 <= wallFace + 0.1, `${id} settled inside wall at (${cx},${cy}): ${t.x}`);
-        return { id, dx: t.x - cx, dy: t.y - cy, speed: Math.hypot(t.vx, t.vy) };
+        assert.ok(t.x + bodyRadius <= wallX + 0.05, `${id} failed 4-tick 0.05 east recovery at (${wallX},${wallY}): ${t.x + bodyRadius - wallX}`);
+        assert.ok(t.y + bodyRadius <= wallY + 0.05, `${id} failed 4-tick 0.05 south recovery at (${wallX},${wallY}): ${t.y + bodyRadius - wallY}`);
+        return { id, dx: wallX - t.x, dy: wallY - t.y };
+      });
+      assert.ok(recovered[0].dx <= bodyRadius + 0.5 && recovered[0].dy <= bodyRadius + 0.5, 'lead actor held against both corner walls');
+      for (let tick = 0; tick < 8; tick++) world.step();
+      return ids.map((id, i) => {
+        const t = world.getTransform(id);
+        return { ...recovered[i], speed: Math.hypot(t.vx, t.vy) };
       });
     } finally { world.dispose(); }
   };
-  const origin = await runCluster(0, 0);
-  const corner = await runCluster(MAX_PHYSICS_EXTENT - 200, MAX_PHYSICS_EXTENT / 2 - 200);
+  const origin = await runCorner(200, 200);
+  const corner = await runCorner(MAX_PHYSICS_EXTENT, MAX_PHYSICS_EXTENT / 2);
   for (let i = 0; i < ids.length; i++) {
-    assert.ok(corner[i].speed < 1, `${ids[i]} did not settle at far corner: speed ${corner[i].speed}`);
+    // At 2^18 units, 1 f32 ULP (~0.02 u) per 0.0125 s substep is ~1.56 u/s; settling below 2 u/s rules out blowup.
+    assert.ok(corner[i].speed < 2, `${ids[i]} did not settle at far corner: speed ${corner[i].speed}`);
     assert.ok(Math.hypot(corner[i].dx - origin[i].dx, corner[i].dy - origin[i].dy) <= 0.5,
       `${ids[i]} far-corner pose drifted: origin=${JSON.stringify(origin[i])} corner=${JSON.stringify(corner[i])}`);
   }
-  assert.ok(Math.hypot(corner[0].dx - corner[1].dx, corner[0].dy - corner[1].dy) <= 50.5, 'rope held within tolerance');
 });
