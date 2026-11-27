@@ -8,6 +8,7 @@ import { SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
 import { MAX_INPUT_LEAD_TICKS } from '../shared/simulation/input.ts';
 import { reusedMap } from './helpers/room-harness.js';
 import { stateOf } from '../shared/simulation/tick.ts';
+import { readServerMessage } from '../shared/wire-schema.ts';
 
 await mkdir('test-results', { recursive: true });
 const { server, base, browser, close } = await serveDevWithBrowser({ roomThreads: false });
@@ -412,10 +413,10 @@ try {
   await dev.routeWebSocket(/./, ws => {
     const server = ws.connectToServer();
     server.onMessage(message => {
-      if (typeof message === 'string') {
-        const data = JSON.parse(message);
+      try {
+        const data = readServerMessage(typeof message === 'string' ? message : new Uint8Array(message));
         if (data.type === 'welcome' || data.type === 'ready') envelopes.push(data);
-      }
+      } catch { /* ignore non-JSON test checks */ }
       ws.send(message);
     });
     ws.onMessage(message => server.send(message));

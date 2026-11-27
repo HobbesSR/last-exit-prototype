@@ -12,7 +12,8 @@
 import { WIRE_VERSION } from './protocol.ts';
 import { UNITS_PER_METRE } from './physics/units.ts';
 import { FAST_QUANTA, SLOW_FIELDS } from './fast-state.ts';
-import { createDescriptorCodec, type DecodeOptions, type DescriptorCodec, type FieldDef, type FieldType, type RecordDef, type Schema } from './wire-codec.ts';
+import { gunzip } from './gzip.ts';
+import { createDescriptorCodec, readVarintAt, type DecodeOptions, type DescriptorCodec, type FieldDef, type FieldType, type RecordDef, type Schema } from './wire-codec.ts';
 import { AMMO_FAMILIES, BODY_KINDS, EFFECT_KINDS, EVENT_KINDS, ITEM_KINDS, PHASES, PLAYER_STATUSES, TRAP_KINDS, WEAPONS } from './enum-tables.ts';
 import {
   EFFECT_FIELDS, EVENT_FIELDS, FRAME_FIELDS, GATE_FIELDS, ITEM_FIELDS, OBSERVED, OWN_FIELDS, PROJECTILE_FIELDS, TRAP_FIELDS,
@@ -179,16 +180,33 @@ export function wireCodec(): DescriptorCodec {
   return codec ??= createDescriptorCodec(STATE_SCHEMA);
 }
 
+/** First byte of a gzip-compressed JSON envelope (`[GZIP_FORMAT, varint(WIRE_VERSION), ...gzip]`, #1201). */
+export const GZIP_FORMAT = 0xd2;
+/** Cap on an inflated `welcome` / `ready` envelope to bound memory against malformed streams. */
+export const MAX_ENVELOPE_BYTES = 16 * 1024 * 1024;
+const utf8Decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
+
+function parseServerJson(text: string): Record<string, unknown> {
+  const message: unknown = JSON.parse(text);
+  if (!message || typeof message !== 'object' || Array.isArray(message)) throw new TypeError('a server message is an object');
+  return message as Record<string, unknown>;
+}
+
+function readCompressedMessage(bytes: Uint8Array): Record<string, unknown> {
+  const [version, at] = readVarintAt(bytes, 1);
+  if (version !== WIRE_VERSION) throw new RangeError(`unsupported schema version ${version}`);
+  return parseServerJson(utf8Decoder.decode(gunzip(bytes.subarray(at), MAX_ENVELOPE_BYTES)));
+}
+
 /**
- * A server message as a socket delivers it: JSON text, or the descriptor codec's bytes. Throws for anything
- * that is neither, so a reader never guesses at a message it cannot read (24.1 rollout). `options.baseline`
- * supplies the baselines a `fast` delta names; one it lacks throws `MissingBaseline` (wire-codec.ts).
+ * A server message as a socket delivers it: JSON text, a compressed envelope (`GZIP_FORMAT`), or the
+ * descriptor codec's bytes (`FORMAT`). Throws for anything else, so a reader never guesses at a message it
+ * cannot read (24.1 rollout). `options.baseline` supplies the baselines a `fast` delta names; one it lacks
+ * throws `MissingBaseline` (wire-codec.ts).
  */
 export function readServerMessage(data: string | ArrayBuffer | Uint8Array, options?: DecodeOptions): Record<string, unknown> {
-  if (typeof data === 'string') {
-    const message: unknown = JSON.parse(data);
-    if (!message || typeof message !== 'object' || Array.isArray(message)) throw new TypeError('a server message is an object');
-    return message as Record<string, unknown>;
-  }
-  return wireCodec().decode(data instanceof Uint8Array ? data : new Uint8Array(data), options);
+  if (typeof data === 'string') return parseServerJson(data);
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  if (bytes[0] === GZIP_FORMAT) return readCompressedMessage(bytes);
+  return wireCodec().decode(bytes, options);
 }

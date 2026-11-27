@@ -137,7 +137,7 @@ test('each connection reads state in the encoding it negotiated, and JSON only w
     // Binary by default: the welcome confirms it and every state message is the codec's bytes (24.1).
     assert.equal(shut.owner.messages.find(m => m.type === 'welcome').stateEncoding, 'binary');
     closed.wake(50);
-    assert.deepEqual([...new Set(shut.owner.binary)], ['state'], 'only state is binary');
+    assert.deepEqual([...new Set(shut.owner.binary)], ['welcome', 'ready', 'state'], 'envelopes and state are binary');
     const refused = closed.joined(shut.room, { stateEncoding: 'json', ownerKey: shut.room.ownerKey });
     assert.match(refused.messages[0].message, /debug encoding/, 'JSON state without dev tools is refused, not downgraded');
     assert.equal(refused.messages.length, 1);
@@ -155,7 +155,7 @@ test('each connection reads state in the encoding it negotiated, and JSON only w
     const text = h.joined(room, { mode: 'dev', stateEncoding: 'json' }), bytes = h.joined(room, { mode: 'dev' });
     assert.equal(text.messages[0].stateEncoding, 'json'); assert.equal(bytes.messages[0].stateEncoding, 'binary');
     for (let i = 0; i < 3; i++) h.wake(50);
-    assert.deepEqual(text.binary, [], 'a JSON connection is sent text only');
+    assert.deepEqual(text.binary, ['welcome'], 'only envelopes compress on a JSON state connection');
     // The same view in either encoding reads as the same frames.
     const states = p => p.messages.filter(m => m.type === 'state').map(m => m.state);
     assert.ok(states(text).length >= 3);
