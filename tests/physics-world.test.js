@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { MAX_PHYSICS_SPEED } from '../shared/physics/motion-limits.ts';
+import { physicsSpeedLimit } from '../shared/physics/motion-limits.ts';
 import { createPhysicsWorld } from '../shared/physics/world.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { MAX_PHYSICS_EXTENT } from '../shared/simulation/physics-geometry.ts';
@@ -354,6 +354,7 @@ test('a hull Rapier rejects mid-commit keeps what the commit already did (review
 
 test('actors pressing each other and a corner wall recover within 29.1 gates at MAX_PHYSICS_EXTENT', async () => {
   const { bodyRadius } = contentById('content-6').actorPhysics.geometry.contestant;
+  const speedLimit = physicsSpeedLimit(bodyRadius);
   const actor = (id, x, y) => ({
     id, kind: 'actor', shape: { kind: 'circle', radius: bodyRadius }, x, y, friction: 0, restitution: 0,
   });
@@ -383,7 +384,7 @@ test('actors pressing each other and a corner wall recover within 29.1 gates at 
             assert.ok(p.y + bodyRadius <= wallY + 0.5, `${id} crossed south wall at tick ${tick}: ${p.y}`);
           }
           const t = world.getTransform(id);
-          assert.ok(Math.hypot(t.vx, t.vy) <= MAX_PHYSICS_SPEED + 0.01, `${id} exceeded speed limit at tick ${tick}`);
+          assert.ok(Math.hypot(t.vx, t.vy) <= speedLimit + 0.01, `${id} exceeded speed limit at tick ${tick}`);
         }
       }
       assert.deepEqual([...wallHits].sort(), ids, `every actor reached a corner wall under load at (${wallX},${wallY})`);
