@@ -1,5 +1,7 @@
 ﻿# Depot composition audit (#533)
 
+> Note: `tools/depot-composition-audit.mjs` and `tools/depot-composition-integration.mjs` were retired in `#1389` and last existed on `main` at `b023fd20`.
+
 `baseline.json.gz` captures production outputs and observer traces for all twelve
 retained authored depot briefs from #663, plus a 6x6 no-fit and an isolated
 zero-density case. It records the commit and raw SHA-256 inventory of the measured
