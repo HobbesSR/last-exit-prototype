@@ -4,12 +4,12 @@ import { Worker } from 'node:worker_threads';
 // requests in order. A worker that dies fails what it held and is replaced by the next request.
 // Maps arrive packed (map-pack.js) and stay packed here: the room host hands them on to the thread
 // that runs the room, which is the only one to decode them (#1089).
-export function createMapGenerator({ runtimeMap = false } = {}) {
+export function createMapGenerator() {
   let worker = null, next = 0;
   const waiting = new Map();
   const failAll = error => { for (const { reject } of waiting.values()) reject(error); waiting.clear(); };
   function start() {
-    const started = new Worker(new URL('./map-worker.js', import.meta.url), { workerData: { runtimeMap } });
+    const started = new Worker(new URL('./map-worker.js', import.meta.url));
     started.on('message', ({ id, packed, error }) => {
       const request = waiting.get(id); waiting.delete(id);
       if (error) request?.reject(new Error(error)); else request?.resolve(packed);

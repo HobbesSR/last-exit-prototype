@@ -52,7 +52,7 @@ function projectedItem(item: GroundItem, wire: WireIds, projectedItems: WeakMap<
   return projected;
 }
 const gateLists = new WeakMap<readonly Gate[], GateState[]>(), gateRecords = new WeakMap<Gate, GateState>();
-export function dynamicGates(gates: readonly Gate[]): GateState[] {
+function dynamicGates(gates: readonly Gate[]): GateState[] {
   let list = gateLists.get(gates);
   if (!list) {
     list = gates.map((gate, i) => {
@@ -151,7 +151,7 @@ export function viewerOf(read: ReadFrame, id: PlayerId | null | undefined, liveI
 }
 
 /** The TypeScript information rule: everything for a directed view, else what lies within the potential radius. */
-export function decideByRules(source: ViewSource, read: ReadFrame, viewer: FramePlayer | undefined, liveIdx: PlayerIdx | undefined): ViewDecision {
+function decideByRules(source: ViewSource, read: ReadFrame, viewer: FramePlayer | undefined, liveIdx: PlayerIdx | undefined): ViewDecision {
   const { frame, players, ground } = read;
   // Effects are sized, so a wide ring counts as reachable when its edge is, not just its centre.
   const inRange = (p: Vec2 & { radius?: World | undefined }) => !viewer || distance(viewer, p) < POTENTIAL + (p.radius ?? 0);
@@ -222,7 +222,7 @@ export function snapshot(s: Game): Snapshot {
   finally { stop('sim.snapshot'); }
 }
 /** The game's frame with `captured` as its physics presentation (`snapshot` captures the old world's). */
-export function frameOf(s: Game, captured: FramePresentation | undefined): Snapshot {
+function frameOf(s: Game, captured: FramePresentation | undefined): Snapshot {
   try {
     const physics = captured?.physics;
     start('sim.snapshot.presentation');

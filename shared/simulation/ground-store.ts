@@ -114,19 +114,3 @@ export function ownGround(s: Game): void {
     edited: () => seen.delete(r),
   });
 }
-
-/**
- * Where the core's ground store differs from the live list, as `index.field: store != list` lines; empty when they agree.
- * For tests: after a tick, every change the helpers made must have reached the store.
- */
-export function groundDrift(s: Game, r: PhysicsRuntime): string[] {
-  if (!matches(r, s.items)) return ['the store has not seen the live list'];
-  const fresh = new Float64Array(s.items.length * RECORD);
-  for (let i = 0; i < s.items.length; i++) pack(s, r, s.items[i]!, fresh, i * RECORD);
-  const { core, world } = r.world.boundaryCall();
-  if (core.ground_count(world) !== s.items.length) return [`the store holds ${core.ground_count(world)} records, the list ${s.items.length}`];
-  const dumped = core.ground_dump(world) >>> 0;
-  const kept = new Float64Array(core.memory.buffer, dumped, fresh.length), out: string[] = [];
-  for (let k = 0; k < fresh.length; k++) if (!Object.is(kept[k], fresh[k])) out.push(`${Math.floor(k / RECORD)}.${k % RECORD}: ${kept[k]} != ${fresh[k]}`);
-  return out;
-}

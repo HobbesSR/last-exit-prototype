@@ -306,13 +306,6 @@ function applyOutput(s: Game, r: PhysicsRuntime, out: Float64Array, { mode, opti
   return { resume: out[4]!, stage: out[5]!, plan: out[6] === 1 && mode >= 2 ? { records, itemSerial: allocation.itemSerial!, scatterSerial: allocation.scatterSerial!, allocation } : null };
 }
 
-/** Phase 3's loop as `tick_finish` ran it in the core from the intents (#1214 stage 6e.5b), applied as `phaseThree`'s. */
-export function applyLoop(s: Game, out: Float64Array): void {
-  const r = physicsRuntime(s);
-  if (!r) throw new Error('phase 3 needs the game\'s physics world');
-  applyOutput(s, r, out, { mode: 0, options: {}, source: s, itemOf: token => carriedItem(r, token)!, live: true });
-}
-
 export function phaseThree(s: Game, intents: readonly (ActionIntent | undefined)[]): void {
   let start = 0, stage = 0;
   for (;;) {
@@ -320,9 +313,4 @@ export function phaseThree(s: Game, intents: readonly (ActionIntent | undefined)
     if (result.resume < 0) return;
     start = result.resume; stage = result.stage;
   }
-}
-/** A contestant's attack outside the loop, for scenarios; a gladiator's runs in the core's phase 5 (`tick_finish`). */
-export function attackInCore(s: Game, player: Player): void {
-  if (player.role === 'gladiator') throw new Error('a gladiator attacks in phase 5');
-  call(s, [], { mode: 1, player });
 }

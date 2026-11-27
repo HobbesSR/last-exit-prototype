@@ -5,7 +5,6 @@ import type { Game, GroundItem, MatchContent, GameMap, Vec2 } from '../types.ts'
 import type { PhysicsWorld } from '../physics/world.ts';
 import type { BodySpec } from '../physics/types.ts';
 import { hypot } from '../math.ts';
-import { groundItem, replaceItem } from './ground-items.ts';
 
 const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 
@@ -61,25 +60,6 @@ export function launchPhysicalDrops(s: Game, items: GroundItem[], from: Vec2): v
   r.synchronize();
 }
 
-/**
- * Phase 4's ground poses, from the core (#1214 stage 6e.4): the core moved each record whose body the step moved, in its
- * ground store, and this mirrors them without writing them through. Call it right after `players_after_step`.
- */
-export function adoptItemPoses(s: Game, r: PhysicsRuntime): void {
-  const { core, world } = r.world.boundaryCall();
-  const at = (core as typeof core & { ground_poses_after_step(world: number): number }).ground_poses_after_step(world) >>> 0;
-  const count = new Float64Array(core.memory.buffer, at, 1)[0]!;
-  applyItemPoses(s, new Float64Array(core.memory.buffer, at + 8, count * 3).slice());
-}
-
-/** The moved ground records (`id, x, y` each), mirrored without writing them through (6e.4). */
-export function applyItemPoses(s: Game, moved: Float64Array): void {
-  for (let k = 0; k < moved.length / 3; k++) {
-    const item = groundItem(s, moved[k * 3]! as GroundItem['id']);
-    if (item) replaceItem(s, item, { ...item, x: moved[k * 3 + 1]!, y: moved[k * 3 + 2]! }, true);
-  }
-}
-
 /** The floors and profiles each world was last given, so they cross once per match rather than once per tick. */
 const floors = new WeakMap<PhysicsWorld, { surfaces: GameMap['motorSurfaces']; profile: MatchContent['worldPhysics'] }>();
 /**
@@ -92,7 +72,7 @@ export function applyFloorDrag(s: Game, r: PhysicsRuntime): void {
 }
 
 /** Hand the world its floors and profiles, once per match. */
-export function ensureFloor(s: Game, r: PhysicsRuntime): void {
+function ensureFloor(s: Game, r: PhysicsRuntime): void {
   const profile = s.content.worldPhysics, surfaces = s.map.motorSurfaces, sent = floors.get(r.world);
   if (!sent || sent.surfaces !== surfaces || sent.profile !== profile) {
     r.world.setFloor([...surfaces ?? []].sort((a, b) => b.priority - a.priority || order(a.id, b.id))
