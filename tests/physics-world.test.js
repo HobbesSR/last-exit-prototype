@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { MAX_PHYSICS_SPEED } from '../shared/physics/motion-limits.ts';
 import { createPhysicsWorld } from '../shared/physics/world.ts';
+import { MAX_PHYSICS_EXTENT } from '../shared/simulation/physics-geometry.ts';
 
 const circle = (id, options = {}) => ({ id, kind: 'prop', shape: { kind: 'circle', radius: 12 },
   x: 0, y: 0, ...options });
@@ -347,4 +349,47 @@ test('a hull Rapier rejects mid-commit keeps what the commit already did (review
     assert.deepEqual(world.snapshot().pending.add.map(spec => spec.id), ['z']);
     assert.throws(() => world.commitMutations(), /invalid convex body/);
   } finally { world.dispose(); }
+});
+
+test('actors pressing each other and a wall settle within speed and containment gates at MAX_PHYSICS_EXTENT', async () => {
+  const actor = (id, x, y) => ({ id, kind: 'actor', shape: { kind: 'circle', radius: 12 }, x, y, mass: 1 });
+  const ids = ['a', 'b', 'c'];
+  const runCluster = async (cx, cy) => {
+    const world = await createPhysicsWorld();
+    try {
+      const wallFace = cx + 100;
+      world.queueAddBody({ id: 'wall', kind: 'static', mapGeometry: true, shape: { kind: 'box', hx: 20, hy: 200 }, x: wallFace + 20, y: cy });
+      world.queueAddBody(actor('a', cx + 10, cy));
+      world.queueAddBody(actor('b', cx + 42, cy - 6));
+      world.queueAddBody(actor('c', cx + 76, cy + 6));
+      world.queueAddConstraint({ id: 'rope', a: 'a', b: 'b', maxDistance: 50 });
+      world.commitMutations();
+      for (const id of ids) world.setMotor(id, { x: 400, y: 0, accel: 3600 });
+      for (let tick = 0; tick < 35; tick++) {
+        if (tick === 25) for (const id of ids) world.setMotor(id, { x: 0, y: 0, accel: 3600 });
+        const { paths } = world.step();
+        for (const id of ids) {
+          for (const p of paths[id]) {
+            assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y));
+            assert.ok(p.x + 12 <= wallFace + 0.5, `${id} crossed wall at (${cx},${cy}) tick ${tick}: ${p.x}`);
+          }
+          const t = world.getTransform(id);
+          assert.ok(Math.hypot(t.vx, t.vy) <= MAX_PHYSICS_SPEED + 0.01, `${id} exceeded speed limit at tick ${tick}`);
+        }
+      }
+      return ids.map(id => {
+        const t = world.getTransform(id);
+        assert.ok(t.x + 12 <= wallFace + 0.1, `${id} settled inside wall at (${cx},${cy}): ${t.x}`);
+        return { id, dx: t.x - cx, dy: t.y - cy, speed: Math.hypot(t.vx, t.vy) };
+      });
+    } finally { world.dispose(); }
+  };
+  const origin = await runCluster(0, 0);
+  const corner = await runCluster(MAX_PHYSICS_EXTENT - 200, MAX_PHYSICS_EXTENT / 2 - 200);
+  for (let i = 0; i < ids.length; i++) {
+    assert.ok(corner[i].speed < 1, `${ids[i]} did not settle at far corner: speed ${corner[i].speed}`);
+    assert.ok(Math.hypot(corner[i].dx - origin[i].dx, corner[i].dy - origin[i].dy) <= 0.5,
+      `${ids[i]} far-corner pose drifted: origin=${JSON.stringify(origin[i])} corner=${JSON.stringify(corner[i])}`);
+  }
+  assert.ok(Math.hypot(corner[0].dx - corner[1].dx, corner[0].dy - corner[1].dy) <= 50.5, 'rope held within tolerance');
 });
