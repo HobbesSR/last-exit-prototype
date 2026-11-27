@@ -242,13 +242,15 @@ explodes, the hazards run does what `enqueueExplosionImpulses` did at the stop (
   call.
 - **`hazards_run`** took the whole world (the hazards move out while they run) and the swept map. It retired with the other
   phase entry points (#1358).
-- **`enqueueExplosionImpulses`** is no longer called by play. Two tests still call it directly
-  (`physics-explosion`, `physics-items-boundaries`), and it stays as their retained copy.
+- **`enqueueExplosionImpulses`** (`shared/simulation/explosion-physics.ts`) and `tests/physics-explosion.test.js`
+  retired in #1358; `tests/physics-items-boundaries.test.js` now calls `enqueuePhysicsImpulse` directly.
 - **The witness.** `tools/trap-continuity.mjs` hashes the pending impulses every tick. Its bot matches set off 15
   mines, all inside the run (counted with a temporary probe), and it matched a pristine export of `02e47403` hash for
-  hash. Falloff, cover and order are held natively since #1358: `tick/tests/hazard_tests.rs`,
-  `mine_requires_solved_motion_and_pushes_only_existing_surviving_bodies_next_tick` and
-  `static_cover_blocks_a_mines_damage_and_its_impulse`.
+  hash. Falloff, zero-distance direction, cover, same-tick merge and canonical body order are held natively since #1358
+  in `tick/tests/hazard_tests.rs` (`mine_requires_solved_motion_and_pushes_only_existing_surviving_bodies_next_tick`,
+  `static_cover_blocks_a_mines_damage_and_its_impulse`,
+  `mine_impulse_uses_linear_falloff_deterministic_zero_distance_and_canonical_body_order`, and
+  `multiple_same_tick_mines_merge_into_one_carried_impulse_per_body`).
 - **Cost:** measured once, at the end of step 6.
 
 **Step 6e.1, the item registry in the core (#1214, adapter version 35).** The core keeps the item registry
@@ -1115,7 +1117,7 @@ adapter, deleted with `combat.ts`'s `damage` entry and `lifecycle.ts`'s `elimina
   `event-records.ts`, so the adapters build the records the core's facts name without importing their callers.
 - **No TypeScript copy.** `damage`, `eliminate`, the warden skill, the gladiator attack and the projectile sweep have
   no record-level copy: their only bare-record callers were tests, which now build real games
-  (`tests/physics-projectiles.test.js` and the mine cases of `tests/physics-explosion.test.js`, both retired in #1358 for
+  (`tests/physics-projectiles.test.js` and `tests/physics-explosion.test.js`, both retired in #1358 for
   native tests in `tick/tests/combat_tests.rs`, `tick/sweep.rs` and `tick/tests/hazard_tests.rs`), and `action-parity` no
   longer compares melee. Scenario `attack` and `skill` calls for a gladiator or warden run the caster run, which skips
   a caster that is not active, as the tick did. Phase 6's environment and traps call the core's damage directly

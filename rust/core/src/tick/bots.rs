@@ -989,4 +989,182 @@ mod tests {
         let near = walled(190.0, 110.0, 100.0, 300.0);
         assert!(!turns(&near, [187.5, 106.0]));
     }
+
+    #[test]
+    fn collect_shares_route_allowance_across_repairs_and_sliced_searches_in_roster_order() {
+        use crate::physics::{BodyParams, KIND_ACTOR, SHAPE_CIRCLE};
+        let (cols, rows, gate_col) = (39, 35, 35);
+        let width = cols as f64 * 192.0;
+        let height = rows as f64 * 192.0;
+        let nav =
+            RuntimeNavigation::for_cells(cols, rows, 1, |col, _| (col == gate_col).then_some(0));
+        let start = [(gate_col - 1) as f64 * 192.0 + 96.0, 17.0 * 192.0 + 96.0];
+        let gate_at = [gate_col as f64 * 192.0 + 96.0, 17.0 * 192.0 + 96.0];
+        let exit = [(cols - 1) as f64 * 192.0 + 96.0, 17.0 * 192.0 + 96.0];
+
+        let ids = [contestant(0), contestant(1), contestant(2)];
+        let mut scenario = Scenario::default();
+        scenario.bounds([0.0, 0.0], [width, height]);
+        scenario.state.extraction = Some(Extraction {
+            position: exit,
+            slots: 3,
+        });
+        scenario.state.gates.insert(
+            GateId(0),
+            Gate {
+                building: None,
+                open: true,
+                locked: false,
+                door: true,
+                position: gate_at,
+            },
+        );
+        let empty_grid = [0, 0, 0, 0, 0];
+        scenario.discovery(
+            crate::discovery::DiscoveryMap::new(
+                &[cols as f64, rows as f64, 192.0, 1200.0, 800.0, 4000.0],
+                &vec![1; cols * rows],
+                &[],
+                &[],
+                &[],
+            ),
+            SightIndex::new(&[], &empty_grid, &[], &[0], &empty_grid),
+            GateSet::new(&[], &[0], &[], &empty_grid),
+        );
+        let open_doors = BTreeMap::from([(
+            GateId(0),
+            DoorMemory {
+                open: true,
+                locked: false,
+            },
+        )]);
+        for (i, &id) in ids.iter().enumerate() {
+            let mut inventory = Inventory::default();
+            let cell = ItemId(i as u32 + 1);
+            inventory.slots[0] = Some(CarriedItem {
+                id: cell,
+                lineage: cell,
+                equipment: Equipment {
+                    kind: EquipmentKind::Cell { charge: 100 },
+                    quality: 1,
+                },
+            });
+            scenario.state.actors.insert(
+                id,
+                Actor {
+                    presence: Presence::Active,
+                    kit: None,
+                    level: 1,
+                    kills: 0,
+                    hp: 100.0,
+                    max_hp: 100.0,
+                    shield: 0.0,
+                    max_shield: 75.0,
+                    aim: 0.0,
+                    sneak: false,
+                    view_lag: 0,
+                    inventory,
+                    charging: None,
+                    respawn_at: None,
+                    transit: None,
+                    bot: true,
+                    aggression: None,
+                    deadlines: Deadlines::default(),
+                    statuses: BTreeMap::new(),
+                },
+            );
+            scenario.body(
+                BodyId::Actor(id),
+                BodySpec {
+                    params: BodyParams {
+                        kind: KIND_ACTOR,
+                        map_geometry: false,
+                        pose: [start[0], start[1], 0.0, 0.0, 0.0, 0.0],
+                        material: [1.0, 0.0, 0.0],
+                        damping: [Some(0.0); 2],
+                        groups: 0xffff_ffff,
+                    },
+                    shape: SHAPE_CIRCLE,
+                    dimensions: [12.0, 0.0],
+                    vertices: Vec::new(),
+                    speed_limit: 1_000.0,
+                    tip_radius: 0.0,
+                },
+            );
+            scenario.know(id, 0..(cols * rows) as u32, open_doors.clone());
+        }
+
+        let rules = Combat::default();
+        let mut game = scenario.start(1, 50);
+        game.bots = Planner::new(
+            Settings {
+                roster: ids
+                    .into_iter()
+                    .enumerate()
+                    .map(|(rank, id)| (id, false, true, rank))
+                    .collect(),
+                ..Settings::default()
+            },
+            0.0,
+            None,
+            None,
+        );
+        game.bots.map.navigation = Some(nav);
+
+        // Schedule each bot once so all three hold an open route through GateId(0).
+        for tick in [18, 19, 20] {
+            game.tick = tick;
+            collect(&mut game, &rules, tick + 1, &[]);
+        }
+        let initial_gens: Vec<_> = ids
+            .iter()
+            .map(|id| {
+                let bot = &game.bots.actors[id];
+                assert!(!bot.route.route.is_empty());
+                assert_eq!(bot.route.pending_expansions(), None);
+                bot.route.generation
+            })
+            .collect();
+
+        // Close the door in every bot's memory so all three seek a repair on the next tick.
+        for &id in &ids {
+            game.memory.get_mut(&id).unwrap().gates.insert(
+                GateId(0),
+                DoorMemory {
+                    open: false,
+                    locked: true,
+                },
+            );
+        }
+
+        // Unscheduled tick 21:
+        // - bot 0 exhausts its 500-expansion repair and spends 2000 on its sliced search (500 left);
+        // - bot 1 exhausts its 500-expansion repair (0 left) and queues its search with 0 expansions;
+        // - bot 2 defers its repair because remaining allowance < 500.
+        game.tick = 21;
+        collect(&mut game, &rules, 22, &[]);
+        let [b0, b1, b2] = ids.map(|id| &game.bots.actors[&id]);
+        assert!(b0.route.is_stale());
+        assert_eq!(b0.route.pending_expansions(), Some(2_000));
+        assert!(b1.route.is_stale());
+        assert_eq!(b1.route.pending_expansions(), Some(0));
+        assert!(!b2.route.is_stale());
+        assert_eq!(b2.route.pending_expansions(), None);
+        for (i, &id) in ids.iter().enumerate() {
+            assert_eq!(game.bots.actors[&id].route.generation, initial_gens[i]);
+        }
+
+        // Next tick (fresh 3000 allowance):
+        // - bot 0 finishes its search (450 remaining of 2450 triangles, 2550 left);
+        // - bot 1 advances one 2000-expansion slice (550 left);
+        // - bot 2 now runs its 500-expansion repair and spends the remaining 50 on its search.
+        game.tick = 22;
+        collect(&mut game, &rules, 23, &[]);
+        let [b0, b1, b2] = ids.map(|id| &game.bots.actors[&id]);
+        assert_eq!(b0.route.pending_expansions(), None);
+        assert_eq!(b0.route.generation, initial_gens[0] + 1);
+        assert_eq!(b1.route.pending_expansions(), Some(2_000));
+        assert!(b2.route.is_stale());
+        assert_eq!(b2.route.pending_expansions(), Some(50));
+    }
 }

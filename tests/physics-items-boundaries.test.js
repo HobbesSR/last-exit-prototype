@@ -1,13 +1,12 @@
 import { renderedSnapshot } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, disposePhysics, setInput, snapshot } from '../shared/simulation.ts';
+import { createGame, disposePhysics, enqueuePhysicsImpulse, setInput, snapshot } from '../shared/simulation.ts';
 import { startGame, stepGame } from '../shared/simulation/tick.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { createMatch } from '../server/match.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
-import { enqueueExplosionImpulses } from '../shared/simulation/explosion-physics.ts';
 import { openArea } from './helpers/arena.js';
 
 const parts = () => ({ map: { seed: 445, width: 800, height: 400,
@@ -40,7 +39,11 @@ test('many same-boundary explosions keep one bounded impulse per body/generation
   const { map, content } = parts(), s = await createGame(445, map, content);
   try {
     const r = physicsRuntime(s);
-    for (let i = 0; i < 200; i++) enqueueExplosionImpulses(s, { x: 200, y: 200 }, 500);
+    r.synchronize();
+    const bodies = r.world.snapshot({ includeStatic: false }).bodies.filter(body => body.spec.kind !== 'static');
+    for (let i = 0; i < 200; i++) {
+      for (const body of bodies) enqueuePhysicsImpulse(s, body.spec.id, { x: 250, y: 0 });
+    }
     assert.equal(r.pendingImpulses.length, 3);
     for (const impulse of r.pendingImpulses) assert.ok(Math.hypot(impulse.value.x, impulse.value.y) <= (impulse.id.startsWith('actor:') ? 600 : 300));
   } finally { disposePhysics(s); }

@@ -113,6 +113,18 @@ impl RouteState {
         self.plan.is_some()
     }
 
+    #[cfg(test)]
+    pub(super) fn pending_expansions(&self) -> Option<usize> {
+        self.search
+            .as_ref()
+            .map(|running| running.search.expansions())
+    }
+
+    #[cfg(test)]
+    pub(super) fn is_stale(&self) -> bool {
+        self.plan.as_ref().is_some_and(|plan| plan.stale)
+    }
+
     pub fn clear_route(&mut self) {
         self.route.clear();
         self.generation = self.generation.wrapping_add(1);
@@ -384,9 +396,50 @@ impl RouteState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tick::Memory;
 
     // The planner keeps a route's legs a body's clearance from walls, 2 beyond a contestant's body (#473 review).
     const MARGIN: f64 = 2.0;
+    const CONTESTANT_CLEARANCE: f64 = 14.0;
+    const CONTESTANT_BODY_RADIUS: f64 = 12.0;
+    const TICK_ALLOWANCE: usize = 3000;
+
+    fn known_knowledge(map: &RuntimeNavigation, doors: &BTreeMap<GateId, DoorMemory>) -> Knowledge {
+        let memory = Memory {
+            discovered: (0..map.cell_count() as u32).collect(),
+            gates: doors.clone(),
+            ..Default::default()
+        };
+        Knowledge::contestant(map, &memory, 0)
+    }
+
+    fn plan_route(
+        map: &Rc<RuntimeNavigation>,
+        doors: &BTreeMap<GateId, DoorMemory>,
+        gate_positions: &BTreeMap<GateId, Point>,
+        point: Point,
+        target: Point,
+    ) -> RouteState {
+        let mut state = RouteState::default();
+        let mut allowance = TICK_ALLOWANCE;
+        let status = state.repath(
+            Rc::clone(map),
+            CONTESTANT_CLEARANCE,
+            CONTESTANT_BODY_RADIUS,
+            known_knowledge(map, doors),
+            doors,
+            gate_positions,
+            true,
+            point,
+            target,
+            0,
+            0,
+            &mut allowance,
+        );
+        assert_eq!(status, Some(RouteStatus::Complete));
+        assert!(!state.route.is_empty());
+        state
+    }
 
     #[test]
     fn a_late_route_is_joined_only_within_its_margin_else_by_the_trail_back() {
@@ -435,5 +488,154 @@ mod tests {
             round[1..],
             "on the route"
         );
+    }
+
+    #[test]
+    fn repair_gates_on_remaining_allowance_and_succeeds_within_budget() {
+        let map =
+            RuntimeNavigation::for_cells(5, 2, 1, |col, row| (col == 1 && row == 0).then_some(0));
+        let gate_positions = BTreeMap::from([(GateId(0), [288.0, 96.0])]);
+        let open_doors = BTreeMap::from([(
+            GateId(0),
+            DoorMemory {
+                open: true,
+                locked: false,
+            },
+        )]);
+        let closed_doors = BTreeMap::from([(
+            GateId(0),
+            DoorMemory {
+                open: false,
+                locked: true,
+            },
+        )]);
+        let point = [96.0, 96.0];
+        let target = [864.0, 96.0];
+        let mut state = plan_route(&map, &open_doors, &gate_positions, point, target);
+        let original_route = state.route.clone();
+        let original_gen = state.generation;
+        let knowledge = known_knowledge(&map, &closed_doors);
+
+        // 1. Allowance below REPAIR_BUDGET (499) skips repair and leaves route/generation untouched.
+        let mut allowance = REPAIR_BUDGET - 1;
+        assert_eq!(
+            state.repair(
+                &map,
+                CONTESTANT_CLEARANCE,
+                &knowledge,
+                &closed_doors,
+                &gate_positions,
+                point,
+                &mut allowance,
+            ),
+            None
+        );
+        assert_eq!(allowance, REPAIR_BUDGET - 1);
+        assert_eq!(state.route, original_route);
+        assert_eq!(state.generation, original_gen);
+
+        // Unscheduled repath also skips repair while allowance < REPAIR_BUDGET.
+        assert_eq!(
+            state.repath(
+                Rc::clone(&map),
+                CONTESTANT_CLEARANCE,
+                CONTESTANT_BODY_RADIUS,
+                knowledge.clone(),
+                &closed_doors,
+                &gate_positions,
+                true,
+                point,
+                target,
+                1,
+                0,
+                &mut allowance,
+            ),
+            None
+        );
+        assert_eq!(allowance, REPAIR_BUDGET - 1);
+        assert_eq!(state.route, original_route);
+        assert_eq!(state.generation, original_gen);
+
+        // 2. With full tick allowance (3000), a nearby change repairs around the closed door.
+        let mut allowance = TICK_ALLOWANCE;
+        assert_eq!(
+            state.repair(
+                &map,
+                CONTESTANT_CLEARANCE,
+                &knowledge,
+                &closed_doors,
+                &gate_positions,
+                point,
+                &mut allowance,
+            ),
+            Some(true)
+        );
+        let spent = TICK_ALLOWANCE - allowance;
+        assert!(spent > 0 && spent <= REPAIR_BUDGET);
+        assert_ne!(state.route, original_route);
+        assert_eq!(state.generation, original_gen + 1);
+    }
+
+    #[test]
+    fn repair_stops_at_budget_exhaustion_and_marks_plan_stale() {
+        let map = RuntimeNavigation::for_cells(24, 20, 1, |col, _| (col == 20).then_some(0));
+        let gate_positions =
+            BTreeMap::from([(GateId(0), [20.0 * 192.0 + 96.0, 10.0 * 192.0 + 96.0])]);
+        let open_doors = BTreeMap::from([(
+            GateId(0),
+            DoorMemory {
+                open: true,
+                locked: false,
+            },
+        )]);
+        let closed_doors = BTreeMap::from([(
+            GateId(0),
+            DoorMemory {
+                open: false,
+                locked: true,
+            },
+        )]);
+        let point = [19.0 * 192.0 + 96.0, 10.0 * 192.0 + 96.0];
+        let target = [23.0 * 192.0 + 96.0, 10.0 * 192.0 + 96.0];
+        let mut state = plan_route(&map, &open_doors, &gate_positions, point, target);
+        let original_route = state.route.clone();
+        let original_gen = state.generation;
+        let knowledge = known_knowledge(&map, &closed_doors);
+
+        let mut allowance = TICK_ALLOWANCE;
+        assert_eq!(
+            state.repair(
+                &map,
+                CONTESTANT_CLEARANCE,
+                &knowledge,
+                &closed_doors,
+                &gate_positions,
+                point,
+                &mut allowance,
+            ),
+            Some(false)
+        );
+        assert_eq!(allowance, TICK_ALLOWANCE - REPAIR_BUDGET);
+        assert_eq!(state.route, original_route);
+        assert_eq!(state.generation, original_gen);
+        assert!(state.plan.as_ref().unwrap().stale);
+
+        // On the next scheduled tick, stale marks the plan due and forces a full replan.
+        let status = state.repath(
+            Rc::clone(&map),
+            CONTESTANT_CLEARANCE,
+            CONTESTANT_BODY_RADIUS,
+            knowledge,
+            &closed_doors,
+            &gate_positions,
+            true,
+            point,
+            target,
+            REPATH,
+            0,
+            &mut allowance,
+        );
+        assert_eq!(status, Some(RouteStatus::NoKnownRoute));
+        assert_eq!(state.generation, original_gen + 1);
     }
 }
